@@ -8,21 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react"; // <-- Import Ikon Mata
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // <-- State untuk Ikon Mata
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Fungsi untuk menangani proses login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    // Memanggil jembatan Supabase yang tadi kita buat
     const supabase = createClient();
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -34,7 +34,6 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      // Jika berhasil login, arahkan ke Dashboard
       router.push("/dashboard");
     }
   };
@@ -66,21 +65,35 @@ export default function LoginPage() {
                 className="border-slate-700 bg-slate-950 text-slate-200 focus-visible:ring-teal-500"
               />
             </div>
+            
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="text-slate-300">Password</Label>
               </div>
-              <Input 
-                id="password" 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="border-slate-700 bg-slate-950 text-slate-200 focus-visible:ring-teal-500"
-              />
+              {/* Desain Kotak Password dengan Ikon */}
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  type={showPassword ? "text" : "password"} 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="border-slate-700 bg-slate-950 pr-10 text-slate-200 focus-visible:ring-teal-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
             
-            {/* Menampilkan pesan error jika login gagal */}
             {error && <p className="text-sm font-medium text-red-500">{error}</p>}
             
             <Button 

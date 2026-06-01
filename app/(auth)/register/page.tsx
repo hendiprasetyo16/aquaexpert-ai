@@ -8,11 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react"; // <-- Import Ikon Mata
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // <-- State untuk Ikon Mata
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -24,17 +26,15 @@ export default function RegisterPage() {
     setError(null);
     setSuccessMsg(null);
 
-    // Validasi Password (Minimal 6 karakter, ada huruf dan angka)
     const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d).{6,}$/;
-        if (!passwordRegex.test(password)) {
+    if (!passwordRegex.test(password)) {
         setError("Password harus mengandung kombinasi huruf dan angka.");
         setLoading(false);
         return;
     }
 
-    const supabase = createClient(); // (Baris yang sudah ada)
+    const supabase = createClient();
 
-    // 1. Mendaftarkan User ke Supabase Auth
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -51,8 +51,6 @@ export default function RegisterPage() {
       return;
     }
 
-    // 2. Menyimpan data profil tambahan ke tabel public.profiles
-    // Secara default, user baru akan mendapat role 'user'
     if (data.user) {
       const { error: profileError } = await supabase
         .from('profiles')
@@ -61,7 +59,6 @@ export default function RegisterPage() {
             id: data.user.id, 
             email: email,
             full_name: fullName,
-            // role: 'user' -> Sudah diatur otomatis di database oleh default value
           }
         ]);
 
@@ -74,7 +71,6 @@ export default function RegisterPage() {
 
     setSuccessMsg("Pendaftaran berhasil! Mengarahkan ke dashboard...");
     
-    // Memberi jeda sedikit agar pesan sukses terbaca, lalu pindah ke dashboard
     setTimeout(() => {
       router.push("/dashboard");
     }, 2000);
@@ -119,21 +115,35 @@ export default function RegisterPage() {
                 className="border-slate-700 bg-slate-950 text-slate-200 focus-visible:ring-teal-500"
               />
             </div>
+            
             <div className="space-y-2">
               <Label htmlFor="password" className="text-slate-300">Password</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="border-slate-700 bg-slate-950 text-slate-200 focus-visible:ring-teal-500"
-              />
-              <p className="text-xs text-slate-500">Minimal 6 karakter.</p>
+              {/* Desain Kotak Password dengan Ikon */}
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  type={showPassword ? "text" : "password"} 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="border-slate-700 bg-slate-950 pr-10 text-slate-200 focus-visible:ring-teal-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">Minimal 6 karakter, dengan kombinasi huruf dan angka.</p>
             </div>
             
-            {/* Pesan Status */}
             {error && <p className="text-sm font-medium text-red-500">{error}</p>}
             {successMsg && <p className="text-sm font-medium text-teal-400">{successMsg}</p>}
             
