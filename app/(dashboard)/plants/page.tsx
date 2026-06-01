@@ -1,21 +1,10 @@
-"use client";
-
-import { useEffect } from "react";
-import { getPlants } from "@/features/plants/repositories/plant.repository";
+import PlantList from "@/features/plants/components/PlantList";
 
 export default function PlantsPage() {
-  useEffect(() => {
-    async function test() {
-      const plants = await getPlants();
-      console.log("DATA TANAMAN:", plants);
-    }
-
-    test();
-  }, []);
-
   return (
-    <div className="p-6 text-white">
-      <h1>Plants Page - Cek Console Browser Anda (F12)</h1>
+    // Menambahkan background gelap dan warna teks default terang
+    <div className="min-h-screen bg-slate-950 p-6 text-slate-50">
+      <PlantList />
     </div>
   );
 }
