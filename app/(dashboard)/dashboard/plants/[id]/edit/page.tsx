@@ -24,6 +24,8 @@ export default function EditPlantPage() {
           params.id as string
         );
 
+      console.log("PLANT DATA:", data);
+      
       setPlant(data);
     }
 
