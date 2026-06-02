@@ -1,5 +1,6 @@
 export interface Plant {
   id: string;
+
   name: string;
   scientific_name?: string;
 
@@ -18,9 +19,11 @@ export interface Plant {
   temperature_max?: number;
 
   description?: string;
+
   image_url?: string;
 
   created_at: string;
   updated_at?: string;
-  is_active?: boolean; // Tambahan untuk Soft Delete
+
+  is_active?: boolean;
 }
