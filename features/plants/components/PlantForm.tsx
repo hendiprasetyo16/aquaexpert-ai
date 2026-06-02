@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -11,220 +11,123 @@ import {
 } from "../repositories/plant.repository";
 
 import { Plant } from "../types/plant.types";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
-
-import {
-  Loader2,
-  ImagePlus,
-  Trash2,
-} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, ImagePlus, Trash2 } from "lucide-react";
 
 interface PlantFormProps {
   mode?: "create" | "edit";
   plant?: Plant;
 }
 
-export default function PlantForm({
-  mode = "create",
-  plant,
-}: PlantFormProps) {
+export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewImage, setPreviewImage] = useState<string>("");
 
-  const [loading, setLoading] =
-    useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    scientific_name: "",
+    placement: "Midground",
+    difficulty: "Mudah",
+    light_requirement: "Sedang",
+    co2_requirement: "Rendah",
+  });
 
-  const [error, setError] =
-    useState<string | null>(null);
+  // 👇 INI ADALAH KUNCI PERBAIKANNYA: Memaksa form membaca data lama saat masuk mode Edit
+  useEffect(() => {
+    if (mode === "edit" && plant) {
+      setFormData({
+        name: plant.name || "",
+        scientific_name: plant.scientific_name || "",
+        placement: plant.placement || "Midground",
+        difficulty: plant.difficulty || "Mudah",
+        light_requirement: plant.light_requirement || "Sedang",
+        co2_requirement: plant.co2_requirement || "Rendah",
+      });
+      if (plant.image_url) {
+        setPreviewImage(plant.image_url);
+      }
+    }
+  }, [plant, mode]);
 
-  const [imageFile, setImageFile] =
-    useState<File | null>(null);
-
-  const [previewImage, setPreviewImage] =
-    useState<string>(
-      plant?.image_url || ""
-    );
-
-  const [formData, setFormData] =
-    useState({
-      name:
-        plant?.name || "",
-
-      scientific_name:
-        plant?.scientific_name || "",
-
-      placement:
-        plant?.placement ||
-        "Midground",
-
-      difficulty:
-        plant?.difficulty ||
-        "Mudah",
-
-      light_requirement:
-        plant?.light_requirement ||
-        "Sedang",
-
-      co2_requirement:
-        plant?.co2_requirement ||
-        "Rendah",
-    });
-
-  function handleChange(
-    e:
-      | React.ChangeEvent<HTMLInputElement>
-      | React.ChangeEvent<HTMLSelectElement>
-  ) {
-    setFormData({
-      ...formData,
-      [e.target.name]:
-        e.target.value,
-    });
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   }
 
-  function handleImageChange(
-    e: React.ChangeEvent<HTMLInputElement>
-  ) {
-    if (
-      e.target.files &&
-      e.target.files[0]
-    ) {
-      const file =
-        e.target.files[0];
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
 
-      const validTypes = [
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-        "image/jpg",
-      ];
-
-      if (
-        !validTypes.includes(
-          file.type
-        )
-      ) {
-        setError(
-          "Format gambar harus JPG, PNG atau WEBP."
-        );
+      if (!validTypes.includes(file.type)) {
+        setError("Format gambar harus JPG, PNG atau WEBP.");
         return;
       }
 
-      if (
-        file.size >
-        2 * 1024 * 1024
-      ) {
-        setError(
-          "Ukuran gambar maksimal 2MB."
-        );
+      if (file.size > 2 * 1024 * 1024) {
+        setError("Ukuran gambar maksimal 2MB.");
         return;
       }
 
       setError(null);
-
       setImageFile(file);
-
-      setPreviewImage(
-        URL.createObjectURL(file)
-      );
+      setPreviewImage(URL.createObjectURL(file));
     }
   }
 
-  async function handleSubmit(
-    e: React.FormEvent
-  ) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     try {
       setLoading(true);
       setError(null);
 
-      let imageUrl =
-        plant?.image_url || "";
+      let imageUrl = plant?.image_url || "";
 
       if (imageFile) {
-        imageUrl =
-          await uploadPlantImage(
-            imageFile,
-            formData.name
-          );
+        imageUrl = await uploadPlantImage(imageFile, formData.name);
       }
 
       const payload = {
         ...formData,
-        image_url:
-          imageUrl || null,
+        image_url: imageUrl || null,
       };
 
-      if (
-        mode === "create"
-      ) {
-        await createPlant(
-          payload
-        );
+      if (mode === "create") {
+        await createPlant(payload);
       } else {
-        await updatePlant(
-          plant!.id,
-          payload
-        );
+        await updatePlant(plant!.id, payload);
       }
 
-      router.push(
-        "/dashboard/plants"
-      );
-
+      router.push("/dashboard/plants");
       router.refresh();
     } catch (err: any) {
       console.error(err);
-
-      setError(
-        err.message ||
-          "Terjadi kesalahan."
-      );
+      setError(err.message || "Terjadi kesalahan.");
     } finally {
       setLoading(false);
     }
   }
 
   async function handleDelete() {
-    if (
-      !plant ||
-      mode !== "edit"
-    )
-      return;
+    if (!plant || mode !== "edit") return;
 
-    const confirmDelete =
-      window.confirm(
-        `Hapus tanaman ${plant.name}?`
-      );
-
-    if (!confirmDelete)
-      return;
+    const confirmDelete = window.confirm(`Hapus tanaman ${plant.name}?`);
+    if (!confirmDelete) return;
 
     try {
       setLoading(true);
-
-      await deletePlant(
-        plant.id
-      );
-
-      router.push(
-        "/dashboard/plants"
-      );
-
+      await deletePlant(plant.id);
+      router.push("/dashboard/plants");
       router.refresh();
     } catch (error) {
       console.error(error);
-
-      alert(
-        "Gagal menghapus tanaman."
-      );
+      alert("Gagal menghapus tanaman.");
     } finally {
       setLoading(false);
     }
@@ -233,26 +136,13 @@ export default function PlantForm({
   return (
     <Card className="border-slate-800 bg-slate-900/60">
       <CardContent className="p-6">
-        <form
-          onSubmit={
-            handleSubmit
-          }
-          className="space-y-6"
-        >
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
-            <Label className="text-slate-300">
-              Gambar Tanaman
-            </Label>
+            <Label className="text-slate-300">Gambar Tanaman</Label>
 
             <div className="overflow-hidden rounded-lg border border-slate-700">
               {previewImage ? (
-                <img
-                  src={
-                    previewImage
-                  }
-                  alt="Preview"
-                  className="h-56 w-full object-cover"
-                />
+                <img src={previewImage} alt="Preview" className="h-56 w-full object-cover" />
               ) : (
                 <div className="flex h-56 items-center justify-center bg-slate-800">
                   <ImagePlus className="h-10 w-10 text-slate-600" />
@@ -260,154 +150,53 @@ export default function PlantForm({
               )}
             </div>
 
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={
-                handleImageChange
-              }
-            />
+            <Input type="file" accept="image/*" onChange={handleImageChange} />
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
             <div>
-              <Label>
-                Nama Tanaman
-              </Label>
-
-              <Input
-                name="name"
-                required
-                value={
-                  formData.name
-                }
-                onChange={
-                  handleChange
-                }
-              />
+              <Label>Nama Tanaman</Label>
+              <Input name="name" required value={formData.name} onChange={handleChange} />
             </div>
 
             <div>
-              <Label>
-                Nama Ilmiah
-              </Label>
-
-              <Input
-                name="scientific_name"
-                value={
-                  formData.scientific_name
-                }
-                onChange={
-                  handleChange
-                }
-              />
+              <Label>Nama Ilmiah</Label>
+              <Input name="scientific_name" value={formData.scientific_name} onChange={handleChange} />
             </div>
 
             <div>
-              <Label>
-                Tingkat Kesulitan
-              </Label>
-
-              <select
-                name="difficulty"
-                value={
-                  formData.difficulty
-                }
-                onChange={
-                  handleChange
-                }
-                className="flex h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-200"
-              >
-                <option>
-                  Mudah
-                </option>
-                <option>
-                  Sedang
-                </option>
-                <option>
-                  Sulit
-                </option>
+              <Label>Tingkat Kesulitan</Label>
+              <select name="difficulty" value={formData.difficulty} onChange={handleChange} className="flex h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-200">
+                <option>Mudah</option>
+                <option>Sedang</option>
+                <option>Sulit</option>
               </select>
             </div>
 
             <div>
-              <Label>
-                Posisi
-              </Label>
-
-              <select
-                name="placement"
-                value={
-                  formData.placement
-                }
-                onChange={
-                  handleChange
-                }
-                className="flex h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-200"
-              >
-                <option>
-                  Foreground
-                </option>
-                <option>
-                  Midground
-                </option>
-                <option>
-                  Background
-                </option>
+              <Label>Posisi</Label>
+              <select name="placement" value={formData.placement} onChange={handleChange} className="flex h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-200">
+                <option>Foreground</option>
+                <option>Midground</option>
+                <option>Background</option>
               </select>
             </div>
 
             <div>
-              <Label>
-                Cahaya
-              </Label>
-
-              <select
-                name="light_requirement"
-                value={
-                  formData.light_requirement
-                }
-                onChange={
-                  handleChange
-                }
-                className="flex h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-200"
-              >
-                <option>
-                  Rendah
-                </option>
-                <option>
-                  Sedang
-                </option>
-                <option>
-                  Tinggi
-                </option>
+              <Label>Cahaya</Label>
+              <select name="light_requirement" value={formData.light_requirement} onChange={handleChange} className="flex h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-200">
+                <option>Rendah</option>
+                <option>Sedang</option>
+                <option>Tinggi</option>
               </select>
             </div>
 
             <div>
-              <Label>
-                CO2
-              </Label>
-
-              <select
-                name="co2_requirement"
-                value={
-                  formData.co2_requirement
-                }
-                onChange={
-                  handleChange
-                }
-                className="flex h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-200"
-              >
-                <option>
-                  Tanpa Injeksi
-                </option>
-                <option>
-                  Rendah
-                </option>
-                <option>
-                  Tinggi
-                </option>
+              <Label>CO2</Label>
+              <select name="co2_requirement" value={formData.co2_requirement} onChange={handleChange} className="flex h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-200">
+                <option>Tanpa Injeksi</option>
+                <option>Rendah</option>
+                <option>Tinggi</option>
               </select>
             </div>
           </div>
@@ -420,49 +209,18 @@ export default function PlantForm({
 
           <div className="flex justify-between border-t border-slate-800 pt-6">
             <div>
-              {mode ===
-                "edit" && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={
-                    handleDelete
-                  }
-                  disabled={
-                    loading
-                  }
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Hapus
+              {mode === "edit" && (
+                <Button type="button" variant="destructive" onClick={handleDelete} disabled={loading}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Hapus
                 </Button>
               )}
             </div>
 
             <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() =>
-                  router.back()
-                }
-              >
-                Batal
-              </Button>
-
-              <Button
-                type="submit"
-                disabled={
-                  loading
-                }
-              >
-                {loading && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-
-                {mode ===
-                "create"
-                  ? "Simpan Tanaman"
-                  : "Update Tanaman"}
+              <Button type="button" variant="outline" onClick={() => router.back()}>Batal</Button>
+              <Button type="submit" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {mode === "create" ? "Simpan Tanaman" : "Update Tanaman"}
               </Button>
             </div>
           </div>
