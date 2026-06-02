@@ -1,22 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getCurrentProfile } from "@/features/auth/repositories/user.repository";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2 } from "lucide-react";
 
 export default function DashboardPage() {
-  const [profile, setProfile] = useState<any>(null);
+  // PANGGIL CONTEXT INSTAN
+  const { user, profile, role, isLoading } = useAuth();
 
-  useEffect(() => {
-    async function load() {
-      const data = await getCurrentProfile();
-
-      console.log("PROFILE:", data);
-
-      setProfile(data);
-    }
-
-    load();
-  }, []);
+  // Tampilkan loading jika context masih sinkronisasi
+  if (isLoading) {
+    return (
+      <div className="flex h-full min-h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 text-white">
@@ -25,10 +23,18 @@ export default function DashboardPage() {
       </h1>
 
       {profile && (
-        <div className="mt-6 rounded-lg border border-slate-700 p-4">
-          <p>Nama : {profile.full_name}</p>
-          <p>Email : {profile.email}</p>
-          <p>Role : {profile.role}</p>
+        <div className="mt-6 rounded-lg border border-slate-700 bg-slate-900/50 p-6 shadow-sm">
+          <h2 className="mb-4 text-xl font-semibold text-teal-400">Informasi Sesi Anda</h2>
+          <div className="space-y-2 text-slate-300">
+            <p><span className="font-medium text-slate-400">Nama:</span> {profile.full_name}</p>
+            <p><span className="font-medium text-slate-400">Email:</span> {user?.email}</p>
+            <p>
+              <span className="font-medium text-slate-400">Role:</span>{" "}
+              <span className="rounded-md bg-teal-900/50 px-2 py-1 text-xs text-teal-400">
+                {role}
+              </span>
+            </p>
+          </div>
         </div>
       )}
     </div>

@@ -34,58 +34,38 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // HAPUS BARIS INI:
+  // const { data: { user } } = await supabase.auth.getUser();
+  // GANTI DENGAN INI (Membaca KTP/Cookie secara lokal dalam 0 milidetik):
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
+  
   const pathname = request.nextUrl.pathname;
 
-  /*
-   * BELUM LOGIN
-   */
+  /* JIKA BELUM LOGIN */
   if (!user && pathname.startsWith("/dashboard")) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  /*
-   * SUDAH LOGIN
-   */
+  /* JIKA SUDAH LOGIN */
   if (user) {
-    const isAuthPage =
-      pathname === "/" ||
-      pathname === "/login" ||
-      pathname === "/register";
+    const isAuthPage = pathname === "/" || pathname === "/login" || pathname === "/register";
 
     if (isAuthPage) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    // Role Protection
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    const role = profile?.role ?? "user";
 
-    const role = profile?.role;
-
-    /*
-     * USER TIDAK BOLEH
-     * CREATE / EDIT / DELETE
-     */
-    const isPlantAdminPage =
-      pathname.includes("/plants/create") ||
-      pathname.includes("/plants/edit") ||
-      pathname.match(/\/plants\/.*\/edit/);
+    const isPlantAdminPage = pathname.includes("/plants/create") || pathname.includes("/plants/edit");
 
     if (role === "user" && isPlantAdminPage) {
       return NextResponse.redirect(new URL("/dashboard/plants", request.url));
     }
 
-    /*
-     * USER TIDAK BOLEH
-     * USERS & SETTINGS
-     */
-    if (
-      role !== "super_admin" &&
-      (pathname.startsWith("/admin/users") || pathname.startsWith("/admin/settings"))
-    ) {
+    if (role !== "super_admin" && (pathname.startsWith("/admin/users") || pathname.startsWith("/admin/settings"))) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }

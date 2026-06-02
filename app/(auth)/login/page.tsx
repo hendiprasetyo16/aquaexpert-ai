@@ -37,7 +37,8 @@ export default function LoginPage() {
       // Beri waktu 300ms agar Cookie Supabase tersimpan sempurna
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      window.location.href = "/dashboard";
+      // SOLUSI: Mengganti riwayat browser agar tombol Back tidak kembali ke Login
+      window.location.replace("/dashboard");
     } catch (err: any) {
       setError(err.message || "Login gagal");
     } finally {

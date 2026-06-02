@@ -1,0 +1,14 @@
+"use client";
+
+import { useContext } from "react";
+import { AuthContext } from "@/providers/AuthProvider";
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  
+  if (context === undefined) {
+    throw new Error("useAuth harus digunakan di dalam AuthProvider");
+  }
+  
+  return context;
+}
