@@ -34,7 +34,9 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push("/dashboard");
+        // KUNCI PERBAIKANNYA DI SINI:
+        router.push("/dashboard"); 
+        router.refresh(); // Memaksa Next.js menyegarkan sesi secepat kilat!
     }
   };
 

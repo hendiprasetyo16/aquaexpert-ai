@@ -32,7 +32,7 @@ export default function PlantList() {
         </div>
         
         {/* Tombol Tambah Tanaman yang sudah diperbaiki */}
-        <Link href="/plants/create">
+        <Link href="/dashboard/plants/create">
           <Button className="bg-teal-600 text-white hover:bg-teal-500">
             <Plus className="mr-2 h-4 w-4" /> Tambah Tanaman
           </Button>
