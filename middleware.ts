@@ -1,65 +1,187 @@
-import { NextResponse, type NextRequest } from 'next/server'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import {
+  NextResponse,
+  type NextRequest,
+} from "next/server";
 
-export async function middleware(request: NextRequest) {
+import {
+  createServerClient,
+  type CookieOptions,
+} from "@supabase/ssr";
+
+export async function middleware(
+  request: NextRequest
+) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
-  })
+  });
 
-  // Membuat klien Supabase khusus untuk lingkungan Server
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({
-            request: { headers: request.headers },
-          })
-          response.cookies.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: '', ...options })
-          response = NextResponse.next({
-            request: { headers: request.headers },
-          })
-          response.cookies.set({ name, value: '', ...options })
-        },
-      },
-    }
-  )
+  const supabase =
+    createServerClient(
+      process.env
+        .NEXT_PUBLIC_SUPABASE_URL!,
+      process.env
+        .NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(
+              name
+            )?.value;
+          },
 
-  // Mengecek status user saat ini
-  const { data: { user } } = await supabase.auth.getUser()
+          set(
+            name: string,
+            value: string,
+            options: CookieOptions
+          ) {
+            request.cookies.set({
+              name,
+              value,
+              ...options,
+            });
 
-  // LOGIKA SATPAM:
-  // Jika user belum login, dan mencoba mengakses halaman yang berawalan "/dashboard"
-  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
-    // Arahkan paksa ke halaman login
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+            response =
+              NextResponse.next({
+                request: {
+                  headers:
+                    request.headers,
+                },
+              });
+
+            response.cookies.set({
+              name,
+              value,
+              ...options,
+            });
+          },
+
+          remove(
+            name: string,
+            options: CookieOptions
+          ) {
+            request.cookies.set({
+              name,
+              value: "",
+              ...options,
+            });
+
+            response =
+              NextResponse.next({
+                request: {
+                  headers:
+                    request.headers,
+                },
+              });
+
+            response.cookies.set({
+              name,
+              value: "",
+              ...options,
+            });
+          },
+        },
+      }
+    );
+
+  const {
+    data: { user },
+  } =
+    await supabase.auth.getUser();
+
+  const pathname =
+    request.nextUrl.pathname;
+
+  /*
+   * BELUM LOGIN
+   */
+
+  if (
+    !user &&
+    pathname.startsWith(
+      "/dashboard"
+    )
+  ) {
+    return NextResponse.redirect(
+      new URL(
+        "/login",
+        request.url
+      )
+    );
   }
 
-  return response
+  /*
+   * SUDAH LOGIN
+   */
+
+  if (user) {
+    const { data: profile } =
+      await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+    const role =
+      profile?.role;
+
+    /*
+     * USER TIDAK BOLEH
+     * CREATE / EDIT / DELETE
+     */
+
+    const isPlantAdminPage =
+      pathname.includes(
+        "/plants/create"
+      ) ||
+      pathname.includes(
+        "/plants/edit"
+      ) ||
+      pathname.match(
+        /\/plants\/.*\/edit/
+      );
+
+    if (
+      role === "user" &&
+      isPlantAdminPage
+    ) {
+      return NextResponse.redirect(
+        new URL(
+          "/dashboard/plants",
+          request.url
+        )
+      );
+    }
+
+    /*
+     * USER TIDAK BOLEH
+     * USERS & SETTINGS
+     */
+
+    if (
+      role !== "super_admin" &&
+      (pathname.startsWith(
+        "/admin/users"
+      ) ||
+        pathname.startsWith(
+          "/admin/settings"
+        ))
+    ) {
+      return NextResponse.redirect(
+        new URL(
+          "/dashboard",
+          request.url
+        )
+      );
+    }
+  }
+
+  return response;
 }
 
-// Menentukan di rute mana saja satpam ini berjaga
 export const config = {
   matcher: [
-    /*
-     * Berjaga di semua rute KECUALI:
-     * - _next/static (file statis)
-     * - _next/image (gambar bawaan)
-     * - favicon.ico (ikon website)
-     * - file gambar dan ekstensi lainnya
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
-}
+};
