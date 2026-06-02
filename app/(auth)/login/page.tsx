@@ -1,42 +1,47 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react"; // <-- Import Ikon Mata
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // <-- State untuk Ikon Mata
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
 
-    const supabase = createClient();
+    try {
+      setLoading(true);
+      setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+      const supabase = createClient();
 
-    if (error) {
-      setError(error.message);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Beri waktu 300ms agar Cookie Supabase tersimpan sempurna
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      window.location.href = "/dashboard";
+    } catch (err: any) {
+      setError(err.message || "Login gagal");
+    } finally {
       setLoading(false);
-    } else {
-        // KUNCI PERBAIKANNYA DI SINI:
-        router.push("/dashboard"); 
-        router.refresh(); // Memaksa Next.js menyegarkan sesi secepat kilat!
     }
   };
 
@@ -72,7 +77,6 @@ export default function LoginPage() {
               <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="text-slate-300">Password</Label>
               </div>
-              {/* Desain Kotak Password dengan Ikon */}
               <div className="relative">
                 <Input 
                   id="password" 
