@@ -1,15 +1,23 @@
 "use client";
 
 import { useState } from "react";
+//import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
+  //const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -30,15 +38,16 @@ export default function LoginPage() {
         password,
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      // Beri waktu 300ms agar Cookie Supabase tersimpan sempurna
+      // HANYA REPLACE, JANGAN ADA REFRESH!
+      //router.replace("/dashboard");
+      // Beri waktu sejenak agar Cookie benar-benar tertulis di browser
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      // SOLUSI: Mengganti riwayat browser agar tombol Back tidak kembali ke Login
+      // MENDOBRAK CACHE NEXT.JS SECARA AMAN:
       window.location.replace("/dashboard");
+      
     } catch (err: any) {
       setError(err.message || "Login gagal");
     } finally {
@@ -49,7 +58,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
       <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-teal-900/20 via-slate-950 to-slate-950"></div>
-      
+
       <Card className="z-10 w-full max-w-md border-slate-800 bg-slate-900/80 text-slate-50 backdrop-blur-sm">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-3xl font-bold tracking-tight">
@@ -63,25 +72,23 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-slate-300">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="nama@email.com" 
+              <Input
+                id="email"
+                type="email"
+                placeholder="nama@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="border-slate-700 bg-slate-950 text-slate-200 focus-visible:ring-teal-500"
               />
             </div>
-            
+
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-slate-300">Password</Label>
-              </div>
+              <Label htmlFor="password" className="text-slate-300">Password</Label>
               <div className="relative">
-                <Input 
-                  id="password" 
-                  type={showPassword ? "text" : "password"} 
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -92,26 +99,22 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
-            
+
             {error && <p className="text-sm font-medium text-red-500">{error}</p>}
-            
-            <Button 
-              type="submit" 
+
+            <Button
+              type="submit"
               className="w-full bg-teal-600 text-white hover:bg-teal-500"
               disabled={loading}
             >
               {loading ? "Memproses..." : "Masuk"}
             </Button>
           </form>
-          
+
           <div className="mt-4 text-center text-sm text-slate-400">
             Belum punya akun?{" "}
             <Link href="/register" className="font-medium text-teal-400 hover:underline">

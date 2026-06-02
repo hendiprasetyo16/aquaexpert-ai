@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+//import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const router = useRouter();
+  //const router = useRouter();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,8 +72,11 @@ export default function RegisterPage() {
     setSuccessMsg("Pendaftaran berhasil! Mengarahkan ke dashboard...");
     
     setTimeout(() => {
-      router.push("/dashboard");
-    }, 2000);
+      //router.push("/dashboard");
+      // MENDOBRAK CACHE NEXT.JS SECARA AMAN:
+      window.location.replace("/dashboard");
+    //}, 2000);
+    }, 500);
   };
 
   return (

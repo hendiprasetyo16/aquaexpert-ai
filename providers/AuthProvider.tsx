@@ -34,10 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let isMounted = true;
     const supabase = createClient();
 
-    // Tambahkan parameter `isInitialLoad`
     async function fetchUserAndProfile(isInitialLoad = false) {
       try {
-        // HANYA nyalakan loading jika ini pertama kali web dibuka
         if (isInitialLoad) {
           setIsLoading(true); 
         }
@@ -63,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error("Gagal memuat auth:", error);
       } finally {
-        if (isMounted) setIsLoading(false); // Pastikan loading selalu dimatikan di akhir
+        if (isMounted) setIsLoading(false); 
       }
     }
 
@@ -72,9 +70,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // 2. Pantau perubahan nyata di latar belakang
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      // Abaikan INITIAL_SESSION agar tidak bertabrakan
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
-        // Jalankan dengan "false" agar TIDAK MEMUNCULKAN layar loading lagi (Anti Bug Tombol Back)
+      // OPTIMASI: Hanya fetch ulang database saat User baru masuk, keluar, atau diupdate datanya.
+      // TOKEN_REFRESHED dihapus untuk menghemat beban Database (Cost-Optimization).
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
         fetchUserAndProfile(false);
       }
     });

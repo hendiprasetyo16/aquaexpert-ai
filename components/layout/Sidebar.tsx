@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+//import { usePathname, useRouter } from "next/navigation"; // TAMBAHKAN useRouter
+import { usePathname } from "next/navigation"; // Pakai ini HAPUS useRouter karena sudah window.location yang aman
 import { createClient } from "@/lib/supabase/client";
 
 import { MENU_BY_ROLE } from "@/features/auth/constants/menu";
@@ -16,15 +17,17 @@ import {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  //const router = useRouter(); // INISIALISASI ROUTER tidak di pakai karena sudah window.location yang aman
 
-  // PANGGIL HOOK GLOBAL YANG BARU DIBUAT (Instan tanpa Loading API Database)
   const { profile, role, isLoading } = useAuth();
 
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
     
-    // SOLUSI: Gunakan replace redirect agar riwayat dashboard terhapus bersih saat keluar
+    // GANTI MENJADI ROUTER.REPLACE (Sangat Aman)
+    //router.replace("/login");
+    // MENDOBRAK CACHE NEXT.JS SECARA AMAN:
     window.location.replace("/login");
   };
 
