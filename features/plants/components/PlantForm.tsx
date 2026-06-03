@@ -93,7 +93,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       const supabase = createClient();
 
       // ==========================================
-      // KELAS ARSITEKTUR: LANGKAH 1 - PRE-VALIDATION NAMA DUPLIKAT
+      // LANGKAH 1 - PRE-VALIDATION NAMA DUPLIKAT
       // ==========================================
       if (mode === "create") {
         const { data: existingPlant } = await supabase
@@ -108,7 +108,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
           setError(msg);
           toast.error(msg);
           setLoading(false);
-          return; // Langsung potong jalur di sini, Storage TIDAK AKAN PERNAH disentuh!
+          return;
         }
       } else {
         const { data: duplicatePlant } = await supabase
@@ -124,7 +124,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
           setError(msg);
           toast.error(msg);
           setLoading(false);
-          return; // Jalur dipotong sebelum upload berjalan
+          return;
         }
       }
 
@@ -132,7 +132,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       const oldImageUrl = plant?.image_url || "";
 
       // ==========================================
-      // LANGKAH 2 - UPLOAD GAMBAR BARU (Pasti Aman Karena Data Valid)
+      // LANGKAH 2 - UPLOAD GAMBAR BARU
       // ==========================================
       if (imageFile) {
         finalImageUrl = await uploadPlantImage(imageFile, formData.name);
@@ -154,11 +154,27 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       // 4. Eksekusi Akhir ke Database Server
       if (mode === "create") {
         const result = await createPlantAction(payload);
-        if (!result.success) throw new Error(result.error);
+        
+        // REVISI: Penanganan Error Elegan tanpa Throw Error
+        if (!result.success) {
+          setError(result.error);
+          toast.error(result.error);
+          setLoading(false);
+          return;
+        }
+        
         toast.success("Tanaman berhasil ditambahkan!");
       } else {
         const result = await updatePlantAction(plant!.id, payload);
-        if (!result.success) throw new Error(result.error);
+        
+        // REVISI: Penanganan Error Elegan tanpa Throw Error
+        if (!result.success) {
+          setError(result.error);
+          toast.error(result.error);
+          setLoading(false);
+          return;
+        }
+        
         toast.success("Data tanaman berhasil diperbarui!");
 
         // Hapus gambar LAMA jika upload baru sukses ganti gambar
@@ -176,7 +192,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       setError(message);
       toast.error(message);
     } finally {
-      // PERBAIKAN DI SINI: Hanya ada 1 catch lalu langsung finally
       setLoading(false);
     }
   }
@@ -215,7 +230,13 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     try {
       setLoading(true);
       const result = await hardDeletePlantAction(plant.id);
-      if (!result.success) throw new Error(result.error);
+      
+      // REVISI: Penanganan Error Elegan untuk Hard Delete
+      if (!result.success) {
+        toast.error(result.error);
+        setLoading(false);
+        return;
+      }
       
       toast.success("Tanaman berhasil dihapus permanen.");
       router.replace("/dashboard/plants");
