@@ -1,5 +1,6 @@
 import PlantList from "@/features/plants/components/PlantList";
 
+
 export default function PlantsPage() {
   return (
     // Menambahkan background gelap dan warna teks default terang
