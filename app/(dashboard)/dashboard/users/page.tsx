@@ -3,9 +3,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { getUsers, updateUserRole } from "@/features/users/repositories/user.repository";
-import { createUser, toggleUserStatus, resetUserPassword } from "@/features/users/actions/user.actions";
+import { 
+  createUser, toggleUserStatus, resetUserPassword, updateUserProfile 
+} from "@/features/users/actions/user.actions";
 import { UserProfile, UserRole } from "@/features/users/types/user.types";
-import { createClient } from "@/lib/supabase/client"; 
 
 import { 
   Loader2, ShieldAlert, User as UserIcon, Mail, Users, 
@@ -63,7 +64,7 @@ export default function UsersPage() {
     }
   };
 
-  // Handler: Mengubah Informasi Dasar Profil (Nama Lengkap)
+  // Handler: Mengubah Informasi Dasar Profil (Nama Lengkap) VIA SERVER ACTION
   const handleEditProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
@@ -73,20 +74,19 @@ export default function UsersPage() {
     try {
       setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, full_name: editNameValue } : u));
 
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("profiles")
-        .update({ full_name: editNameValue })
-        .eq("id", selectedUser.id);
+      // Memanggil Server Action untuk Edit Profile
+      const result = await updateUserProfile(selectedUser.id, editNameValue);
 
-      if (error) throw error;
-
-      toast.success("Nama pengguna berhasil diperbarui!");
-      setIsEditModalOpen(false);
-    } catch (error) {
+      if (result.success) {
+        toast.success(result.message || "Nama pengguna berhasil diperbarui!");
+        setIsEditModalOpen(false);
+      } else {
+        throw new Error(result.error || "Gagal memperbarui nama pengguna.");
+      }
+    } catch (error: any) {
       console.error(error);
       setUsers(previousUsers); 
-      toast.error("Gagal memperbarui nama pengguna.");
+      toast.error(error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -104,14 +104,14 @@ export default function UsersPage() {
     
     const result = await createUser(formData);
     
-    // PERBAIKAN TYPESCRIPT: Tambahkan ?. dan (result as any)
-    if (result?.success) {
-      toast.success((result as any).message || "Berhasil ditambahkan!"); 
+    // TIDAK ADA LAGI "as any"
+    if (result.success) {
+      toast.success(result.message || "Berhasil ditambahkan!"); 
       setIsAddModalOpen(false);
       setFormData({ email: "", password: "", full_name: "", role: "user" });
       await loadUsersData();
     } else {
-      toast.error((result as any)?.error || "Gagal menambahkan pengguna."); 
+      toast.error(result.error || "Gagal menambahkan pengguna."); 
     }
     
     setIsSubmitting(false);
@@ -129,9 +129,9 @@ export default function UsersPage() {
       
       const result = await toggleUserStatus(user.id, user.is_active, user.role);
       
-      // PERBAIKAN TYPESCRIPT: Tambahkan ?. dan (result as any)
-      if (!result?.success) throw new Error((result as any)?.error || "Error tidak dikenal.");
-      toast.success((result as any).message || "Status akun berhasil diubah.");
+      // TIDAK ADA LAGI "as any"
+      if (!result.success) throw new Error(result.error || "Error tidak dikenal.");
+      toast.success(result.message || "Status akun berhasil diubah.");
       
     } catch (error: any) {
       setUsers(previousUsers);
@@ -147,27 +147,31 @@ export default function UsersPage() {
     
     const result = await resetUserPassword(selectedUser.id, resetPasswordValue, selectedUser.role);
     
-    // PERBAIKAN TYPESCRIPT: Tambahkan ?. dan (result as any)
-    if (result?.success) {
-      toast.success((result as any).message || "Password berhasil di-reset!");
+    // TIDAK ADA LAGI "as any"
+    if (result.success) {
+      toast.success(result.message || "Password berhasil di-reset!");
       setIsResetModalOpen(false);
       setResetPasswordValue("");
     } else {
-      toast.error((result as any)?.error || "Gagal mereset password.");
+      toast.error(result.error || "Gagal mereset password.");
     }
     
     setIsSubmitting(false);
   };
 
-  // Ambil Data Statistik Utama
+  // STATISTIK YANG AMAN: Admin tidak dapat melihat jumlah Super Admin
   const stats = useMemo(() => {
+    const visibleUsers = currentUserRole === "admin"
+      ? users.filter(u => u.role === "user")
+      : users;
+
     return {
-      total: users.length,
-      superAdmin: users.filter(u => u.role === "super_admin").length,
-      admin: users.filter(u => u.role === "admin").length,
-      user: users.filter(u => u.role === "user").length,
+      total: visibleUsers.length,
+      superAdmin: visibleUsers.filter(u => u.role === "super_admin").length,
+      admin: visibleUsers.filter(u => u.role === "admin").length,
+      user: visibleUsers.filter(u => u.role === "user").length,
     };
-  }, [users]);
+  }, [users, currentUserRole]);
 
   // Penyaringan Array Gabungan (Security, Search & Filter Dropdown)
   const filteredUsers = useMemo(() => {
@@ -235,17 +239,19 @@ export default function UsersPage() {
               </CardContent>
             </Card>
           )}
-          <Card className="border-slate-800 bg-slate-900/60 shadow-sm">
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-950/50 text-yellow-400">
-                <ShieldCheck className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-400">Admin</p>
-                <p className="text-2xl font-bold text-slate-100">{stats.admin}</p>
-              </div>
-            </CardContent>
-          </Card>
+          {currentUserRole === "super_admin" && (
+            <Card className="border-slate-800 bg-slate-900/60 shadow-sm">
+              <CardContent className="flex items-center gap-4 p-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-950/50 text-yellow-400">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-400">Admin</p>
+                  <p className="text-2xl font-bold text-slate-100">{stats.admin}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <Card className="border-slate-800 bg-slate-900/60 shadow-sm">
             <CardContent className="flex items-center gap-4 p-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-950/50 text-teal-400">
@@ -330,6 +336,7 @@ export default function UsersPage() {
                   <select
                     value={user.role}
                     onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
+                    // PROTEKSI: Super Admin ubah role, Admin disable ubah role
                     disabled={
                       currentUserRole !== "super_admin" || 
                       user.id === currentUserAuth?.id || 
