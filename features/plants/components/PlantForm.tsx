@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/useAuth"; // <-- Panggil useAuth
+import { useAuth } from "@/hooks/useAuth";
+import { createClient } from "@/lib/supabase/client"; 
 import { deletePlant, uploadPlantImage, removePlantImage } from "../repositories/plant.repository";
-import { createPlantAction, updatePlantAction, hardDeletePlantAction } from "../actions/plant.actions"; // <-- Import Hard Delete
+import { createPlantAction, updatePlantAction, hardDeletePlantAction } from "../actions/plant.actions";
 import { Plant } from "../types/plant.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,7 @@ interface PlantFormProps {
 
 export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   const router = useRouter();
-  const { role } = useAuth(); // <-- Ambil role
+  const { role } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +81,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     }
   }
 
-// FUNGSI SUBMIT DENGAN SISTEM ROLLBACK GAMBAR & ANTI ERROR OVERLAY
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -90,15 +90,55 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       setLoading(true);
       setError(null);
 
+      const supabase = createClient();
+
+      // ==========================================
+      // KELAS ARSITEKTUR: LANGKAH 1 - PRE-VALIDATION NAMA DUPLIKAT
+      // ==========================================
+      if (mode === "create") {
+        const { data: existingPlant } = await supabase
+          .from("plants")
+          .select("id")
+          .ilike("name", formData.name.trim())
+          .eq("is_active", true)
+          .maybeSingle();
+
+        if (existingPlant) {
+          const msg = `Tanaman "${formData.name}" sudah ada di database aktif.`;
+          setError(msg);
+          toast.error(msg);
+          setLoading(false);
+          return; // Langsung potong jalur di sini, Storage TIDAK AKAN PERNAH disentuh!
+        }
+      } else {
+        const { data: duplicatePlant } = await supabase
+          .from("plants")
+          .select("id")
+          .ilike("name", formData.name.trim())
+          .eq("is_active", true)
+          .neq("id", plant!.id)
+          .maybeSingle();
+
+        if (duplicatePlant) {
+          const msg = `Tanaman "${formData.name}" sudah ada di database aktif.`;
+          setError(msg);
+          toast.error(msg);
+          setLoading(false);
+          return; // Jalur dipotong sebelum upload berjalan
+        }
+      }
+
       let finalImageUrl = plant?.image_url || "";
       const oldImageUrl = plant?.image_url || "";
 
-      // 1. Upload Gambar Baru (Jika Ada)
+      // ==========================================
+      // LANGKAH 2 - UPLOAD GAMBAR BARU (Pasti Aman Karena Data Valid)
+      // ==========================================
       if (imageFile) {
         finalImageUrl = await uploadPlantImage(imageFile, formData.name);
       }
 
-      // 2. Parsing Payload
+      // 3. Parsing Payload
       const payloadArrayRecommended = formData.recommended_for
         .split(",")
         .map((item) => item.trim())
@@ -106,52 +146,27 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
       const payload: Partial<Plant> = {
         ...formData,
+        name: formData.name.trim(),
         recommended_for: payloadArrayRecommended,
         image_url: finalImageUrl,
       };
 
-      // 3. Simpan ke Database
+      // 4. Eksekusi Akhir ke Database Server
       if (mode === "create") {
         const result = await createPlantAction(payload);
-        
-        // JIKA GAGAL (Contoh: Nama Duplikat)
-        if (!result.success) {
-          // ROLLBACK: Hapus gambar yang baru saja ter-upload agar tidak jadi sampah!
-          if (imageFile && finalImageUrl) {
-            await removePlantImage(finalImageUrl);
-          }
-          // Tampilkan error secara elegan tanpa layar merah Next.js
-          setError(result.error);
-          toast.error(result.error);
-          setLoading(false);
-          return; // Hentikan eksekusi di sini
-        }
-
+        if (!result.success) throw new Error(result.error);
         toast.success("Tanaman berhasil ditambahkan!");
       } else {
         const result = await updatePlantAction(plant!.id, payload);
-        
-        // JIKA GAGAL (Contoh: Nama Duplikat)
-        if (!result.success) {
-          // ROLLBACK: Hapus gambar yang baru ter-upload
-          if (imageFile && finalImageUrl) {
-            await removePlantImage(finalImageUrl);
-          }
-          setError(result.error);
-          toast.error(result.error);
-          setLoading(false);
-          return; // Hentikan eksekusi di sini
-        }
-
+        if (!result.success) throw new Error(result.error);
         toast.success("Data tanaman berhasil diperbarui!");
 
-        // Hapus gambar LAMA jika upload baru dan update DB sukses
+        // Hapus gambar LAMA jika upload baru sukses ganti gambar
         if (imageFile && oldImageUrl) {
           await removePlantImage(oldImageUrl);
         }
       }
 
-      // 4. Kembali ke daftar secara aman
       router.replace("/dashboard/plants");
       router.refresh();
 
@@ -161,11 +176,11 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       setError(message);
       toast.error(message);
     } finally {
+      // PERBAIKAN DI SINI: Hanya ada 1 catch lalu langsung finally
       setLoading(false);
     }
   }
 
-  // 1. FUNGSI SOFT DELETE (ARSIP)
   async function handleDelete() {
     if (!plant || mode !== "edit") return;
     if (loading) return; 
@@ -187,7 +202,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     }
   }
 
-  // 2. FUNGSI HARD DELETE (HAPUS PERMANEN)
   async function handleHardDelete() {
     if (!plant) return;
     if (loading) return;
@@ -200,10 +214,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
     try {
       setLoading(true);
-
-      // Server Action yang baru akan otomatis membersihkan storage-nya juga
       const result = await hardDeletePlantAction(plant.id);
-
       if (!result.success) throw new Error(result.error);
       
       toast.success("Tanaman berhasil dihapus permanen.");
@@ -296,8 +307,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
           {/* KELOMPOK TOMBOL AKSI */}
           <div className="flex justify-between border-t border-slate-800 pt-6">
-            
-            {/* RENDER TOMBOL DELETE BERDASARKAN ROLE */}
             <div>
               {mode === "edit" && (
                 <div className="flex gap-2">
