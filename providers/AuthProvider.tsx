@@ -9,6 +9,7 @@ export type UserRole = "super_admin" | "admin" | "user";
 export interface Profile {
   full_name: string;
   role: UserRole;
+  is_active: boolean;
 }
 
 interface AuthContextType {
@@ -25,57 +26,101 @@ export const AuthContext = createContext<AuthContextType>({
   isLoading: true,
 });
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
+
     const supabase = createClient();
 
-    async function fetchUserAndProfile(isInitialLoad = false) {
+    async function fetchUserAndProfile(
+      isInitialLoad = false
+    ) {
       try {
         if (isInitialLoad) {
-          setIsLoading(true); 
+          setIsLoading(true);
         }
-        
-        const { data: { session } } = await supabase.auth.getSession();
-        const currentUser = session?.user ?? null;
 
-        if (isMounted) setUser(currentUser);
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-        if (currentUser) {
-          const { data } = await supabase
-            .from("profiles")
-            .select("full_name, role")
-            .eq("id", currentUser.id)
-            .single();
+        const currentUser =
+          session?.user ?? null;
 
-          if (isMounted && data) {
-            setProfile(data as Profile);
+        if (isMounted) {
+          setUser(currentUser);
+        }
+
+        if (!currentUser) {
+          if (isMounted) {
+            setProfile(null);
           }
-        } else {
-          if (isMounted) setProfile(null);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("profiles")
+          .select(`
+            full_name,
+            role,
+            is_active
+          `)
+          .eq("id", currentUser.id)
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        // AUTO KICK USER NONAKTIF
+        if (data?.is_active === false) {
+          await supabase.auth.signOut();
+
+          window.location.replace(
+            "/login?error=account_disabled"
+          );
+
+          return;
+        }
+
+        if (isMounted && data) {
+          setProfile(data as Profile);
         }
       } catch (error) {
-        console.error("Gagal memuat auth:", error);
+        console.error(
+          "Gagal memuat auth:",
+          error
+        );
       } finally {
-        if (isMounted) setIsLoading(false); 
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     }
 
-    // 1. Jalankan dengan "true" saat komponen baru pertama kali dimuat
     fetchUserAndProfile(true);
 
-    // 2. Pantau perubahan nyata di latar belakang
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      // OPTIMASI: Hanya fetch ulang database saat User baru masuk, keluar, atau diupdate datanya.
-      // TOKEN_REFRESHED dihapus untuk menghemat beban Database (Cost-Optimization).
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
-        fetchUserAndProfile(false);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (event) => {
+        if (
+          event === "SIGNED_IN" ||
+          event === "SIGNED_OUT" ||
+          event === "USER_UPDATED"
+        ) {
+          fetchUserAndProfile(false);
+        }
       }
-    });
+    );
 
     return () => {
       isMounted = false;
@@ -84,7 +129,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, profile, role: profile?.role ?? null, isLoading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        role: profile?.role ?? null,
+        isLoading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

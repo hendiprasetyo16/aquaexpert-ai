@@ -3,65 +3,163 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { getUsers, updateUserRole } from "@/features/users/repositories/user.repository";
+import { createUser, toggleUserStatus, resetUserPassword } from "@/features/users/actions/user.actions";
 import { UserProfile, UserRole } from "@/features/users/types/user.types";
+import { createClient } from "@/lib/supabase/client"; 
 
 import { 
-  Loader2, 
-  ShieldAlert, 
-  User as UserIcon, 
-  Mail, 
-  Users, 
-  Shield, 
-  ShieldCheck 
+  Loader2, ShieldAlert, User as UserIcon, Mail, Users, 
+  Shield, ShieldCheck, UserPlus, X, KeyRound, Power, PowerOff, Search, Filter, Pencil
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import toast from "react-hot-toast"; 
+import toast from "react-hot-toast";
 
 export default function UsersPage() {
-  // Ambil `user` untuk mendeteksi ID yang sedang login
   const { user: currentUserAuth, role: currentUserRole } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // States Pencarian & Filter
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | UserRole>("all");
+
+  // States Kendali Modal
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [formData, setFormData] = useState({ email: "", password: "", full_name: "", role: "user" as UserRole });
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
+  const [editNameValue, setEditNameValue] = useState("");
+
+  const loadUsersData = async () => {
+    const data = await getUsers();
+    setUsers(data);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    async function loadUsers() {
-      const data = await getUsers();
-      setUsers(data);
-      setLoading(false);
-    }
-    
     if (currentUserRole === "super_admin" || currentUserRole === "admin") {
-      loadUsers();
+      loadUsersData();
     }
   }, [currentUserRole]);
 
+  // Handler: Mengubah Hak Akses (Role)
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     const confirmChange = window.confirm(`Yakin ingin mengubah hak akses pengguna ini menjadi ${newRole.toUpperCase()}?`);
     if (!confirmChange) return;
 
-    // Simpan data lama untuk keperluan rollback
     const previousUsers = [...users];
-
     try {
-      // Optimistic Update menggunakan callback (prev state)
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-      
       const success = await updateUserRole(userId, newRole);
-      
-      if (!success) {
-        throw new Error("Database menolak perubahan.");
-      }
-
-      toast.success("Role pengguna berhasil diubah!");
-      
+      if (!success) throw new Error("Database menolak perubahan.");
+      toast.success("Role berhasil diubah!");
     } catch (error) {
-      console.error(error);
-      // Rollback jika gagal
       setUsers(previousUsers);
-      toast.error("Gagal mengubah role pengguna.");
+      toast.error("Gagal mengubah role.");
     }
   };
 
+  // Handler: Mengubah Informasi Dasar Profil (Nama Lengkap)
+  const handleEditProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+    setIsSubmitting(true);
+
+    const previousUsers = [...users];
+    try {
+      setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, full_name: editNameValue } : u));
+
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("profiles")
+        .update({ full_name: editNameValue })
+        .eq("id", selectedUser.id);
+
+      if (error) throw error;
+
+      toast.success("Nama pengguna berhasil diperbarui!");
+      setIsEditModalOpen(false);
+    } catch (error) {
+      console.error(error);
+      setUsers(previousUsers); 
+      toast.error("Gagal memperbarui nama pengguna.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handler: Membuat Akun Baru
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    if (currentUserRole === "admin" && formData.role !== "user") {
+      toast.error("Admin hanya dapat membuat user biasa.");
+      setIsSubmitting(false); return;
+    }
+    
+    const result = await createUser(formData);
+    
+    // PERBAIKAN TYPESCRIPT: Tambahkan ?. dan (result as any)
+    if (result?.success) {
+      toast.success((result as any).message || "Berhasil ditambahkan!"); 
+      setIsAddModalOpen(false);
+      setFormData({ email: "", password: "", full_name: "", role: "user" });
+      await loadUsersData();
+    } else {
+      toast.error((result as any)?.error || "Gagal menambahkan pengguna."); 
+    }
+    
+    setIsSubmitting(false);
+  };
+
+  // Handler: Mengaktifkan / Menonaktifkan Akun
+  const handleToggleStatus = async (user: UserProfile) => {
+    const actionText = user.is_active ? "menonaktifkan" : "mengaktifkan";
+    const confirmAction = window.confirm(`Yakin ingin ${actionText} akun ${user.full_name}?`);
+    if (!confirmAction) return;
+
+    const previousUsers = [...users];
+    try {
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: !user.is_active } : u));
+      
+      const result = await toggleUserStatus(user.id, user.is_active, user.role);
+      
+      // PERBAIKAN TYPESCRIPT: Tambahkan ?. dan (result as any)
+      if (!result?.success) throw new Error((result as any)?.error || "Error tidak dikenal.");
+      toast.success((result as any).message || "Status akun berhasil diubah.");
+      
+    } catch (error: any) {
+      setUsers(previousUsers);
+      toast.error(error.message || "Gagal memproses perubahan status.");
+    }
+  };
+
+  // Handler: Reset Kata Sandi
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+    setIsSubmitting(true);
+    
+    const result = await resetUserPassword(selectedUser.id, resetPasswordValue, selectedUser.role);
+    
+    // PERBAIKAN TYPESCRIPT: Tambahkan ?. dan (result as any)
+    if (result?.success) {
+      toast.success((result as any).message || "Password berhasil di-reset!");
+      setIsResetModalOpen(false);
+      setResetPasswordValue("");
+    } else {
+      toast.error((result as any)?.error || "Gagal mereset password.");
+    }
+    
+    setIsSubmitting(false);
+  };
+
+  // Ambil Data Statistik Utama
   const stats = useMemo(() => {
     return {
       total: users.length,
@@ -71,21 +169,46 @@ export default function UsersPage() {
     };
   }, [users]);
 
-  if (currentUserRole !== "super_admin" && currentUserRole !== "admin") {
-    return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <p className="text-slate-400">Anda tidak memiliki akses ke halaman ini.</p>
-      </div>
-    );
-  }
+  // Penyaringan Array Gabungan (Security, Search & Filter Dropdown)
+  const filteredUsers = useMemo(() => {
+    let visibleUsers = users;
+
+    if (currentUserRole === "admin") {
+      visibleUsers = users.filter((user) => user.role === "user");
+    }
+
+    return visibleUsers.filter((user) => {
+      const matchesSearch =
+        user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesRole = roleFilter === "all" ? true : user.role === roleFilter;
+
+      return matchesSearch && matchesRole;
+    });
+  }, [users, currentUserRole, searchQuery, roleFilter]);
+
+  if (currentUserRole !== "super_admin" && currentUserRole !== "admin") return null;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold text-slate-100">Manajemen Pengguna</h2>
-        <p className="mt-1 text-slate-400">Kelola akses dan jabatan pengguna AquaExpert.</p>
+    <div className="space-y-6 pb-10">
+      
+      {/* BAGIAN HEADER */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-3xl font-bold text-slate-100">Manajemen Pengguna</h2>
+          <p className="mt-1 text-slate-400">Kelola akses, status, dan jabatan pengguna AquaExpert.</p>
+        </div>
+        
+        <button 
+          onClick={() => setIsAddModalOpen(true)}
+          className="flex items-center justify-center gap-2 rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-500"
+        >
+          <UserPlus className="h-4 w-4" /> Tambah Pengguna
+        </button>
       </div>
 
+      {/* BAGIAN STATISTIK CARD */}
       {!loading && (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Card className="border-slate-800 bg-slate-900/60 shadow-sm">
@@ -99,7 +222,6 @@ export default function UsersPage() {
               </div>
             </CardContent>
           </Card>
-
           {currentUserRole === "super_admin" && (
             <Card className="border-slate-800 bg-slate-900/60 shadow-sm">
               <CardContent className="flex items-center gap-4 p-4">
@@ -113,7 +235,6 @@ export default function UsersPage() {
               </CardContent>
             </Card>
           )}
-
           <Card className="border-slate-800 bg-slate-900/60 shadow-sm">
             <CardContent className="flex items-center gap-4 p-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-950/50 text-yellow-400">
@@ -125,7 +246,6 @@ export default function UsersPage() {
               </div>
             </CardContent>
           </Card>
-
           <Card className="border-slate-800 bg-slate-900/60 shadow-sm">
             <CardContent className="flex items-center gap-4 p-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-950/50 text-teal-400">
@@ -140,70 +260,221 @@ export default function UsersPage() {
         </div>
       )}
 
+      {/* BILAH ALAT: SEARCH INPUT & FILTER DROPDOWN */}
+      {!loading && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari nama atau email pengguna..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-md border border-slate-800 bg-slate-900 py-2 pl-10 pr-4 text-sm text-slate-200 outline-none focus:border-teal-500"
+            />
+          </div>
+          <div className="relative w-full sm:w-48">
+            <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value as any)}
+              className="w-full appearance-none rounded-md border border-slate-800 bg-slate-900 py-2 pl-10 pr-4 text-sm text-slate-200 outline-none focus:border-teal-500"
+            >
+              <option value="all">Semua Jabatan</option>
+              <option value="user">User Biasa</option>
+              {currentUserRole === "super_admin" && (
+                <>
+                  <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
+                </>
+              )}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* GRIDS KARTU PENGGUNA */}
       {loading ? (
         <div className="flex h-40 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
         </div>
+      ) : filteredUsers.length === 0 ? (
+        <div className="flex h-40 flex-col items-center justify-center text-slate-400">
+          <Search className="mb-2 h-8 w-8 opacity-50" />
+          <p>Tidak ada pengguna yang cocok dengan kriteria pencarian.</p>
+        </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {users
-            .filter((user) => {
-              if (currentUserRole === "super_admin") return true;
-              return user.role !== "super_admin";
-            })
-            .map((user) => (
-              <Card key={user.id} className="border-slate-800 bg-slate-900/60 shadow-sm">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div className="flex gap-3 overflow-hidden">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-slate-400">
-                        <UserIcon className="h-5 w-5" />
+          {filteredUsers.map((user) => (
+            <Card key={user.id} className={`border-slate-800 bg-slate-900/60 shadow-sm transition-all ${!user.is_active ? 'opacity-60 grayscale-[40%]' : ''}`}>
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex gap-3 overflow-hidden">
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${user.is_active ? 'bg-slate-800 text-slate-400' : 'bg-red-950 text-red-500'}`}>
+                      <UserIcon className="h-5 w-5" />
+                    </div>
+                    <div className="overflow-hidden">
+                      <div className="flex items-center gap-2">
+                        <h3 className="truncate font-semibold text-slate-200" title={user.full_name}>{user.full_name}</h3>
+                        {!user.is_active && <span className="rounded bg-red-900/50 px-1.5 py-0.5 text-[10px] font-bold text-red-400 tracking-wider">NONAKTIF</span>}
                       </div>
-                      <div className="overflow-hidden">
-                        <h3 className="truncate font-semibold text-slate-200">{user.full_name}</h3>
-                        <div className="mt-1 flex items-center gap-1 text-xs text-slate-400">
-                          <Mail className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{user.email}</span>
-                        </div>
+                      <div className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+                        <Mail className="h-3 w-3 shrink-0" />
+                        <span className="truncate" title={user.email}>{user.email}</span>
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  <div className="mt-5 flex items-center justify-between border-t border-slate-800 pt-4">
-                    <div className="flex items-center gap-2 text-sm text-slate-400">
-                      <ShieldAlert className="h-4 w-4" />
-                      <span>Jabatan:</span>
-                    </div>
-                    
-                    <select
-                      value={user.role}
-                      onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
-                      
-                      // PROTEKSI BARU: Cegah Admin mengubah dirinya sendiri ATAU Super Admin bunuh diri
+                <div className="mt-5 flex items-center justify-between border-t border-slate-800 pt-4">
+                  <select
+                    value={user.role}
+                    onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
+                    disabled={
+                      currentUserRole !== "super_admin" || 
+                      user.id === currentUserAuth?.id || 
+                      (user.role === "super_admin" && stats.superAdmin === 1)
+                    } 
+                    className={`rounded-md border px-2 py-1 text-xs font-medium outline-none transition-colors ${
+                      user.role === "super_admin" ? "border-red-900 bg-red-950/30 text-red-400" : user.role === "admin" ? "border-yellow-900 bg-yellow-950/30 text-yellow-400" : "border-teal-900 bg-teal-950/30 text-teal-400"
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    <option value="user" className="bg-slate-900 text-slate-200">User Biasa</option>
+                    <option value="admin" className="bg-slate-900 text-slate-200">Admin</option>
+                    {currentUserRole === "super_admin" && <option value="super_admin" className="bg-slate-900 text-slate-200">Super Admin</option>}
+                  </select>
+
+                  {/* KELOMPOK TOMBOL AKSI CEPAT */}
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => { setSelectedUser(user); setEditNameValue(user.full_name); setIsEditModalOpen(true); }}
                       disabled={
                         user.id === currentUserAuth?.id || 
-                        (user.role === "super_admin" && stats.superAdmin === 1)
+                        (currentUserRole === "admin" && user.role !== "user")
                       } 
-                      
-                      className={`rounded-md border px-2 py-1 text-xs font-medium outline-none transition-colors ${
-                        user.role === "super_admin" 
-                          ? "border-red-900 bg-red-950/30 text-red-400" 
-                          : user.role === "admin"
-                          ? "border-yellow-900 bg-yellow-950/30 text-yellow-400"
-                          : "border-teal-900 bg-teal-950/30 text-teal-400"
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      title="Edit Nama Lengkap"
+                      className="rounded-md bg-slate-800 p-1.5 text-slate-400 transition hover:bg-slate-700 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      <option value="user" className="bg-slate-900 text-slate-200">User Biasa</option>
-                      <option value="admin" className="bg-slate-900 text-slate-200">Admin</option>
-                      
-                      {currentUserRole === "super_admin" && (
-                        <option value="super_admin" className="bg-slate-900 text-slate-200">Super Admin</option>
-                      )}
-                    </select>
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    
+                    <button 
+                      onClick={() => { setSelectedUser(user); setIsResetModalOpen(true); }}
+                      disabled={
+                        user.id === currentUserAuth?.id || 
+                        (currentUserRole === "admin" && user.role !== "user")
+                      }
+                      title="Reset Kata Sandi"
+                      className="rounded-md bg-slate-800 p-1.5 text-slate-400 transition hover:bg-slate-700 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleToggleStatus(user)}
+                      disabled={
+                        user.id === currentUserAuth?.id || 
+                        (currentUserRole === "admin" && user.role !== "user") ||
+                        (user.role === "super_admin" && stats.superAdmin === 1)
+                      }
+                      title={user.is_active ? "Nonaktifkan Akun" : "Aktifkan Akun"}
+                      className={`rounded-md p-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed ${user.is_active ? 'bg-slate-800 text-slate-400 hover:bg-red-900 hover:text-red-300' : 'bg-red-900/50 text-red-400 hover:bg-teal-900 hover:text-teal-300'}`}
+                    >
+                      {user.is_active ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
+                    </button>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* MODAL CONTAINER: TAMBAH USER */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+           <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-slate-100">Tambah Pengguna Baru</h3>
+              <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-200"><X className="h-5 w-5" /></button>
+            </div>
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm text-slate-300">Nama Lengkap</label>
+                <input required type="text" value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-200 outline-none focus:border-teal-500" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm text-slate-300">Email</label>
+                <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-200 outline-none focus:border-teal-500" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm text-slate-300">Password</label>
+                <input required minLength={6} type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-200 outline-none focus:border-teal-500" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm text-slate-300">Jabatan (Role)</label>
+                <select value={formData.role} onChange={(e) => setFormData({...formData, role: e.target.value as UserRole})} disabled={currentUserRole === "admin"} className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-200 outline-none focus:border-teal-500 disabled:opacity-50">
+                  <option value="user">User Biasa</option>
+                  {currentUserRole === "super_admin" && (
+                    <>
+                      <option value="admin">Admin</option>
+                      <option value="super_admin">Super Admin</option>
+                    </>
+                  )}
+                </select>
+              </div>
+              <div className="mt-6 flex justify-end gap-3 border-t border-slate-800 pt-4">
+                <button type="button" onClick={() => setIsAddModalOpen(false)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800">Batal</button>
+                <button type="submit" disabled={isSubmitting} className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50">{isSubmitting ? "Menyimpan..." : "Simpan Pengguna"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONTAINER: EDIT PROFIL NAMA LENGKAP */}
+      {isEditModalOpen && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-slate-100">Ubah Profil Pengguna</h3>
+              <button onClick={() => { setIsEditModalOpen(false); setEditNameValue(""); }} className="text-slate-400 hover:text-slate-200"><X className="h-5 w-5" /></button>
+            </div>
+            <form onSubmit={handleEditProfile} className="space-y-4">
+              <p className="text-sm text-slate-400">Mengubah data profil untuk akun: <br/><strong className="text-slate-200">{selectedUser.email}</strong></p>
+              <div>
+                <label className="mb-1 block text-sm text-slate-300">Nama Lengkap Baru</label>
+                <input required type="text" value={editNameValue} onChange={(e) => setEditNameValue(e.target.value)} className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-200 focus:border-teal-500 outline-none" />
+              </div>
+              <div className="mt-6 flex justify-end gap-3 border-t border-slate-800 pt-4">
+                <button type="button" onClick={() => { setIsEditModalOpen(false); setEditNameValue(""); }} className="rounded-md px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800">Batal</button>
+                <button type="submit" disabled={isSubmitting} className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50">{isSubmitting ? "Menyimpan..." : "Simpan Perubahan"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONTAINER: RESET PASSWORD */}
+      {isResetModalOpen && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-slate-100">Reset Password</h3>
+              <button onClick={() => {setIsResetModalOpen(false); setResetPasswordValue("");}} className="text-slate-400 hover:text-slate-200"><X className="h-5 w-5" /></button>
+            </div>
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <p className="text-sm text-slate-400">Masukkan password baru untuk <strong className="text-slate-200">{selectedUser.full_name}</strong>.</p>
+              <div>
+                <label className="mb-1 block text-sm text-slate-300">Password Baru</label>
+                <input required minLength={6} type="password" placeholder="Minimal 6 karakter" value={resetPasswordValue} onChange={(e) => setResetPasswordValue(e.target.value)} className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-200 focus:border-teal-500 outline-none" />
+              </div>
+              <div className="mt-6 flex justify-end gap-3 border-t border-slate-800 pt-4">
+                <button type="button" onClick={() => {setIsResetModalOpen(false); setResetPasswordValue("");}} className="rounded-md px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800">Batal</button>
+                <button type="submit" disabled={isSubmitting} className="rounded-md bg-yellow-600 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-500 disabled:opacity-50">{isSubmitting ? "Memproses..." : "Reset Password"}</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

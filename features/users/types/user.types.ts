@@ -5,5 +5,6 @@ export interface UserProfile {
   email: string;
   full_name: string;
   role: UserRole;
+  is_active: boolean; // <-- TAMBAHAN BARU
   created_at?: string;
 }

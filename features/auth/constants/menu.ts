@@ -37,7 +37,7 @@ export const MENU_BY_ROLE = {
     },
     {
       title: "Users",
-      href: "/admin/users",
+      href: "/dashboard/users",
       icon: Users,
     },
     {
@@ -72,6 +72,11 @@ export const MENU_BY_ROLE = {
       title: "Disease Expert",
       href: "/dashboard/diseases",
       icon: Activity,
+    },
+    {
+      title: "Users",
+      href: "/dashboard/users",
+      icon: Users,
     },
   ],
 

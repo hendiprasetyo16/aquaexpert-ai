@@ -11,6 +11,7 @@ export async function getUsers(): Promise<UserProfile[]> {
       email,
       full_name,
       role,
+      is_active,
       created_at
     `)
     .order("full_name", { ascending: true });

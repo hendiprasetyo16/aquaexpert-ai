@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+//import { useState } from "react";
+import { useState, useEffect } from "react";  // jadikan satu lebih rapi:
 //import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useSearchParams } from "next/navigation";
+//import { useEffect } from "react";
+
 import {
   Card,
   CardContent,
@@ -18,6 +22,8 @@ import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   //const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -54,6 +60,16 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const error = searchParams.get("error");
+
+    if (error === "account_disabled") {
+      setError(
+        "Akun Anda telah dinonaktifkan oleh Administrator."
+      );
+    }
+  }, [searchParams]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4">

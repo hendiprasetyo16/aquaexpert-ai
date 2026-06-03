@@ -26,26 +26,20 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // KUNCI PERBAIKAN TYPESCRIPT:
-  // Tampung data-nya secara utuh terlebih dahulu agar TypeScript tidak marah
+  // 1. Ambil Claims secara offline (Kriptografi JWT, 0 md tanpa jaringan)
   const { data } = await supabase.auth.getClaims();
-  
-  // Gunakan optional chaining (?.) untuk mengambil id dengan aman
   const user = data?.claims ? { id: data.claims.sub } : null;
-  
   const pathname = request.nextUrl.pathname;
 
+  // 2. JIKA BELUM LOGIN: Lindungi semua rute dashboard
   if (!user && pathname.startsWith("/dashboard")) {
-    // 303 See Other: Mencegah bug "muter-muter" saat klik Back di browser
     return NextResponse.redirect(new URL("/login", request.url), 303);
   }
 
+  // 3. JIKA SUDAH LOGIN: Cegah kembali ke halaman auth
   if (user) {
-    const isAuthPage =
-      pathname === "/" || pathname === "/login" || pathname === "/register";
-
+    const isAuthPage = pathname === "/" || pathname === "/login" || pathname === "/register";
     if (isAuthPage) {
-      // 303 See Other: Mencegah bug "muter-muter" saat klik Back di browser
       return NextResponse.redirect(new URL("/dashboard", request.url), 303);
     }
   }
