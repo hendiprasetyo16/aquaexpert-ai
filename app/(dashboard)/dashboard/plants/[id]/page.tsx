@@ -48,18 +48,18 @@ export default function PlantDetailPage() {
     <>
       <div className="max-w-5xl space-y-6 pb-10">
         <div className="flex items-center justify-between">
-          {/* Tombol Kembali: Dibuat kontras dengan text-slate-100 dan border */}
+          {/* PERBAIKAN: Tambahkan active:scale-95 dan active:bg-slate-700 agar terasa "diklik" */}
           <Button 
             variant="outline" 
             onClick={() => router.back()} 
-            className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white"
+            className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white active:scale-95 active:bg-slate-700 transition-all"
           >
             <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
           </Button>
           
           {role !== "user" && (
             <Link href={`/dashboard/plants/${plant.id}/edit`}>
-              <Button className="bg-teal-600 hover:bg-teal-500 text-white shadow-lg">
+              <Button className="bg-teal-600 hover:bg-teal-500 text-white shadow-lg active:scale-95 transition-all">
                 <Edit className="mr-2 h-4 w-4" /> Edit Tanaman
               </Button>
             </Link>
@@ -155,18 +155,22 @@ export default function PlantDetailPage() {
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4 backdrop-blur-md cursor-zoom-out"
           onClick={() => setIsImageZoomed(false)}
         >
-          <div className="relative max-w-5xl w-full flex flex-col items-center">
-            {/* Tombol X yang lebih kontras */}
-            <button 
-              className="absolute -top-16 right-0 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 transition-colors shadow-lg"
-              onClick={() => setIsImageZoomed(false)}
-            >
-              <X className="h-8 w-8" />
-            </button>
+          {/* PERBAIKAN: Tombol X dibuat FIXED di pojok kanan atas layar */}
+          <button 
+            className="fixed top-6 right-6 z-[110] flex h-12 w-12 items-center justify-center rounded-full bg-slate-800/80 text-slate-200 border border-slate-700 shadow-xl transition-all hover:bg-red-500 hover:text-white hover:border-red-400 active:scale-95 cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation(); // Mencegah bentrok klik dengan background
+              setIsImageZoomed(false);
+            }}
+          >
+            <X className="h-6 w-6" />
+          </button>
+
+          <div className="relative flex flex-col items-center">
             <img 
               src={plant.image_url} 
               alt={plant.name} 
-              className="max-h-[80vh] w-auto max-w-full rounded-lg shadow-2xl object-contain border border-white/10" 
+              className="max-h-[85vh] w-auto max-w-full rounded-lg shadow-2xl object-contain border border-white/10" 
             />
             <p className="mt-6 text-white text-lg font-semibold tracking-wide">{plant.name}</p>
           </div>

@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth"; // <-- Panggil useAuth
 import { deletePlant, uploadPlantImage, removePlantImage } from "../repositories/plant.repository";
-import { createPlantAction, updatePlantAction } from "../actions/plant.actions";
+import { createPlantAction, updatePlantAction, hardDeletePlantAction } from "../actions/plant.actions"; // <-- Import Hard Delete
 import { Plant } from "../types/plant.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, ImagePlus, Trash2 } from "lucide-react";
+import { Loader2, ImagePlus, Archive, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface PlantFormProps {
@@ -19,10 +20,13 @@ interface PlantFormProps {
 
 export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   const router = useRouter();
+  const { role } = useAuth(); // <-- Ambil role
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState("");
+  const [fileInputKey, setFileInputKey] = useState(0);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -79,31 +83,31 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    if (loading) return;
+
     try {
       setLoading(true);
       setError(null);
 
       let finalImageUrl = plant?.image_url || "";
-      let oldImageUrl = plant?.image_url || "";
+      const oldImageUrl = plant?.image_url || "";
 
-      // 1. Upload Baru (jika ada file)
+      // Upload gambar baru
       if (imageFile) {
         finalImageUrl = await uploadPlantImage(imageFile, formData.name);
       }
 
-      // 2. Siapkan Payload & konversi recommended_for menjadi array
       const payloadArrayRecommended = formData.recommended_for
         .split(",")
-        .map(item => item.trim())
-        .filter(item => item.length > 0);
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
 
       const payload: Partial<Plant> = {
         ...formData,
         recommended_for: payloadArrayRecommended,
-        image_url: finalImageUrl || "",
+        image_url: finalImageUrl,
       };
 
-      // 3. Simpan ke Database
       if (mode === "create") {
         const result = await createPlantAction(payload);
         if (!result.success) throw new Error(result.error);
@@ -113,39 +117,75 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         if (!result.success) throw new Error(result.error);
         toast.success("Data tanaman berhasil diperbarui!");
 
-        // 4. Jika Edit dan gambar baru diupload sukses, hapus gambar lama
+        // Hapus gambar lama jika upload baru sukses
         if (imageFile && oldImageUrl) {
-           await removePlantImage(oldImageUrl);
+          await removePlantImage(oldImageUrl);
         }
       }
 
-      //router.push("/dashboard/plants");
-      //router.refresh();
       router.replace("/dashboard/plants");
+      router.refresh();
+
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Terjadi kesalahan saat menyimpan data.");
-      toast.error("Gagal menyimpan data.");
+      const message = err?.message || "Terjadi kesalahan saat menyimpan data.";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   }
 
+  // 1. FUNGSI SOFT DELETE (ARSIP)
   async function handleDelete() {
     if (!plant || mode !== "edit") return;
-    const confirmDelete = window.confirm(`Yakin ingin menonaktifkan tanaman ${plant.name}?`);
+    if (loading) return; 
+
+    const confirmDelete = window.confirm(`Yakin ingin mengarsipkan tanaman ${plant.name}?`);
     if (!confirmDelete) return;
 
     try {
       setLoading(true);
       await deletePlant(plant.id); 
-      toast.success("Tanaman berhasil dinonaktifkan.");
-      //router.push("/dashboard/plants");
-      //router.refresh();
+      toast.success("Tanaman berhasil diarsipkan.");
       router.replace("/dashboard/plants");
-    } catch (error) {
+      router.refresh();
+    } catch (error: any) {
       console.error(error);
-      toast.error("Gagal menonaktifkan tanaman.");
+      toast.error(error?.message || "Gagal mengarsipkan tanaman.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // 2. FUNGSI HARD DELETE (HAPUS PERMANEN)
+  async function handleHardDelete() {
+    if (!plant) return;
+    if (loading) return;
+
+    const confirmed = window.confirm(
+      `PERMANEN HAPUS ${plant.name}? Tindakan ini tidak bisa dibatalkan dan akan menghapus data ini dari sistem pakar.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setLoading(true);
+      const result = await hardDeletePlantAction(plant.id);
+
+      if (!result.success) throw new Error(result.error);
+      
+      // Hapus gambar dari storage jika ada saat hard delete
+      if (plant.image_url) {
+        await removePlantImage(plant.image_url);
+      }
+
+      toast.success("Tanaman berhasil dihapus permanen.");
+      router.replace("/dashboard/plants");
+      router.refresh();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Gagal menghapus permanen.");
     } finally {
       setLoading(false);
     }
@@ -156,9 +196,10 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           
+          {/* AREA GAMBAR */}
           <div className="space-y-4">
             <Label className="text-slate-300">Gambar Tanaman</Label>
-            <input id="plant-image" type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+            <input id="plant-image" type="file" accept="image/*" onChange={handleImageChange} className="hidden" key={fileInputKey} />
             <label htmlFor="plant-image" className="cursor-pointer block">
               <div className="overflow-hidden rounded-lg border border-slate-700 hover:border-teal-500 transition">
                 {previewImage ? (
@@ -178,63 +219,82 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <Label className="text-slate-300">Nama Tanaman</Label>
-              <Input name="name" required value={formData.name} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100" />
+              <Input name="name" required value={formData.name} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 focus:border-teal-500" />
             </div>
             <div className="space-y-2">
               <Label className="text-slate-300">Nama Ilmiah</Label>
-              <Input name="scientific_name" value={formData.scientific_name} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100" />
+              <Input name="scientific_name" value={formData.scientific_name} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 focus:border-teal-500" />
             </div>
+            
             <div className="space-y-2">
               <Label className="text-slate-300">Tingkat Kesulitan</Label>
-              <select name="difficulty" value={formData.difficulty} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-100">
+              <select name="difficulty" value={formData.difficulty} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
                 <option>Mudah</option><option>Sedang</option><option>Sulit</option>
               </select>
             </div>
             <div className="space-y-2">
               <Label className="text-slate-300">Posisi (Placement)</Label>
-              <select name="placement" value={formData.placement} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-100">
+              <select name="placement" value={formData.placement} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
                 <option>Foreground</option><option>Midground</option><option>Background</option><option>Epiphyte / Floating</option>
               </select>
             </div>
+            
             <div className="space-y-2">
               <Label className="text-slate-300">Kebutuhan Cahaya</Label>
-              <select name="light_requirement" value={formData.light_requirement} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-100">
+              <select name="light_requirement" value={formData.light_requirement} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
                 <option>Rendah</option><option>Sedang</option><option>Tinggi</option>
               </select>
             </div>
             <div className="space-y-2">
               <Label className="text-slate-300">Kebutuhan CO2</Label>
-              <select name="co2_requirement" value={formData.co2_requirement} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-100">
+              <select name="co2_requirement" value={formData.co2_requirement} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
                 <option>Tanpa Injeksi</option><option>Rendah</option><option>Tinggi</option>
               </select>
             </div>
+            
             <div className="space-y-2 md:col-span-2">
               <Label className="text-slate-300">Rekomendasi Gaya / Tank (Pisahkan dengan koma)</Label>
-              <Input name="recommended_for" placeholder="Contoh: Beginner, Dutch, Iwagumi" value={formData.recommended_for} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100" />
+              <Input name="recommended_for" placeholder="Contoh: Beginner, Dutch, Iwagumi" value={formData.recommended_for} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 focus:border-teal-500" />
             </div>
             <div className="space-y-2">
               <Label className="text-slate-300">Nama Sumber Data</Label>
-              <Input name="source_name" placeholder="Contoh: Tropica" value={formData.source_name} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100" />
+              <Input name="source_name" placeholder="Contoh: Tropica" value={formData.source_name} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 focus:border-teal-500" />
             </div>
             <div className="space-y-2">
               <Label className="text-slate-300">URL Sumber Data</Label>
-              <Input name="source_url" type="url" placeholder="https://..." value={formData.source_url} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100" />
+              <Input name="source_url" type="url" placeholder="https://..." value={formData.source_url} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 focus:border-teal-500" />
             </div>
           </div>
 
           {error && <div className="rounded border border-red-900 bg-red-950/50 p-3 text-red-400">{error}</div>}
 
+          {/* KELOMPOK TOMBOL AKSI */}
           <div className="flex justify-between border-t border-slate-800 pt-6">
+            
+            {/* RENDER TOMBOL DELETE BERDASARKAN ROLE */}
             <div>
               {mode === "edit" && (
-                <Button type="button" variant="destructive" onClick={handleDelete} disabled={loading}>
-                  <Trash2 className="mr-2 h-4 w-4" /> Nonaktifkan
-                </Button>
+                <div className="flex gap-2">
+                  <Button type="button" variant="secondary" onClick={handleDelete} disabled={loading} className="bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 border border-slate-700">
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Archive className="mr-2 h-4 w-4" />}
+                    Arsipkan
+                  </Button>
+
+                  {role === "super_admin" && (
+                    <Button type="button" variant="destructive" onClick={handleHardDelete} disabled={loading} className="disabled:opacity-50 bg-red-900/80 hover:bg-red-800 text-red-100 border border-red-800">
+                      {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                      Hapus Permanen
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
+
             <div className="flex gap-3">
-              <Button type="button" onClick={() => router.back()} className="bg-slate-700 text-white hover:bg-slate-600">Batal</Button>
-              <Button type="submit" disabled={loading} className="bg-teal-600 hover:bg-teal-500">
+              <Button type="button" onClick={() => router.back()} disabled={loading} className="bg-slate-700 text-white hover:bg-slate-600 disabled:opacity-50">
+                Batal
+              </Button>
+              <Button type="submit" disabled={loading} className="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 transition-all">
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {mode === "create" ? "Simpan Tanaman" : "Update Tanaman"}
               </Button>

@@ -12,6 +12,8 @@ import { Loader2, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
+import { Archive } from "lucide-react";
+
 export default function PlantList() {
   const { role } = useAuth(); // <-- PANGGIL ROLE
 
@@ -58,13 +60,20 @@ export default function PlantList() {
           <p className="mt-1 text-slate-400">Kelola master data Plant Expert</p>
         </div>
 
-        {/* HANYA TAMPIL JIKA BUKAN USER BIASA */}
+        {/* KELOMPOK TOMBOL ADMIN */}
         {role !== "user" && (
-          <Link href="/dashboard/plants/create">
-            <Button className="bg-teal-600 text-white hover:bg-teal-500">
-              <Plus className="mr-2 h-4 w-4" /> Tambah Tanaman
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard/plants/archive">
+              <Button variant="outline" className="border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white transition-all active:scale-95">
+                <Archive className="mr-2 h-4 w-4" /> Buka Arsip
+              </Button>
+            </Link>
+            <Link href="/dashboard/plants/create">
+              <Button className="bg-teal-600 text-white hover:bg-teal-500 transition-all active:scale-95 shadow-lg">
+                <Plus className="mr-2 h-4 w-4" /> Tambah Tanaman
+              </Button>
+            </Link>
+          </div>
         )}
       </div>
 

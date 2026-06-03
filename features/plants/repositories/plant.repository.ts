@@ -66,3 +66,19 @@ export async function removePlantImage(imageUrl: string) {
     if (error) console.error("Gagal menghapus gambar lama:", error);
   }
 }
+
+// PERBAIKAN: Fungsi ini sekarang berada di luar (tidak tertelan fungsi sebelumnya)
+export async function getArchivedPlants(): Promise<Plant[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("plants")
+    .select(PLANT_COLUMNS)
+    .eq("is_active", false) // Ambil yang arsip
+    .order("updated_at", { ascending: false }); // Urutkan berdasarkan yang paling baru diarsipkan
+
+  if (error) {
+    console.error("Gagal mengambil data arsip tanaman:", error);
+    return [];
+  }
+  return (data ?? []) as Plant[];
+}
