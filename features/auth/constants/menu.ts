@@ -7,6 +7,7 @@ import {
   Users,
   Settings,
 } from "lucide-react";
+import { UserCircle } from "lucide-react"; // Tambahkan icon ini di atas
 
 export const MENU_BY_ROLE = {
   super_admin: [
@@ -45,6 +46,11 @@ export const MENU_BY_ROLE = {
       href: "/admin/settings",
       icon: Settings,
     },
+    {
+      title: "Profil Saya",
+      href: "/dashboard/profile",
+      icon: UserCircle,
+    },
   ],
 
   admin: [
@@ -78,6 +84,11 @@ export const MENU_BY_ROLE = {
       href: "/dashboard/users",
       icon: Users,
     },
+    {
+      title: "Profil Saya",
+      href: "/dashboard/profile",
+      icon: UserCircle,
+    },
   ],
 
   user: [
@@ -95,6 +106,11 @@ export const MENU_BY_ROLE = {
       title: "Fish Expert",
       href: "/dashboard/fishes",
       icon: Fish,
+    },
+    {
+      title: "Profil Saya",
+      href: "/dashboard/profile",
+      icon: UserCircle,
     },
   ],
 } as const;
