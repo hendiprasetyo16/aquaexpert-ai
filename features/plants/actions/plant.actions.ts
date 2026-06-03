@@ -2,6 +2,7 @@
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache"; // <-- IMPORT INI UNTUK REFRESH CACHE NEXT.JS
 import { Plant } from "../types/plant.types";
 
 async function getAuditUserId() {
@@ -55,6 +56,9 @@ export async function createPlantAction(plantData: Partial<Plant>) {
     const { data, error } = await supabase.from("plants").insert(payload).select().maybeSingle();
     if (error) throw new Error(error.message);
     
+    // BERSIHKAN CACHE HALAMAN AGAR LANGSUNG UPDATE
+    revalidatePath("/dashboard/plants"); 
+    
     return { success: true, data };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -95,6 +99,10 @@ export async function updatePlantAction(id: string, plantData: Partial<Plant>) {
     const { data, error } = await supabase.from("plants").update(payload).eq("id", id).select().maybeSingle();
     if (error) throw new Error(error.message);
 
+    // BERSIHKAN CACHE HALAMAN AGAR LANGSUNG UPDATE
+    revalidatePath("/dashboard/plants");
+    revalidatePath(`/dashboard/plants/${id}`); 
+
     return { success: true, data };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -102,7 +110,7 @@ export async function updatePlantAction(id: string, plantData: Partial<Plant>) {
 }
 
 // ==========================================
-// 3. HARD DELETE (Hapus Storage lalu Database)
+// 3. HARD DELETE (Storage Cleanup Included)
 // ==========================================
 export async function hardDeletePlantAction(id: string) {
   try {
@@ -141,6 +149,10 @@ export async function hardDeletePlantAction(id: string) {
     const { error } = await supabase.from("plants").delete().eq("id", id);
     if (error) throw error;
 
+    // BERSIHKAN CACHE HALAMAN AGAR LANGSUNG UPDATE
+    revalidatePath("/dashboard/plants");
+    revalidatePath("/dashboard/plants/archive");
+
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -176,6 +188,10 @@ export async function restorePlantAction(id: string) {
 
     const { error } = await supabase.from("plants").update({ is_active: true, updated_by: userId }).eq("id", id);
     if (error) throw new Error(error.message);
+
+    // BERSIHKAN CACHE HALAMAN AGAR LANGSUNG UPDATE
+    revalidatePath("/dashboard/plants");
+    revalidatePath("/dashboard/plants/archive");
 
     return { success: true };
   } catch (error: any) {

@@ -18,7 +18,11 @@ export default function PlantDetailPage() {
   
   const [plant, setPlant] = useState<Plant | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isImageZoomed, setIsImageZoomed] = useState(false);
+  
+  // STATE: Untuk membuka Modal Lightbox
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  // STATE: Untuk Zoom/Magnifier 2x di dalam Modal
+  const [isZoomedIn, setIsZoomedIn] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -48,7 +52,6 @@ export default function PlantDetailPage() {
     <>
       <div className="max-w-5xl space-y-6 pb-10">
         <div className="flex items-center justify-between">
-          {/* PERBAIKAN: Tambahkan active:scale-95 dan active:bg-slate-700 agar terasa "diklik" */}
           <Button 
             variant="outline" 
             onClick={() => router.back()} 
@@ -70,12 +73,13 @@ export default function PlantDetailPage() {
           <Card className="border-slate-800 bg-slate-900/60 md:col-span-1 overflow-hidden h-fit">
             <div 
               className={`h-72 w-full bg-slate-800 flex items-center justify-center relative group ${plant.image_url ? 'cursor-pointer' : ''}`}
-              onClick={() => plant.image_url && setIsImageZoomed(true)}
+              onClick={() => plant.image_url && setIsImageModalOpen(true)}
             >
               {plant.image_url ? (
                 <>
                   <img src={plant.image_url} alt={plant.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                  {/* Tambahan pointer-events-none agar tidak memblokir klik pada gambar */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 pointer-events-none">
                     <Maximize2 className="h-10 w-10 text-white drop-shadow-md" />
                   </div>
                 </>
@@ -149,30 +153,46 @@ export default function PlantDetailPage() {
         </div>
       </div>
 
-      {/* MODAL LIGHTBOX */}
-      {isImageZoomed && plant.image_url && (
+      {/* MODAL LIGHTBOX DENGAN FITUR ZOOM 2X */}
+      {isImageModalOpen && plant.image_url && (
         <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4 backdrop-blur-md cursor-zoom-out"
-          onClick={() => setIsImageZoomed(false)}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4 backdrop-blur-md overflow-hidden"
+          onClick={() => {
+            setIsImageModalOpen(false);
+            setIsZoomedIn(false); // Reset zoom jika modal ditutup
+          }}
         >
-          {/* PERBAIKAN: Tombol X dibuat FIXED di pojok kanan atas layar */}
+          {/* Tombol Close di Pojok Kanan Atas */}
           <button 
             className="fixed top-6 right-6 z-[110] flex h-12 w-12 items-center justify-center rounded-full bg-slate-800/80 text-slate-200 border border-slate-700 shadow-xl transition-all hover:bg-red-500 hover:text-white hover:border-red-400 active:scale-95 cursor-pointer"
             onClick={(e) => {
-              e.stopPropagation(); // Mencegah bentrok klik dengan background
-              setIsImageZoomed(false);
+              e.stopPropagation(); 
+              setIsImageModalOpen(false);
+              setIsZoomedIn(false);
             }}
           >
             <X className="h-6 w-6" />
           </button>
 
-          <div className="relative flex flex-col items-center">
+          <div 
+            className={`relative flex flex-col items-center justify-center w-full h-full transition-transform duration-300 ease-in-out ${isZoomedIn ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
+            onClick={(e) => {
+              e.stopPropagation(); // Mencegah modal tertutup saat gambar diklik
+              setIsZoomedIn(!isZoomedIn); // Toggle zoom in/out
+            }}
+          >
             <img 
               src={plant.image_url} 
               alt={plant.name} 
-              className="max-h-[85vh] w-auto max-w-full rounded-lg shadow-2xl object-contain border border-white/10" 
+              className={`max-h-[85vh] w-auto max-w-full rounded-lg shadow-2xl object-contain border border-white/10 transition-transform duration-300 ease-out ${isZoomedIn ? 'scale-[2.0]' : 'scale-100'}`} 
             />
-            <p className="mt-6 text-white text-lg font-semibold tracking-wide">{plant.name}</p>
+            
+            {/* Sembunyikan judul tanaman saat sedang di-zoom agar tidak menutupi gambar */}
+            {!isZoomedIn && (
+              <p className="mt-6 text-white text-lg font-semibold tracking-wide animate-in fade-in duration-300">
+                {plant.name}
+              </p>
+            )}
           </div>
         </div>
       )}

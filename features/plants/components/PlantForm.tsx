@@ -27,7 +27,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState("");
-  const [fileInputKey, setFileInputKey] = useState(0);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -69,10 +68,12 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
 
       if (!validTypes.includes(file.type)) {
-        setError("Format gambar harus JPG, PNG atau WEBP."); return;
+        setError("Format gambar harus JPG, PNG atau WEBP."); 
+        return;
       }
       if (file.size > 2 * 1024 * 1024) {
-        setError("Ukuran gambar maksimal 2MB."); return;
+        setError("Ukuran gambar maksimal 2MB."); 
+        return;
       }
 
       setError(null);
@@ -81,7 +82,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     if (loading) return;
@@ -91,54 +92,47 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       setError(null);
 
       const supabase = createClient();
+      const cleanName = formData.name.trim();
 
       // ==========================================
-      // LANGKAH 1 - PRE-VALIDATION NAMA DUPLIKAT
+      // LANGKAH 1: PRE-VALIDATION KETAT (Diperbaiki)
       // ==========================================
-      if (mode === "create") {
-        const { data: existingPlant } = await supabase
-          .from("plants")
-          .select("id")
-          .ilike("name", formData.name.trim())
-          .eq("is_active", true)
-          .maybeSingle();
+      // Buat query dasarnya dulu TANPA .maybeSingle()
+      let query = supabase
+        .from("plants")
+        .select("id, is_active")
+        .ilike("name", cleanName)
+        .eq("is_active", true);
 
-        if (existingPlant) {
-          const msg = `Tanaman "${formData.name}" sudah ada di database aktif.`;
-          setError(msg);
-          toast.error(msg);
-          setLoading(false);
-          return;
-        }
-      } else {
-        const { data: duplicatePlant } = await supabase
-          .from("plants")
-          .select("id")
-          .ilike("name", formData.name.trim())
-          .eq("is_active", true)
-          .neq("id", plant!.id)
-          .maybeSingle();
+      // Jika mode edit, tambahkan filter neq (kecualikan ID sendiri)
+      if (mode === "edit" && plant) {
+        query = query.neq("id", plant.id);
+      }
 
-        if (duplicatePlant) {
-          const msg = `Tanaman "${formData.name}" sudah ada di database aktif.`;
-          setError(msg);
-          toast.error(msg);
-          setLoading(false);
-          return;
-        }
+      // SETELAH query selesai dirangkai, BARU kita eksekusi dengan await dan maybeSingle()
+      const { data: existingPlant, error: checkError } = await query.maybeSingle();
+
+      if (checkError) {
+        throw new Error(checkError.message);
+      }
+
+      if (existingPlant) {
+        const msg = `Tanaman "${cleanName}" sudah ada di database aktif.`;
+        setError(msg);
+        toast.error(msg);
+        return; // finally akan dipanggil untuk setLoading(false)
       }
 
       let finalImageUrl = plant?.image_url || "";
       const oldImageUrl = plant?.image_url || "";
 
       // ==========================================
-      // LANGKAH 2 - UPLOAD GAMBAR BARU
+      // LANGKAH 2: UPLOAD GAMBAR 
       // ==========================================
       if (imageFile) {
-        finalImageUrl = await uploadPlantImage(imageFile, formData.name);
+        finalImageUrl = await uploadPlantImage(imageFile, cleanName);
       }
 
-      // 3. Parsing Payload
       const payloadArrayRecommended = formData.recommended_for
         .split(",")
         .map((item) => item.trim())
@@ -146,44 +140,39 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
       const payload: Partial<Plant> = {
         ...formData,
-        name: formData.name.trim(),
+        name: cleanName,
         recommended_for: payloadArrayRecommended,
         image_url: finalImageUrl,
       };
 
-      // 4. Eksekusi Akhir ke Database Server
+      // ==========================================
+      // LANGKAH 3: EKSEKUSI & NAVIGASI
+      // ==========================================
       if (mode === "create") {
         const result = await createPlantAction(payload);
-        
-        // REVISI: Penanganan Error Elegan tanpa Throw Error
         if (!result.success) {
+          if (imageFile && finalImageUrl) await removePlantImage(finalImageUrl);
           setError(result.error);
           toast.error(result.error);
-          setLoading(false);
-          return;
+          return; 
         }
-        
         toast.success("Tanaman berhasil ditambahkan!");
       } else {
         const result = await updatePlantAction(plant!.id, payload);
-        
-        // REVISI: Penanganan Error Elegan tanpa Throw Error
         if (!result.success) {
+          if (imageFile && finalImageUrl) await removePlantImage(finalImageUrl);
           setError(result.error);
           toast.error(result.error);
-          setLoading(false);
           return;
         }
-        
         toast.success("Data tanaman berhasil diperbarui!");
-
-        // Hapus gambar LAMA jika upload baru sukses ganti gambar
         if (imageFile && oldImageUrl) {
           await removePlantImage(oldImageUrl);
         }
       }
 
-      router.replace("/dashboard/plants");
+      // NAVIGASI AMAN
+      router.push("/dashboard/plants");
       router.refresh();
 
     } catch (err: any) {
@@ -207,8 +196,11 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       setLoading(true);
       await deletePlant(plant.id); 
       toast.success("Tanaman berhasil diarsipkan.");
-      router.replace("/dashboard/plants");
+      
+      // Khusus fungsi delete klien, kita mungkin butuh trik ini jika tidak memanggil Server Actions
+      router.push("/dashboard/plants");
       router.refresh();
+      // setTimeout(() => window.location.href = "/dashboard/plants", 500); // <-- Alternative paling brutal jika masih stuck
     } catch (error: any) {
       console.error(error);
       toast.error(error?.message || "Gagal mengarsipkan tanaman.");
@@ -221,17 +213,19 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     if (!plant) return;
     if (loading) return;
 
-    const confirmed = window.confirm(
-      `PERMANEN HAPUS ${plant.name}? Tindakan ini tidak bisa dibatalkan dan akan menghapus data ini dari sistem pakar.`
+    const confirmText = window.prompt(
+      `PERINGATAN KRITIS!\n\nKetik nama tanaman "${plant.name}" untuk menghapus permanen dari database:`
     );
 
-    if (!confirmed) return;
+    if (confirmText !== plant.name) {
+      toast.error("Nama konfirmasi tidak sesuai. Penghapusan dibatalkan.");
+      return;
+    }
 
     try {
       setLoading(true);
       const result = await hardDeletePlantAction(plant.id);
       
-      // REVISI: Penanganan Error Elegan untuk Hard Delete
       if (!result.success) {
         toast.error(result.error);
         setLoading(false);
@@ -239,7 +233,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       }
       
       toast.success("Tanaman berhasil dihapus permanen.");
-      router.replace("/dashboard/plants");
+      router.push("/dashboard/plants");
       router.refresh();
     } catch (error: any) {
       console.error(error);
@@ -254,10 +248,9 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           
-          {/* AREA GAMBAR */}
           <div className="space-y-4">
             <Label className="text-slate-300">Gambar Tanaman</Label>
-            <input id="plant-image" type="file" accept="image/*" onChange={handleImageChange} className="hidden" key={fileInputKey} />
+            <input id="plant-image" type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
             <label htmlFor="plant-image" className="cursor-pointer block">
               <div className="overflow-hidden rounded-lg border border-slate-700 hover:border-teal-500 transition">
                 {previewImage ? (
