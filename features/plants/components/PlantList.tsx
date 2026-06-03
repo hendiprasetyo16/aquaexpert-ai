@@ -7,11 +7,11 @@ import { Plant } from "../types/plant.types";
 import { useAuth } from "@/hooks/useAuth";
 import PlantCard from "./PlantCard";
 
-import { Loader2, Plus, Archive, Search, ChevronLeft, ChevronRight, Leaf } from "lucide-react";
+// TAMBAHAN IMPORT: ChevronsLeft & ChevronsRight untuk Awal/Akhir
+import { Loader2, Plus, Archive, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-// Konstanta: Jumlah kartu yang ingin ditampilkan per halaman
 const ITEMS_PER_PAGE = 12;
 
 export default function PlantList() {
@@ -20,7 +20,6 @@ export default function PlantList() {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // STATE BARU: Untuk Pencarian & Pagination
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -38,12 +37,10 @@ export default function PlantList() {
     loadData();
   }, []);
 
-  // Kembalikan ke halaman 1 setiap kali pengguna mengetik di kolom pencarian
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
 
-  // LOGIKA PENCARIAN & PAGINATION
   const filteredPlants = plants.filter((plant) => {
     const searchLower = searchQuery.toLowerCase();
     return (
@@ -59,6 +56,21 @@ export default function PlantList() {
     currentPage * ITEMS_PER_PAGE
   );
 
+  // LOGIKA WINDOWING PAGINATION (Menampilkan maksimal 3 angka halaman)
+  let startPage = Math.max(1, currentPage - 1);
+  let endPage = Math.min(totalPages, currentPage + 1);
+
+  if (currentPage === 1) {
+    endPage = Math.min(totalPages, 3);
+  } else if (currentPage === totalPages) {
+    startPage = Math.max(1, totalPages - 2);
+  }
+
+  const pageNumbers = [];
+  for (let i = startPage; i <= endPage; i++) {
+    pageNumbers.push(i);
+  }
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -70,7 +82,6 @@ export default function PlantList() {
   return (
     <div className="space-y-6">
       
-      {/* HEADER: Judul, Search Bar, dan Tombol Aksi */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-slate-800 pb-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-slate-100">Database Tanaman</h2>
@@ -80,7 +91,6 @@ export default function PlantList() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center w-full md:w-auto">
-          {/* FITUR PENCARIAN */}
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
             <Input 
@@ -91,7 +101,6 @@ export default function PlantList() {
             />
           </div>
 
-          {/* KELOMPOK TOMBOL ADMIN */}
           {role !== "user" && (
             <div className="flex items-center gap-2 shrink-0">
               <Link href="/dashboard/plants/archive">
@@ -109,7 +118,6 @@ export default function PlantList() {
         </div>
       </div>
 
-      {/* RENDER KARTU TANAMAN */}
       {filteredPlants.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-700 bg-slate-900/30 py-20 text-center">
           <Leaf className="mb-4 h-12 w-12 text-slate-600" />
@@ -126,36 +134,76 @@ export default function PlantList() {
             ))}
           </div>
 
-          {/* KONTROL PAGINATION */}
+          {/* KONTROL PAGINATION LANJUTAN (3 Angka & Awal/Akhir) */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-slate-800 pt-6 mt-6">
-              <p className="text-sm text-slate-400 hidden sm:block">
-                Menampilkan <span className="font-medium text-slate-200">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> hingga <span className="font-medium text-slate-200">{Math.min(currentPage * ITEMS_PER_PAGE, filteredPlants.length)}</span> dari <span className="font-medium text-slate-200">{filteredPlants.length}</span> hasil
+            <div className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-800 pt-6 mt-6 gap-4">
+              <p className="text-sm text-slate-400 text-center sm:text-left w-full sm:w-auto">
+                Menampilkan <span className="font-medium text-slate-200">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> hingga <span className="font-medium text-slate-200">{Math.min(currentPage * ITEMS_PER_PAGE, filteredPlants.length)}</span> dari <span className="font-medium text-slate-200">{filteredPlants.length}</span> data
               </p>
               
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+              <div className="flex items-center gap-1 sm:gap-2">
+                {/* Tombol Halaman Awal */}
                 <Button 
                   variant="outline" 
-                  size="sm"
+                  size="icon"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="h-8 w-8 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-50"
+                  title="Halaman Awal"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+
+                {/* Tombol Sebelumnya */}
+                <Button 
+                  variant="outline" 
+                  size="icon"
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-50"
+                  className="h-8 w-8 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-50"
+                  title="Sebelumnya"
                 >
-                  <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
                 
-                <div className="text-sm font-medium text-slate-300 px-4">
-                  Hal {currentPage} / {totalPages}
-                </div>
+                {/* Looping 3 Angka Halaman Dinamis */}
+                {pageNumbers.map(num => (
+                  <Button
+                    key={num}
+                    variant={currentPage === num ? "default" : "outline"}
+                    onClick={() => setCurrentPage(num)}
+                    className={`h-8 w-8 p-0 text-sm font-medium transition-colors ${
+                      currentPage === num 
+                        ? 'bg-teal-600 hover:bg-teal-500 text-white border-teal-500 shadow-md' 
+                        : 'border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white'
+                    }`}
+                  >
+                    {num}
+                  </Button>
+                ))}
 
+                {/* Tombol Selanjutnya */}
                 <Button 
                   variant="outline" 
-                  size="sm"
+                  size="icon"
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-50"
+                  className="h-8 w-8 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-50"
+                  title="Selanjutnya"
                 >
-                  Next <ChevronRight className="h-4 w-4 ml-1" />
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+
+                {/* Tombol Halaman Akhir */}
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="h-8 w-8 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-50"
+                  title="Halaman Akhir"
+                >
+                  <ChevronsRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
