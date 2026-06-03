@@ -19,10 +19,16 @@ export default function PlantDetailPage() {
   const [plant, setPlant] = useState<Plant | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // STATE: Untuk membuka Modal Lightbox
+  // STATE MODAL LIGHTBOX
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-  // STATE: Untuk Zoom/Magnifier 2x di dalam Modal
-  const [isZoomedIn, setIsZoomedIn] = useState(false);
+  
+  // STATE UNTUK PAN & ZOOM
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [hasDragged, setHasDragged] = useState(false); // Membedakan antara klik biasa dan geser
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [clickStartPos, setClickStartPos] = useState({ x: 0, y: 0 }); // Mencatat posisi awal mouse down
 
   useEffect(() => {
     async function loadData() {
@@ -39,6 +45,12 @@ export default function PlantDetailPage() {
     }
     loadData();
   }, [params.id]);
+
+  // Fungsi untuk mereset posisi dan zoom ke awal
+  const resetZoom = () => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
 
   if (loading) {
     return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-500" /></div>;
@@ -78,7 +90,6 @@ export default function PlantDetailPage() {
               {plant.image_url ? (
                 <>
                   <img src={plant.image_url} alt={plant.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  {/* Tambahan pointer-events-none agar tidak memblokir klik pada gambar */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 pointer-events-none">
                     <Maximize2 className="h-10 w-10 text-white drop-shadow-md" />
                   </div>
@@ -153,44 +164,107 @@ export default function PlantDetailPage() {
         </div>
       </div>
 
-      {/* MODAL LIGHTBOX DENGAN FITUR ZOOM 2X */}
+      {/* MODAL LIGHTBOX DENGAN FITUR PAN & SCROLL ZOOM */}
       {isImageModalOpen && plant.image_url && (
         <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4 backdrop-blur-md overflow-hidden"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 overflow-hidden select-none"
           onClick={() => {
+            // Latar belakang menangkap klik di LUAR gambar
             setIsImageModalOpen(false);
-            setIsZoomedIn(false); // Reset zoom jika modal ditutup
+            resetZoom();
           }}
         >
-          {/* Tombol Close di Pojok Kanan Atas */}
+          {/* Tombol Close */}
           <button 
             className="fixed top-6 right-6 z-[110] flex h-12 w-12 items-center justify-center rounded-full bg-slate-800/80 text-slate-200 border border-slate-700 shadow-xl transition-all hover:bg-red-500 hover:text-white hover:border-red-400 active:scale-95 cursor-pointer"
             onClick={(e) => {
               e.stopPropagation(); 
               setIsImageModalOpen(false);
-              setIsZoomedIn(false);
+              resetZoom();
             }}
           >
             <X className="h-6 w-6" />
           </button>
 
+          {/* Area Interaktif Gambar */}
           <div 
-            className={`relative flex flex-col items-center justify-center w-full h-full transition-transform duration-300 ease-in-out ${isZoomedIn ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
+            className="relative flex items-center justify-center w-full h-full"
             onClick={(e) => {
-              e.stopPropagation(); // Mencegah modal tertutup saat gambar diklik
-              setIsZoomedIn(!isZoomedIn); // Toggle zoom in/out
+              // PERBAIKAN 1: Mencegah event klik bocor ke latar belakang (yang menutup modal)
+              e.stopPropagation();
+
+              // PERBAIKAN 2: Single Click Zoom (Abaikan jika kliknya adalah hasil melepas drag/geser)
+              if (!hasDragged) {
+                if (scale > 1) {
+                  resetZoom(); // Jika sedang zoom, kembalikan ke normal
+                } else {
+                  setScale(2.5); // Jika normal, zoom 2.5x instan
+                }
+              }
+            }}
+            onWheel={(e) => {
+              // ZOOM MENGGUNAKAN SCROLL MOUSE
+              e.stopPropagation();
+              const zoomSensitivity = 0.15;
+              const delta = e.deltaY < 0 ? zoomSensitivity : -zoomSensitivity;
+              const newScale = Math.max(1, Math.min(scale + delta, 5)); // Batas zoom 1x sampai 5x
+              setScale(newScale);
+              
+              if (newScale === 1) setPosition({ x: 0, y: 0 }); // Reset posisi jika zoom out habis
+            }}
+            onMouseDown={(e) => {
+              // MULAI PANNING (GESER GAMBAR)
+              e.stopPropagation();
+              e.preventDefault(); 
+              setIsDragging(true);
+              setHasDragged(false); // Reset status drag
+              setClickStartPos({ x: e.clientX, y: e.clientY }); // Catat koordinat awal klik
+              setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+            }}
+            onMouseMove={(e) => {
+              // PROSES MENGGESER GAMBAR
+              if (!isDragging) return;
+              e.stopPropagation();
+              
+              // Jika mouse bergerak lebih dari 5 pixel dari posisi awal klik, anggap ini sebagai "Drag", bukan "Klik Biasa"
+              if (Math.abs(e.clientX - clickStartPos.x) > 5 || Math.abs(e.clientY - clickStartPos.y) > 5) {
+                setHasDragged(true); 
+              }
+
+              setPosition({
+                x: e.clientX - dragStart.x,
+                y: e.clientY - dragStart.y,
+              });
+            }}
+            onMouseUp={(e) => {
+              // BERHENTI MENGGESER
+              e.stopPropagation();
+              setIsDragging(false);
+            }}
+            onMouseLeave={(e) => {
+              // BERHENTI MENGGESER JIKA MOUSE KELUAR AREA GAMBAR
+              if (isDragging) {
+                e.stopPropagation();
+                setIsDragging(false);
+              }
             }}
           >
             <img 
               src={plant.image_url} 
               alt={plant.name} 
-              className={`max-h-[85vh] w-auto max-w-full rounded-lg shadow-2xl object-contain border border-white/10 transition-transform duration-300 ease-out ${isZoomedIn ? 'scale-[2.0]' : 'scale-100'}`} 
+              draggable={false} 
+              style={{
+                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                transition: isDragging ? 'none' : 'transform 0.2s ease-out', // Animasi halus
+                cursor: isDragging ? 'grabbing' : (scale > 1 ? 'grab' : 'zoom-in')
+              }}
+              className="max-h-[85vh] w-auto max-w-full rounded-lg shadow-2xl object-contain border border-white/10" 
             />
             
-            {/* Sembunyikan judul tanaman saat sedang di-zoom agar tidak menutupi gambar */}
-            {!isZoomedIn && (
-              <p className="mt-6 text-white text-lg font-semibold tracking-wide animate-in fade-in duration-300">
-                {plant.name}
+            {/* Teks Instruksi */}
+            {scale === 1 && (
+              <p className="absolute bottom-10 text-white/60 text-sm font-medium tracking-wide animate-in fade-in duration-300 bg-black/60 px-6 py-2 rounded-full pointer-events-none">
+                Sekali Klik untuk Zoom | Scroll Mouse | Klik & Geser
               </p>
             )}
           </div>
