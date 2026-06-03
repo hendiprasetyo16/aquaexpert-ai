@@ -80,6 +80,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     }
   }
 
+// FUNGSI SUBMIT DENGAN SISTEM ROLLBACK GAMBAR & ANTI ERROR OVERLAY
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -92,11 +93,12 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       let finalImageUrl = plant?.image_url || "";
       const oldImageUrl = plant?.image_url || "";
 
-      // Upload gambar baru
+      // 1. Upload Gambar Baru (Jika Ada)
       if (imageFile) {
         finalImageUrl = await uploadPlantImage(imageFile, formData.name);
       }
 
+      // 2. Parsing Payload
       const payloadArrayRecommended = formData.recommended_for
         .split(",")
         .map((item) => item.trim())
@@ -108,21 +110,48 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         image_url: finalImageUrl,
       };
 
+      // 3. Simpan ke Database
       if (mode === "create") {
         const result = await createPlantAction(payload);
-        if (!result.success) throw new Error(result.error);
+        
+        // JIKA GAGAL (Contoh: Nama Duplikat)
+        if (!result.success) {
+          // ROLLBACK: Hapus gambar yang baru saja ter-upload agar tidak jadi sampah!
+          if (imageFile && finalImageUrl) {
+            await removePlantImage(finalImageUrl);
+          }
+          // Tampilkan error secara elegan tanpa layar merah Next.js
+          setError(result.error);
+          toast.error(result.error);
+          setLoading(false);
+          return; // Hentikan eksekusi di sini
+        }
+
         toast.success("Tanaman berhasil ditambahkan!");
       } else {
         const result = await updatePlantAction(plant!.id, payload);
-        if (!result.success) throw new Error(result.error);
+        
+        // JIKA GAGAL (Contoh: Nama Duplikat)
+        if (!result.success) {
+          // ROLLBACK: Hapus gambar yang baru ter-upload
+          if (imageFile && finalImageUrl) {
+            await removePlantImage(finalImageUrl);
+          }
+          setError(result.error);
+          toast.error(result.error);
+          setLoading(false);
+          return; // Hentikan eksekusi di sini
+        }
+
         toast.success("Data tanaman berhasil diperbarui!");
 
-        // Hapus gambar lama jika upload baru sukses
+        // Hapus gambar LAMA jika upload baru dan update DB sukses
         if (imageFile && oldImageUrl) {
           await removePlantImage(oldImageUrl);
         }
       }
 
+      // 4. Kembali ke daftar secara aman
       router.replace("/dashboard/plants");
       router.refresh();
 
@@ -171,15 +200,12 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
     try {
       setLoading(true);
+
+      // Server Action yang baru akan otomatis membersihkan storage-nya juga
       const result = await hardDeletePlantAction(plant.id);
 
       if (!result.success) throw new Error(result.error);
       
-      // Hapus gambar dari storage jika ada saat hard delete
-      if (plant.image_url) {
-        await removePlantImage(plant.image_url);
-      }
-
       toast.success("Tanaman berhasil dihapus permanen.");
       router.replace("/dashboard/plants");
       router.refresh();

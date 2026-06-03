@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getArchivedPlants, removePlantImage } from "../repositories/plant.repository";
+import { getArchivedPlants } from "../repositories/plant.repository"; // removePlantImage telah dihapus dari import
 import { restorePlantAction, hardDeletePlantAction } from "../actions/plant.actions";
 import { Plant } from "../types/plant.types";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,7 +45,6 @@ export default function PlantArchiveList() {
       if (!result.success) throw new Error(result.error);
       
       toast.success(`${plant.name} berhasil dipulihkan.`);
-      // Refresh list lokal
       setPlants((prev) => prev.filter((p) => p.id !== plant.id));
     } catch (error: any) {
       console.error(error);
@@ -55,6 +54,7 @@ export default function PlantArchiveList() {
     }
   }
 
+  // LOGIKA HAPUS YANG SUDAH DIBERSIHKAN
   async function handleHardDelete(plant: Plant) {
     const confirmed = window.confirm(
       `PERINGATAN KRITIS: Anda akan menghapus permanen ${plant.name} beserta gambarnya. Tindakan ini tidak dapat dibatalkan. Lanjutkan?`
@@ -63,14 +63,10 @@ export default function PlantArchiveList() {
 
     try {
       setProcessingId(plant.id);
+      
+      // Server Action yang baru sekarang otomatis menghapus Storage-nya juga
       const result = await hardDeletePlantAction(plant.id);
-
       if (!result.success) throw new Error(result.error);
-
-      // Bersihkan gambar dari Storage Supabase agar tidak jadi sampah
-      if (plant.image_url) {
-        await removePlantImage(plant.image_url);
-      }
 
       toast.success(`${plant.name} berhasil dihapus permanen.`);
       setPlants((prev) => prev.filter((p) => p.id !== plant.id));

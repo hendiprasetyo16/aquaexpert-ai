@@ -4,7 +4,6 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { Plant } from "../types/plant.types";
 
-// Fungsi utilitas untuk mengambil ID user saat ini (Audit Trail)
 async function getAuditUserId() {
   const cookieStore = await cookies();
   const supabase = createServerClient(
@@ -22,7 +21,7 @@ const generateSlug = (text: string) => {
 };
 
 // ==========================================
-// 1. CREATE PLANT (Dengan Anti Duplikat)
+// 1. CREATE PLANT
 // ==========================================
 export async function createPlantAction(plantData: Partial<Plant>) {
   try {
@@ -34,7 +33,6 @@ export async function createPlantAction(plantData: Partial<Plant>) {
       { cookies: { getAll() { return cookieStore.getAll(); }, setAll() {} } }
     );
 
-    // Cek Duplikasi Nama (Case-insensitive)
     const { data: existingPlant } = await supabase
       .from("plants")
       .select("id")
@@ -54,12 +52,7 @@ export async function createPlantAction(plantData: Partial<Plant>) {
       is_active: true,
     };
 
-    const { data, error } = await supabase
-      .from("plants")
-      .insert(payload)
-      .select()
-      .maybeSingle();
-
+    const { data, error } = await supabase.from("plants").insert(payload).select().maybeSingle();
     if (error) throw new Error(error.message);
     
     return { success: true, data };
@@ -69,7 +62,7 @@ export async function createPlantAction(plantData: Partial<Plant>) {
 }
 
 // ==========================================
-// 2. UPDATE PLANT (Dengan Anti Duplikat)
+// 2. UPDATE PLANT
 // ==========================================
 export async function updatePlantAction(id: string, plantData: Partial<Plant>) {
   try {
@@ -81,7 +74,6 @@ export async function updatePlantAction(id: string, plantData: Partial<Plant>) {
       { cookies: { getAll() { return cookieStore.getAll(); }, setAll() {} } }
     );
 
-    // Cek Duplikasi Nama selain dirinya sendiri
     const { data: duplicatePlant } = await supabase
       .from("plants")
       .select("id")
@@ -100,13 +92,7 @@ export async function updatePlantAction(id: string, plantData: Partial<Plant>) {
       updated_by: userId,
     };
 
-    const { data, error } = await supabase
-      .from("plants")
-      .update(payload)
-      .eq("id", id)
-      .select()
-      .maybeSingle();
-    
+    const { data, error } = await supabase.from("plants").update(payload).eq("id", id).select().maybeSingle();
     if (error) throw new Error(error.message);
 
     return { success: true, data };
@@ -116,7 +102,7 @@ export async function updatePlantAction(id: string, plantData: Partial<Plant>) {
 }
 
 // ==========================================
-// 3. HARD DELETE (Khusus Super Admin)
+// 3. HARD DELETE (Hapus Storage lalu Database)
 // ==========================================
 export async function hardDeletePlantAction(id: string) {
   try {
@@ -128,23 +114,31 @@ export async function hardDeletePlantAction(id: string) {
       { cookies: { getAll() { return cookieStore.getAll(); }, setAll() {} } }
     );
 
-    // Verifikasi Role Super Admin
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", userId)
-      .single();
-
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).single();
     if (profile?.role !== "super_admin") {
       throw new Error("Hanya Super Admin yang boleh menghapus permanen.");
     }
 
-    // Eksekusi Hard Delete
-    const { error } = await supabase
+    // 1. CARI TANAMAN UNTUK MENDAPATKAN IMAGE_URL
+    const { data: plant, error: fetchError } = await supabase
       .from("plants")
-      .delete()
-      .eq("id", id);
+      .select("image_url")
+      .eq("id", id)
+      .single();
 
+    if (fetchError) throw new Error("Data tanaman tidak ditemukan.");
+
+    // 2. HAPUS FILE DI STORAGE JIKA ADA
+    if (plant?.image_url) {
+      const pathParts = plant.image_url.split("plant-images/");
+      if (pathParts.length === 2) {
+        const filePath = pathParts[1];
+        await supabase.storage.from("plant-images").remove([filePath]);
+      }
+    }
+
+    // 3. EKSEKUSI HARD DELETE DARI DATABASE
+    const { error } = await supabase.from("plants").delete().eq("id", id);
     if (error) throw error;
 
     return { success: true };
@@ -154,7 +148,7 @@ export async function hardDeletePlantAction(id: string) {
 }
 
 // ==========================================
-// 4. RESTORE PLANT (Memulihkan Arsip & Cek Duplikat)
+// 4. RESTORE PLANT
 // ==========================================
 export async function restorePlantAction(id: string) {
   try {
@@ -166,18 +160,9 @@ export async function restorePlantAction(id: string) {
       { cookies: { getAll() { return cookieStore.getAll(); }, setAll() {} } }
     );
 
-    // 1. Dapatkan nama tanaman yang akan dipulihkan
-    const { data: archivedPlant, error: fetchError } = await supabase
-      .from("plants")
-      .select("name")
-      .eq("id", id)
-      .single();
+    const { data: archivedPlant, error: fetchError } = await supabase.from("plants").select("name").eq("id", id).single();
+    if (fetchError || !archivedPlant) throw new Error("Data tanaman tidak ditemukan.");
 
-    if (fetchError || !archivedPlant) {
-      throw new Error("Data tanaman tidak ditemukan.");
-    }
-
-    // 2. Cek apakah ada tanaman aktif dengan nama yang sama
     const { data: duplicatePlant } = await supabase
       .from("plants")
       .select("id")
@@ -189,15 +174,7 @@ export async function restorePlantAction(id: string) {
       throw new Error(`Tanaman "${archivedPlant.name}" sudah ada dalam database aktif. Harap hapus atau ubah nama tanaman yang aktif terlebih dahulu.`);
     }
 
-    // 3. Update status is_active menjadi true kembali, dan catat siapa yang memulihkannya
-    const { error } = await supabase
-      .from("plants")
-      .update({ 
-        is_active: true,
-        updated_by: userId 
-      })
-      .eq("id", id);
-
+    const { error } = await supabase.from("plants").update({ is_active: true, updated_by: userId }).eq("id", id);
     if (error) throw new Error(error.message);
 
     return { success: true };
