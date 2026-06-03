@@ -20,7 +20,7 @@ export default function Sidebar() {
   const formatRole = (roleStr: string) => {
     if (roleStr === "super_admin") return "Super Admin";
     if (roleStr === "admin") return "Admin";
-    return "User Biasa";
+    return "User";
   };
 
   // FUNGSI BARU: Membuat Avatar Inisial (Misal: "Budi Santoso" -> "BS")

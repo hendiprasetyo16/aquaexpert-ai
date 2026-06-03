@@ -258,7 +258,7 @@ export default function UsersPage() {
                 <Shield className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-400">User Biasa</p>
+                <p className="text-sm font-medium text-slate-400">User</p>
                 <p className="text-2xl font-bold text-slate-100">{stats.user}</p>
               </div>
             </CardContent>
@@ -287,7 +287,7 @@ export default function UsersPage() {
               className="w-full appearance-none rounded-md border border-slate-800 bg-slate-900 py-2 pl-10 pr-4 text-sm text-slate-200 outline-none focus:border-teal-500"
             >
               <option value="all">Semua Jabatan</option>
-              <option value="user">User Biasa</option>
+              <option value="user">User</option>
               {currentUserRole === "super_admin" && (
                 <>
                   <option value="admin">Admin</option>
@@ -346,7 +346,7 @@ export default function UsersPage() {
                       user.role === "super_admin" ? "border-red-900 bg-red-950/30 text-red-400" : user.role === "admin" ? "border-yellow-900 bg-yellow-950/30 text-yellow-400" : "border-teal-900 bg-teal-950/30 text-teal-400"
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    <option value="user" className="bg-slate-900 text-slate-200">User Biasa</option>
+                    <option value="user" className="bg-slate-900 text-slate-200">User</option>
                     <option value="admin" className="bg-slate-900 text-slate-200">Admin</option>
                     {currentUserRole === "super_admin" && <option value="super_admin" className="bg-slate-900 text-slate-200">Super Admin</option>}
                   </select>
@@ -421,7 +421,7 @@ export default function UsersPage() {
               <div>
                 <label className="mb-1 block text-sm text-slate-300">Jabatan (Role)</label>
                 <select value={formData.role} onChange={(e) => setFormData({...formData, role: e.target.value as UserRole})} disabled={currentUserRole === "admin"} className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-200 outline-none focus:border-teal-500 disabled:opacity-50">
-                  <option value="user">User Biasa</option>
+                  <option value="user">User</option>
                   {currentUserRole === "super_admin" && (
                     <>
                       <option value="admin">Admin</option>
