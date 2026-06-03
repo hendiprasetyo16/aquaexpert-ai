@@ -7,7 +7,6 @@ import { Plant } from "../types/plant.types";
 import { useAuth } from "@/hooks/useAuth";
 import PlantCard from "./PlantCard";
 
-// TAMBAHAN IMPORT: ChevronsLeft & ChevronsRight untuk Awal/Akhir
 import { Loader2, Plus, Archive, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +36,7 @@ export default function PlantList() {
     loadData();
   }, []);
 
+  // Reset ke halaman 1 jika user mulai mengetik pencarian baru
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
@@ -56,14 +56,21 @@ export default function PlantList() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  // LOGIKA WINDOWING PAGINATION (Menampilkan maksimal 3 angka halaman)
-  let startPage = Math.max(1, currentPage - 1);
-  let endPage = Math.min(totalPages, currentPage + 1);
+  // =========================================================
+  // LOGIKA WINDOWING PAGINATION (Revisi: Maksimal 4 angka)
+  // =========================================================
+  const maxVisiblePages = 4;
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
-  if (currentPage === 1) {
-    endPage = Math.min(totalPages, 3);
-  } else if (currentPage === totalPages) {
-    startPage = Math.max(1, totalPages - 2);
+  // Koreksi jika startPage terlalu kecil (di awal halaman)
+  if (endPage - startPage + 1 < maxVisiblePages) {
+    endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+  }
+  
+  // Koreksi jika endPage mentok di totalPages (di akhir halaman)
+  if (endPage === totalPages) {
+    startPage = Math.max(1, totalPages - maxVisiblePages + 1);
   }
 
   const pageNumbers = [];
@@ -134,47 +141,47 @@ export default function PlantList() {
             ))}
           </div>
 
-          {/* KONTROL PAGINATION LANJUTAN (3 Angka & Awal/Akhir) */}
+          {/* KONTROL PAGINATION KOMPLIT (4 Angka + Awal/Akhir + Kotak Input) */}
           {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-800 pt-6 mt-6 gap-4">
-              <p className="text-sm text-slate-400 text-center sm:text-left w-full sm:w-auto">
+            <div className="flex flex-col xl:flex-row items-center justify-between border-t border-slate-800 pt-6 mt-6 gap-4">
+              <p className="text-sm text-slate-400 text-center xl:text-left w-full xl:w-auto">
                 Menampilkan <span className="font-medium text-slate-200">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> hingga <span className="font-medium text-slate-200">{Math.min(currentPage * ITEMS_PER_PAGE, filteredPlants.length)}</span> dari <span className="font-medium text-slate-200">{filteredPlants.length}</span> data
               </p>
               
-              <div className="flex items-center gap-1 sm:gap-2">
-                {/* Tombol Halaman Awal */}
+              <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
+                {/* Tombol Lompat ke Awal */}
                 <Button 
                   variant="outline" 
                   size="icon"
                   onClick={() => setCurrentPage(1)}
                   disabled={currentPage === 1}
-                  className="h-8 w-8 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-50"
+                  className="h-8 w-8 sm:h-9 sm:w-9 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-50"
                   title="Halaman Awal"
                 >
                   <ChevronsLeft className="h-4 w-4" />
                 </Button>
 
-                {/* Tombol Sebelumnya */}
+                {/* Tombol Mundur 1 Halaman */}
                 <Button 
                   variant="outline" 
                   size="icon"
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="h-8 w-8 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-50"
+                  className="h-8 w-8 sm:h-9 sm:w-9 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-50"
                   title="Sebelumnya"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 
-                {/* Looping 3 Angka Halaman Dinamis */}
+                {/* Looping Angka Halaman Dinamis (Max 4 Angka) */}
                 {pageNumbers.map(num => (
                   <Button
                     key={num}
                     variant={currentPage === num ? "default" : "outline"}
                     onClick={() => setCurrentPage(num)}
-                    className={`h-8 w-8 p-0 text-sm font-medium transition-colors ${
+                    className={`h-8 w-8 sm:h-9 sm:w-9 p-0 text-xs sm:text-sm font-medium transition-all ${
                       currentPage === num 
-                        ? 'bg-teal-600 hover:bg-teal-500 text-white border-teal-500 shadow-md' 
+                        ? 'bg-teal-600 hover:bg-teal-500 text-white border-teal-500 shadow-md scale-105' 
                         : 'border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white'
                     }`}
                   >
@@ -182,29 +189,48 @@ export default function PlantList() {
                   </Button>
                 ))}
 
-                {/* Tombol Selanjutnya */}
+                {/* Tombol Maju 1 Halaman */}
                 <Button 
                   variant="outline" 
                   size="icon"
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="h-8 w-8 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-50"
+                  className="h-8 w-8 sm:h-9 sm:w-9 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-50"
                   title="Selanjutnya"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
 
-                {/* Tombol Halaman Akhir */}
+                {/* Tombol Lompat ke Akhir */}
                 <Button 
                   variant="outline" 
                   size="icon"
                   onClick={() => setCurrentPage(totalPages)}
                   disabled={currentPage === totalPages}
-                  className="h-8 w-8 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-50"
+                  className="h-8 w-8 sm:h-9 sm:w-9 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white disabled:opacity-50"
                   title="Halaman Akhir"
                 >
                   <ChevronsRight className="h-4 w-4" />
                 </Button>
+
+                {/* Kotak Input Lompat Halaman (Dikembalikan & Dirapikan) */}
+                <div className="flex items-center gap-2 text-sm text-slate-300 ml-2 sm:ml-4 border-l border-slate-700 pl-2 sm:pl-4">
+                  <span className="hidden sm:inline">Hal</span>
+                  <Input 
+                    type="number"
+                    min={1}
+                    max={totalPages}
+                    value={currentPage}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (val >= 1 && val <= totalPages) setCurrentPage(val);
+                    }}
+                    className="w-14 h-8 text-center bg-slate-950 border-slate-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:border-teal-500"
+                    title="Ketik angka halaman"
+                  />
+                  <span className="hidden sm:inline">/ {totalPages}</span>
+                </div>
+
               </div>
             </div>
           )}
