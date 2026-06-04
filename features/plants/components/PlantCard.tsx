@@ -33,7 +33,7 @@ export default function PlantCard({ plant }: PlantCardProps) {
           {plant.image_url ? (
             <img
               src={plant.image_url}
-              alt={plant.name}
+              alt={plant.name || "Gambar Tanaman"}
               className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
           ) : (
@@ -46,10 +46,13 @@ export default function PlantCard({ plant }: PlantCardProps) {
         </div>
 
         <CardHeader>
-          <CardTitle className="text-xl text-teal-400 transition-colors group-hover:text-teal-300 truncate" title={plant.name}>
+          {/* PERBAIKAN: Gunakan || "" agar title tidak menerima null */}
+          <CardTitle className="text-xl text-teal-400 transition-colors group-hover:text-teal-300 truncate" title={plant.name || ""}>
             {plant.name}
           </CardTitle>
-          <p className="italic text-slate-400 truncate" title={plant.scientific_name}>{plant.scientific_name || "-"}</p>
+          <p className="italic text-slate-400 truncate" title={plant.scientific_name || ""}>
+            {plant.scientific_name || "-"}
+          </p>
         </CardHeader>
       </Link>
 
@@ -76,7 +79,6 @@ export default function PlantCard({ plant }: PlantCardProps) {
           <div className="flex items-center gap-2 pt-1 border-t border-slate-800/60 mt-2">
             <Droplets className="h-4 w-4 text-cyan-500 shrink-0" />
             <span className="font-medium shrink-0">Tingkat Kesulitan:</span>
-            {/* PERBAIKAN: LOGIKA WARNA YANG SINKRON DENGAN CSV TROPICA ("Easy", "Medium", "Hard") */}
             <span
               className={`rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide border ${
                 plant.difficulty?.toLowerCase() === 'easy' ? 'bg-green-950/40 text-green-400 border-green-900/50' :

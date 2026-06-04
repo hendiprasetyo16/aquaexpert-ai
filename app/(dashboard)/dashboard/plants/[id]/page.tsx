@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 import { 
   Loader2, ArrowLeft, Leaf, Edit, Droplets, Wind, Sun, 
-  Thermometer, FlaskConical, MapPin, Ruler, CheckCircle2, Maximize2, X, Info
+  Thermometer, FlaskConical, MapPin, Ruler, CheckCircle2, Maximize2, X, Info, ImageIcon
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
@@ -91,57 +91,85 @@ export default function PlantDetailPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-12">
-          {/* KOLOM KIRI: FOTO & IDENTITAS UTAMA */}
-          <Card className="border-slate-800 bg-slate-900/60 lg:col-span-4 overflow-hidden h-fit shadow-xl">
-            <div 
-              className={`h-80 w-full bg-slate-800 flex items-center justify-center relative group ${plant.image_url ? 'cursor-pointer' : ''}`}
-              onClick={() => plant.image_url && openLightbox(plant.image_url)}
-            >
-              {plant.image_url ? (
-                <>
-                  <img src={plant.image_url} alt={plant.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 transition-opacity duration-300"></div>
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 pointer-events-none">
-                    <Maximize2 className="h-10 w-10 text-white drop-shadow-md scale-75 group-hover:scale-100 transition-transform" />
-                  </div>
-                </>
-              ) : (
-                <Leaf className="h-20 w-20 text-slate-600" />
-              )}
-            </div>
-
-            <CardContent className="p-6 text-center">
-              <h1 className="text-3xl font-extrabold text-teal-400 tracking-tight">{plant.name}</h1>
-              <p className="italic text-slate-400 mt-1 font-serif">{plant.scientific_name || "Scientific name unknown"}</p>
-              
-              <div className="mt-5 flex items-center justify-center gap-2">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
-                  plant.difficulty?.toLowerCase() === 'easy' ? 'bg-green-950/40 text-green-400 border-green-900' :
-                  plant.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-950/40 text-yellow-400 border-yellow-900' :
-                  plant.difficulty?.toLowerCase() === 'hard' ? 'bg-red-950/40 text-red-400 border-red-900' :
-                  'bg-slate-800 text-slate-300 border-slate-700'
-                }`}>
-                  {plant.difficulty || "Unknown Difficulty"}
-                </span>
-                <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700">
-                  {plant.placement || "Unknown Placement"}
-                </span>
+          {/* KOLOM KIRI: FOTO COVER, GALERI & IDENTITAS */}
+          <div className="lg:col-span-4 space-y-6">
+            
+            {/* KARTU VISUAL (COVER + GALLERY) */}
+            <Card className="border-slate-800 bg-slate-900/60 overflow-hidden shadow-xl">
+              {/* COVER IMAGE UTAMA */}
+              <div 
+                className={`h-72 w-full bg-slate-800 flex items-center justify-center relative group ${plant.image_url ? 'cursor-pointer' : ''}`}
+                onClick={() => plant.image_url && openLightbox(plant.image_url)}
+              >
+                {plant.image_url ? (
+                  <>
+                    <img src={plant.image_url} alt={`Cover ${plant.name}`} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 transition-opacity duration-300"></div>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 pointer-events-none">
+                      <Maximize2 className="h-10 w-10 text-white drop-shadow-md scale-75 group-hover:scale-100 transition-transform" />
+                    </div>
+                    <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-md text-[10px] font-medium text-slate-300 uppercase tracking-widest border border-white/10 flex items-center gap-1.5">
+                      <ImageIcon className="h-3 w-3" /> Cover
+                    </div>
+                  </>
+                ) : (
+                  <Leaf className="h-20 w-20 text-slate-600" />
+                )}
               </div>
-              
-              {plant.recommended_for && plant.recommended_for.length > 0 && (
-                <div className="mt-6 flex flex-wrap justify-center gap-1.5">
-                  {plant.recommended_for.map(tag => (
-                    <span key={tag} className="flex items-center gap-1 rounded-md bg-teal-950/30 px-2.5 py-1.5 text-[11px] font-medium text-teal-300 border border-teal-900/50">
-                      <CheckCircle2 className="h-3 w-3 text-teal-500" /> {tag}
-                    </span>
+
+              {/* THUMBNAIL GALERI (MAKS 3) */}
+              {plant.gallery_urls && plant.gallery_urls.length > 0 && (
+                <div className="grid grid-cols-3 gap-1 p-1 bg-slate-950">
+                  {plant.gallery_urls.slice(0, 3).map((url, idx) => (
+                    <div 
+                      key={idx} 
+                      className="aspect-square relative group cursor-pointer overflow-hidden rounded-sm bg-slate-800"
+                      onClick={() => openLightbox(url)}
+                    >
+                      <img src={url} alt={`Gallery ${idx + 1}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100" />
+                      <div className="absolute inset-0 bg-teal-500/0 group-hover:bg-teal-500/20 transition-colors duration-300 pointer-events-none"></div>
+                    </div>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+
+              {/* IDENTITAS UTAMA */}
+              <CardContent className="p-6 text-center border-t border-slate-800">
+                <h1 className="text-3xl font-extrabold text-teal-400 tracking-tight">{plant.name}</h1>
+                <p className="italic text-slate-400 mt-1 font-serif">{plant.scientific_name || "Scientific name unknown"}</p>
+                
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
+                    plant.difficulty?.toLowerCase() === 'easy' ? 'bg-green-950/40 text-green-400 border-green-900' :
+                    plant.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-950/40 text-yellow-400 border-yellow-900' :
+                    plant.difficulty?.toLowerCase() === 'hard' ? 'bg-red-950/40 text-red-400 border-red-900' :
+                    'bg-slate-800 text-slate-300 border-slate-700'
+                  }`}>
+                    {plant.difficulty || "Unknown Difficulty"}
+                  </span>
+                  <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700">
+                    {plant.placement || "Unknown Placement"}
+                  </span>
+                </div>
+                
+                {plant.recommended_for && plant.recommended_for.length > 0 && (
+                  <div className="mt-6">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3 border-b border-slate-800 pb-2">Rekomendasi Setup</p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {plant.recommended_for.map(tag => (
+                        <span key={tag} className="flex items-center gap-1.5 rounded-md bg-teal-950/30 px-2.5 py-1.5 text-[11px] font-medium text-teal-300 border border-teal-900/50">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-teal-500" /> {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* KOLOM KANAN: PARAMETER PAKAR & DESKRIPSI */}
-          <Card className="border-slate-800 bg-slate-900/60 lg:col-span-8 shadow-xl">
+          <Card className="border-slate-800 bg-slate-900/60 lg:col-span-8 shadow-xl h-fit">
             <CardContent className="p-8 space-y-10">
               
               {/* BAGIAN DESKRIPSI BOTANI */}
@@ -313,7 +341,7 @@ export default function PlantDetailPage() {
           >
             <img 
               src={selectedImageUrl} 
-              alt={plant.name} 
+              alt="Detail Gambar" 
               draggable={false} 
               style={{
                 transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,

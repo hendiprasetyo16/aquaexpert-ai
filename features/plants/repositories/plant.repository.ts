@@ -1,11 +1,12 @@
 import { createClient } from "@/lib/supabase/client";
 import { Plant } from "../types/plant.types";
 
+// PERBAIKAN 1: Tambahkan gallery_urls ke dalam query select
 const PLANT_COLUMNS = `
   id, name, slug, scientific_name, light_requirement, co2_requirement, fertilizer_requirement,
   placement, difficulty, growth_rate, ph_min, ph_max, temperature_min, temperature_max,
-  description, origin_country, max_height_cm, recommended_for, source_name, source_url, image_url, 
-  created_at, updated_at, is_active, created_by, updated_by
+  description, origin_country, max_height_cm, recommended_for, source_name, source_url, 
+  image_url, gallery_urls, created_at, updated_at, is_active, created_by, updated_by
 `;
 
 export async function getPlants(): Promise<Plant[]> {
@@ -42,14 +43,20 @@ export async function deletePlant(id: string) {
   return true;
 }
 
-export async function uploadPlantImage(file: File, plantName: string): Promise<string> {
+// PERBAIKAN 2: Menerima param slug & exactFileName (misal: "cover.webp")
+export async function uploadPlantImage(file: File, slug: string, exactFileName: string): Promise<string> {
   const supabase = createClient();
-  const folderSlug = plantName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-  const ext = file.name.split(".").pop();
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${ext}`;
-  const filePath = `${folderSlug}/${fileName}`;
+  
+  // Membentuk path sesuai arsitektur final: slug-tanaman/nama-file.ekstensi
+  const filePath = `${slug}/${exactFileName}`;
 
-  const { error } = await supabase.storage.from("plant-images").upload(filePath, file);
+  // upsert: true SANGAT PENTING agar jika admin ganti gambar, 
+  // gambar lama otomatis tertimpa tanpa menyebabkan error duplicate.
+  const { error } = await supabase.storage.from("plant-images").upload(filePath, file, {
+    upsert: true,
+    cacheControl: "3600"
+  });
+  
   if (error) throw error;
 
   const { data } = supabase.storage.from("plant-images").getPublicUrl(filePath);
@@ -67,14 +74,13 @@ export async function removePlantImage(imageUrl: string) {
   }
 }
 
-// PERBAIKAN: Fungsi ini sekarang berada di luar (tidak tertelan fungsi sebelumnya)
 export async function getArchivedPlants(): Promise<Plant[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("plants")
     .select(PLANT_COLUMNS)
-    .eq("is_active", false) // Ambil yang arsip
-    .order("updated_at", { ascending: false }); // Urutkan berdasarkan yang paling baru diarsipkan
+    .eq("is_active", false) 
+    .order("updated_at", { ascending: false }); 
 
   if (error) {
     console.error("Gagal mengambil data arsip tanaman:", error);
