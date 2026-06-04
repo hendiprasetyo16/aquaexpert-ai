@@ -27,6 +27,7 @@ export interface Plant {
 
   description?: string;
   image_url?: string;
+  gallery_urls?: string[]; // <-- TAMBAHKAN BARIS INI
 
   created_at: string;
   updated_at?: string;
