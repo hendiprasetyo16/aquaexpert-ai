@@ -4,13 +4,13 @@ import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { getUsers, updateUserRole } from "@/features/users/repositories/user.repository";
 import { 
-  createUser, toggleUserStatus, resetUserPassword, updateUserProfile 
+  createUser, toggleUserStatus, resetUserPassword, updateUserProfile, hardDeleteUser 
 } from "@/features/users/actions/user.actions";
 import { UserProfile, UserRole } from "@/features/users/types/user.types";
 
 import { 
   Loader2, ShieldAlert, User as UserIcon, Mail, Users, 
-  Shield, ShieldCheck, UserPlus, X, KeyRound, Power, PowerOff, Search, Filter, Pencil
+  Shield, ShieldCheck, UserPlus, X, KeyRound, Power, PowerOff, Search, Filter, Pencil, Trash2
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import toast from "react-hot-toast";
@@ -20,11 +20,9 @@ export default function UsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // States Pencarian & Filter
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | UserRole>("all");
 
-  // States Kendali Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -47,7 +45,6 @@ export default function UsersPage() {
     }
   }, [currentUserRole]);
 
-  // Handler: Mengubah Hak Akses (Role)
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     const confirmChange = window.confirm(`Yakin ingin mengubah hak akses pengguna ini menjadi ${newRole.toUpperCase()}?`);
     if (!confirmChange) return;
@@ -64,7 +61,6 @@ export default function UsersPage() {
     }
   };
 
-  // Handler: Mengubah Informasi Dasar Profil (Nama Lengkap) VIA SERVER ACTION
   const handleEditProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
@@ -73,8 +69,6 @@ export default function UsersPage() {
     const previousUsers = [...users];
     try {
       setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, full_name: editNameValue } : u));
-
-      // Memanggil Server Action untuk Edit Profile
       const result = await updateUserProfile(selectedUser.id, editNameValue);
 
       if (result.success) {
@@ -92,7 +86,6 @@ export default function UsersPage() {
     }
   };
 
-  // Handler: Membuat Akun Baru
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -104,7 +97,6 @@ export default function UsersPage() {
     
     const result = await createUser(formData);
     
-    // TIDAK ADA LAGI "as any"
     if (result.success) {
       toast.success(result.message || "Berhasil ditambahkan!"); 
       setIsAddModalOpen(false);
@@ -117,7 +109,6 @@ export default function UsersPage() {
     setIsSubmitting(false);
   };
 
-  // Handler: Mengaktifkan / Menonaktifkan Akun
   const handleToggleStatus = async (user: UserProfile) => {
     const actionText = user.is_active ? "menonaktifkan" : "mengaktifkan";
     const confirmAction = window.confirm(`Yakin ingin ${actionText} akun ${user.full_name}?`);
@@ -129,7 +120,6 @@ export default function UsersPage() {
       
       const result = await toggleUserStatus(user.id, user.is_active, user.role);
       
-      // TIDAK ADA LAGI "as any"
       if (!result.success) throw new Error(result.error || "Error tidak dikenal.");
       toast.success(result.message || "Status akun berhasil diubah.");
       
@@ -139,7 +129,6 @@ export default function UsersPage() {
     }
   };
 
-  // Handler: Reset Kata Sandi
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
@@ -147,7 +136,6 @@ export default function UsersPage() {
     
     const result = await resetUserPassword(selectedUser.id, resetPasswordValue, selectedUser.role);
     
-    // TIDAK ADA LAGI "as any"
     if (result.success) {
       toast.success(result.message || "Password berhasil di-reset!");
       setIsResetModalOpen(false);
@@ -159,7 +147,35 @@ export default function UsersPage() {
     setIsSubmitting(false);
   };
 
-  // STATISTIK YANG AMAN: Admin tidak dapat melihat jumlah Super Admin
+  // ==========================================
+  // HANDLER BARU: HAPUS PERMANEN (HARD DELETE)
+  // ==========================================
+  const handleHardDelete = async (user: UserProfile) => {
+    const confirmText = window.prompt(
+      `PERINGATAN KRITIS!\n\nKetik email pengguna "${user.email}" untuk menghapus permanen akun ini:`
+    );
+
+    if (confirmText !== user.email) {
+      toast.error("Email konfirmasi tidak sesuai. Penghapusan dibatalkan.");
+      return;
+    }
+
+    const previousUsers = [...users];
+    try {
+      // Hapus dari UI sementara waktu
+      setUsers(prev => prev.filter(u => u.id !== user.id));
+      
+      const result = await hardDeleteUser(user.id, user.role);
+      
+      if (!result.success) throw new Error(result.error || "Error saat menghapus permanen.");
+      toast.success(result.message || "Pengguna berhasil dihapus permanen.");
+      
+    } catch (error: any) {
+      setUsers(previousUsers); // Kembalikan ke UI jika gagal
+      toast.error(error.message || "Gagal menghapus pengguna.");
+    }
+  };
+
   const stats = useMemo(() => {
     const visibleUsers = currentUserRole === "admin"
       ? users.filter(u => u.role === "user")
@@ -173,7 +189,6 @@ export default function UsersPage() {
     };
   }, [users, currentUserRole]);
 
-  // Penyaringan Array Gabungan (Security, Search & Filter Dropdown)
   const filteredUsers = useMemo(() => {
     let visibleUsers = users;
 
@@ -197,7 +212,6 @@ export default function UsersPage() {
   return (
     <div className="space-y-6 pb-10">
       
-      {/* BAGIAN HEADER */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-3xl font-bold text-slate-100">Manajemen Pengguna</h2>
@@ -212,7 +226,6 @@ export default function UsersPage() {
         </button>
       </div>
 
-      {/* BAGIAN STATISTIK CARD */}
       {!loading && (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Card className="border-slate-800 bg-slate-900/60 shadow-sm">
@@ -266,7 +279,6 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* BILAH ALAT: SEARCH INPUT & FILTER DROPDOWN */}
       {!loading && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
@@ -299,7 +311,6 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* GRIDS KARTU PENGGUNA */}
       {loading ? (
         <div className="flex h-40 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
@@ -336,7 +347,6 @@ export default function UsersPage() {
                   <select
                     value={user.role}
                     onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
-                    // PROTEKSI: Super Admin ubah role, Admin disable ubah role
                     disabled={
                       currentUserRole !== "super_admin" || 
                       user.id === currentUserAuth?.id || 
@@ -351,7 +361,6 @@ export default function UsersPage() {
                     {currentUserRole === "super_admin" && <option value="super_admin" className="bg-slate-900 text-slate-200">Super Admin</option>}
                   </select>
 
-                  {/* KELOMPOK TOMBOL AKSI CEPAT */}
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => { setSelectedUser(user); setEditNameValue(user.full_name); setIsEditModalOpen(true); }}
@@ -389,6 +398,20 @@ export default function UsersPage() {
                     >
                       {user.is_active ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
                     </button>
+
+                    {/* TOMBOL HAPUS PERMANEN BARU */}
+                    <button 
+                      onClick={() => handleHardDelete(user)}
+                      disabled={
+                        user.id === currentUserAuth?.id || 
+                        (currentUserRole === "admin" && user.role !== "user") ||
+                        (user.role === "super_admin" && stats.superAdmin === 1)
+                      }
+                      title="Hapus Akun Permanen"
+                      className="rounded-md bg-slate-800 p-1.5 text-slate-400 transition hover:bg-red-900 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               </CardContent>
@@ -397,7 +420,7 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* MODAL CONTAINER: TAMBAH USER */}
+      {/* SISA KODE MODAL TETAP SAMA */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
            <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
@@ -439,7 +462,6 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* MODAL CONTAINER: EDIT PROFIL NAMA LENGKAP */}
       {isEditModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
@@ -462,7 +484,6 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* MODAL CONTAINER: RESET PASSWORD */}
       {isResetModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">

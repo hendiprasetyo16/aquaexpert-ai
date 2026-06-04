@@ -16,7 +16,6 @@ const supabaseAdmin = createSupabaseClient(
   }
 );
 
-// Tipe pengembalian yang konsisten untuk menghindari "any" di Frontend
 export type ActionResult = {
   success: boolean;
   message?: string;
@@ -132,7 +131,6 @@ export async function updateUserProfile(
   try {
     const currentUser = await verifyAdminAccess();
 
-    // Proteksi Server: Jika Admin yang edit, pastikan targetnya adalah 'user'
     if (currentUser.role === "admin") {
       const { data: targetUser } = await supabaseAdmin
         .from("profiles")
@@ -231,6 +229,39 @@ export async function resetUserPassword(
     return {
       success: false,
       error: error?.message || "Gagal mereset password.",
+    };
+  }
+}
+
+// =====================================================
+// HARD DELETE USER PERMANENTLY (TAMBAHAN BARU)
+// =====================================================
+export async function hardDeleteUser(
+  userId: string,
+  targetRole: UserRole
+): Promise<ActionResult> {
+  try {
+    const currentUser = await verifyAdminAccess();
+
+    // HIERARKI KETAT: Admin biasa tidak boleh menghapus siapa pun selain "user"
+    if (currentUser.role === "admin" && targetRole !== "user") {
+      throw new Error("Admin hanya dapat menghapus permanen user biasa.");
+    }
+
+    // Menghapus user langsung dari Supabase Auth System
+    // Hal ini secara otomatis akan memutus akses login mereka selamanya.
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+    if (error) throw new Error(error.message);
+
+    return {
+      success: true,
+      message: "Akun pengguna berhasil dihapus secara permanen.",
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error?.message || "Gagal menghapus pengguna secara permanen.",
     };
   }
 }
