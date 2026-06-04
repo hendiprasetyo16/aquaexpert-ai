@@ -4,6 +4,7 @@ import { UserProfile, UserRole } from "../types/user.types";
 export async function getUsers(): Promise<UserProfile[]> {
   const supabase = createClient();
 
+  // PERBAIKAN: Tambahkan last_login_at di sini
   const { data, error } = await supabase
     .from("profiles")
     .select(`
@@ -12,7 +13,8 @@ export async function getUsers(): Promise<UserProfile[]> {
       full_name,
       role,
       is_active,
-      created_at
+      created_at,
+      last_login_at
     `)
     .order("full_name", { ascending: true });
 
@@ -28,7 +30,6 @@ export async function updateUserRole(
   userId: string,
   newRole: UserRole
 ): Promise<boolean> {
-  // Validasi keamanan di sisi klien sebelum menembak ke database
   const allowedRoles: UserRole[] = ["super_admin", "admin", "user"];
   
   if (!allowedRoles.includes(newRole)) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react"; // Tambahkan Suspense
+import { useState, useEffect, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,12 +36,24 @@ function LoginFormContent() {
 
       const supabase = createClient();
 
-      const { error } = await supabase.auth.signInWithPassword({
+      // PERUBAHAN DI SINI: Kita ambil objek `data` juga selain `error`
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+
+      // ====================================================
+      // KODE TAMBAHAN: UPDATE WAKTU LOGIN TERAKHIR (LAST LOGIN)
+      // ====================================================
+      if (data?.user?.id) {
+        await supabase
+          .from("profiles")
+          .update({ last_login_at: new Date().toISOString() })
+          .eq("id", data.user.id);
+      }
+      // ====================================================
 
       // Beri waktu sejenak agar Cookie benar-benar tertulis di browser
       await new Promise((resolve) => setTimeout(resolve, 300));

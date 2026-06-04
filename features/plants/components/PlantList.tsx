@@ -57,18 +57,16 @@ export default function PlantList() {
   );
 
   // =========================================================
-  // LOGIKA WINDOWING PAGINATION (Revisi: Maksimal 4 angka)
+  // LOGIKA WINDOWING PAGINATION (Maksimal 4 angka)
   // =========================================================
   const maxVisiblePages = 4;
   let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
   let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
-  // Koreksi jika startPage terlalu kecil (di awal halaman)
   if (endPage - startPage + 1 < maxVisiblePages) {
     endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
   }
   
-  // Koreksi jika endPage mentok di totalPages (di akhir halaman)
   if (endPage === totalPages) {
     startPage = Math.max(1, totalPages - maxVisiblePages + 1);
   }
@@ -135,13 +133,27 @@ export default function PlantList() {
         </div>
       ) : (
         <>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {displayedPlants.map((plant) => (
-              <PlantCard key={plant.id} plant={plant} />
-            ))}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pt-4">
+            {/* MAP DATA TANAMAN DENGAN PENOMORAN GLOBAL */}
+            {displayedPlants.map((plant, index) => {
+              // Menghitung nomor urut agar terus berlanjut di halaman berikutnya
+              const globalIndex = (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
+              
+              return (
+                <div key={plant.id} className="relative group">
+                  {/* LENCANA (BADGE) NOMOR URUT */}
+                  <div className="absolute -left-3 -top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white shadow-lg shadow-black border-2 border-slate-950 transition-transform group-hover:scale-110">
+                    {globalIndex}
+                  </div>
+                  
+                  {/* KARTU TANAMAN */}
+                  <PlantCard plant={plant} />
+                </div>
+              );
+            })}
           </div>
 
-          {/* KONTROL PAGINATION KOMPLIT (4 Angka + Awal/Akhir + Kotak Input) */}
+          {/* KONTROL PAGINATION */}
           {totalPages > 1 && (
             <div className="flex flex-col xl:flex-row items-center justify-between border-t border-slate-800 pt-6 mt-6 gap-4">
               <p className="text-sm text-slate-400 text-center xl:text-left w-full xl:w-auto">
@@ -149,7 +161,6 @@ export default function PlantList() {
               </p>
               
               <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
-                {/* Tombol Lompat ke Awal */}
                 <Button 
                   variant="outline" 
                   size="icon"
@@ -161,7 +172,6 @@ export default function PlantList() {
                   <ChevronsLeft className="h-4 w-4" />
                 </Button>
 
-                {/* Tombol Mundur 1 Halaman */}
                 <Button 
                   variant="outline" 
                   size="icon"
@@ -173,7 +183,6 @@ export default function PlantList() {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 
-                {/* Looping Angka Halaman Dinamis (Max 4 Angka) */}
                 {pageNumbers.map(num => (
                   <Button
                     key={num}
@@ -189,7 +198,6 @@ export default function PlantList() {
                   </Button>
                 ))}
 
-                {/* Tombol Maju 1 Halaman */}
                 <Button 
                   variant="outline" 
                   size="icon"
@@ -201,7 +209,6 @@ export default function PlantList() {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
 
-                {/* Tombol Lompat ke Akhir */}
                 <Button 
                   variant="outline" 
                   size="icon"
@@ -213,7 +220,6 @@ export default function PlantList() {
                   <ChevronsRight className="h-4 w-4" />
                 </Button>
 
-                {/* Kotak Input Lompat Halaman (Dikembalikan & Dirapikan) */}
                 <div className="flex items-center gap-2 text-sm text-slate-300 ml-2 sm:ml-4 border-l border-slate-700 pl-2 sm:pl-4">
                   <span className="hidden sm:inline">Hal</span>
                   <Input 
@@ -230,7 +236,6 @@ export default function PlantList() {
                   />
                   <span className="hidden sm:inline">/ {totalPages}</span>
                 </div>
-
               </div>
             </div>
           )}
