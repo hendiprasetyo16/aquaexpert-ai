@@ -255,46 +255,46 @@ export default function PlantDetailPage() {
     return "";
   };
 
-  // DIPERBARUI: Pastikan format object, kembalikan size_cm dan liter.
-const getTankSizeDetails = (size: string) => {
-  const s = size.trim().toLowerCase();
+  // DIPERBARUI: Urutan pengecekan ("extra" dipindah ke atas "large" untuk mencegah false positive)
+  const getTankSizeDetails = (size: string) => {
+    const s = size.trim().toLowerCase();
 
-  if (s.includes("nano"))
+    if (s.includes("nano"))
+      return {
+        size_cm: "≤ 40 cm",
+        liter: "10–30 Liter",
+      };
+
+    if (s.includes("small"))
+      return {
+        size_cm: "40–60 cm",
+        liter: "30–60 Liter",
+      };
+
+    if (s.includes("medium"))
+      return {
+        size_cm: "60–90 cm",
+        liter: "60–150 Liter",
+      };
+
+    // WAJIB DI ATAS LARGE
+    if (s.includes("extra"))
+      return {
+        size_cm: "> 120 cm",
+        liter: "> 300 Liter",
+      };
+
+    if (s.includes("large"))
+      return {
+        size_cm: "90–120 cm",
+        liter: "150–300 Liter",
+      };
+
     return {
-      size_cm: "≤ 40 cm",
-      liter: "10–30 Liter",
+      size_cm: "Bervariasi",
+      liter: "Sesuai kebutuhan",
     };
-
-  if (s.includes("small"))
-    return {
-      size_cm: "40–60 cm",
-      liter: "30–60 Liter",
-    };
-
-  if (s.includes("medium"))
-    return {
-      size_cm: "60–90 cm",
-      liter: "60–150 Liter",
-    };
-
-  // WAJIB DI ATAS LARGE
-  if (s.includes("extra"))
-    return {
-      size_cm: "> 120 cm",
-      liter: "> 300 Liter",
-    };
-
-  if (s.includes("large"))
-    return {
-      size_cm: "90–120 cm",
-      liter: "150–300 Liter",
-    };
-
-  return {
-    size_cm: "Bervariasi",
-    liter: "Sesuai kebutuhan",
   };
-};
 
   const getStyleDesc = (style: string) => {
     const s = style.toLowerCase();
@@ -814,7 +814,7 @@ const getTankSizeDetails = (size: string) => {
                         <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Habitat Asli</span>
                       </div>
                       <div className="border-t border-slate-800 pt-2 flex flex-col items-center justify-center h-full">
-                        <span className="text-[14px] font-bold text-slate-200 block mt-1 leading-snug">{plant.origin_country || "Unknown"}</span>
+                        <span className="text-[13px] font-bold text-slate-200 block mt-1 leading-snug">{plant.origin_country || "Unknown"}</span>
                       </div>
                     </div>
 
