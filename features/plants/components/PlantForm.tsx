@@ -20,6 +20,10 @@ interface PlantFormProps {
   plant?: Plant;
 }
 
+// Opsi statis untuk Checkbox
+const TANK_SIZES = ["Nano (≤40cm)", "Medium (60-90cm)", "Large (>120cm)", "Extra Large"];
+const AQUASCAPE_STYLES = ["Nature", "Dutch", "Iwagumi", "Jungle", "Biotope", "Taiwan"];
+
 export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   const router = useRouter();
   const { role } = useAuth();
@@ -38,16 +42,18 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   // TRACKING GAMBAR YANG HARUS DIHAPUS DARI STORAGE MENGGUNAKAN useRef
   const imagesToDeleteRef = useRef<string[]>([]);
 
-  // V2: 9 FIELD EXPERT ENGINE
+  // V2: 9 FIELD EXPERT ENGINE (Ubah aquascape_style & tank_size menjadi Array)
   const [formData, setFormData] = useState({
     name: "", scientific_name: "", placement: "Midground", difficulty: "Easy", 
     light_requirement: "Medium", co2_requirement: "Low", fertilizer_requirement: "Medium",
     growth_rate: "Medium", temperature_min: "", temperature_max: "", ph_min: "", ph_max: "",
     origin_country: "", max_height_cm: "", description: "", source_name: "Tropica", 
     source_url: "https://tropica.com", recommended_for: "", 
-    plant_type: "Stem", aquascape_style: "", beginner_score: "", maintenance_level: "Medium",
+    plant_type: "Stem", beginner_score: "", maintenance_level: "Medium",
     carpet_potential: false, shrimp_safe: true, growth_control: "Moderate",
-    tank_size_recommendation: "", expert_notes: ""
+    aquascape_style: [] as string[], 
+    tank_size_recommendation: [] as string[], 
+    expert_notes: ""
   });
 
   useEffect(() => {
@@ -63,11 +69,13 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         origin_country: plant.origin_country || "", max_height_cm: plant.max_height_cm != null ? plant.max_height_cm.toString() : "",
         description: plant.description || "", source_name: plant.source_name || "",
         source_url: plant.source_url || "", recommended_for: plant.recommended_for?.join(", ") || "", 
-        plant_type: plant.plant_type || "Stem", aquascape_style: plant.aquascape_style?.join(", ") || "",
+        plant_type: plant.plant_type || "Stem", 
+        aquascape_style: plant.aquascape_style || [], // Format array
         beginner_score: plant.beginner_score != null ? plant.beginner_score.toString() : "",
         maintenance_level: plant.maintenance_level || "Medium", carpet_potential: plant.carpet_potential || false,
         shrimp_safe: plant.shrimp_safe !== false, growth_control: plant.growth_control || "Moderate",
-        tank_size_recommendation: plant.tank_size_recommendation?.join(", ") || "", expert_notes: plant.expert_notes || ""
+        tank_size_recommendation: plant.tank_size_recommendation || [], // Format array
+        expert_notes: plant.expert_notes || ""
       });
 
       if (plant.image_url) setCoverPreview(plant.image_url);
@@ -83,6 +91,19 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     } else {
       setFormData({ ...formData, [name]: value });
     }
+  }
+
+  // KHUSUS UNTUK CHECKBOX ARRAY (Aquascape Style & Tank Size)
+  function handleArrayCheckboxChange(e: React.ChangeEvent<HTMLInputElement>, field: "aquascape_style" | "tank_size_recommendation") {
+    const { value, checked } = e.target;
+    setFormData(prev => {
+      const currentArray = prev[field];
+      if (checked) {
+        return { ...prev, [field]: [...currentArray, value] };
+      } else {
+        return { ...prev, [field]: currentArray.filter((item) => item !== value) };
+      }
+    });
   }
 
   // --- LOGIKA COVER ---
@@ -210,8 +231,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       }
 
       const payloadArrayRecommended = formData.recommended_for.split(",").map((item) => item.trim()).filter(Boolean);
-      const payloadStyle = formData.aquascape_style.split(",").map((item) => item.trim()).filter(Boolean);
-      const payloadTank = formData.tank_size_recommendation.split(",").map((item) => item.trim()).filter(Boolean);
 
       const payload: Partial<Plant> = {
         name: cleanName,
@@ -235,13 +254,13 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         image_url: finalCoverUrl,
         gallery_urls: finalGalleryUrls,
         plant_type: formData.plant_type,
-        aquascape_style: payloadStyle.length > 0 ? payloadStyle : null,
+        aquascape_style: formData.aquascape_style.length > 0 ? formData.aquascape_style : null,
         beginner_score: formData.beginner_score ? parseInt(formData.beginner_score) : null,
         maintenance_level: formData.maintenance_level,
         carpet_potential: formData.carpet_potential,
         shrimp_safe: formData.shrimp_safe,
         growth_control: formData.growth_control,
-        tank_size_recommendation: payloadTank.length > 0 ? payloadTank : null,
+        tank_size_recommendation: formData.tank_size_recommendation.length > 0 ? formData.tank_size_recommendation : null,
         expert_notes: formData.expert_notes
       };
 
@@ -365,7 +384,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                 </label>
               </div>
 
-              {/* UPLOAD GALERI (Satu Per Satu) */}
+              {/* UPLOAD GALERI */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <Label className="text-slate-300 font-semibold text-sm">Galeri Tambahan (Maks 5)</Label>
@@ -440,7 +459,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               </select>
             </div>
             
-            {/* PENAMBAHAN MAINTENANCE LEVEL */}
             <div className="space-y-2">
               <Label className="text-slate-300">Tingkat Perawatan (Maintenance)</Label>
               <select name="maintenance_level" value={formData.maintenance_level} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
@@ -540,16 +558,21 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               <div className="space-y-2">
                 <Label className="text-slate-300">Tipe Tanaman (Plant Type)</Label>
                 <select name="plant_type" value={formData.plant_type} onChange={handleChange} className="h-10 w-full rounded-md border border-teal-800/50 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
-                  {/* PENAMBAHAN RHIZOME DAN RUNNER */}
                   <option value="Stem">Stem (Batang)</option><option value="Rhizome">Rhizome (Rimpang)</option><option value="Runner">Runner (Menjalar)</option>
                   <option value="Rosette">Rosette (Roset)</option><option value="Epiphyte">Epiphyte (Menempel)</option><option value="Moss">Moss (Lumut)</option>
                   <option value="Floating">Floating (Apung)</option><option value="Bulb">Bulb (Umbi)</option><option value="Carpet">Carpet (Karpet)</option>
                 </select>
               </div>
 
+              {/* PERBAIKAN BEGINNER SCORE (Select 1-10) */}
               <div className="space-y-2">
                 <Label className="text-slate-300">Beginner Score (1-10)</Label>
-                <Input type="number" min="1" max="10" name="beginner_score" placeholder="10 = Sangat Mudah" value={formData.beginner_score} onChange={handleChange} className="bg-slate-950 border-teal-800/50 text-slate-100 focus:border-teal-500" />
+                <select name="beginner_score" value={formData.beginner_score} onChange={handleChange} className="h-10 w-full rounded-md border border-teal-800/50 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
+                  <option value="">-- Pilih --</option>
+                  {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(num => (
+                    <option key={num} value={num}>{num} {num === 10 ? "(Sangat Mudah)" : num === 1 ? "(Sangat Sulit)" : ""}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-2">
@@ -560,20 +583,35 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               </div>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-slate-300">Gaya Aquascape (Pisahkan koma)</Label>
-                <Input name="aquascape_style" placeholder="Dutch, Iwagumi, Nature..." value={formData.aquascape_style} onChange={handleChange} className="bg-slate-950 border-teal-800/50 text-slate-100 focus:border-teal-500" />
+            <div className="grid gap-6 md:grid-cols-2 pt-2">
+              {/* PERBAIKAN AQUASCAPE STYLE (Checkbox) */}
+              <div className="space-y-3 bg-slate-950/50 p-4 rounded-lg border border-teal-900/30">
+                <Label className="text-slate-300 font-medium">Gaya Aquascape (Bisa pilih lebih dari satu)</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {AQUASCAPE_STYLES.map(style => (
+                    <label key={style} className="flex items-center gap-2 cursor-pointer group">
+                      <input type="checkbox" value={style} checked={formData.aquascape_style.includes(style)} onChange={(e) => handleArrayCheckboxChange(e, "aquascape_style")} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900 cursor-pointer" />
+                      <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">{style}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
               
-              {/* PERBAIKAN PLACEHOLDER TANK SIZE */}
-              <div className="space-y-2">
-                <Label className="text-slate-300">Rekomendasi Ukuran Tank</Label>
-                <Input name="tank_size_recommendation" placeholder="Nano (≤40cm), Medium (60-90cm), Large (>120cm)" value={formData.tank_size_recommendation} onChange={handleChange} className="bg-slate-950 border-teal-800/50 text-slate-100 focus:border-teal-500" />
+              {/* PERBAIKAN TANK SIZE RECOMMENDATION (Checkbox) */}
+              <div className="space-y-3 bg-slate-950/50 p-4 rounded-lg border border-teal-900/30">
+                <Label className="text-slate-300 font-medium">Rekomendasi Ukuran Tank</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {TANK_SIZES.map(size => (
+                    <label key={size} className="flex items-center gap-2 cursor-pointer group">
+                      <input type="checkbox" value={size} checked={formData.tank_size_recommendation.includes(size)} onChange={(e) => handleArrayCheckboxChange(e, "tank_size_recommendation")} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900 cursor-pointer" />
+                      <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">{size}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="flex gap-6 mt-2 p-3 bg-slate-950/50 rounded-lg border border-teal-900/30">
+            <div className="flex gap-6 mt-4 p-3 bg-slate-950/50 rounded-lg border border-teal-900/30">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" name="carpet_potential" checked={formData.carpet_potential} onChange={handleChange} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900" />
                 <span className="text-sm font-medium text-slate-300">Potensi Jadi Karpet</span>
@@ -584,7 +622,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               </label>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 pt-2">
               <Label className="text-slate-300 font-bold text-teal-400">Catatan Pakar (Expert Notes)</Label>
               <textarea 
                 name="expert_notes" 
