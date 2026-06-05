@@ -180,9 +180,9 @@ export default function PlantDetailPage() {
     }
     
     if (type === "co2") {
-      if (l === "low") return "Tanpa tabung CO2";
-      if (l === "medium") return "Disarankan pakai CO2";
-      if (l === "high") return "Wajib injeksi CO2 tinggi";
+      if (l === "low") return "Dapat hidup tanpa injeksi tabung CO2 tambahan.";
+      if (l === "medium") return "Pertumbuhan optimal jika menggunakan injeksi CO2.";
+      if (l === "high") return "Sangat direkomendasikan injeksi CO2 tinggi.";
     }
 
     if (type === "fert") {
@@ -203,7 +203,7 @@ export default function PlantDetailPage() {
   const getPlacementBadgeStyle = (placement: string | null | undefined) => {
     if (!placement) return "bg-slate-800/50 border-slate-700 text-slate-200";
     const p = placement.toLowerCase();
-    if (p === "foreground") return "bg-green-950/30 border-green-900/50 text-green-300";
+    if (p === "foreground") return "bg-green-950/30 border-green-900/50 text-green-300"; 
     if (p === "midground") return "bg-blue-950/30 border-blue-900/50 text-blue-300"; 
     if (p === "background") return "bg-purple-950/30 border-purple-900/50 text-purple-300"; 
     if (p === "epiphyte") return "bg-orange-950/30 border-orange-900/50 text-orange-300"; 
@@ -222,6 +222,7 @@ export default function PlantDetailPage() {
     return "";
   };
 
+  // DIPERBARUI: Disederhanakan kembali tanpa menggunakan kata "Lebar"
   const getTankSizeDesc = (size: string) => {
     const s = size.toLowerCase();
     if (s === "nano") return "(≤ 40 cm)";
@@ -243,14 +244,14 @@ export default function PlantDetailPage() {
 
   const getPlantTypeDesc = (type: string) => {
     const t = (type || "").toLowerCase();
-    if (t === "stem") return "Tumbuh menjulang ke atas, perlu dipotong dan ditancap ulang.";
-    if (t === "rhizome") return "Jangan dikubur di pasir, harus diikat pada batu atau kayu.";
+    if (t === "stem") return "Tanaman Batang. Tumbuh menjulang ke atas, perlu dipotong dan ditancap ulang.";
+    if (t === "rhizome") return "Tanaman Rimpang. Jangan dikubur di pasir, harus diikat pada batu atau kayu.";
     if (t === "rosette") return "Tumbuh berpusat dari satu pangkal akar bawah. Sangat butuh pupuk tancap.";
-    if (t === "carpet") return "Menjalar menutupi dasar aquarium layaknya padang rumput.";
-    if (t === "moss") return "Diikat pada batu/kayu. Surganya udang hias untuk bersembunyi.";
-    if (t === "floating") return "Berada di permukaan. Penyerap racun nitrat paling ampuh.";
+    if (t === "carpet") return "Tanaman Karpet. Menjalar menutupi dasar aquarium layaknya padang rumput.";
+    if (t === "moss") return "Lumut Air. Diikat pada batu/kayu. Surganya udang hias untuk bersembunyi.";
+    if (t === "floating") return "Tanaman Apung. Berada di permukaan. Penyerap racun nitrat paling ampuh.";
     if (t === "bulb") return "Tumbuh dari umbi. Umbinya jangan dikubur total ke dalam pasir agar tidak busuk.";
-    if (t === "runner") return "Berkembang menyebar cepat lewat tunas di bawah pasir.";
+    if (t === "runner") return "Tanaman Menjalar. Berkembang menyebar cepat lewat tunas di bawah pasir.";
     return "Tipe tanaman akuatik standar.";
   };
 
@@ -260,7 +261,7 @@ export default function PlantDetailPage() {
     if (t.includes("mid tech")) return "Cahaya & CO2 Sedang";
     if (t.includes("high tech")) return "Wajib CO2 & Cahaya Terang";
     if (t.includes("beginner")) return "Aman Untuk Pemula";
-    if (t.includes("breeding tank")) return "Sembunyi Burayak";
+    if (t.includes("breeding tank")) return "Tempat Sembunyi Burayak";
     if (t.includes("nano tank")) return "Aquarium Mini (≤ 40cm)";
     if (t.includes("top cover")) return "Peneduh Kolom Air";
     if (t.includes("pond")) return "Bisa Hidup di Kolam";
@@ -513,7 +514,7 @@ export default function PlantDetailPage() {
                     <div className="flex flex-col gap-3 flex-1 justify-start text-center">
                       {plant.tank_size_recommendation && plant.tank_size_recommendation.length > 0 ? (
                         plant.tank_size_recommendation.map(size => (
-                          <div key={size} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner">
+                          <div key={size} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner items-center justify-center">
                             <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider mb-1.5">{size}</span>
                             <span className="text-[12px] text-slate-400 leading-snug font-medium">{getTankSizeDesc(size)}</span>
                           </div>
@@ -550,7 +551,7 @@ export default function PlantDetailPage() {
                   </p>
                 </div>
 
-                {/* PARAMETER AIR (KOTAK RAPI DENGAN SEPARATOR) */}
+                {/* PARAMETER AIR */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Kebutuhan Lingkungan Optimal</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -664,7 +665,7 @@ export default function PlantDetailPage() {
                         <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Tinggi Max</span>
                       </div>
                       <div className="border-t border-slate-800 pt-2 flex flex-col items-center justify-center h-full">
-                        <span className="text-lg font-black text-slate-200 block">{plant.max_height_cm ? `${plant.max_height_cm} cm` : "N/A"}</span>
+                        <span className="text-lg font-black text-slate-200 block mt-1">{plant.max_height_cm ? `${plant.max_height_cm} cm` : "N/A"}</span>
                       </div>
                     </div>
                     
@@ -674,7 +675,7 @@ export default function PlantDetailPage() {
                         <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Habitat Asli</span>
                       </div>
                       <div className="border-t border-slate-800 pt-2 flex flex-col items-center justify-center h-full">
-                        <span className="text-[13px] font-bold text-slate-200 block leading-snug">{plant.origin_country || "Unknown"}</span>
+                        <span className="text-[14px] font-bold text-slate-200 block mt-1 leading-snug">{plant.origin_country || "Unknown"}</span>
                       </div>
                     </div>
 
