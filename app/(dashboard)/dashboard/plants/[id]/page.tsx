@@ -176,7 +176,7 @@ export default function PlantDetailPage() {
     if (s.includes("dutch")) return "Fokus warna & padat";
     if (s.includes("iwagumi")) return "Formasi padang batu";
     if (s.includes("jungle")) return "Tumbuh liar & lebat";
-    return "";
+    return "Gaya Aquascape Universal";
   };
 
   const getPlantTypeDesc = (type: string) => {
@@ -192,18 +192,21 @@ export default function PlantDetailPage() {
     return "Tipe tanaman akuatik standar.";
   };
 
-  // HELPER BARU: Terjemahan Khusus untuk Tag Rekomendasi
+  // HELPER TRANSLASI UNTUK TAG KECOCOKAN EKOSISTEM
   const getRecommendedDesc = (tag: string) => {
     const t = tag.toLowerCase();
-    if (t.includes("low tech")) return "(Tanpa Injeksi CO2)";
-    if (t.includes("mid tech")) return "(Cahaya & CO2 Sedang)";
-    if (t.includes("high tech")) return "(Wajib CO2 & Lampu Terang)";
-    if (t.includes("beginner")) return "(Cocok Untuk Pemula)";
-    if (t.includes("breeding")) return "(Tempat Sembunyi Burayak)";
-    if (t.includes("foreground")) return "(Ditanam di Depan)";
-    if (t.includes("midground")) return "(Ditanam di Tengah)";
-    if (t.includes("background")) return "(Ditanam di Belakang)";
-    return "";
+    if (t.includes("low tech")) return "Tanpa Injeksi CO2";
+    if (t.includes("mid tech")) return "Cahaya & CO2 Sedang";
+    if (t.includes("high tech")) return "Wajib CO2 & Cahaya Terang";
+    if (t.includes("beginner")) return "Aman Untuk Pemula";
+    if (t.includes("breeding tank")) return "Tempat Sembunyi Burayak";
+    if (t.includes("nano tank")) return "Cocok di Aquarium Mini";
+    if (t.includes("top cover")) return "Peneduh Kolom Air";
+    if (t.includes("pond")) return "Bisa Hidup di Kolam";
+    if (t.includes("foreground")) return "Posisi Depan";
+    if (t.includes("midground")) return "Posisi Tengah";
+    if (t.includes("background")) return "Posisi Belakang";
+    return "Cocok untuk setup umum";
   };
 
   if (loading) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-500" /></div>;
@@ -263,7 +266,6 @@ export default function PlantDetailPage() {
                 </div>
               )}
 
-              {/* IDENTITAS UTAMA */}
               <CardContent className="p-6 text-center border-t border-slate-800">
                 <h1 className="text-3xl font-extrabold text-teal-400 tracking-tight">{plant.name}</h1>
                 <p className="italic text-slate-400 mt-1 font-serif">{plant.scientific_name || "Scientific name unknown"}</p>
@@ -304,17 +306,17 @@ export default function PlantDetailPage() {
 
                 </div>
                 
-                {/* TAGS KECOCOKAN DENGAN KETERANGAN */}
+                {/* TAGS KECOCOKAN DENGAN KETERANGAN DI BAWAHNYA */}
                 {plant.recommended_for && plant.recommended_for.length > 0 && (
                   <div className="mt-8 border-t border-slate-800 pt-5">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Kecocokan Ekosistem</p>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-wrap justify-center gap-2">
                       {plant.recommended_for.map(tag => (
-                        <div key={tag} className="flex flex-col bg-slate-800/80 px-3 py-2 rounded-md border border-slate-700 shadow-sm text-center">
+                        <div key={tag} className="flex flex-col items-center bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700 shadow-sm min-w-[120px]">
                           <span className="flex items-center justify-center gap-1.5 text-[13px] font-bold text-slate-200 uppercase tracking-widest">
                             <CheckCircle2 className="h-3.5 w-3.5 text-teal-500" /> {tag}
                           </span>
-                          <span className="text-[11px] text-slate-400 mt-1">{getRecommendedDesc(tag)}</span>
+                          <span className="text-[11px] text-slate-400 mt-1.5 font-medium">{getRecommendedDesc(tag)}</span>
                         </div>
                       ))}
                     </div>
