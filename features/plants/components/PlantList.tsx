@@ -67,8 +67,6 @@ export default function PlantList() {
 
   // 3. MENYIMPAN "INGATAN" SETIAP KALI USER MENGUBAH HALAMAN / FILTER
   useEffect(() => {
-    // JANGAN PERNAH menyimpan (menimpa) memori jika gembok belum terbuka (belum di-hydrated)
-    // Ini yang menyelesaikan bug kembali ke halaman 1!
     if (!isHydrated) return;
 
     sessionStorage.setItem("plantPage", currentPage.toString());
@@ -78,7 +76,6 @@ export default function PlantList() {
     sessionStorage.setItem("plantSort", sortOrder);
   }, [currentPage, searchQuery, difficultyFilter, placementFilter, sortOrder, isHydrated]);
 
-  // HANDLER: Agar saat mengetik / ganti filter, otomatis kembali ke Halaman 1
   const handleSearch = (val: string) => { setSearchQuery(val); setCurrentPage(1); };
   const handleDiffFilter = (val: string) => { setDifficultyFilter(val); setCurrentPage(1); };
   const handlePlaceFilter = (val: string) => { setPlacementFilter(val); setCurrentPage(1); };
@@ -128,6 +125,15 @@ export default function PlantList() {
     pageNumbers.push(i);
   }
 
+  // --- STATISTIK KNOWLEDGE BASE (DIPASANG DI SINI) ---
+  const stats = {
+    total: plants.length,
+    beginner: plants.filter(p => p.difficulty?.toLowerCase() === 'easy').length,
+    midground: plants.filter(p => p.placement?.toLowerCase() === 'midground').length,
+    carpet: plants.filter(p => p.carpet_potential === true).length,
+    shrimpSafe: plants.filter(p => p.shrimp_safe === true).length,
+  };
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -137,14 +143,40 @@ export default function PlantList() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       
-      {/* HEADER TITLE */}
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-slate-100">Database Tanaman</h2>
-        <p className="mt-1 text-slate-400 text-sm">
-          Total {plants.length} tanaman terdaftar dalam sistem pakar.
-        </p>
+      {/* HEADER TITLE & STATS (DIPASANG DI SINI MENGGANTIKAN HEADER LAMA) */}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-slate-100">Database Tanaman</h2>
+          <p className="mt-1 text-slate-400 text-sm">
+            Knowledge Base tersinkronisasi untuk AquaExpert Inference Engine.
+          </p>
+        </div>
+
+        {/* KARTU STATISTIK */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md">
+            <span className="text-2xl font-black text-white">{stats.total}</span>
+            <span className="text-xs text-slate-400 uppercase font-semibold mt-1">Total Plant</span>
+          </div>
+          <div className="bg-slate-900/80 border border-teal-900/50 p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md">
+            <span className="text-2xl font-black text-teal-400">{stats.beginner}</span>
+            <span className="text-xs text-slate-400 uppercase font-semibold mt-1">Beginner</span>
+          </div>
+          <div className="bg-slate-900/80 border border-blue-900/50 p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md">
+            <span className="text-2xl font-black text-blue-400">{stats.midground}</span>
+            <span className="text-xs text-slate-400 uppercase font-semibold mt-1">Midground</span>
+          </div>
+          <div className="bg-slate-900/80 border border-green-900/50 p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md">
+            <span className="text-2xl font-black text-green-400">{stats.carpet}</span>
+            <span className="text-xs text-slate-400 uppercase font-semibold mt-1">Carpet</span>
+          </div>
+          <div className="bg-slate-900/80 border border-orange-900/50 p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md">
+            <span className="text-2xl font-black text-orange-400">{stats.shrimpSafe}</span>
+            <span className="text-xs text-slate-400 uppercase font-semibold mt-1">Shrimp Safe</span>
+          </div>
+        </div>
       </div>
 
       {/* BILAH KONTROL TERPADU (SEMUA KUMPUL DI SINI) */}
