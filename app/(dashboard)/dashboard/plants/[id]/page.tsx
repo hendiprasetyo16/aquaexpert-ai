@@ -155,7 +155,7 @@ export default function PlantDetailPage() {
         <span className={`text-[11px] tracking-widest mb-0.5 ${colorClass}`}>
           {filled}<span className="text-slate-600">{empty}</span>
         </span>
-        <span className={`text-xl font-black ${colorClass}`}>{score}/10</span>
+        <span className={`text-xl font-black text-white ${colorClass}`}>{score}/10</span>
       </div>
     );
   };
@@ -223,14 +223,15 @@ export default function PlantDetailPage() {
     return "";
   };
 
+  // DIPERBARUI: Mengganti kunci "length" menjadi "size_cm" untuk menghindari bentrok reserved word JS
   const getTankSizeDesc = (size: string) => {
     const s = size.toLowerCase();
-    if (s === "nano") return "Aquarium ≤ 40 cm\n(~10-30 Liter)";
-    if (s === "small") return "Aquarium 40–60 cm\n(~30-60 Liter)";
-    if (s === "medium") return "Aquarium 60–90 cm\n(~60-150 Liter)";
-    if (s === "large") return "Aquarium 90–120 cm\n(~150-300 Liter)";
-    if (s === "xl") return "Aquarium > 120 cm\n(>300 Liter)";
-    return "";
+    if (s === "nano") return { size_cm: "≤ 40 cm", volume: "10–30 Liter" };
+    if (s === "small") return { size_cm: "40–60 cm", volume: "30–60 Liter" };
+    if (s === "medium") return { size_cm: "60–90 cm", volume: "60–150 Liter" };
+    if (s === "large") return { size_cm: "90–120 cm", volume: "150–300 Liter" };
+    if (s === "xl") return { size_cm: "> 120 cm", volume: "> 300 Liter" };
+    return { size_cm: "", volume: "" };
   };
 
   const getStyleDesc = (style: string) => {
@@ -326,26 +327,26 @@ export default function PlantDetailPage() {
           )}
         </div>
 
-        {/* QUICK TAGS HEADER (New Feature) */}
+        {/* QUICK TAGS HEADER */}
         <div className="flex flex-wrap justify-center sm:justify-start gap-2 mb-2">
           {plant.difficulty?.toLowerCase() === 'easy' && (
-            <span className="flex items-center gap-1.5 rounded-full bg-green-950/40 px-3 py-1 text-xs font-bold text-green-400 border border-green-900/50">
+            <span className="flex items-center gap-1.5 rounded-full bg-green-950/40 px-3 py-1 text-xs font-bold text-green-400 border border-green-900/50 shadow-sm">
               <Sprout className="h-3.5 w-3.5" /> BEGINNER FRIENDLY
             </span>
           )}
           {plant.shrimp_safe && (
-            <span className="flex items-center gap-1.5 rounded-full bg-orange-950/40 px-3 py-1 text-xs font-bold text-orange-400 border border-orange-900/50">
+            <span className="flex items-center gap-1.5 rounded-full bg-orange-950/40 px-3 py-1 text-xs font-bold text-orange-400 border border-orange-900/50 shadow-sm">
               <ShieldCheck className="h-3.5 w-3.5" /> SHRIMP SAFE
             </span>
           )}
           {plant.co2_requirement?.toLowerCase() === 'low' && (
-            <span className="flex items-center gap-1.5 rounded-full bg-blue-950/40 px-3 py-1 text-xs font-bold text-blue-400 border border-blue-900/50">
+            <span className="flex items-center gap-1.5 rounded-full bg-blue-950/40 px-3 py-1 text-xs font-bold text-blue-400 border border-blue-900/50 shadow-sm">
               <Wind className="h-3.5 w-3.5" /> LOW TECH
             </span>
           )}
           {plant.co2_mandatory === true && (
-            <span className="flex items-center gap-1.5 rounded-full bg-red-950/40 px-3 py-1 text-xs font-bold text-red-400 border border-red-900/50">
-              <Zap className="h-3.5 w-3.5" /> HIGH TECH
+            <span className="flex items-center gap-1.5 rounded-full bg-red-950/40 px-3 py-1 text-xs font-bold text-red-400 border border-red-900/50 shadow-sm">
+              <Zap className="h-3.5 w-3.5 animate-pulse" /> HIGH TECH
             </span>
           )}
         </div>
@@ -530,7 +531,6 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
-                  {/* Diperbarui: TANK SIZE TAMPIL 3 BARIS */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Box className="h-4 w-4 text-orange-500"/>
@@ -538,12 +538,18 @@ export default function PlantDetailPage() {
                     </div>
                     <div className="flex flex-col gap-3 flex-1 justify-start text-center">
                       {plant.tank_size_recommendation && plant.tank_size_recommendation.length > 0 ? (
-                        plant.tank_size_recommendation.map(size => (
-                          <div key={size} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner">
-                            <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider mb-1.5">{size}</span>
-                            <span className="text-[12px] text-slate-400 leading-relaxed font-medium whitespace-pre-line">{getTankSizeDesc(size)}</span>
-                          </div>
-                        ))
+                        plant.tank_size_recommendation.map(size => {
+                          const desc = getTankSizeDesc(size);
+                          return (
+                            <div key={size} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner items-center justify-center">
+                              <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider mb-2">{size}</span>
+                              <div className="flex flex-col items-center gap-1 w-full border-t border-slate-800/50 pt-2">
+                                <span className="text-[12px] text-slate-400 font-medium">📏 {desc.size_cm}</span>
+                                <span className="text-[12px] text-cyan-400 font-medium">💧 {desc.volume}</span>
+                              </div>
+                            </div>
+                          );
+                        })
                       ) : <span className="text-sm text-slate-500 italic p-3">Bebas semua ukuran.</span>}
                     </div>
                   </div>
@@ -669,7 +675,7 @@ export default function PlantDetailPage() {
                       </div>
                       <div className="border-t border-slate-800 pt-2 flex flex-col">
                         <span className="text-base font-black text-slate-200 uppercase tracking-widest">{plant.fertilizer_requirement || "Unknown"}</span>
-                        <span className="text-[11px] text-slate-400 mt-1">{getIndoLevelDetail(plant.fertilizer_requirement, "fert")}</span>
+                        <span className="text-[12px] text-slate-400 mt-1">{getIndoLevelDetail(plant.fertilizer_requirement, "fert")}</span>
                       </div>
                     </div>
                     
@@ -680,7 +686,7 @@ export default function PlantDetailPage() {
                       </div>
                       <div className="border-t border-slate-800 pt-2 flex flex-col">
                         <span className="text-base font-black text-slate-200 uppercase tracking-widest">{plant.growth_rate || "Unknown"}</span>
-                        <span className="text-[11px] text-slate-400 mt-1">{getIndoLevelDetail(plant.growth_rate, "growth")}</span>
+                        <span className="text-[12px] text-slate-400 mt-1">{getIndoLevelDetail(plant.growth_rate, "growth")}</span>
                       </div>
                     </div>
                     
@@ -690,7 +696,7 @@ export default function PlantDetailPage() {
                         <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Tinggi Max</span>
                       </div>
                       <div className="border-t border-slate-800 pt-2 flex flex-col items-center justify-center h-full">
-                        <span className="text-lg font-black text-slate-200 block mt-1">{plant.max_height_cm ? `${plant.max_height_cm} cm` : "N/A"}</span>
+                        <span className="text-lg font-black text-slate-200 block">{plant.max_height_cm ? `${plant.max_height_cm} cm` : "N/A"}</span>
                       </div>
                     </div>
                     
@@ -700,7 +706,7 @@ export default function PlantDetailPage() {
                         <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Habitat Asli</span>
                       </div>
                       <div className="border-t border-slate-800 pt-2 flex flex-col items-center justify-center h-full">
-                        <span className="text-[14px] font-bold text-slate-200 block mt-1 leading-snug">{plant.origin_country || "Unknown"}</span>
+                        <span className="text-[14px] font-bold text-slate-200 block leading-snug">{plant.origin_country || "Unknown"}</span>
                       </div>
                     </div>
 
