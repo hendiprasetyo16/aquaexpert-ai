@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Image from "next/image";
 
 import { 
-  Loader2, ArrowLeft, Leaf, Edit, Droplets, Wind, Sun, 
+  Loader2, ArrowLeft, ArrowRight, Leaf, Edit, Droplets, Wind, Sun, 
   Thermometer, FlaskConical, MapPin, Ruler, CheckCircle2, Maximize2, X, Info, ImageIcon,
   ChevronLeft, ChevronRight, Brain, ShieldCheck, Scissors, Activity, Target, Box
 } from "lucide-react";
@@ -151,22 +151,47 @@ export default function PlantDetailPage() {
     );
   };
 
-  const getIndoLevelDesc = (level: string | null | undefined, type: "light" | "general" = "general") => {
+  // Menerjemahkan kata kerja utamanya (Dipakai sejajar dengan bahasa Inggris)
+  const getIndoLevelCore = (level: string | null | undefined) => {
     if (!level) return "";
     const l = level.toLowerCase();
-    
-    // Penanganan khusus untuk cahaya agar lebih informatif
-    if (type === "light") {
-      if (l === "low") return "Lampu menyala 6-7 Jam";
-      if (l === "medium") return "Lampu menyala 7-8 Jam";
-      if (l === "high") return "Lampu menyala 8-10 Jam";
-    }
-
-    if (l === "low" || l === "easy") return "Rendah / Mudah";
-    if (l === "medium" || l === "moderate") return "Sedang / Wajar";
-    if (l === "high" || l === "hard" || l === "aggressive" || l === "fast") return "Tinggi / Ekstrem";
+    if (l === "low" || l === "easy") return "Rendah";
+    if (l === "medium" || l === "moderate") return "Sedang";
+    if (l === "high" || l === "hard" || l === "aggressive" || l === "fast") return "Tinggi";
     if (l === "slow") return "Lambat";
     return level;
+  };
+
+  // Penjelasan detail panjang di kotak terpisah
+  const getIndoLevelDetail = (level: string | null | undefined, type: "light" | "co2" | "fert" | "growth" | "general" = "general") => {
+    if (!level) return "Data tidak tersedia.";
+    const l = level.toLowerCase();
+    
+    if (type === "light") {
+      if (l === "low") return "Lampu cukup menyala 6-7 Jam / hari.";
+      if (l === "medium") return "Lampu butuh menyala 7-8 Jam / hari.";
+      if (l === "high") return "Lampu wajib menyala 8-10 Jam / hari intensitas tinggi.";
+    }
+    
+    if (type === "co2") {
+      if (l === "low") return "Bisa hidup tanpa injeksi tabung CO2.";
+      if (l === "medium") return "Disarankan pakai CO2 (1-2 Bps) agar rimbun.";
+      if (l === "high") return "Wajib injeksi tabung CO2 stabil (> 3 Bps).";
+    }
+
+    if (type === "fert") {
+      if (l === "low") return "Pupuk cair dosis rendah sesekali saja.";
+      if (l === "medium") return "Pemupukan rutin sesuai takaran standar.";
+      if (l === "high") return "Sangat rakus! Wajib pupuk tancap dan cair pekat.";
+    }
+
+    if (type === "growth") {
+      if (l === "slow") return "Sangat hemat waktu, jarang butuh dipangkas.";
+      if (l === "medium" || l === "moderate") return "Laju tumbuh wajar, perawatan standar.";
+      if (l === "fast" || l === "aggressive") return "Menyemak kilat! Wajib rajin gunting/trimming.";
+    }
+
+    return getIndoLevelCore(level);
   };
 
   const getPlacementDesc = (placement: string | null | undefined) => {
@@ -178,14 +203,6 @@ export default function PlantDetailPage() {
     if (p === "epiphyte") return "(Tempel Kayu/Batu)";
     if (p === "floating") return "(Apung di Atas)";
     return "";
-  };
-
-  const getGrowthDesc = (growth: string | null | undefined) => {
-    const g = (growth || "").toLowerCase();
-    if (g.includes("slow")) return "Jarang butuh pangkas.";
-    if (g.includes("moderate") || g.includes("medium")) return "Perawatan standar.";
-    if (g.includes("aggressive") || g.includes("fast")) return "Wajib sering dipangkas.";
-    return "Tumbuh wajar.";
   };
 
   const getTankSizeDesc = (size: string) => {
@@ -353,7 +370,7 @@ export default function PlantDetailPage() {
                       }`}>
                         {plant.difficulty || "Unknown"}
                       </span>
-                      <span className="text-[11px] text-slate-400 mt-0.5">{getIndoLevelDesc(plant.difficulty)}</span>
+                      <span className="text-[11px] text-slate-400 mt-0.5">{getIndoLevelCore(plant.difficulty)}</span>
                     </div>
                     
                     {/* PENEMPATAN */}
@@ -371,7 +388,7 @@ export default function PlantDetailPage() {
                 {plant.recommended_for && plant.recommended_for.length > 0 && (
                   <div className="mt-8 border-t border-slate-800 pt-5">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Kecocokan Ekosistem</p>
-                    <div className="flex flex-wrap justify-center gap-2">
+                    <div className="flex flex-col gap-2">
                       {plant.recommended_for.map(tag => (
                         <div key={tag} className="flex flex-col items-center bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700 shadow-sm min-w-[120px]">
                           <span className="flex items-center justify-center gap-1.5 text-[13px] font-bold text-slate-200 uppercase tracking-widest">
@@ -423,7 +440,7 @@ export default function PlantDetailPage() {
                     <p className="text-[11px] uppercase text-slate-500 font-bold mb-2">Tingkat Repot</p>
                     <div className="flex flex-col items-center justify-center mt-1">
                       <span className="text-lg font-black text-slate-200 uppercase tracking-widest flex items-center gap-1.5"><Scissors className="h-4 w-4 text-yellow-500" />{plant.maintenance_level || "Medium"}</span>
-                      <span className="text-[12px] text-slate-400 font-medium mt-1">{getIndoLevelDesc(plant.maintenance_level)}</span>
+                      <span className="text-[12px] text-slate-400 font-medium mt-1">{getIndoLevelCore(plant.maintenance_level)}</span>
                     </div>
                   </div>
                   <div className={`p-4 rounded-xl border text-center flex flex-col items-center justify-center shadow-sm ${plant.shrimp_safe ? "bg-orange-950/10 border-orange-900/30" : "bg-slate-900/80 border-slate-800"}`}>
@@ -451,7 +468,7 @@ export default function PlantDetailPage() {
                     </div>
                     <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 flex flex-col flex-1 justify-center shadow-inner text-center">
                       <span className="text-base font-black text-slate-100 uppercase tracking-wider mb-1.5">{plant.growth_control || "N/A"}</span>
-                      <span className="text-[12px] text-slate-400 leading-snug">{getGrowthDesc(plant.growth_control)}</span>
+                      <span className="text-[12px] text-slate-400 leading-snug">{getIndoLevelDetail(plant.growth_control, "growth")}</span>
                     </div>
                   </div>
 
@@ -520,80 +537,119 @@ export default function PlantDetailPage() {
                   </p>
                 </div>
 
-                {/* PARAMETER AIR (DUA BARIS: DB VALUE & INDO) */}
+                {/* PARAMETER AIR (KOTAK RAPI DENGAN SEPARATOR) */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Kebutuhan Lingkungan Optimal</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     
-                    <div className="flex flex-col bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm text-center">
+                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-sm text-center">
                       <div className="flex items-center justify-center gap-2 mb-3">
                         <Sun className="h-4 w-4 text-yellow-500" />
                         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Cahaya</span>
                       </div>
-                      <span className="text-lg font-black text-slate-200 uppercase tracking-widest">{plant.light_requirement || "N/A"}</span>
-                      {/* PENAMBAHAN KETERANGAN DURASI LAMPU MENYALA */}
-                      <span className="text-[12px] text-slate-400 mt-1 font-medium">{getIndoLevelDesc(plant.light_requirement, "light")}</span>
+                      <div className="flex flex-col border-t border-slate-800 pt-3 mt-1">
+                        <span className="text-lg font-black text-slate-200 uppercase tracking-widest">{plant.light_requirement || "N/A"}</span>
+                        <span className="text-[12px] text-yellow-500/80 font-medium mt-0.5">({getIndoLevelCore(plant.light_requirement)})</span>
+                      </div>
+                      <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight">
+                        💡 {getIndoLevelDetail(plant.light_requirement, "light")}
+                      </div>
                     </div>
                     
-                    <div className="flex flex-col bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm text-center">
+                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-sm text-center">
                       <div className="flex items-center justify-center gap-2 mb-3">
                         <Wind className="h-4 w-4 text-blue-400" />
                         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Injeksi CO2</span>
                       </div>
-                      <span className="text-lg font-black text-slate-200 uppercase tracking-widest">{plant.co2_requirement || "N/A"}</span>
-                      <span className="text-[12px] text-slate-400 mt-1 font-medium">{getIndoLevelDesc(plant.co2_requirement)}</span>
+                      <div className="flex flex-col border-t border-slate-800 pt-3 mt-1">
+                        <span className="text-lg font-black text-slate-200 uppercase tracking-widest">{plant.co2_requirement || "N/A"}</span>
+                        <span className="text-[12px] text-blue-400/80 font-medium mt-0.5">({getIndoLevelCore(plant.co2_requirement)})</span>
+                      </div>
+                      <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight">
+                        💡 {getIndoLevelDetail(plant.co2_requirement, "co2")}
+                      </div>
                     </div>
 
-                    <div className="flex flex-col bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm text-center">
+                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-sm text-center">
                       <div className="flex items-center justify-center gap-2 mb-3">
                         <Thermometer className="h-4 w-4 text-orange-500" />
                         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Suhu Air</span>
                       </div>
-                      <span className="text-lg font-black text-slate-200 tracking-wider">
-                        {plant.temperature_min && plant.temperature_max ? `${plant.temperature_min}–${plant.temperature_max}` : "N/A"}
-                      </span>
-                      <span className="text-[12px] text-slate-400 mt-1 font-medium">Celcius (°C)</span>
+                      <div className="flex flex-col border-t border-slate-800 pt-3 mt-1">
+                        <span className="text-lg font-black text-slate-200 tracking-wider">
+                          {plant.temperature_min && plant.temperature_max ? `${plant.temperature_min}–${plant.temperature_max}` : "N/A"}
+                        </span>
+                        <span className="text-[12px] text-orange-400/80 font-medium mt-0.5">Celcius (°C)</span>
+                      </div>
+                      <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight flex items-center justify-center h-full">
+                        Suhu ideal untuk fotosintesis.
+                      </div>
                     </div>
 
-                    <div className="flex flex-col bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm text-center">
+                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-sm text-center">
                       <div className="flex items-center justify-center gap-2 mb-3">
                         <FlaskConical className="h-4 w-4 text-purple-400" />
                         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Kadar pH</span>
                       </div>
-                      <span className="text-lg font-black text-slate-200 tracking-wider">
-                        {plant.ph_min && plant.ph_max ? `${plant.ph_min}–${plant.ph_max}` : "N/A"}
-                      </span>
-                      <span className="text-[12px] text-slate-400 mt-1 font-medium">Asam - Basa</span>
+                      <div className="flex flex-col border-t border-slate-800 pt-3 mt-1">
+                        <span className="text-lg font-black text-slate-200 tracking-wider">
+                          {plant.ph_min && plant.ph_max ? `${plant.ph_min}–${plant.ph_max}` : "N/A"}
+                        </span>
+                        <span className="text-[12px] text-purple-400/80 font-medium mt-0.5">Asam - Basa</span>
+                      </div>
+                      <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight flex items-center justify-center h-full">
+                        Tingkat keasaman air optimal.
+                      </div>
                     </div>
 
                   </div>
                 </div>
 
-                {/* BAGIAN KARAKTERISTIK FISIK */}
+                {/* BAGIAN KARAKTERISTIK FISIK (KOTAK RAPI DENGAN SEPARATOR) */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Profil Biologi Tambahan</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     
-                    <div className="bg-slate-950/50 p-5 rounded-xl border border-slate-800 text-center flex flex-col justify-center">
-                      <span className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 mb-2.5 uppercase font-bold tracking-wider"><Droplets className="h-3.5 w-3.5 text-teal-400"/> Pupuk</span>
-                      <span className="text-base font-black text-slate-200 uppercase tracking-widest">{plant.fertilizer_requirement || "Unknown"}</span>
-                      <span className="text-[12px] text-slate-400 mt-1">{getIndoLevelDesc(plant.fertilizer_requirement)}</span>
+                    <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
+                      <div className="flex flex-col items-center justify-center mb-3">
+                        <Droplets className="h-4 w-4 text-teal-400 mb-1"/>
+                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Pupuk</span>
+                      </div>
+                      <div className="border-t border-slate-800 pt-2 flex flex-col">
+                        <span className="text-base font-black text-slate-200 uppercase tracking-widest">{plant.fertilizer_requirement || "Unknown"}</span>
+                        <span className="text-[11px] text-slate-400 mt-1">{getIndoLevelDetail(plant.fertilizer_requirement, "fert")}</span>
+                      </div>
                     </div>
                     
-                    <div className="bg-slate-950/50 p-5 rounded-xl border border-slate-800 text-center flex flex-col justify-center">
-                      <span className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 mb-2.5 uppercase font-bold tracking-wider"><Leaf className="h-3.5 w-3.5 text-green-400"/> Cepat Tumbuh</span>
-                      <span className="text-base font-black text-slate-200 uppercase tracking-widest">{plant.growth_rate || "Unknown"}</span>
-                      <span className="text-[12px] text-slate-400 mt-1">{getIndoLevelDesc(plant.growth_rate)}</span>
+                    <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
+                      <div className="flex flex-col items-center justify-center mb-3">
+                        <Leaf className="h-4 w-4 text-green-400 mb-1"/>
+                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Kecepatan Tumbuh</span>
+                      </div>
+                      <div className="border-t border-slate-800 pt-2 flex flex-col">
+                        <span className="text-base font-black text-slate-200 uppercase tracking-widest">{plant.growth_rate || "Unknown"}</span>
+                        <span className="text-[11px] text-slate-400 mt-1">{getIndoLevelDetail(plant.growth_rate, "growth")}</span>
+                      </div>
                     </div>
                     
-                    <div className="bg-slate-950/50 p-5 rounded-xl border border-slate-800 text-center flex flex-col justify-center">
-                      <span className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 mb-2.5 uppercase font-bold tracking-wider"><Ruler className="h-3.5 w-3.5 text-blue-400"/> Tinggi Max</span>
-                      <span className="text-lg font-black text-slate-200 block mt-1">{plant.max_height_cm ? `${plant.max_height_cm} cm` : "N/A"}</span>
+                    <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
+                      <div className="flex flex-col items-center justify-center mb-3">
+                        <Ruler className="h-4 w-4 text-blue-400 mb-1"/>
+                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Tinggi Max</span>
+                      </div>
+                      <div className="border-t border-slate-800 pt-2 flex flex-col items-center justify-center h-full">
+                        <span className="text-lg font-black text-slate-200 block">{plant.max_height_cm ? `${plant.max_height_cm} cm` : "N/A"}</span>
+                      </div>
                     </div>
                     
-                    <div className="bg-slate-950/50 p-5 rounded-xl border border-slate-800 text-center flex flex-col justify-center">
-                      <span className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 mb-2.5 uppercase font-bold tracking-wider"><MapPin className="h-3.5 w-3.5 text-orange-400"/> Habitat Asli</span>
-                      <span className="text-[14px] font-bold text-slate-200 block mt-1 leading-snug">{plant.origin_country || "Unknown"}</span>
+                    <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
+                      <div className="flex flex-col items-center justify-center mb-3">
+                        <MapPin className="h-4 w-4 text-orange-400 mb-1"/>
+                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Habitat Asli</span>
+                      </div>
+                      <div className="border-t border-slate-800 pt-2 flex flex-col items-center justify-center h-full">
+                        <span className="text-[13px] font-bold text-slate-200 block leading-snug">{plant.origin_country || "Unknown"}</span>
+                      </div>
                     </div>
 
                   </div>
