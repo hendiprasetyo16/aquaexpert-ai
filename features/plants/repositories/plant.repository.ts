@@ -44,17 +44,18 @@ export async function deletePlant(id: string) {
   return true;
 }
 
-// PERBAIKAN 2: Menerima param slug & exactFileName (misal: "cover.webp")
-export async function uploadPlantImage(file: File, slug: string, exactFileName: string): Promise<string> {
+// PERBAIKAN FINAL: Cache-Busting (Date.now) + Upsert: False
+export async function uploadPlantImage(file: File, slug: string, prefix: string): Promise<string> {
   const supabase = createClient();
+  const ext = file.name.split(".").pop();
   
-  // Membentuk path sesuai arsitektur final: slug-tanaman/nama-file.ekstensi
-  const filePath = `${slug}/${exactFileName}`;
+  // CACHE-BUSTING: Nama file dijamin unik 100%
+  const fileName = `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2)}.${ext}`;
+  const filePath = `${slug}/${fileName}`;
 
-  // upsert: true SANGAT PENTING agar jika admin ganti gambar, 
-  // gambar lama otomatis tertimpa tanpa menyebabkan error duplicate.
+  // UPSERT FALSE: Karena nama unik, tidak perlu repot menimpa file
   const { error } = await supabase.storage.from("plant-images").upload(filePath, file, {
-    upsert: true,
+    upsert: false, 
     cacheControl: "3600"
   });
   

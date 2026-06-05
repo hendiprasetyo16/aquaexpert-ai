@@ -26,84 +26,54 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // STATES UNTUK GAMBAR (COVER & GALLERY)
+  // STATE COVER
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState("");
   
-  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
-  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+  // STATE GALLERY (Dipecah agar bisa hapus satu-satu - MAKSIMAL 5)
+  const [existingGallery, setExistingGallery] = useState<string[]>([]);
+  const [newGallery, setNewGallery] = useState<{file: File, preview: string}[]>([]);
+  
+  // TRACKING GAMBAR YANG HARUS DIHAPUS DARI STORAGE
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
 
-  // V2: DITAMBAHKAN 9 FIELD EXPERT ENGINE
+  // V2: 9 FIELD EXPERT ENGINE
   const [formData, setFormData] = useState({
-    name: "",
-    scientific_name: "",
-    placement: "Midground",
-    difficulty: "Easy", 
-    light_requirement: "Medium",
-    co2_requirement: "Low",
-    fertilizer_requirement: "Medium",
-    growth_rate: "Medium",
-    temperature_min: "",
-    temperature_max: "",
-    ph_min: "",
-    ph_max: "",
-    origin_country: "",
-    max_height_cm: "",
-    description: "",
-    source_name: "Tropica", 
-    source_url: "https://tropica.com",
-    recommended_for: "", 
-    // Expert Fields
-    plant_type: "Stem",
-    aquascape_style: "",
-    beginner_score: "",
-    maintenance_level: "Medium",
-    carpet_potential: false,
-    shrimp_safe: true,
-    growth_control: "Moderate",
-    tank_size_recommendation: "",
-    expert_notes: ""
+    name: "", scientific_name: "", placement: "Midground", difficulty: "Easy", 
+    light_requirement: "Medium", co2_requirement: "Low", fertilizer_requirement: "Medium",
+    growth_rate: "Medium", temperature_min: "", temperature_max: "", ph_min: "", ph_max: "",
+    origin_country: "", max_height_cm: "", description: "", source_name: "Tropica", 
+    source_url: "https://tropica.com", recommended_for: "", 
+    plant_type: "Stem", aquascape_style: "", beginner_score: "", maintenance_level: "Medium",
+    carpet_potential: false, shrimp_safe: true, growth_control: "Moderate",
+    tank_size_recommendation: "", expert_notes: ""
   });
 
   useEffect(() => {
     if (mode === "edit" && plant) {
       setFormData({
-        name: plant.name || "",
-        scientific_name: plant.scientific_name || "",
-        placement: plant.placement || "Midground",
-        difficulty: plant.difficulty || "Easy",
-        light_requirement: plant.light_requirement || "Medium",
-        co2_requirement: plant.co2_requirement || "Low",
-        fertilizer_requirement: plant.fertilizer_requirement || "Medium",
-        growth_rate: plant.growth_rate || "Medium",
+        name: plant.name || "", scientific_name: plant.scientific_name || "",
+        placement: plant.placement || "Midground", difficulty: plant.difficulty || "Easy",
+        light_requirement: plant.light_requirement || "Medium", co2_requirement: plant.co2_requirement || "Low",
+        fertilizer_requirement: plant.fertilizer_requirement || "Medium", growth_rate: plant.growth_rate || "Medium",
         temperature_min: plant.temperature_min != null ? plant.temperature_min.toString() : "",
         temperature_max: plant.temperature_max != null ? plant.temperature_max.toString() : "",
-        ph_min: plant.ph_min != null ? plant.ph_min.toString() : "",
-        ph_max: plant.ph_max != null ? plant.ph_max.toString() : "",
-        origin_country: plant.origin_country || "",
-        max_height_cm: plant.max_height_cm != null ? plant.max_height_cm.toString() : "",
-        description: plant.description || "",
-        source_name: plant.source_name || "",
-        source_url: plant.source_url || "",
-        recommended_for: plant.recommended_for?.join(", ") || "", 
-        // Expert Fields
-        plant_type: plant.plant_type || "Stem",
-        aquascape_style: plant.aquascape_style?.join(", ") || "",
+        ph_min: plant.ph_min != null ? plant.ph_min.toString() : "", ph_max: plant.ph_max != null ? plant.ph_max.toString() : "",
+        origin_country: plant.origin_country || "", max_height_cm: plant.max_height_cm != null ? plant.max_height_cm.toString() : "",
+        description: plant.description || "", source_name: plant.source_name || "",
+        source_url: plant.source_url || "", recommended_for: plant.recommended_for?.join(", ") || "", 
+        plant_type: plant.plant_type || "Stem", aquascape_style: plant.aquascape_style?.join(", ") || "",
         beginner_score: plant.beginner_score != null ? plant.beginner_score.toString() : "",
-        maintenance_level: plant.maintenance_level || "Medium",
-        carpet_potential: plant.carpet_potential || false,
-        shrimp_safe: plant.shrimp_safe !== false, // Default true if null
-        growth_control: plant.growth_control || "Moderate",
-        tank_size_recommendation: plant.tank_size_recommendation?.join(", ") || "",
-        expert_notes: plant.expert_notes || ""
+        maintenance_level: plant.maintenance_level || "Medium", carpet_potential: plant.carpet_potential || false,
+        shrimp_safe: plant.shrimp_safe !== false, growth_control: plant.growth_control || "Moderate",
+        tank_size_recommendation: plant.tank_size_recommendation?.join(", ") || "", expert_notes: plant.expert_notes || ""
       });
 
       if (plant.image_url) setCoverPreview(plant.image_url);
-      if (plant.gallery_urls) setGalleryPreviews(plant.gallery_urls);
+      if (plant.gallery_urls) setExistingGallery(plant.gallery_urls);
     }
   }, [plant, mode]);
 
-  // HANDLER: UPDATE UNTUK MENDUKUNG CHECKBOX (BOOLEAN)
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     const { name, value, type } = e.target;
     if (type === "checkbox") {
@@ -114,7 +84,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     }
   }
 
-  // HANDLER: UPLOAD COVER IMAGE
+  // --- LOGIKA COVER ---
   function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -130,10 +100,15 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       setError(null);
       setCoverFile(file);
       setCoverPreview(URL.createObjectURL(file));
+
+      // Jika sebelumnya ada cover lama dari DB, masukkan ke daftar hapus
+      if (mode === "edit" && plant?.image_url && !imagesToDelete.includes(plant.image_url)) {
+        setImagesToDelete(prev => [...prev, plant.image_url!]);
+      }
     }
   }
 
-  // HANDLER: UPLOAD GALLERY IMAGES (Maksimal 3)
+  // --- LOGIKA GALLERY BARU (MAKS 5) ---
   function handleGalleryChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
@@ -145,30 +120,36 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         toast.error("Beberapa gambar diabaikan karena format tidak valid atau melebihi 2MB.");
       }
 
-      const totalFiles = [...galleryFiles, ...newValidFiles].slice(0, 3);
-      setGalleryFiles(totalFiles);
-      
-      const newPreviews = newValidFiles.map(f => URL.createObjectURL(f));
-      const totalPreviews = [...galleryPreviews.filter(p => !p.startsWith('blob:')), ...newPreviews].slice(0, 3);
-      setGalleryPreviews(totalPreviews);
+      // BATAS MAKSIMAL 5
+      const spaceLeft = 5 - (existingGallery.length + newGallery.length);
+      if (spaceLeft <= 0) {
+        toast.error("Maksimal 5 gambar galeri."); return;
+      }
+
+      const filesToAdd = newValidFiles.slice(0, spaceLeft).map(file => ({
+        file, preview: URL.createObjectURL(file)
+      }));
+
+      setNewGallery([...newGallery, ...filesToAdd]);
     }
   }
 
-  function removeGalleryImage(index: number) {
-    const newFiles = [...galleryFiles];
-    if (index < newFiles.length) {
-       newFiles.splice(index, 1);
-       setGalleryFiles(newFiles);
-    }
-    
-    const newPreviews = [...galleryPreviews];
-    newPreviews.splice(index, 1);
-    setGalleryPreviews(newPreviews);
+  function removeExistingGallery(index: number) {
+    const urlToRemove = existingGallery[index];
+    setImagesToDelete(prev => [...prev, urlToRemove]);
+    setExistingGallery(prev => prev.filter((_, i) => i !== index));
+  }
+
+  function removeNewGallery(index: number) {
+    setNewGallery(prev => prev.filter((_, i) => i !== index));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
+
+    // --- ARRAY ROLLBACK: Melacak semua file baru yang sukses di-upload ---
+    const uploadedImagesToRollback: string[] = [];
 
     try {
       setLoading(true);
@@ -189,23 +170,22 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         return; 
       }
 
-      let finalCoverUrl = plant?.image_url || "";
-      let finalGalleryUrls = [...(plant?.gallery_urls || [])];
+      let finalCoverUrl = mode === "edit" ? (plant?.image_url || "") : "";
+      let finalGalleryUrls = [...existingGallery];
 
       const plantSlug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
+      // 1. UPLOAD COVER BARU
       if (coverFile) {
-        const ext = coverFile.name.split(".").pop(); 
-        finalCoverUrl = await uploadPlantImage(coverFile, plantSlug, `cover.${ext}`);
+        finalCoverUrl = await uploadPlantImage(coverFile, plantSlug, `cover`);
+        uploadedImagesToRollback.push(finalCoverUrl); // Catat untuk potensi rollback
       }
 
-      if (galleryFiles.length > 0) {
-        for (let i = 0; i < galleryFiles.length; i++) {
-           const ext = galleryFiles[i].name.split(".").pop();
-           const gUrl = await uploadPlantImage(galleryFiles[i], plantSlug, `gallery-${i+1}.${ext}`);
-           finalGalleryUrls.push(gUrl);
-        }
-        finalGalleryUrls = finalGalleryUrls.slice(0, 3);
+      // 2. UPLOAD GALLERY BARU
+      for (let i = 0; i < newGallery.length; i++) {
+         const gUrl = await uploadPlantImage(newGallery[i].file, plantSlug, `gallery`);
+         finalGalleryUrls.push(gUrl);
+         uploadedImagesToRollback.push(gUrl); // Catat untuk potensi rollback
       }
 
       const payloadArrayRecommended = formData.recommended_for.split(",").map((item) => item.trim()).filter(Boolean);
@@ -232,8 +212,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         source_url: formData.source_url,
         recommended_for: payloadArrayRecommended.length > 0 ? payloadArrayRecommended : null,
         image_url: finalCoverUrl,
-        gallery_urls: finalGalleryUrls.length > 0 ? finalGalleryUrls : [],
-        // Payload Expert Fields V2
+        gallery_urls: finalGalleryUrls,
         plant_type: formData.plant_type,
         aquascape_style: payloadStyle.length > 0 ? payloadStyle : null,
         beginner_score: formData.beginner_score ? parseInt(formData.beginner_score) : null,
@@ -245,6 +224,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         expert_notes: formData.expert_notes
       };
 
+      // 3. SIMPAN KE DATABASE
       if (mode === "create") {
         const result = await createPlantAction(payload);
         if (!result.success) throw new Error(result.error);
@@ -255,6 +235,11 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         toast.success("Data tanaman berhasil diperbarui!");
       }
 
+      // 4. CLEANUP STORAGE: Eksekusi hapus file lama HANYA JIKA save DB sukses
+      for (const urlToDelete of imagesToDelete) {
+        await removePlantImage(urlToDelete);
+      }
+
       router.push("/dashboard/plants");
       router.refresh();
 
@@ -262,6 +247,14 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       console.error(err);
       setError(err?.message || "Terjadi kesalahan saat menyimpan data.");
       toast.error(err?.message || "Terjadi kesalahan saat menyimpan data.");
+      
+      // --- LOGIKA ROLLBACK STORAGE ---
+      if (uploadedImagesToRollback.length > 0) {
+        console.log("Melakukan rollback pada file yang baru diupload...", uploadedImagesToRollback);
+        for (const orphanUrl of uploadedImagesToRollback) {
+          await removePlantImage(orphanUrl);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -307,12 +300,14 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     }
   }
 
+  const totalGalleryCount = existingGallery.length + newGallery.length;
+
   return (
     <Card className="border-slate-800 bg-slate-900/60 shadow-xl max-w-4xl mx-auto mb-20">
       <CardContent className="p-4 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-8">
           
-          {/* BAGIAN 1: UPLOAD GAMBAR FINAL (COVER + 3 GALLERY) */}
+          {/* BAGIAN 1: UPLOAD GAMBAR FINAL */}
           <div className="space-y-4 bg-slate-950/50 p-4 sm:p-6 rounded-xl border border-slate-800">
             <h3 className="text-lg font-bold text-slate-200 border-b border-slate-800 pb-2 flex items-center gap-2">
               <Images className="h-5 w-5 text-teal-500" /> Visual Tanaman
@@ -342,14 +337,14 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                 </label>
               </div>
 
-              {/* UPLOAD GALERI */}
+              {/* UPLOAD GALERI (Satu Per Satu) */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label className="text-slate-300 font-semibold text-sm">Galeri Tambahan (Maks 3)</Label>
-                  <span className="text-xs text-slate-500">{galleryPreviews.length}/3</span>
+                  <Label className="text-slate-300 font-semibold text-sm">Galeri Tambahan (Maks 5)</Label>
+                  <span className="text-xs text-slate-500">{totalGalleryCount}/5</span>
                 </div>
                 
-                {galleryPreviews.length < 3 && (
+                {totalGalleryCount < 5 && (
                   <>
                     <input id="gallery-image" type="file" accept="image/*" multiple onChange={handleGalleryChange} className="hidden" />
                     <label htmlFor="gallery-image" className="cursor-pointer block mb-3">
@@ -360,16 +355,24 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                   </>
                 )}
 
-                {galleryPreviews.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {galleryPreviews.map((preview, index) => (
-                      <div key={index} className="relative aspect-square rounded-md overflow-hidden border border-slate-700 group">
-                        <img src={preview} alt={`Gallery ${index+1}`} className="h-full w-full object-cover" />
-                        <button 
-                          type="button"
-                          onClick={() => removeGalleryImage(index)}
-                          className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
+                {(existingGallery.length > 0 || newGallery.length > 0) && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {/* Render Existing */}
+                    {existingGallery.map((url, index) => (
+                      <div key={`exist-${index}`} className="relative aspect-square rounded-md overflow-hidden border border-slate-700 group">
+                        <img src={url} alt={`Gallery DB ${index+1}`} className="h-full w-full object-cover opacity-80" />
+                        <div className="absolute bottom-0 inset-x-0 bg-black/60 text-[9px] text-center text-slate-300 py-0.5">Tersimpan</div>
+                        <button type="button" onClick={() => removeExistingGallery(index)} className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {/* Render New */}
+                    {newGallery.map((item, index) => (
+                      <div key={`new-${index}`} className="relative aspect-square rounded-md overflow-hidden border border-teal-700 group">
+                        <img src={item.preview} alt={`Gallery Baru ${index+1}`} className="h-full w-full object-cover" />
+                        <div className="absolute bottom-0 inset-x-0 bg-teal-600/80 text-[9px] text-center text-white py-0.5 font-bold">Baru</div>
+                        <button type="button" onClick={() => removeNewGallery(index)} className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <X className="h-3 w-3" />
                         </button>
                       </div>
@@ -441,22 +444,18 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 pt-2">
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">Suhu Min (°C)</Label>
-                {/* DITAMBAHKAN class text-slate-100 AGAR TEKS TERLIHAT */}
                 <Input type="number" step="0.1" name="temperature_min" value={formData.temperature_min} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">Suhu Max (°C)</Label>
-                {/* DITAMBAHKAN class text-slate-100 AGAR TEKS TERLIHAT */}
                 <Input type="number" step="0.1" name="temperature_max" value={formData.temperature_max} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">pH Min</Label>
-                {/* DITAMBAHKAN class text-slate-100 AGAR TEKS TERLIHAT */}
                 <Input type="number" step="0.1" name="ph_min" value={formData.ph_min} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">pH Max</Label>
-                {/* DITAMBAHKAN class text-slate-100 AGAR TEKS TERLIHAT */}
                 <Input type="number" step="0.1" name="ph_max" value={formData.ph_max} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
             </div>
@@ -479,17 +478,14 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">Tinggi Max (cm)</Label>
-                {/* DITAMBAHKAN class text-slate-100 AGAR TEKS TERLIHAT */}
                 <Input type="number" name="max_height_cm" value={formData.max_height_cm} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">Asal Negara/Wilayah</Label>
-                {/* DITAMBAHKAN class text-slate-100 AGAR TEKS TERLIHAT */}
                 <Input name="origin_country" placeholder="Contoh: Asia, Cultivar" value={formData.origin_country} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">Sumber Data (Kredit)</Label>
-                {/* DITAMBAHKAN class text-slate-100 AGAR TEKS TERLIHAT */}
                 <Input name="source_name" value={formData.source_name} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
             </div>
@@ -498,14 +494,15 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
           {/* BAGIAN 5: PARAMETER SISTEM PAKAR (EXPERT ENGINE V2) */}
           <div className="bg-teal-950/20 p-4 sm:p-6 rounded-xl border border-teal-900/50 space-y-6">
             <h3 className="text-lg font-bold text-teal-400 mb-2">Konfigurasi Expert Engine (V2)</h3>
-            <p className="text-xs text-teal-500/70 mb-4 -mt-2">Parameter di bawah ini adalah "Otak" yang akan digunakan AI untuk memberikan rekomendasi pintar.</p>
             
             <div className="grid gap-5 md:grid-cols-3">
               <div className="space-y-2">
                 <Label className="text-slate-300">Tipe Tanaman (Plant Type)</Label>
                 <select name="plant_type" value={formData.plant_type} onChange={handleChange} className="h-10 w-full rounded-md border border-teal-800/50 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
-                  <option value="Stem">Stem (Batang)</option><option value="Rosette">Rosette (Roset)</option><option value="Epiphyte">Epiphyte (Menempel)</option>
-                  <option value="Moss">Moss (Lumut)</option><option value="Floating">Floating (Apung)</option><option value="Bulb">Bulb (Umbi)</option><option value="Carpet">Carpet (Karpet)</option>
+                  {/* PENAMBAHAN RHIZOME DAN RUNNER */}
+                  <option value="Stem">Stem (Batang)</option><option value="Rhizome">Rhizome (Rimpang)</option><option value="Runner">Runner (Menjalar)</option>
+                  <option value="Rosette">Rosette (Roset)</option><option value="Epiphyte">Epiphyte (Menempel)</option><option value="Moss">Moss (Lumut)</option>
+                  <option value="Floating">Floating (Apung)</option><option value="Bulb">Bulb (Umbi)</option><option value="Carpet">Carpet (Karpet)</option>
                 </select>
               </div>
 
@@ -552,7 +549,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                 value={formData.expert_notes} 
                 onChange={handleChange} 
                 className="w-full rounded-md border border-teal-800/50 bg-slate-950 p-3 text-slate-100 focus:border-teal-500 outline-none leading-relaxed resize-y" 
-                placeholder="Contoh: Sangat rakus menyerap nitrat, waspadai defisiensi kalium (K) yang menyebabkan daun berlubang..."
+                placeholder="Contoh: Sangat rakus menyerap nitrat, waspadai defisiensi kalium (K)..."
               />
             </div>
           </div>
