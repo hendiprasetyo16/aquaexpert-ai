@@ -139,17 +139,15 @@ export default function PlantDetailPage() {
   // ==========================================
   // HELPER TRANSLASI UNTUK EDUKASI
   // ==========================================
-  
-  // DIPERBARUI: Warna Psikologis untuk Beginner Score
   const renderStars = (score: number | null) => {
     if (!score) return "N/A";
     const filled = "★".repeat(score);
     const empty = "☆".repeat(10 - score);
     
-    let colorClass = "text-red-500"; // 1-4 (Hard)
-    if (score >= 9) colorClass = "text-green-400"; // 9-10 (Very Easy)
-    else if (score >= 7) colorClass = "text-blue-400"; // 7-8 (Easy)
-    else if (score >= 5) colorClass = "text-yellow-400"; // 5-6 (Medium)
+    let colorClass = "text-red-500"; 
+    if (score >= 9) colorClass = "text-green-400"; 
+    else if (score >= 7) colorClass = "text-blue-400"; 
+    else if (score >= 5) colorClass = "text-yellow-400"; 
 
     return (
       <div className="flex flex-col items-center">
@@ -182,9 +180,9 @@ export default function PlantDetailPage() {
     }
     
     if (type === "co2") {
-      if (l === "low") return "Dapat hidup tanpa injeksi tabung CO2 tambahan.";
-      if (l === "medium") return "Pertumbuhan optimal jika menggunakan injeksi CO2.";
-      if (l === "high") return "Sangat direkomendasikan injeksi CO2 tinggi.";
+      if (l === "low") return "Tanpa tabung CO2";
+      if (l === "medium") return "Disarankan pakai CO2";
+      if (l === "high") return "Wajib injeksi CO2 tinggi";
     }
 
     if (type === "fert") {
@@ -202,15 +200,14 @@ export default function PlantDetailPage() {
     return getIndoLevelCore(level);
   };
 
-  // DIPERBARUI: Warna Psikologis untuk Placement
   const getPlacementBadgeStyle = (placement: string | null | undefined) => {
     if (!placement) return "bg-slate-800/50 border-slate-700 text-slate-200";
     const p = placement.toLowerCase();
-    if (p === "foreground") return "bg-green-950/30 border-green-900/50 text-green-300"; // Depan -> Hijau
-    if (p === "midground") return "bg-blue-950/30 border-blue-900/50 text-blue-300"; // Tengah -> Biru
-    if (p === "background") return "bg-purple-950/30 border-purple-900/50 text-purple-300"; // Belakang -> Ungu
-    if (p === "epiphyte") return "bg-orange-950/30 border-orange-900/50 text-orange-300"; // Tempel -> Orange
-    if (p === "floating") return "bg-cyan-950/30 border-cyan-900/50 text-cyan-300"; // Apung -> Cyan
+    if (p === "foreground") return "bg-green-950/30 border-green-900/50 text-green-300";
+    if (p === "midground") return "bg-blue-950/30 border-blue-900/50 text-blue-300"; 
+    if (p === "background") return "bg-purple-950/30 border-purple-900/50 text-purple-300"; 
+    if (p === "epiphyte") return "bg-orange-950/30 border-orange-900/50 text-orange-300"; 
+    if (p === "floating") return "bg-cyan-950/30 border-cyan-900/50 text-cyan-300"; 
     return "bg-slate-800/50 border-slate-700 text-slate-200";
   };
 
@@ -225,15 +222,6 @@ export default function PlantDetailPage() {
     return "";
   };
 
-  const getGrowthDesc = (growth: string | null | undefined) => {
-    const g = (growth || "").toLowerCase();
-    if (g.includes("slow")) return "Jarang butuh pangkas.";
-    if (g.includes("moderate") || g.includes("medium")) return "Perawatan standar.";
-    if (g.includes("aggressive") || g.includes("fast")) return "Wajib sering dipangkas.";
-    return "Tumbuh wajar.";
-  };
-
-  // DIPERBARUI: Menghapus kata "Lebar" agar ringkas
   const getTankSizeDesc = (size: string) => {
     const s = size.toLowerCase();
     if (s === "nano") return "(≤ 40 cm)";
@@ -255,14 +243,14 @@ export default function PlantDetailPage() {
 
   const getPlantTypeDesc = (type: string) => {
     const t = (type || "").toLowerCase();
-    if (t === "stem") return "Tanaman Batang. Tumbuh menjulang ke atas, perlu dipotong dan ditancap ulang.";
-    if (t === "rhizome") return "Tanaman Rimpang. Jangan dikubur di pasir, harus diikat pada batu atau kayu.";
+    if (t === "stem") return "Tumbuh menjulang ke atas, perlu dipotong dan ditancap ulang.";
+    if (t === "rhizome") return "Jangan dikubur di pasir, harus diikat pada batu atau kayu.";
     if (t === "rosette") return "Tumbuh berpusat dari satu pangkal akar bawah. Sangat butuh pupuk tancap.";
-    if (t === "carpet") return "Tanaman Karpet. Menjalar menutupi dasar aquarium layaknya padang rumput.";
-    if (t === "moss") return "Lumut Air. Diikat pada batu/kayu. Surganya udang hias untuk bersembunyi.";
-    if (t === "floating") return "Tanaman Apung. Berada di permukaan. Penyerap racun nitrat paling ampuh.";
+    if (t === "carpet") return "Menjalar menutupi dasar aquarium layaknya padang rumput.";
+    if (t === "moss") return "Diikat pada batu/kayu. Surganya udang hias untuk bersembunyi.";
+    if (t === "floating") return "Berada di permukaan. Penyerap racun nitrat paling ampuh.";
     if (t === "bulb") return "Tumbuh dari umbi. Umbinya jangan dikubur total ke dalam pasir agar tidak busuk.";
-    if (t === "runner") return "Tanaman Menjalar. Berkembang menyebar cepat lewat tunas di bawah pasir.";
+    if (t === "runner") return "Berkembang menyebar cepat lewat tunas di bawah pasir.";
     return "Tipe tanaman akuatik standar.";
   };
 
@@ -272,7 +260,7 @@ export default function PlantDetailPage() {
     if (t.includes("mid tech")) return "Cahaya & CO2 Sedang";
     if (t.includes("high tech")) return "Wajib CO2 & Cahaya Terang";
     if (t.includes("beginner")) return "Aman Untuk Pemula";
-    if (t.includes("breeding tank")) return "Tempat Sembunyi Burayak";
+    if (t.includes("breeding tank")) return "Sembunyi Burayak";
     if (t.includes("nano tank")) return "Aquarium Mini (≤ 40cm)";
     if (t.includes("top cover")) return "Peneduh Kolom Air";
     if (t.includes("pond")) return "Bisa Hidup di Kolam";
@@ -386,7 +374,7 @@ export default function PlantDetailPage() {
 
                   <div className="flex flex-row gap-3 w-full sm:w-auto justify-center">
                     {/* KESULITAN */}
-                    <div className={`flex flex-col items-center justify-center w-[130px] px-2 py-2 rounded-lg border shadow-sm ${
+                    <div className={`flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg border shadow-sm ${
                       plant.difficulty?.toLowerCase() === 'easy' ? 'bg-green-950/20 border-green-900/50' :
                       plant.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-950/20 border-yellow-900/50' :
                       plant.difficulty?.toLowerCase() === 'hard' ? 'bg-red-950/20 border-red-900/50' :
@@ -403,7 +391,7 @@ export default function PlantDetailPage() {
                     </div>
                     
                     {/* PENEMPATAN DENGAN WARNA PSIKOLOGIS */}
-                    <div className={`flex flex-col items-center justify-center w-[130px] px-2 py-2 rounded-lg border shadow-sm ${getPlacementBadgeStyle(plant.placement)}`}>
+                    <div className={`flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg border shadow-sm ${getPlacementBadgeStyle(plant.placement)}`}>
                       <span className="text-base font-black uppercase tracking-widest">
                         {plant.placement || "Unknown"}
                       </span>
@@ -413,7 +401,7 @@ export default function PlantDetailPage() {
 
                 </div>
                 
-                {/* TAGS KECOCOKAN */}
+                {/* TAGS KECOCOKAN DENGAN KETERANGAN DI BAWAHNYA */}
                 {plant.recommended_for && plant.recommended_for.length > 0 && (
                   <div className="mt-8 border-t border-slate-800 pt-5">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Kecocokan Ekosistem</p>
@@ -526,8 +514,8 @@ export default function PlantDetailPage() {
                       {plant.tank_size_recommendation && plant.tank_size_recommendation.length > 0 ? (
                         plant.tank_size_recommendation.map(size => (
                           <div key={size} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner">
-                            <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider">{size}</span>
-                            <span className="text-[12px] text-slate-400 leading-snug font-medium mt-1">{getTankSizeDesc(size)}</span>
+                            <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider mb-1.5">{size}</span>
+                            <span className="text-[12px] text-slate-400 leading-snug font-medium">{getTankSizeDesc(size)}</span>
                           </div>
                         ))
                       ) : <span className="text-sm text-slate-500 italic p-3">Bebas semua ukuran.</span>}
@@ -562,7 +550,7 @@ export default function PlantDetailPage() {
                   </p>
                 </div>
 
-                {/* PARAMETER AIR (CO2 Mandatory ditampilkan di sini) */}
+                {/* PARAMETER AIR (KOTAK RAPI DENGAN SEPARATOR) */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Kebutuhan Lingkungan Optimal</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -648,7 +636,7 @@ export default function PlantDetailPage() {
                   <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Profil Biologi Tambahan</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     
-                    <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
+                    <div className="bg-slate-950/50 p-5 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
                       <div className="flex flex-col items-center justify-center mb-3">
                         <Droplets className="h-4 w-4 text-teal-400 mb-1"/>
                         <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Pupuk</span>
@@ -659,7 +647,7 @@ export default function PlantDetailPage() {
                       </div>
                     </div>
                     
-                    <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
+                    <div className="bg-slate-950/50 p-5 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
                       <div className="flex flex-col items-center justify-center mb-3">
                         <Leaf className="h-4 w-4 text-green-400 mb-1"/>
                         <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Kecepatan Tumbuh</span>
@@ -670,7 +658,7 @@ export default function PlantDetailPage() {
                       </div>
                     </div>
                     
-                    <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
+                    <div className="bg-slate-950/50 p-5 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
                       <div className="flex flex-col items-center justify-center mb-3">
                         <Ruler className="h-4 w-4 text-blue-400 mb-1"/>
                         <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Tinggi Max</span>
@@ -680,7 +668,7 @@ export default function PlantDetailPage() {
                       </div>
                     </div>
                     
-                    <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
+                    <div className="bg-slate-950/50 p-5 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
                       <div className="flex flex-col items-center justify-center mb-3">
                         <MapPin className="h-4 w-4 text-orange-400 mb-1"/>
                         <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Habitat Asli</span>
