@@ -11,7 +11,7 @@ import {
   Loader2, ArrowLeft, ArrowRight, Leaf, Edit, Droplets, Wind, Sun, 
   Thermometer, FlaskConical, MapPin, Ruler, CheckCircle2, Maximize2, X, Info, ImageIcon,
   ChevronLeft, ChevronRight, Brain, ShieldCheck, Scissors, Activity, Target, Box, BookOpen,
-  Zap, Sprout
+  Zap, Sprout, Share2, Link as LinkIcon, Check
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
@@ -23,15 +23,17 @@ export default function PlantDetailPage() {
   const { role } = useAuth();
   
   const [plant, setPlant] = useState<Plant | null>(null);
+  const [allPlantsList, setAllPlantsList] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // --- NAVIGATION STATE FOR NEXT/PREV PLANT ---
+  // --- UI STATES ---
+  const [copied, setCopied] = useState(false);
   const [prevPlantId, setPrevPlantId] = useState<string | null>(null);
   const [nextPlantId, setNextPlantId] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [totalPlants, setTotalPlants] = useState<number>(0);
 
-  // --- STATE MODAL LIGHTBOX & NAVIGATION ---
+  // --- STATE MODAL LIGHTBOX ---
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const allImages = [plant?.image_url, ...(plant?.gallery_urls || [])].filter(Boolean) as string[];
   
@@ -52,11 +54,11 @@ export default function PlantDetailPage() {
         if (params.id) {
           const [plantData, allPlants] = await Promise.all([
             getPlantById(params.id as string),
-            getPlants() // Tarik semua tanaman untuk navigasi
+            getPlants()
           ]);
           setPlant(plantData);
+          setAllPlantsList(allPlants || []);
 
-          // Logika untuk menemukan id Next dan Prev
           if (allPlants && allPlants.length > 0) {
             setTotalPlants(allPlants.length);
             const index = allPlants.findIndex(p => p.id === params.id);
@@ -75,6 +77,29 @@ export default function PlantDetailPage() {
     }
     loadData();
   }, [params.id]);
+
+  // ACTION HANDLERS
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `AquaExpert: ${plant?.name}`,
+          text: `Lihat profil botani ${plant?.name} untuk aquascape!`,
+          url: window.location.href,
+        });
+      } catch (err) {
+        console.error("Error sharing:", err);
+      }
+    } else {
+      handleCopyLink();
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // NAVIGATION HANDLERS
   const resetZoom = () => { setScale(1); setPosition({ x: 0, y: 0 }); };
@@ -96,7 +121,7 @@ export default function PlantDetailPage() {
     }
   };
 
-  // MOBILE TOUCH HANDLERS
+  // TOUCH HANDLERS (Omitted for brevity, they remain identical to your V3)
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       setTouchEnd(null); setTouchStart(e.targetTouches[0].clientX); setInitialPinchDistance(null);
@@ -125,7 +150,6 @@ export default function PlantDetailPage() {
     }
   };
 
-  // KEYBOARD
   useEffect(() => {
     if (lightboxIndex === null) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -138,8 +162,16 @@ export default function PlantDetailPage() {
   }, [lightboxIndex, allImages.length]);
 
   // ==========================================
-  // HELPER TRANSLASI UNTUK EDUKASI
+  // HELPER TRANSLASI & LOGIKA
   // ==========================================
+  const getSummaryScoreDesc = (score: number | null) => {
+    if (!score) return "Penilaian belum tersedia.";
+    if (score >= 8) return "Sangat direkomendasikan untuk aquascaper pemula.";
+    if (score >= 6) return "Cocok jika Anda sudah memahami dasar-dasar aquascape.";
+    if (score >= 4) return "Cukup menantang, butuh perhatian ekstra.";
+    return "Hanya untuk aquascaper tingkat lanjut / profesional.";
+  };
+
   const renderStars = (score: number | null) => {
     if (!score) return "N/A";
     const filled = "★".repeat(score);
@@ -156,6 +188,9 @@ export default function PlantDetailPage() {
           {filled}<span className="text-slate-600">{empty}</span>
         </span>
         <span className={`text-xl font-black text-white ${colorClass}`}>{score}/10</span>
+        <span className="text-[10px] text-slate-400 mt-1 leading-tight text-center max-w-[120px]">
+          {getSummaryScoreDesc(score)}
+        </span>
       </div>
     );
   };
@@ -179,19 +214,16 @@ export default function PlantDetailPage() {
       if (l === "medium") return "Lampu menyala 7-8 Jam";
       if (l === "high") return "Lampu menyala 8-10 Jam";
     }
-    
     if (type === "co2") {
-      if (l === "low") return "Dapat hidup tanpa injeksi tabung CO2 tambahan.";
-      if (l === "medium") return "Pertumbuhan optimal jika menggunakan injeksi CO2.";
-      if (l === "high") return "Sangat direkomendasikan injeksi CO2 tinggi.";
+      if (l === "low") return "Tanpa tabung CO2";
+      if (l === "medium") return "Disarankan pakai CO2";
+      if (l === "high") return "Wajib injeksi CO2 tinggi";
     }
-
     if (type === "fert") {
       if (l === "low") return "Sesekali saja";
       if (l === "medium") return "Rutin (Standar)";
       if (l === "high") return "Wajib pupuk tancap & cair";
     }
-
     if (type === "growth") {
       if (l === "slow") return "Jarang butuh dipangkas";
       if (l === "medium" || l === "moderate") return "Perawatan standar";
@@ -223,7 +255,6 @@ export default function PlantDetailPage() {
     return "";
   };
 
-  // DIPERBARUI: Mengganti kunci "length" menjadi "size_cm" untuk menghindari bentrok reserved word JS
   const getTankSizeDesc = (size: string) => {
     const s = size.toLowerCase();
     if (s === "nano") return { size_cm: "≤ 40 cm", volume: "10–30 Liter" };
@@ -272,6 +303,12 @@ export default function PlantDetailPage() {
     return "Cocok untuk setup umum";
   };
 
+  // MENCARI TANAMAN SERUPA
+  const relatedPlants = allPlantsList
+    .filter(p => p.id !== plant?.id && p.is_active)
+    .filter(p => p.plant_type === plant?.plant_type || p.placement === plant?.placement)
+    .slice(0, 3); // Ambil 3 teratas
+
   if (loading) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-500" /></div>;
   if (!plant) return <div className="text-center mt-20 text-slate-400">Data tanaman tidak ditemukan atau telah dinonaktifkan.</div>;
 
@@ -287,30 +324,16 @@ export default function PlantDetailPage() {
                 <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
               </Button>
               
-              {/* Tombol Navigasi Plant */}
               <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden">
-                <Button 
-                  variant="ghost" 
-                  disabled={!prevPlantId}
-                  onClick={() => prevPlantId && router.push(`/dashboard/plants/${prevPlantId}`)}
-                  className="rounded-none border-r border-slate-700 hover:bg-teal-900/40 hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent"
-                  title="Tanaman Sebelumnya"
-                >
+                <Button variant="ghost" disabled={!prevPlantId} onClick={() => prevPlantId && router.push(`/dashboard/plants/${prevPlantId}`)} className="rounded-none border-r border-slate-700 hover:bg-teal-900/40 hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent" title="Tanaman Sebelumnya">
                   <ChevronLeft className="h-5 w-5" />
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  disabled={!nextPlantId}
-                  onClick={() => nextPlantId && router.push(`/dashboard/plants/${nextPlantId}`)}
-                  className="rounded-none hover:bg-teal-900/40 hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent"
-                  title="Tanaman Berikutnya"
-                >
+                <Button variant="ghost" disabled={!nextPlantId} onClick={() => nextPlantId && router.push(`/dashboard/plants/${nextPlantId}`)} className="rounded-none hover:bg-teal-900/40 hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent" title="Tanaman Berikutnya">
                   <ChevronRight className="h-5 w-5" />
                 </Button>
               </div>
             </div>
             
-            {/* Indikator Urutan Tanaman */}
             {totalPlants > 0 && (
               <span className="text-xs font-medium text-slate-400 bg-slate-800/50 px-3 py-1.5 rounded-md border border-slate-700/50 w-full sm:w-auto text-center">
                 Tanaman <strong className="text-slate-200">{currentIndex}</strong> dari <strong className="text-slate-200">{totalPlants}</strong>
@@ -318,13 +341,15 @@ export default function PlantDetailPage() {
             )}
           </div>
           
-          {role !== "user" && (
-            <Link href={`/dashboard/plants/${plant.id}/edit`} className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 text-white shadow-lg active:scale-95 transition-all">
-                <Edit className="mr-2 h-4 w-4" /> Edit Tanaman
-              </Button>
-            </Link>
-          )}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {role !== "user" && (
+              <Link href={`/dashboard/plants/${plant.id}/edit`} className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 text-white shadow-lg active:scale-95 transition-all">
+                  <Edit className="mr-2 h-4 w-4" /> Edit
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* QUICK TAGS HEADER */}
@@ -387,36 +412,44 @@ export default function PlantDetailPage() {
                 </div>
               )}
 
-              <CardContent className="p-6 text-center border-t border-slate-800">
-                <h1 className="text-3xl font-extrabold text-teal-400 tracking-tight">{plant.name}</h1>
+              <CardContent className="p-6 text-center border-t border-slate-800 relative">
+                
+                {/* TOMBOL SHARE NATIVE */}
+                <div className="absolute top-4 right-4 flex gap-1">
+                   <button onClick={handleShare} className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-teal-400 rounded-md transition-colors" title="Bagikan">
+                     <Share2 className="h-4 w-4" />
+                   </button>
+                   <button onClick={handleCopyLink} className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-teal-400 rounded-md transition-colors" title="Salin Tautan">
+                     {copied ? <Check className="h-4 w-4 text-green-500" /> : <LinkIcon className="h-4 w-4" />}
+                   </button>
+                </div>
+
+                <h1 className="text-3xl font-extrabold text-teal-400 tracking-tight mt-2">{plant.name}</h1>
                 <p className="italic text-slate-400 mt-1 font-serif">{plant.scientific_name || "Scientific name unknown"}</p>
                 
                 <div className="mt-6 flex flex-col items-center justify-center gap-3">
                   
-                  {/* TIPE */}
                   <span className="px-4 py-2 rounded-lg text-sm font-black uppercase tracking-widest bg-teal-950/40 text-teal-400 border border-teal-900/50 w-full sm:w-auto">
                     Tipe: {plant.plant_type || "N/A"}
                   </span>
 
                   <div className="flex flex-row gap-3 w-full sm:w-auto justify-center">
-                    {/* KESULITAN */}
                     <div className={`flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg border shadow-sm ${
                       plant.difficulty?.toLowerCase() === 'easy' ? 'bg-green-950/20 border-green-900/50' :
                       plant.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-950/20 border-yellow-900/50' :
                       plant.difficulty?.toLowerCase() === 'hard' ? 'bg-red-950/20 border-red-900/50' :
                       'bg-slate-800 border-slate-700'
                     }`}>
-                      <span className={`text-base font-black uppercase tracking-widest ${
+                      <span className={`text-sm font-black uppercase tracking-widest ${
                         plant.difficulty?.toLowerCase() === 'easy' ? 'text-green-400' :
                         plant.difficulty?.toLowerCase() === 'medium' ? 'text-yellow-400' :
                         plant.difficulty?.toLowerCase() === 'hard' ? 'text-red-400' : 'text-slate-300'
                       }`}>
                         {plant.difficulty || "Unknown"}
                       </span>
-                      <span className="text-[12px] text-slate-400 mt-0.5 font-medium">{getIndoLevelCore(plant.difficulty)}</span>
+                      <span className="text-[11px] text-slate-400 mt-0.5">{getIndoLevelCore(plant.difficulty)}</span>
                     </div>
                     
-                    {/* PENEMPATAN DENGAN WARNA PSIKOLOGIS */}
                     <div className={`flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg border shadow-sm ${getPlacementBadgeStyle(plant.placement)}`}>
                       <span className="text-base font-black uppercase tracking-widest">
                         {plant.placement || "Unknown"}
@@ -424,10 +457,8 @@ export default function PlantDetailPage() {
                       <span className="text-[11px] opacity-80 mt-0.5 font-medium">{getPlacementDesc(plant.placement)}</span>
                     </div>
                   </div>
-
                 </div>
                 
-                {/* TAGS KECOCOKAN DENGAN KETERANGAN DI BAWAHNYA */}
                 {plant.recommended_for && plant.recommended_for.length > 0 && (
                   <div className="mt-8 border-t border-slate-800 pt-5">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Kecocokan Ekosistem</p>
@@ -458,7 +489,6 @@ export default function PlantDetailPage() {
               </div>
               <CardContent className="p-6 space-y-6">
                 
-                {/* PENJELASAN TIPE TANAMAN */}
                 <div className="bg-slate-900/80 p-5 rounded-xl border border-slate-800 flex items-start gap-4 shadow-sm">
                    <div className="bg-teal-950/40 p-2.5 rounded-md border border-teal-900/50 shrink-0 mt-0.5">
                       <Leaf className="h-6 w-6 text-teal-400" />
@@ -473,9 +503,8 @@ export default function PlantDetailPage() {
                    </div>
                 </div>
 
-                {/* 4 EXPERT BADGES */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col justify-center shadow-sm">
+                  <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col justify-center shadow-sm relative">
                     <p className="text-[11px] uppercase text-slate-500 font-bold mb-2 text-center">Beginner Score</p>
                     {renderStars(plant.beginner_score || null)}
                   </div>
@@ -500,7 +529,6 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
-                {/* SIFAT, STYLE, TANK (Dipisah per baris) */}
                 <div className="grid sm:grid-cols-3 gap-4 border-t border-slate-800 pt-6 mt-6">
                   
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
@@ -531,6 +559,7 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
+                  {/* DIPERBARUI: Struktur Flex Column Murni agar tulisan tidak berantakan */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Box className="h-4 w-4 text-orange-500"/>
@@ -545,7 +574,7 @@ export default function PlantDetailPage() {
                               <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider mb-2">{size}</span>
                               <div className="flex flex-col items-center gap-1 w-full border-t border-slate-800/50 pt-2">
                                 <span className="text-[12px] text-slate-400 font-medium">📏 {desc.size_cm}</span>
-                                <span className="text-[12px] text-cyan-400 font-medium">💧 {desc.volume}</span>
+                                <span className="text-[12px] text-cyan-400 font-medium mt-0.5">💧 {desc.volume}</span>
                               </div>
                             </div>
                           );
@@ -556,7 +585,6 @@ export default function PlantDetailPage() {
 
                 </div>
 
-                {/* Expert Notes */}
                 {plant.expert_notes && (
                   <div className="mt-4 bg-teal-950/20 border border-teal-900/50 p-6 rounded-xl shadow-inner relative overflow-hidden">
                     <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-teal-500"></div>
@@ -582,7 +610,6 @@ export default function PlantDetailPage() {
                   </p>
                 </div>
 
-                {/* PARAMETER AIR (KOTAK RAPI DENGAN SEPARATOR) */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Kebutuhan Lingkungan Optimal</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -611,7 +638,6 @@ export default function PlantDetailPage() {
                         <span className="text-[12px] text-blue-400/80 font-medium mt-0.5">({getIndoLevelCore(plant.co2_requirement)})</span>
                       </div>
                       
-                      {/* LENCANA CO2 MANDATORY */}
                       {plant.co2_mandatory === true && (
                         <div className="mt-2.5 rounded-md bg-red-950/40 border border-red-900/50 px-2 py-1.5 text-[11px] font-bold text-red-400">
                           🔴 WAJIB CO2
@@ -675,7 +701,7 @@ export default function PlantDetailPage() {
                       </div>
                       <div className="border-t border-slate-800 pt-2 flex flex-col">
                         <span className="text-base font-black text-slate-200 uppercase tracking-widest">{plant.fertilizer_requirement || "Unknown"}</span>
-                        <span className="text-[12px] text-slate-400 mt-1">{getIndoLevelDetail(plant.fertilizer_requirement, "fert")}</span>
+                        <span className="text-[11px] text-slate-400 mt-1">{getIndoLevelDetail(plant.fertilizer_requirement, "fert")}</span>
                       </div>
                     </div>
                     
@@ -686,7 +712,7 @@ export default function PlantDetailPage() {
                       </div>
                       <div className="border-t border-slate-800 pt-2 flex flex-col">
                         <span className="text-base font-black text-slate-200 uppercase tracking-widest">{plant.growth_rate || "Unknown"}</span>
-                        <span className="text-[12px] text-slate-400 mt-1">{getIndoLevelDetail(plant.growth_rate, "growth")}</span>
+                        <span className="text-[11px] text-slate-400 mt-1">{getIndoLevelDetail(plant.growth_rate, "growth")}</span>
                       </div>
                     </div>
                     
@@ -706,7 +732,7 @@ export default function PlantDetailPage() {
                         <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Habitat Asli</span>
                       </div>
                       <div className="border-t border-slate-800 pt-2 flex flex-col items-center justify-center h-full">
-                        <span className="text-[14px] font-bold text-slate-200 block leading-snug">{plant.origin_country || "Unknown"}</span>
+                        <span className="text-[13px] font-bold text-slate-200 block leading-snug">{plant.origin_country || "Unknown"}</span>
                       </div>
                     </div>
 
@@ -742,6 +768,39 @@ export default function PlantDetailPage() {
 
               </CardContent>
             </Card>
+
+            {/* RELATED PLANTS SECTION (New Feature) */}
+            {relatedPlants.length > 0 && (
+              <div className="mt-8 pt-4">
+                <h3 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2">
+                  <Leaf className="h-5 w-5 text-teal-500" /> Tanaman Serupa
+                </h3>
+                <div className="grid sm:grid-cols-3 gap-4">
+                  {relatedPlants.map(related => (
+                    <Link href={`/dashboard/plants/${related.id}`} key={related.id}>
+                      <Card className="border-slate-800 bg-slate-900/60 hover:bg-slate-800/80 hover:border-teal-900/50 transition-all cursor-pointer h-full">
+                        <CardContent className="p-4 flex flex-col h-full">
+                          <div className="aspect-video w-full relative rounded-md overflow-hidden bg-slate-800 mb-3">
+                            {related.image_url ? (
+                              <Image src={related.image_url} alt={related.name} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
+                            ) : (
+                              <div className="flex h-full items-center justify-center text-slate-600">
+                                <Leaf className="h-8 w-8" />
+                              </div>
+                            )}
+                          </div>
+                          <p className="font-bold text-slate-200 text-sm line-clamp-1">{related.name}</p>
+                          <div className="mt-auto pt-2 flex flex-wrap gap-1">
+                             <span className="text-[10px] bg-teal-950/40 text-teal-400 px-2 py-0.5 rounded border border-teal-900/50">{related.plant_type}</span>
+                             <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">{related.placement}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
