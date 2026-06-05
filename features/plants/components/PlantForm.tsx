@@ -26,7 +26,8 @@ const AQUASCAPE_STYLES = ["Nature", "Dutch", "Iwagumi", "Jungle", "Biotope", "Ta
 const RECOMMENDATIONS = [
   "Pemula", "Low Tech", "High Tech", "Shrimp Tank", "Nano Tank", 
   "Dutch Style", "Nature Style", "Betta Tank", "Community Tank", 
-  "Paludarium", "Blackwater"
+  "Paludarium", "Blackwater", "Discus Tank", "Aquascape Contest", 
+  "Breeding Tank", "Low Light Setup", "CO2 Setup"
 ];
 
 export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
@@ -47,7 +48,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   // TRACKING GAMBAR YANG HARUS DIHAPUS DARI STORAGE MENGGUNAKAN useRef
   const imagesToDeleteRef = useRef<string[]>([]);
 
-  // V2: 9 FIELD EXPERT ENGINE (Ubah aquascape_style, tank_size, & recommended_for menjadi Array)
+  // V2: FIELD EXPERT ENGINE (Ubah aquascape_style, tank_size, & recommended_for menjadi Array + co2_mandatory)
   const [formData, setFormData] = useState({
     name: "", scientific_name: "", placement: "Midground", difficulty: "Easy", 
     light_requirement: "Medium", co2_requirement: "Low", fertilizer_requirement: "Medium",
@@ -57,6 +58,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     recommended_for: [] as string[], 
     plant_type: "Stem", beginner_score: "", maintenance_level: "Medium",
     carpet_potential: false, shrimp_safe: true, growth_control: "Moderate",
+    co2_mandatory: false, // FIELD BARU
     aquascape_style: [] as string[], 
     tank_size_recommendation: [] as string[], 
     expert_notes: ""
@@ -75,13 +77,16 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         origin_country: plant.origin_country || "", max_height_cm: plant.max_height_cm != null ? plant.max_height_cm.toString() : "",
         description: plant.description || "", source_name: plant.source_name || "",
         source_url: plant.source_url || "", 
-        recommended_for: plant.recommended_for || [], // Format array
+        recommended_for: plant.recommended_for || [], 
         plant_type: plant.plant_type || "Stem", 
-        aquascape_style: plant.aquascape_style || [], // Format array
+        aquascape_style: plant.aquascape_style || [], 
         beginner_score: plant.beginner_score != null ? plant.beginner_score.toString() : "",
-        maintenance_level: plant.maintenance_level || "Medium", carpet_potential: plant.carpet_potential || false,
-        shrimp_safe: plant.shrimp_safe !== false, growth_control: plant.growth_control || "Moderate",
-        tank_size_recommendation: plant.tank_size_recommendation || [], // Format array
+        maintenance_level: plant.maintenance_level || "Medium", 
+        carpet_potential: plant.carpet_potential || false,
+        shrimp_safe: plant.shrimp_safe !== false, 
+        growth_control: plant.growth_control || "Moderate",
+        co2_mandatory: plant.co2_mandatory || false, // BINDING KE STATE
+        tank_size_recommendation: plant.tank_size_recommendation || [], 
         expert_notes: plant.expert_notes || ""
       });
 
@@ -265,6 +270,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         carpet_potential: formData.carpet_potential,
         shrimp_safe: formData.shrimp_safe,
         growth_control: formData.growth_control,
+        co2_mandatory: formData.co2_mandatory, // PENAMBAHAN PAYLOAD BARU
         tank_size_recommendation: formData.tank_size_recommendation.length > 0 ? formData.tank_size_recommendation : null,
         expert_notes: formData.expert_notes
       };
@@ -486,7 +492,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-400 text-xs uppercase">Injeksi CO2</Label>
+                <Label className="text-slate-400 text-xs uppercase">Level Injeksi CO2</Label>
                 <select name="co2_requirement" value={formData.co2_requirement} onChange={handleChange} className="h-9 w-full rounded border border-slate-700 bg-slate-950 px-2 text-sm text-slate-100 outline-none">
                   <option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option>
                 </select>
@@ -639,7 +645,8 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               </div>
             </div>
 
-            <div className="flex gap-6 mt-4 p-3 bg-slate-950/50 rounded-lg border border-teal-900/30">
+            {/* PERBAIKAN: TAMBAHAN BOOLEAN CO2 MANDATORY DI SAMPING CARPET & SHRIMP */}
+            <div className="flex flex-wrap gap-6 mt-4 p-4 bg-slate-950/50 rounded-lg border border-teal-900/30">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" name="carpet_potential" checked={formData.carpet_potential} onChange={handleChange} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900" />
                 <span className="text-sm font-medium text-slate-300">Potensi Jadi Karpet</span>
@@ -647,6 +654,10 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" name="shrimp_safe" checked={formData.shrimp_safe} onChange={handleChange} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900" />
                 <span className="text-sm font-medium text-slate-300">Aman untuk Udang (Shrimp Safe)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="co2_mandatory" checked={formData.co2_mandatory} onChange={handleChange} className="h-4 w-4 accent-red-600 rounded border-slate-700 bg-slate-900" />
+                <span className="text-sm font-medium text-red-400">Wajib Injeksi CO2 (Mandatory)</span>
               </label>
             </div>
 

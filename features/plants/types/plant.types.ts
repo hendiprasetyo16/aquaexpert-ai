@@ -38,6 +38,7 @@ export interface Plant {
   maintenance_level?: string | null;
   carpet_potential?: boolean | null;
   shrimp_safe?: boolean | null;
+  co2_mandatory?: boolean | null; // <--- FIELD BARU DITAMBAHKAN DI SINI
   growth_control?: string | null;
   tank_size_recommendation?: string[] | null;
   expert_notes?: string | null;
