@@ -255,15 +255,15 @@ export default function PlantDetailPage() {
     return "";
   };
 
-  // DIPERBARUI & FIX BUG: Mengembalikan Objek yang memuat informasi dimensi dan volume
+  // DIPERBARUI: Pastikan format object, kembalikan size_cm dan liter.
   const getTankSizeDetails = (size: string) => {
     const s = size.toLowerCase();
-    if (s === "nano") return { cm: "≤ 40 cm", liter: "10–30 Liter" };
-    if (s === "small") return { cm: "40–60 cm", liter: "30–60 Liter" };
-    if (s === "medium") return { cm: "60–90 cm", liter: "60–150 Liter" };
-    if (s === "large") return { cm: "90–120 cm", liter: "150–300 Liter" };
-    if (s === "xl") return { cm: "> 120 cm", liter: "> 300 Liter" };
-    return { cm: "", liter: "" };
+    if (s.includes("nano")) return { size_cm: "≤ 40 cm", liter: "10–30 Liter" };
+    if (s.includes("small")) return { size_cm: "40–60 cm", liter: "30–60 Liter" };
+    if (s.includes("medium")) return { size_cm: "60–90 cm", liter: "60–150 Liter" };
+    if (s.includes("large")) return { size_cm: "90–120 cm", liter: "150–300 Liter" };
+    if (s.includes("xl") || s.includes("extra")) return { size_cm: "> 120 cm", liter: "> 300 Liter" };
+    return { size_cm: "Bervariasi", liter: "Sesuai kebutuhan" };
   };
 
   const getStyleDesc = (style: string) => {
@@ -313,7 +313,7 @@ export default function PlantDetailPage() {
   const relatedPlants = allPlantsList
     .filter(p => p.id !== plant?.id && p.is_active)
     .filter(p => p.plant_type === plant?.plant_type || p.placement === plant?.placement)
-    .slice(0, 3); // Ambil 3 teratas
+    .slice(0, 3);
 
   if (loading) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-500" /></div>;
   if (!plant) return <div className="text-center mt-20 text-slate-400">Data tanaman tidak ditemukan atau telah dinonaktifkan.</div>;
@@ -487,7 +487,7 @@ export default function PlantDetailPage() {
               </CardContent>
             </Card>
 
-            {/* DIPINDAHKAN: RELATED PLANTS SECTION */}
+            {/* RELATED PLANTS SECTION (Pindah ke bawah Tipe & Kecocokan) */}
             {relatedPlants.length > 0 && (
               <Card className="border-slate-800 bg-slate-900/60 shadow-xl overflow-hidden mt-6">
                 <div className="bg-slate-900/80 px-5 py-3 border-b border-slate-800 flex items-center gap-2">
@@ -535,6 +535,7 @@ export default function PlantDetailPage() {
               </div>
               <CardContent className="p-6 space-y-6">
                 
+                {/* PENJELASAN TIPE TANAMAN */}
                 <div className="bg-slate-900/80 p-5 rounded-xl border border-slate-800 flex items-start gap-4 shadow-sm">
                    <div className="bg-teal-950/40 p-2.5 rounded-md border border-teal-900/50 shrink-0 mt-0.5">
                       <Leaf className="h-6 w-6 text-teal-400" />
@@ -549,6 +550,7 @@ export default function PlantDetailPage() {
                    </div>
                 </div>
 
+                {/* 4 EXPERT BADGES */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col justify-center shadow-sm relative">
                     <p className="text-[11px] uppercase text-slate-500 font-bold mb-2 text-center">Beginner Score</p>
@@ -575,6 +577,7 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
+                {/* SIFAT, STYLE, TANK (Dipisah per baris) */}
                 <div className="grid sm:grid-cols-3 gap-4 border-t border-slate-800 pt-6 mt-6">
                   
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
@@ -605,7 +608,7 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
-                  {/* DIPERBARUI: Struktur TANK SIZE untuk dirender di bawah Teks Besar */}
+                  {/* DIPERBARUI: TANK SIZE DENGAN IKON 📏 & 💧 TERPISAH */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Box className="h-4 w-4 text-orange-500"/>
@@ -617,9 +620,9 @@ export default function PlantDetailPage() {
                           const details = getTankSizeDetails(size);
                           return (
                             <div key={size} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner items-center justify-center">
-                              <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider">{size}</span>
+                              <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider mb-1.5">{size}</span>
                               <div className="flex flex-col items-center gap-0.5 mt-2">
-                                <span className="text-[12px] text-slate-400 font-medium">📏 {details.cm}</span>
+                                <span className="text-[12px] text-slate-400 font-medium">📏 {details.size_cm}</span>
                                 <span className="text-[12px] text-cyan-400 font-medium">💧 {details.liter}</span>
                               </div>
                             </div>
