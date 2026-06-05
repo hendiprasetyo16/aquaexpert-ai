@@ -172,9 +172,9 @@ export default function PlantDetailPage() {
     }
     
     if (type === "co2") {
-      if (l === "low") return "Tanpa tabung CO2";
-      if (l === "medium") return "Disarankan pakai CO2";
-      if (l === "high") return "Wajib injeksi CO2 tinggi";
+      if (l === "low") return "Dapat hidup tanpa injeksi tabung CO2 tambahan.";
+      if (l === "medium") return "Pertumbuhan optimal jika menggunakan injeksi CO2.";
+      if (l === "high") return "Sangat direkomendasikan injeksi CO2 tinggi.";
     }
 
     if (type === "fert") {
@@ -203,13 +203,14 @@ export default function PlantDetailPage() {
     return "";
   };
 
+  // DIPERBARUI: Mengembalikan rentang ukuran langsung dalam kurung
   const getTankSizeDesc = (size: string) => {
     const s = size.toLowerCase();
-    if (s === "nano") return "Lebar ≤ 40 cm";
-    if (s === "small") return "Lebar 40–60 cm";
-    if (s === "medium") return "Lebar 60–90 cm";
-    if (s === "large") return "Lebar 90–120 cm";
-    if (s === "xl") return "Lebar > 120 cm";
+    if (s === "nano") return "(≤ 40 cm)";
+    if (s === "small") return "(40–60 cm)";
+    if (s === "medium") return "(60–90 cm)";
+    if (s === "large") return "(90–120 cm)";
+    if (s === "xl") return "(> 120 cm)";
     return "";
   };
 
@@ -235,25 +236,19 @@ export default function PlantDetailPage() {
     return "Tipe tanaman akuatik standar.";
   };
 
-  // Diperbarui agar selaras dengan tag terbaru
   const getRecommendedDesc = (tag: string) => {
     const t = tag.toLowerCase();
-    if (t.includes("pemula")) return "Aman Untuk Pemula";
-    if (t.includes("low tech")) return "Tanpa Tabung CO2";
-    if (t.includes("high tech")) return "Butuh Tabung CO2 & Cahaya Kuat";
-    if (t.includes("shrimp tank")) return "Aman Untuk Udang Hias";
-    if (t.includes("nano tank")) return "Cocok di Aquarium Mini (≤ 40cm)";
-    if (t.includes("dutch style")) return "Kerapatan Tanaman Tinggi";
-    if (t.includes("nature style")) return "Meniru Alam Liar";
-    if (t.includes("betta tank")) return "Aman Untuk Ikan Cupang";
-    if (t.includes("community tank")) return "Aman Untuk Beragam Ikan";
-    if (t.includes("paludarium")) return "Tumbuh Ekstra Menjalar";
-    if (t.includes("blackwater")) return "Cahaya Redup, Air Asam";
-    if (t.includes("discus tank")) return "Suhu Air Hangat";
-    if (t.includes("aquascape contest")) return "Nilai Estetika Tinggi";
+    if (t.includes("low tech")) return "Tanpa Injeksi CO2";
+    if (t.includes("mid tech")) return "Cahaya & CO2 Sedang";
+    if (t.includes("high tech")) return "Wajib CO2 & Cahaya Terang";
+    if (t.includes("beginner")) return "Aman Untuk Pemula";
     if (t.includes("breeding tank")) return "Tempat Sembunyi Burayak";
-    if (t.includes("low light setup")) return "Minim Cahaya";
-    if (t.includes("co2 setup")) return "Direkomendasikan CO2";
+    if (t.includes("nano tank")) return "Aquarium Mini (≤ 40cm)";
+    if (t.includes("top cover")) return "Peneduh Kolom Air";
+    if (t.includes("pond")) return "Bisa Hidup di Kolam";
+    if (t.includes("foreground")) return "Posisi Depan";
+    if (t.includes("midground")) return "Posisi Tengah";
+    if (t.includes("background")) return "Posisi Belakang";
     return "Cocok untuk setup umum";
   };
 
@@ -461,10 +456,9 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
-                {/* SIFAT, STYLE, TANK (DUA BARIS DENGAN KOTAK TERPISAH) */}
+                {/* SIFAT, STYLE, TANK */}
                 <div className="grid sm:grid-cols-3 gap-4 border-t border-slate-800 pt-6 mt-6">
                   
-                  {/* Sifat Pertumbuhan */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Activity className="h-4 w-4 text-teal-500"/>
@@ -476,7 +470,6 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
-                  {/* Gaya Aquascape */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Target className="h-4 w-4 text-blue-500"/>
@@ -494,7 +487,6 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
-                  {/* Rekomendasi Tank */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Box className="h-4 w-4 text-orange-500"/>
@@ -560,7 +552,7 @@ export default function PlantDetailPage() {
                       </div>
                     </div>
                     
-                    {/* MENAMPILKAN CO2 REQUIREMENT DAN CO2 MANDATORY (Jika ada di database) */}
+                    {/* MENAMPILKAN CO2 REQUIREMENT DAN CO2 MANDATORY */}
                     <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-sm text-center">
                       <div className="flex items-center justify-center gap-2 mb-3">
                         <Wind className="h-4 w-4 text-blue-400" />
@@ -570,7 +562,19 @@ export default function PlantDetailPage() {
                         <span className="text-lg font-black text-slate-200 uppercase tracking-widest">{plant.co2_requirement || "N/A"}</span>
                         <span className="text-[12px] text-blue-400/80 font-medium mt-0.5">({getIndoLevelCore(plant.co2_requirement)})</span>
                       </div>
-                      {/* PENYESUAIAN PADA BAGIAN INI JIKA ADA FLAG MANDATORY ATAU DESKRIPSI LEBIH RINCI */}
+
+                      {/* BADGE CO2 MANDATORY */}
+                      {plant.co2_mandatory === true && (
+                        <div className="mt-2.5 rounded-md bg-red-950/40 border border-red-900/50 px-2 py-1.5 text-[11px] font-bold text-red-400">
+                          🔴 WAJIB CO2
+                        </div>
+                      )}
+                      {plant.co2_mandatory === false && (
+                        <div className="mt-2.5 rounded-md bg-green-950/40 border border-green-900/50 px-2 py-1.5 text-[11px] font-bold text-green-400">
+                          🟢 CO2 OPSIONAL
+                        </div>
+                      )}
+
                       <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight flex items-center justify-center h-full">
                         💡 {getIndoLevelDetail(plant.co2_requirement, "co2")}
                       </div>
@@ -660,7 +664,6 @@ export default function PlantDetailPage() {
 
                   </div>
                   
-                  {/* SUMBER REFERENSI YANG LEBIH MENONJOL (CARD TERSENDIRI) */}
                   <div className="mt-8 border-t border-slate-800 pt-6">
                     <div className="bg-slate-950/50 p-5 rounded-xl border border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
