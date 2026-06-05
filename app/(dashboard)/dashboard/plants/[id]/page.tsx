@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getPlantById } from "@/features/plants/repositories/plant.repository";
+import { getPlantById, getPlants } from "@/features/plants/repositories/plant.repository";
 import { Plant } from "@/features/plants/types/plant.types";
 import { useAuth } from "@/hooks/useAuth";
 import Image from "next/image";
 
 import { 
-  Loader2, ArrowLeft, Leaf, Edit, Droplets, Wind, Sun, 
+  Loader2, ArrowLeft, ArrowRight, Leaf, Edit, Droplets, Wind, Sun, 
   Thermometer, FlaskConical, MapPin, Ruler, CheckCircle2, Maximize2, X, Info, ImageIcon,
   ChevronLeft, ChevronRight, Brain, ShieldCheck, Scissors, Activity, Target, Box
 } from "lucide-react";
@@ -24,6 +24,10 @@ export default function PlantDetailPage() {
   const [plant, setPlant] = useState<Plant | null>(null);
   const [loading, setLoading] = useState(true);
   
+  // --- NAVIGATION STATE FOR NEXT/PREV PLANT ---
+  const [prevPlantId, setPrevPlantId] = useState<string | null>(null);
+  const [nextPlantId, setNextPlantId] = useState<string | null>(null);
+
   // --- STATE MODAL LIGHTBOX & NAVIGATION ---
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const allImages = [plant?.image_url, ...(plant?.gallery_urls || [])].filter(Boolean) as string[];
@@ -43,8 +47,20 @@ export default function PlantDetailPage() {
     async function loadData() {
       try {
         if (params.id) {
-          const data = await getPlantById(params.id as string);
-          setPlant(data);
+          const [plantData, allPlants] = await Promise.all([
+            getPlantById(params.id as string),
+            getPlants() // Tarik semua tanaman untuk navigasi
+          ]);
+          setPlant(plantData);
+
+          // Logika untuk menemukan id Next dan Prev
+          if (allPlants && allPlants.length > 0) {
+            const currentIndex = allPlants.findIndex(p => p.id === params.id);
+            if (currentIndex !== -1) {
+              setPrevPlantId(currentIndex > 0 ? allPlants[currentIndex - 1].id : null);
+              setNextPlantId(currentIndex < allPlants.length - 1 ? allPlants[currentIndex + 1].id : null);
+            }
+          }
         }
       } catch (error) {
         console.error(error);
@@ -192,7 +208,6 @@ export default function PlantDetailPage() {
     return "Tipe tanaman akuatik standar.";
   };
 
-  // HELPER TRANSLASI UNTUK TAG KECOCOKAN EKOSISTEM
   const getRecommendedDesc = (tag: string) => {
     const t = tag.toLowerCase();
     if (t.includes("low tech")) return "Tanpa Injeksi CO2";
@@ -215,15 +230,40 @@ export default function PlantDetailPage() {
   return (
     <>
       <div className="max-w-6xl space-y-6 pb-10">
-        {/* HEADER TOOLBAR */}
-        <div className="flex items-center justify-between">
-          <Button variant="outline" onClick={() => router.back()} className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white active:scale-95 transition-all">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
-          </Button>
+        
+        {/* HEADER TOOLBAR DENGAN FITUR NEXT & PREVIOUS */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={() => router.push("/dashboard/plants")} className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white active:scale-95 transition-all">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
+            </Button>
+            
+            {/* Tombol Navigasi Plant */}
+            <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden">
+              <Button 
+                variant="ghost" 
+                disabled={!prevPlantId}
+                onClick={() => prevPlantId && router.push(`/dashboard/plants/${prevPlantId}`)}
+                className="rounded-none border-r border-slate-700 hover:bg-teal-900/40 hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent"
+                title="Tanaman Sebelumnya"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                disabled={!nextPlantId}
+                onClick={() => nextPlantId && router.push(`/dashboard/plants/${nextPlantId}`)}
+                className="rounded-none hover:bg-teal-900/40 hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent"
+                title="Tanaman Berikutnya"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
           
           {role !== "user" && (
-            <Link href={`/dashboard/plants/${plant.id}/edit`}>
-              <Button className="bg-teal-600 hover:bg-teal-500 text-white shadow-lg active:scale-95 transition-all">
+            <Link href={`/dashboard/plants/${plant.id}/edit`} className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 text-white shadow-lg active:scale-95 transition-all">
                 <Edit className="mr-2 h-4 w-4" /> Edit Tanaman
               </Button>
             </Link>
@@ -306,7 +346,7 @@ export default function PlantDetailPage() {
 
                 </div>
                 
-                {/* TAGS KECOCOKAN DENGAN KETERANGAN DI BAWAHNYA */}
+                {/* TAGS KECOCOKAN */}
                 {plant.recommended_for && plant.recommended_for.length > 0 && (
                   <div className="mt-8 border-t border-slate-800 pt-5">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Kecocokan Ekosistem</p>
@@ -379,10 +419,9 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
-                {/* SIFAT, STYLE, TANK (DUA BARIS DENGAN KOTAK TERPISAH) */}
+                {/* SIFAT, STYLE, TANK */}
                 <div className="grid sm:grid-cols-3 gap-4 border-t border-slate-800 pt-6 mt-6">
                   
-                  {/* Sifat Pertumbuhan */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Activity className="h-4 w-4 text-teal-500"/>
@@ -394,7 +433,6 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
-                  {/* Gaya Aquascape */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Target className="h-4 w-4 text-blue-500"/>
@@ -412,7 +450,6 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
-                  {/* Rekomendasi Tank */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Box className="h-4 w-4 text-orange-500"/>
@@ -449,7 +486,6 @@ export default function PlantDetailPage() {
             <Card className="border-slate-800 bg-slate-900/60 shadow-xl h-fit">
               <CardContent className="p-8 space-y-10">
                 
-                {/* ENSIKLOPEDIA BOTANI */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
                     <Info className="h-5 w-5 text-teal-500" /> Ensiklopedia Karakteristik
@@ -459,7 +495,7 @@ export default function PlantDetailPage() {
                   </p>
                 </div>
 
-                {/* PARAMETER AIR (DUA BARIS: DB VALUE & INDO) */}
+                {/* PARAMETER AIR */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Kebutuhan Lingkungan Optimal</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
