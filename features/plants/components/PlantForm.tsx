@@ -21,7 +21,7 @@ interface PlantFormProps {
 }
 
 // Opsi statis untuk Checkbox
-const TANK_SIZES = ["Nano (≤40cm)", "Medium (60-90cm)", "Large (>120cm)", "Extra Large"];
+const TANK_SIZES = ["Nano (≤40cm)", "Small (45-60cm)", "Medium (60-90cm)", "Large (90-120cm)", "Extra Large (>120cm)"];
 const AQUASCAPE_STYLES = ["Nature", "Dutch", "Iwagumi", "Jungle", "Biotope", "Taiwan"];
 
 export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
@@ -558,9 +558,16 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               <div className="space-y-2">
                 <Label className="text-slate-300">Tipe Tanaman (Plant Type)</Label>
                 <select name="plant_type" value={formData.plant_type} onChange={handleChange} className="h-10 w-full rounded-md border border-teal-800/50 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
-                  <option value="Stem">Stem (Batang)</option><option value="Rhizome">Rhizome (Rimpang)</option><option value="Runner">Runner (Menjalar)</option>
-                  <option value="Rosette">Rosette (Roset)</option><option value="Epiphyte">Epiphyte (Menempel)</option><option value="Moss">Moss (Lumut)</option>
-                  <option value="Floating">Floating (Apung)</option><option value="Bulb">Bulb (Umbi)</option><option value="Carpet">Carpet (Karpet)</option>
+                  <option value="Stem">Stem (Batang)</option>
+                  <option value="Rhizome">Rhizome (Rimpang)</option>
+                  <option value="Runner">Runner (Menjalar)</option>
+                  <option value="Rosette">Rosette (Roset)</option>
+                  <option value="Epiphyte">Epiphyte (Menempel)</option>
+                  <option value="Moss">Moss (Lumut)</option>
+                  <option value="Floating">Floating (Apung)</option>
+                  <option value="Bulb">Bulb (Umbi)</option>
+                  <option value="Carpet">Carpet (Karpet)</option>
+                  <option value="Crypt">Crypt (Cryptocoryne)</option>
                 </select>
               </div>
 
