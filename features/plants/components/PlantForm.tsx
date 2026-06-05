@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client"; 
 import { deletePlant, uploadPlantImage, removePlantImage } from "../repositories/plant.repository";
@@ -34,8 +35,8 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   const [existingGallery, setExistingGallery] = useState<string[]>([]);
   const [newGallery, setNewGallery] = useState<{file: File, preview: string}[]>([]);
   
-  // TRACKING GAMBAR YANG HARUS DIHAPUS DARI STORAGE
-  const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
+  // TRACKING GAMBAR YANG HARUS DIHAPUS DARI STORAGE MENGGUNAKAN useRef
+  const imagesToDeleteRef = useRef<string[]>([]);
 
   // V2: 9 FIELD EXPERT ENGINE
   const [formData, setFormData] = useState({
@@ -101,9 +102,13 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       setCoverFile(file);
       setCoverPreview(URL.createObjectURL(file));
 
-      // Jika sebelumnya ada cover lama dari DB, masukkan ke daftar hapus
-      if (mode === "edit" && plant?.image_url && !imagesToDelete.includes(plant.image_url)) {
-        setImagesToDelete(prev => [...prev, plant.image_url!]);
+      // Jika sebelumnya ada cover lama dari DB, masukkan ke daftar hapus via useRef
+      if (
+        mode === "edit" &&
+        plant?.image_url &&
+        !imagesToDeleteRef.current.includes(plant.image_url)
+      ) {
+        imagesToDeleteRef.current.push(plant.image_url);
       }
     }
   }
@@ -136,7 +141,12 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
   function removeExistingGallery(index: number) {
     const urlToRemove = existingGallery[index];
-    setImagesToDelete(prev => [...prev, urlToRemove]);
+    
+    // Gunakan useRef untuk melacak file yang dihapus
+    if (!imagesToDeleteRef.current.includes(urlToRemove)) {
+      imagesToDeleteRef.current.push(urlToRemove);
+    }
+
     setExistingGallery(prev => prev.filter((_, i) => i !== index));
   }
 
@@ -173,7 +183,18 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       let finalCoverUrl = mode === "edit" ? (plant?.image_url || "") : "";
       let finalGalleryUrls = [...existingGallery];
 
-      const plantSlug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      // Fix Slug agar tidak buat folder baru jika direname saat mode edit
+      const plantSlug =
+        mode === "edit"
+          ? plant?.slug ||
+            cleanName
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/(^-|-$)/g, "")
+          : cleanName
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/(^-|-$)/g, "");
 
       // 1. UPLOAD COVER BARU
       if (coverFile) {
@@ -236,9 +257,16 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       }
 
       // 4. CLEANUP STORAGE: Eksekusi hapus file lama HANYA JIKA save DB sukses
-      for (const urlToDelete of imagesToDelete) {
-        await removePlantImage(urlToDelete);
+      for (const urlToDelete of imagesToDeleteRef.current) {
+        try {
+          await removePlantImage(urlToDelete);
+        } catch (err) {
+          console.error("Gagal menghapus file lama:", urlToDelete, err);
+        }
       }
+      
+      // Reset ref setelah cleanup
+      imagesToDeleteRef.current = [];
 
       router.push("/dashboard/plants");
       router.refresh();
@@ -322,7 +350,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                   <div className="overflow-hidden rounded-lg border-2 border-dashed border-slate-700 hover:border-teal-500 transition-all group">
                     {coverPreview ? (
                       <div className="relative h-48 w-full">
-                        <img src={coverPreview} alt="Cover Preview" className="h-full w-full object-cover" />
+                        <Image src={coverPreview} alt="Cover Preview" fill className="object-cover" unoptimized />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <span className="text-white text-sm font-medium">Ganti Cover</span>
                         </div>
@@ -360,9 +388,9 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                     {/* Render Existing */}
                     {existingGallery.map((url, index) => (
                       <div key={`exist-${index}`} className="relative aspect-square rounded-md overflow-hidden border border-slate-700 group">
-                        <img src={url} alt={`Gallery DB ${index+1}`} className="h-full w-full object-cover opacity-80" />
-                        <div className="absolute bottom-0 inset-x-0 bg-black/60 text-[9px] text-center text-slate-300 py-0.5">Tersimpan</div>
-                        <button type="button" onClick={() => removeExistingGallery(index)} className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Image src={url} alt={`Gallery DB ${index+1}`} fill className="object-cover opacity-80" unoptimized />
+                        <div className="absolute bottom-0 inset-x-0 bg-black/60 text-[9px] text-center text-slate-300 py-0.5 z-10">Tersimpan</div>
+                        <button type="button" onClick={() => removeExistingGallery(index)} className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                           <X className="h-3 w-3" />
                         </button>
                       </div>
@@ -370,9 +398,9 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                     {/* Render New */}
                     {newGallery.map((item, index) => (
                       <div key={`new-${index}`} className="relative aspect-square rounded-md overflow-hidden border border-teal-700 group">
-                        <img src={item.preview} alt={`Gallery Baru ${index+1}`} className="h-full w-full object-cover" />
-                        <div className="absolute bottom-0 inset-x-0 bg-teal-600/80 text-[9px] text-center text-white py-0.5 font-bold">Baru</div>
-                        <button type="button" onClick={() => removeNewGallery(index)} className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Image src={item.preview} alt={`Gallery Baru ${index+1}`} fill className="object-cover" unoptimized />
+                        <div className="absolute bottom-0 inset-x-0 bg-teal-600/80 text-[9px] text-center text-white py-0.5 font-bold z-10">Baru</div>
+                        <button type="button" onClick={() => removeNewGallery(index)} className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                           <X className="h-3 w-3" />
                         </button>
                       </div>
@@ -405,7 +433,20 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
             <div className="space-y-2">
               <Label className="text-slate-300">Posisi Penanaman</Label>
               <select name="placement" value={formData.placement} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
-                <option value="Foreground">Foreground</option><option value="Midground">Midground</option><option value="Background">Background</option><option value="Epiphyte">Epiphyte</option><option value="Floating">Floating</option>
+                <option value="Foreground">Foreground</option>
+                <option value="Midground">Midground</option>
+                <option value="Background">Background</option>
+                <option value="Floating">Floating</option>
+              </select>
+            </div>
+            
+            {/* PENAMBAHAN MAINTENANCE LEVEL */}
+            <div className="space-y-2">
+              <Label className="text-slate-300">Tingkat Perawatan (Maintenance)</Label>
+              <select name="maintenance_level" value={formData.maintenance_level} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
+                <option value="Low">Low (Jarang Trimming/Perawatan)</option>
+                <option value="Medium">Medium (Perawatan Rutin)</option>
+                <option value="High">High (Sering Trimming/Replant)</option>
               </select>
             </div>
           </div>
@@ -524,9 +565,11 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                 <Label className="text-slate-300">Gaya Aquascape (Pisahkan koma)</Label>
                 <Input name="aquascape_style" placeholder="Dutch, Iwagumi, Nature..." value={formData.aquascape_style} onChange={handleChange} className="bg-slate-950 border-teal-800/50 text-slate-100 focus:border-teal-500" />
               </div>
+              
+              {/* PERBAIKAN PLACEHOLDER TANK SIZE */}
               <div className="space-y-2">
-                <Label className="text-slate-300">Rekomendasi Ukuran Tank (Pisahkan koma)</Label>
-                <Input name="tank_size_recommendation" placeholder="Nano, Medium, Large" value={formData.tank_size_recommendation} onChange={handleChange} className="bg-slate-950 border-teal-800/50 text-slate-100 focus:border-teal-500" />
+                <Label className="text-slate-300">Rekomendasi Ukuran Tank</Label>
+                <Input name="tank_size_recommendation" placeholder="Nano (≤40cm), Medium (60-90cm), Large (>120cm)" value={formData.tank_size_recommendation} onChange={handleChange} className="bg-slate-950 border-teal-800/50 text-slate-100 focus:border-teal-500" />
               </div>
             </div>
 
