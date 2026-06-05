@@ -192,6 +192,20 @@ export default function PlantDetailPage() {
     return "Tipe tanaman akuatik standar.";
   };
 
+  // HELPER BARU: Terjemahan Khusus untuk Tag Rekomendasi
+  const getRecommendedDesc = (tag: string) => {
+    const t = tag.toLowerCase();
+    if (t.includes("low tech")) return "(Tanpa Injeksi CO2)";
+    if (t.includes("mid tech")) return "(Cahaya & CO2 Sedang)";
+    if (t.includes("high tech")) return "(Wajib CO2 & Lampu Terang)";
+    if (t.includes("beginner")) return "(Cocok Untuk Pemula)";
+    if (t.includes("breeding")) return "(Tempat Sembunyi Burayak)";
+    if (t.includes("foreground")) return "(Ditanam di Depan)";
+    if (t.includes("midground")) return "(Ditanam di Tengah)";
+    if (t.includes("background")) return "(Ditanam di Belakang)";
+    return "";
+  };
+
   if (loading) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-500" /></div>;
   if (!plant) return <div className="text-center mt-20 text-slate-400">Data tanaman tidak ditemukan atau telah dinonaktifkan.</div>;
 
@@ -249,59 +263,59 @@ export default function PlantDetailPage() {
                 </div>
               )}
 
+              {/* IDENTITAS UTAMA */}
               <CardContent className="p-6 text-center border-t border-slate-800">
                 <h1 className="text-3xl font-extrabold text-teal-400 tracking-tight">{plant.name}</h1>
                 <p className="italic text-slate-400 mt-1 font-serif">{plant.scientific_name || "Scientific name unknown"}</p>
                 
-                <div className="mt-6 flex flex-col items-center justify-center gap-4">
+                <div className="mt-6 flex flex-col items-center justify-center gap-3">
                   
                   {/* TIPE */}
-                  <span className="px-5 py-2 rounded-lg text-sm font-black uppercase tracking-widest bg-teal-950/40 text-teal-400 border border-teal-900/50 w-full sm:w-auto text-center shadow-sm">
-                    {plant.plant_type || "N/A"}
+                  <span className="px-4 py-2 rounded-lg text-sm font-black uppercase tracking-widest bg-teal-950/40 text-teal-400 border border-teal-900/50 w-full sm:w-auto">
+                    Tipe: {plant.plant_type || "N/A"}
                   </span>
 
-                  <div className="flex flex-row gap-4 w-full sm:w-auto justify-center">
+                  <div className="flex flex-row gap-3 w-full sm:w-auto justify-center">
                     {/* KESULITAN */}
-                    <div className={`flex flex-col items-center justify-center w-[130px] px-3 py-2 rounded-lg border shadow-sm ${
+                    <div className={`flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg border ${
                       plant.difficulty?.toLowerCase() === 'easy' ? 'bg-green-950/20 border-green-900/50' :
                       plant.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-950/20 border-yellow-900/50' :
                       plant.difficulty?.toLowerCase() === 'hard' ? 'bg-red-950/20 border-red-900/50' :
                       'bg-slate-800 border-slate-700'
                     }`}>
-                      <span className={`text-base font-black uppercase tracking-widest ${
+                      <span className={`text-sm font-black uppercase tracking-widest ${
                         plant.difficulty?.toLowerCase() === 'easy' ? 'text-green-400' :
                         plant.difficulty?.toLowerCase() === 'medium' ? 'text-yellow-400' :
                         plant.difficulty?.toLowerCase() === 'hard' ? 'text-red-400' : 'text-slate-300'
                       }`}>
                         {plant.difficulty || "Unknown"}
                       </span>
-                      <span className="text-[12px] text-slate-400 mt-1 text-center font-medium leading-tight">
-                        {getIndoLevelDesc(plant.difficulty)}
-                      </span>
+                      <span className="text-[11px] text-slate-400 mt-0.5">{getIndoLevelDesc(plant.difficulty)}</span>
                     </div>
                     
                     {/* PENEMPATAN */}
-                    <div className="flex flex-col items-center justify-center w-[130px] px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700 shadow-sm">
-                      <span className="text-base font-black uppercase tracking-widest text-slate-200">
+                    <div className="flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg bg-slate-800/50 border border-slate-700">
+                      <span className="text-sm font-black uppercase tracking-widest text-slate-200">
                         {plant.placement || "Unknown"}
                       </span>
-                      <span className="text-[12px] text-slate-400 mt-1 text-center font-medium leading-tight">
-                        {getPlacementDesc(plant.placement)}
-                      </span>
+                      <span className="text-[11px] text-slate-400 mt-0.5">{getPlacementDesc(plant.placement)}</span>
                     </div>
                   </div>
 
                 </div>
                 
-                {/* TAGS KECOCOKAN (Termasuk "Mid Tech" dll) */}
+                {/* TAGS KECOCOKAN DENGAN KETERANGAN */}
                 {plant.recommended_for && plant.recommended_for.length > 0 && (
                   <div className="mt-8 border-t border-slate-800 pt-5">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Kecocokan Ekosistem</p>
-                    <div className="flex flex-wrap justify-center gap-2">
+                    <div className="flex flex-col gap-2">
                       {plant.recommended_for.map(tag => (
-                        <span key={tag} className="flex items-center gap-1.5 rounded-md bg-slate-800/80 px-3 py-1.5 text-[13px] font-medium text-slate-300 border border-slate-700 shadow-sm">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-teal-500" /> {tag}
-                        </span>
+                        <div key={tag} className="flex flex-col bg-slate-800/80 px-3 py-2 rounded-md border border-slate-700 shadow-sm text-center">
+                          <span className="flex items-center justify-center gap-1.5 text-[13px] font-bold text-slate-200 uppercase tracking-widest">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-teal-500" /> {tag}
+                          </span>
+                          <span className="text-[11px] text-slate-400 mt-1">{getRecommendedDesc(tag)}</span>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -372,7 +386,7 @@ export default function PlantDetailPage() {
                       <Activity className="h-4 w-4 text-teal-500"/>
                       <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">Sifat Rambat</p>
                     </div>
-                    <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 flex flex-col flex-1 justify-center shadow-inner">
+                    <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 flex flex-col flex-1 justify-center shadow-inner text-center">
                       <span className="text-base font-black text-slate-100 uppercase tracking-wider mb-1.5">{plant.growth_control || "N/A"}</span>
                       <span className="text-[12px] text-slate-400 leading-snug">{getGrowthDesc(plant.growth_control)}</span>
                     </div>
@@ -384,7 +398,7 @@ export default function PlantDetailPage() {
                       <Target className="h-4 w-4 text-blue-500"/>
                       <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">Gaya Aquascape</p>
                     </div>
-                    <div className="flex flex-col gap-3 flex-1 justify-start">
+                    <div className="flex flex-col gap-3 flex-1 justify-start text-center">
                       {plant.aquascape_style && plant.aquascape_style.length > 0 ? (
                         plant.aquascape_style.map(style => (
                           <div key={style} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner">
@@ -402,7 +416,7 @@ export default function PlantDetailPage() {
                       <Box className="h-4 w-4 text-orange-500"/>
                       <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">Ukuran Aquarium</p>
                     </div>
-                    <div className="flex flex-col gap-3 flex-1 justify-start">
+                    <div className="flex flex-col gap-3 flex-1 justify-start text-center">
                       {plant.tank_size_recommendation && plant.tank_size_recommendation.length > 0 ? (
                         plant.tank_size_recommendation.map(size => (
                           <div key={size} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner">
@@ -443,7 +457,7 @@ export default function PlantDetailPage() {
                   </p>
                 </div>
 
-                {/* PARAMETER AIR */}
+                {/* PARAMETER AIR (DUA BARIS: DB VALUE & INDO) */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Kebutuhan Lingkungan Optimal</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
