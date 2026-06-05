@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Image from "next/image";
 
 import { 
-  Loader2, ArrowLeft, ArrowRight, Leaf, Edit, Droplets, Wind, Sun, 
+  Loader2, ArrowLeft, Leaf, Edit, Droplets, Wind, Sun, 
   Thermometer, FlaskConical, MapPin, Ruler, CheckCircle2, Maximize2, X, Info, ImageIcon,
   ChevronLeft, ChevronRight, Brain, ShieldCheck, Scissors, Activity, Target, Box
 } from "lucide-react";
@@ -27,6 +27,8 @@ export default function PlantDetailPage() {
   // --- NAVIGATION STATE FOR NEXT/PREV PLANT ---
   const [prevPlantId, setPrevPlantId] = useState<string | null>(null);
   const [nextPlantId, setNextPlantId] = useState<string | null>(null);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [totalPlants, setTotalPlants] = useState<number>(0);
 
   // --- STATE MODAL LIGHTBOX & NAVIGATION ---
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -55,10 +57,12 @@ export default function PlantDetailPage() {
 
           // Logika untuk menemukan id Next dan Prev
           if (allPlants && allPlants.length > 0) {
-            const currentIndex = allPlants.findIndex(p => p.id === params.id);
-            if (currentIndex !== -1) {
-              setPrevPlantId(currentIndex > 0 ? allPlants[currentIndex - 1].id : null);
-              setNextPlantId(currentIndex < allPlants.length - 1 ? allPlants[currentIndex + 1].id : null);
+            setTotalPlants(allPlants.length);
+            const index = allPlants.findIndex(p => p.id === params.id);
+            if (index !== -1) {
+              setCurrentIndex(index + 1);
+              setPrevPlantId(index > 0 ? allPlants[index - 1].id : null);
+              setNextPlantId(index < allPlants.length - 1 ? allPlants[index + 1].id : null);
             }
           }
         }
@@ -147,9 +151,17 @@ export default function PlantDetailPage() {
     );
   };
 
-  const getIndoLevelDesc = (level: string | null | undefined) => {
+  const getIndoLevelDesc = (level: string | null | undefined, type: "light" | "general" = "general") => {
     if (!level) return "";
     const l = level.toLowerCase();
+    
+    // Penanganan khusus untuk cahaya agar lebih informatif
+    if (type === "light") {
+      if (l === "low") return "Lampu menyala 6-7 Jam";
+      if (l === "medium") return "Lampu menyala 7-8 Jam";
+      if (l === "high") return "Lampu menyala 8-10 Jam";
+    }
+
     if (l === "low" || l === "easy") return "Rendah / Mudah";
     if (l === "medium" || l === "moderate") return "Sedang / Wajar";
     if (l === "high" || l === "hard" || l === "aggressive" || l === "fast") return "Tinggi / Ekstrem";
@@ -231,34 +243,43 @@ export default function PlantDetailPage() {
     <>
       <div className="max-w-6xl space-y-6 pb-10">
         
-        {/* HEADER TOOLBAR DENGAN FITUR NEXT & PREVIOUS */}
+        {/* HEADER TOOLBAR DENGAN FITUR NEXT & PREVIOUS & INFO INDEX */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button variant="outline" onClick={() => router.push("/dashboard/plants")} className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white active:scale-95 transition-all">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
-            </Button>
-            
-            {/* Tombol Navigasi Plant */}
-            <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden">
-              <Button 
-                variant="ghost" 
-                disabled={!prevPlantId}
-                onClick={() => prevPlantId && router.push(`/dashboard/plants/${prevPlantId}`)}
-                className="rounded-none border-r border-slate-700 hover:bg-teal-900/40 hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent"
-                title="Tanaman Sebelumnya"
-              >
-                <ChevronLeft className="h-5 w-5" />
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button variant="outline" onClick={() => router.push("/dashboard/plants")} className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white active:scale-95 transition-all">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
               </Button>
-              <Button 
-                variant="ghost" 
-                disabled={!nextPlantId}
-                onClick={() => nextPlantId && router.push(`/dashboard/plants/${nextPlantId}`)}
-                className="rounded-none hover:bg-teal-900/40 hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent"
-                title="Tanaman Berikutnya"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
+              
+              {/* Tombol Navigasi Plant */}
+              <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden">
+                <Button 
+                  variant="ghost" 
+                  disabled={!prevPlantId}
+                  onClick={() => prevPlantId && router.push(`/dashboard/plants/${prevPlantId}`)}
+                  className="rounded-none border-r border-slate-700 hover:bg-teal-900/40 hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent"
+                  title="Tanaman Sebelumnya"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  disabled={!nextPlantId}
+                  onClick={() => nextPlantId && router.push(`/dashboard/plants/${nextPlantId}`)}
+                  className="rounded-none hover:bg-teal-900/40 hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent"
+                  title="Tanaman Berikutnya"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
+            
+            {/* Indikator Urutan Tanaman */}
+            {totalPlants > 0 && (
+              <span className="text-xs font-medium text-slate-400 bg-slate-800/50 px-3 py-1.5 rounded-md border border-slate-700/50 w-full sm:w-auto text-center">
+                Tanaman <strong className="text-slate-200">{currentIndex}</strong> dari <strong className="text-slate-200">{totalPlants}</strong>
+              </span>
+            )}
           </div>
           
           {role !== "user" && (
@@ -346,7 +367,7 @@ export default function PlantDetailPage() {
 
                 </div>
                 
-                {/* TAGS KECOCOKAN */}
+                {/* TAGS KECOCOKAN DENGAN KETERANGAN DI BAWAHNYA */}
                 {plant.recommended_for && plant.recommended_for.length > 0 && (
                   <div className="mt-8 border-t border-slate-800 pt-5">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Kecocokan Ekosistem</p>
@@ -419,9 +440,10 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
-                {/* SIFAT, STYLE, TANK */}
+                {/* SIFAT, STYLE, TANK (DUA BARIS DENGAN KOTAK TERPISAH) */}
                 <div className="grid sm:grid-cols-3 gap-4 border-t border-slate-800 pt-6 mt-6">
                   
+                  {/* Sifat Pertumbuhan */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Activity className="h-4 w-4 text-teal-500"/>
@@ -433,6 +455,7 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
+                  {/* Gaya Aquascape */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Target className="h-4 w-4 text-blue-500"/>
@@ -450,6 +473,7 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
+                  {/* Rekomendasi Tank */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Box className="h-4 w-4 text-orange-500"/>
@@ -486,6 +510,7 @@ export default function PlantDetailPage() {
             <Card className="border-slate-800 bg-slate-900/60 shadow-xl h-fit">
               <CardContent className="p-8 space-y-10">
                 
+                {/* ENSIKLOPEDIA BOTANI */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
                     <Info className="h-5 w-5 text-teal-500" /> Ensiklopedia Karakteristik
@@ -495,7 +520,7 @@ export default function PlantDetailPage() {
                   </p>
                 </div>
 
-                {/* PARAMETER AIR */}
+                {/* PARAMETER AIR (DUA BARIS: DB VALUE & INDO) */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Kebutuhan Lingkungan Optimal</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -506,7 +531,8 @@ export default function PlantDetailPage() {
                         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Cahaya</span>
                       </div>
                       <span className="text-lg font-black text-slate-200 uppercase tracking-widest">{plant.light_requirement || "N/A"}</span>
-                      <span className="text-[12px] text-slate-400 mt-1 font-medium">{getIndoLevelDesc(plant.light_requirement)}</span>
+                      {/* PENAMBAHAN KETERANGAN DURASI LAMPU MENYALA */}
+                      <span className="text-[12px] text-slate-400 mt-1 font-medium">{getIndoLevelDesc(plant.light_requirement, "light")}</span>
                     </div>
                     
                     <div className="flex flex-col bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm text-center">
