@@ -23,6 +23,7 @@ interface PlantFormProps {
 // Opsi statis untuk Checkbox
 const TANK_SIZES = ["Nano (≤40cm)", "Small (45-60cm)", "Medium (60-90cm)", "Large (90-120cm)", "Extra Large (>120cm)"];
 const AQUASCAPE_STYLES = ["Nature", "Dutch", "Iwagumi", "Jungle", "Biotope", "Taiwan"];
+const RECOMMENDATIONS = ["Pemula", "Low Tech", "High Tech", "Shrimp Tank", "Nano Tank", "Dutch Style", "Nature Style"];
 
 export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   const router = useRouter();
@@ -42,13 +43,14 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   // TRACKING GAMBAR YANG HARUS DIHAPUS DARI STORAGE MENGGUNAKAN useRef
   const imagesToDeleteRef = useRef<string[]>([]);
 
-  // V2: 9 FIELD EXPERT ENGINE (Ubah aquascape_style & tank_size menjadi Array)
+  // V2: 9 FIELD EXPERT ENGINE (Ubah aquascape_style, tank_size, & recommended_for menjadi Array)
   const [formData, setFormData] = useState({
     name: "", scientific_name: "", placement: "Midground", difficulty: "Easy", 
     light_requirement: "Medium", co2_requirement: "Low", fertilizer_requirement: "Medium",
     growth_rate: "Medium", temperature_min: "", temperature_max: "", ph_min: "", ph_max: "",
     origin_country: "", max_height_cm: "", description: "", source_name: "Tropica", 
-    source_url: "https://tropica.com", recommended_for: "", 
+    source_url: "", 
+    recommended_for: [] as string[], 
     plant_type: "Stem", beginner_score: "", maintenance_level: "Medium",
     carpet_potential: false, shrimp_safe: true, growth_control: "Moderate",
     aquascape_style: [] as string[], 
@@ -68,7 +70,8 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         ph_min: plant.ph_min != null ? plant.ph_min.toString() : "", ph_max: plant.ph_max != null ? plant.ph_max.toString() : "",
         origin_country: plant.origin_country || "", max_height_cm: plant.max_height_cm != null ? plant.max_height_cm.toString() : "",
         description: plant.description || "", source_name: plant.source_name || "",
-        source_url: plant.source_url || "", recommended_for: plant.recommended_for?.join(", ") || "", 
+        source_url: plant.source_url || "", 
+        recommended_for: plant.recommended_for || [], // Format array
         plant_type: plant.plant_type || "Stem", 
         aquascape_style: plant.aquascape_style || [], // Format array
         beginner_score: plant.beginner_score != null ? plant.beginner_score.toString() : "",
@@ -93,8 +96,8 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     }
   }
 
-  // KHUSUS UNTUK CHECKBOX ARRAY (Aquascape Style & Tank Size)
-  function handleArrayCheckboxChange(e: React.ChangeEvent<HTMLInputElement>, field: "aquascape_style" | "tank_size_recommendation") {
+  // KHUSUS UNTUK CHECKBOX ARRAY
+  function handleArrayCheckboxChange(e: React.ChangeEvent<HTMLInputElement>, field: "aquascape_style" | "tank_size_recommendation" | "recommended_for") {
     const { value, checked } = e.target;
     setFormData(prev => {
       const currentArray = prev[field];
@@ -230,8 +233,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
          uploadedImagesToRollback.push(gUrl); // Catat untuk potensi rollback
       }
 
-      const payloadArrayRecommended = formData.recommended_for.split(",").map((item) => item.trim()).filter(Boolean);
-
       const payload: Partial<Plant> = {
         name: cleanName,
         scientific_name: formData.scientific_name,
@@ -250,7 +251,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         description: formData.description,
         source_name: formData.source_name,
         source_url: formData.source_url,
-        recommended_for: payloadArrayRecommended.length > 0 ? payloadArrayRecommended : null,
+        recommended_for: formData.recommended_for.length > 0 ? formData.recommended_for : null,
         image_url: finalCoverUrl,
         gallery_urls: finalGalleryUrls,
         plant_type: formData.plant_type,
@@ -534,7 +535,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">Tinggi Max (cm)</Label>
                 <Input type="number" name="max_height_cm" value={formData.max_height_cm} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
@@ -545,7 +546,12 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">Sumber Data (Kredit)</Label>
-                <Input name="source_name" value={formData.source_name} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
+                <Input name="source_name" placeholder="Contoh: Tropica" value={formData.source_name} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
+              </div>
+              {/* PERBAIKAN: TAMBAHAN FIELD URL SUMBER */}
+              <div className="space-y-2">
+                <Label className="text-slate-400 text-xs uppercase">URL Sumber (Link)</Label>
+                <Input name="source_url" type="url" placeholder="https://tropica.com/..." value={formData.source_url} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
             </div>
           </div>
@@ -571,7 +577,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                 </select>
               </div>
 
-              {/* PERBAIKAN BEGINNER SCORE (Select 1-10) */}
               <div className="space-y-2">
                 <Label className="text-slate-300">Beginner Score (1-10)</Label>
                 <select name="beginner_score" value={formData.beginner_score} onChange={handleChange} className="h-10 w-full rounded-md border border-teal-800/50 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
@@ -594,7 +599,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 pt-2">
-              {/* PERBAIKAN AQUASCAPE STYLE (Checkbox) */}
               <div className="space-y-3 bg-slate-950/50 p-4 rounded-lg border border-teal-900/30">
                 <Label className="text-slate-300 font-medium">Gaya Aquascape (Bisa pilih lebih dari satu)</Label>
                 <div className="grid grid-cols-2 gap-3">
@@ -607,7 +611,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                 </div>
               </div>
               
-              {/* PERBAIKAN TANK SIZE RECOMMENDATION (Checkbox) */}
               <div className="space-y-3 bg-slate-950/50 p-4 rounded-lg border border-teal-900/30">
                 <Label className="text-slate-300 font-medium">Rekomendasi Ukuran Tank</Label>
                 <div className="grid grid-cols-2 gap-3">
@@ -618,6 +621,19 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                     </label>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* PERBAIKAN: TAMBAHAN CHECKBOX DIREKOMENDASIKAN UNTUK */}
+            <div className="space-y-3 bg-slate-950/50 p-4 rounded-lg border border-teal-900/30 mt-2">
+              <Label className="text-slate-300 font-medium">Direkomendasikan Untuk (Kategori Spesifik)</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {RECOMMENDATIONS.map(rec => (
+                  <label key={rec} className="flex items-center gap-2 cursor-pointer group">
+                    <input type="checkbox" value={rec} checked={formData.recommended_for.includes(rec)} onChange={(e) => handleArrayCheckboxChange(e, "recommended_for")} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900 cursor-pointer" />
+                    <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">{rec}</span>
+                  </label>
+                ))}
               </div>
             </div>
 
