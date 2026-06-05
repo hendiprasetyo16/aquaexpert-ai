@@ -10,7 +10,8 @@ import Image from "next/image";
 import { 
   Loader2, ArrowLeft, ArrowRight, Leaf, Edit, Droplets, Wind, Sun, 
   Thermometer, FlaskConical, MapPin, Ruler, CheckCircle2, Maximize2, X, Info, ImageIcon,
-  ChevronLeft, ChevronRight, Brain, ShieldCheck, Scissors, Activity, Target, Box, BookOpen
+  ChevronLeft, ChevronRight, Brain, ShieldCheck, Scissors, Activity, Target, Box, BookOpen,
+  Zap, Sprout
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
@@ -222,14 +223,13 @@ export default function PlantDetailPage() {
     return "";
   };
 
-  // DIPERBARUI: Disederhanakan kembali tanpa menggunakan kata "Lebar"
   const getTankSizeDesc = (size: string) => {
     const s = size.toLowerCase();
-    if (s === "nano") return "(≤ 40 cm)";
-    if (s === "small") return "(40–60 cm)";
-    if (s === "medium") return "(60–90 cm)";
-    if (s === "large") return "(90–120 cm)";
-    if (s === "xl") return "(> 120 cm)";
+    if (s === "nano") return "Aquarium ≤ 40 cm\n(~10-30 Liter)";
+    if (s === "small") return "Aquarium 40–60 cm\n(~30-60 Liter)";
+    if (s === "medium") return "Aquarium 60–90 cm\n(~60-150 Liter)";
+    if (s === "large") return "Aquarium 90–120 cm\n(~150-300 Liter)";
+    if (s === "xl") return "Aquarium > 120 cm\n(>300 Liter)";
     return "";
   };
 
@@ -261,7 +261,7 @@ export default function PlantDetailPage() {
     if (t.includes("mid tech")) return "Cahaya & CO2 Sedang";
     if (t.includes("high tech")) return "Wajib CO2 & Cahaya Terang";
     if (t.includes("beginner")) return "Aman Untuk Pemula";
-    if (t.includes("breeding tank")) return "Tempat Sembunyi Burayak";
+    if (t.includes("breeding tank")) return "Sembunyi Burayak";
     if (t.includes("nano tank")) return "Aquarium Mini (≤ 40cm)";
     if (t.includes("top cover")) return "Peneduh Kolom Air";
     if (t.includes("pond")) return "Bisa Hidup di Kolam";
@@ -323,6 +323,30 @@ export default function PlantDetailPage() {
                 <Edit className="mr-2 h-4 w-4" /> Edit Tanaman
               </Button>
             </Link>
+          )}
+        </div>
+
+        {/* QUICK TAGS HEADER (New Feature) */}
+        <div className="flex flex-wrap justify-center sm:justify-start gap-2 mb-2">
+          {plant.difficulty?.toLowerCase() === 'easy' && (
+            <span className="flex items-center gap-1.5 rounded-full bg-green-950/40 px-3 py-1 text-xs font-bold text-green-400 border border-green-900/50">
+              <Sprout className="h-3.5 w-3.5" /> BEGINNER FRIENDLY
+            </span>
+          )}
+          {plant.shrimp_safe && (
+            <span className="flex items-center gap-1.5 rounded-full bg-orange-950/40 px-3 py-1 text-xs font-bold text-orange-400 border border-orange-900/50">
+              <ShieldCheck className="h-3.5 w-3.5" /> SHRIMP SAFE
+            </span>
+          )}
+          {plant.co2_requirement?.toLowerCase() === 'low' && (
+            <span className="flex items-center gap-1.5 rounded-full bg-blue-950/40 px-3 py-1 text-xs font-bold text-blue-400 border border-blue-900/50">
+              <Wind className="h-3.5 w-3.5" /> LOW TECH
+            </span>
+          )}
+          {plant.co2_mandatory === true && (
+            <span className="flex items-center gap-1.5 rounded-full bg-red-950/40 px-3 py-1 text-xs font-bold text-red-400 border border-red-900/50">
+              <Zap className="h-3.5 w-3.5" /> HIGH TECH
+            </span>
           )}
         </div>
 
@@ -506,6 +530,7 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
+                  {/* Diperbarui: TANK SIZE TAMPIL 3 BARIS */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Box className="h-4 w-4 text-orange-500"/>
@@ -514,9 +539,9 @@ export default function PlantDetailPage() {
                     <div className="flex flex-col gap-3 flex-1 justify-start text-center">
                       {plant.tank_size_recommendation && plant.tank_size_recommendation.length > 0 ? (
                         plant.tank_size_recommendation.map(size => (
-                          <div key={size} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner items-center justify-center">
+                          <div key={size} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner">
                             <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider mb-1.5">{size}</span>
-                            <span className="text-[12px] text-slate-400 leading-snug font-medium">{getTankSizeDesc(size)}</span>
+                            <span className="text-[12px] text-slate-400 leading-relaxed font-medium whitespace-pre-line">{getTankSizeDesc(size)}</span>
                           </div>
                         ))
                       ) : <span className="text-sm text-slate-500 italic p-3">Bebas semua ukuran.</span>}
@@ -551,7 +576,7 @@ export default function PlantDetailPage() {
                   </p>
                 </div>
 
-                {/* PARAMETER AIR */}
+                {/* PARAMETER AIR (KOTAK RAPI DENGAN SEPARATOR) */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Kebutuhan Lingkungan Optimal</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
