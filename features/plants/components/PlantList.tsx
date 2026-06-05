@@ -23,10 +23,15 @@ export default function PlantList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
   const [placementFilter, setPlacementFilter] = useState("all");
+  
+  // V2: STATES TAMBAHAN UNTUK QUICK FILTER KARTU STATISTIK
+  const [carpetFilter, setCarpetFilter] = useState<"all" | "true">("all");
+  const [shrimpFilter, setShrimpFilter] = useState<"all" | "true">("all");
+  
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // FLAG GEMBOK MEMORI (MENCEGAH BUG RESET KE HALAMAN 1)
+  // FLAG GEMBOK MEMORI
   const [isHydrated, setIsHydrated] = useState(false);
 
   // 1. MENGAMBIL DATA DARI DATABASE
@@ -44,7 +49,7 @@ export default function PlantList() {
     loadData();
   }, []);
 
-  // 2. MENGAMBIL "INGATAN" HALAMAN (SESSION STORAGE) SAAT KOMPONEN DIMUAT
+  // 2. MENGAMBIL "INGATAN" HALAMAN (SESSION STORAGE)
   useEffect(() => {
     const savedPage = sessionStorage.getItem("plantPage");
     if (savedPage) setCurrentPage(Number(savedPage));
@@ -58,14 +63,19 @@ export default function PlantList() {
     const savedPlace = sessionStorage.getItem("plantPlace");
     if (savedPlace) setPlacementFilter(savedPlace);
 
+    const savedCarpet = sessionStorage.getItem("plantCarpet");
+    if (savedCarpet) setCarpetFilter(savedCarpet as "all" | "true");
+
+    const savedShrimp = sessionStorage.getItem("plantShrimp");
+    if (savedShrimp) setShrimpFilter(savedShrimp as "all" | "true");
+
     const savedSort = sessionStorage.getItem("plantSort");
     if (savedSort) setSortOrder(savedSort as "asc" | "desc");
 
-    // Buka Gembok SETELAH semua memori selesai dibaca
     setIsHydrated(true);
   }, []);
 
-  // 3. MENYIMPAN "INGATAN" SETIAP KALI USER MENGUBAH HALAMAN / FILTER
+  // 3. MENYIMPAN "INGATAN"
   useEffect(() => {
     if (!isHydrated) return;
 
@@ -73,13 +83,50 @@ export default function PlantList() {
     sessionStorage.setItem("plantSearch", searchQuery);
     sessionStorage.setItem("plantDiff", difficultyFilter);
     sessionStorage.setItem("plantPlace", placementFilter);
+    sessionStorage.setItem("plantCarpet", carpetFilter);
+    sessionStorage.setItem("plantShrimp", shrimpFilter);
     sessionStorage.setItem("plantSort", sortOrder);
-  }, [currentPage, searchQuery, difficultyFilter, placementFilter, sortOrder, isHydrated]);
+  }, [currentPage, searchQuery, difficultyFilter, placementFilter, carpetFilter, shrimpFilter, sortOrder, isHydrated]);
 
   const handleSearch = (val: string) => { setSearchQuery(val); setCurrentPage(1); };
   const handleDiffFilter = (val: string) => { setDifficultyFilter(val); setCurrentPage(1); };
   const handlePlaceFilter = (val: string) => { setPlacementFilter(val); setCurrentPage(1); };
   const handleSort = (val: "asc" | "desc") => { setSortOrder(val); setCurrentPage(1); };
+
+  // HANDLER: QUICK FILTER UNTUK KARTU STATISTIK
+  const handleQuickFilter = (type: "total" | "beginner" | "midground" | "carpet" | "shrimp") => {
+    setCurrentPage(1);
+    
+    // Reset pencarian jika menggunakan quick filter
+    setSearchQuery("");
+
+    if (type === "total") {
+      setDifficultyFilter("all");
+      setPlacementFilter("all");
+      setCarpetFilter("all");
+      setShrimpFilter("all");
+    } else if (type === "beginner") {
+      setDifficultyFilter("easy");
+      setPlacementFilter("all");
+      setCarpetFilter("all");
+      setShrimpFilter("all");
+    } else if (type === "midground") {
+      setDifficultyFilter("all");
+      setPlacementFilter("midground");
+      setCarpetFilter("all");
+      setShrimpFilter("all");
+    } else if (type === "carpet") {
+      setDifficultyFilter("all");
+      setPlacementFilter("all");
+      setCarpetFilter("true");
+      setShrimpFilter("all");
+    } else if (type === "shrimp") {
+      setDifficultyFilter("all");
+      setPlacementFilter("all");
+      setCarpetFilter("all");
+      setShrimpFilter("true");
+    }
+  };
 
   // 4. LOGIKA FILTERING & SORTING GABUNGAN
   const processedPlants = plants
@@ -91,8 +138,10 @@ export default function PlantList() {
 
       const matchesDiff = difficultyFilter === "all" ? true : plant.difficulty?.toLowerCase() === difficultyFilter;
       const matchesPlace = placementFilter === "all" ? true : plant.placement?.toLowerCase() === placementFilter;
+      const matchesCarpet = carpetFilter === "all" ? true : plant.carpet_potential === true;
+      const matchesShrimp = shrimpFilter === "all" ? true : plant.shrimp_safe === true;
 
-      return matchesSearch && matchesDiff && matchesPlace;
+      return matchesSearch && matchesDiff && matchesPlace && matchesCarpet && matchesShrimp;
     })
     .sort((a, b) => {
       if (sortOrder === "asc") {
@@ -125,7 +174,7 @@ export default function PlantList() {
     pageNumbers.push(i);
   }
 
-  // --- STATISTIK KNOWLEDGE BASE (DIPASANG DI SINI) ---
+  // --- STATISTIK KNOWLEDGE BASE ---
   const stats = {
     total: plants.length,
     beginner: plants.filter(p => p.difficulty?.toLowerCase() === 'easy').length,
@@ -133,6 +182,9 @@ export default function PlantList() {
     carpet: plants.filter(p => p.carpet_potential === true).length,
     shrimpSafe: plants.filter(p => p.shrimp_safe === true).length,
   };
+
+  // KONDISI AKTIF KARTU
+  const isTotalActive = difficultyFilter === "all" && placementFilter === "all" && carpetFilter === "all" && shrimpFilter === "all";
 
   if (loading) {
     return (
@@ -145,7 +197,7 @@ export default function PlantList() {
   return (
     <div className="space-y-8">
       
-      {/* HEADER TITLE & STATS (DIPASANG DI SINI MENGGANTIKAN HEADER LAMA) */}
+      {/* HEADER TITLE & STATS */}
       <div className="space-y-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-slate-100">Database Tanaman</h2>
@@ -154,25 +206,54 @@ export default function PlantList() {
           </p>
         </div>
 
-        {/* KARTU STATISTIK */}
+        {/* KARTU STATISTIK (SEKARANG BISA DIKLIK) */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md">
+          <div 
+            onClick={() => handleQuickFilter("total")}
+            className={`p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 ${
+              isTotalActive ? "bg-slate-800 ring-2 ring-slate-400 border-transparent" : "bg-slate-900/80 border border-slate-800 hover:bg-slate-800"
+            }`}
+          >
             <span className="text-2xl font-black text-white">{stats.total}</span>
             <span className="text-xs text-slate-400 uppercase font-semibold mt-1">Total Plant</span>
           </div>
-          <div className="bg-slate-900/80 border border-teal-900/50 p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md">
+
+          <div 
+            onClick={() => handleQuickFilter("beginner")}
+            className={`p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 ${
+              difficultyFilter === "easy" ? "bg-teal-950/60 ring-2 ring-teal-500 border-transparent" : "bg-slate-900/80 border border-teal-900/50 hover:bg-teal-950/30"
+            }`}
+          >
             <span className="text-2xl font-black text-teal-400">{stats.beginner}</span>
             <span className="text-xs text-slate-400 uppercase font-semibold mt-1">Beginner</span>
           </div>
-          <div className="bg-slate-900/80 border border-blue-900/50 p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md">
+
+          <div 
+            onClick={() => handleQuickFilter("midground")}
+            className={`p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 ${
+              placementFilter === "midground" ? "bg-blue-950/60 ring-2 ring-blue-500 border-transparent" : "bg-slate-900/80 border border-blue-900/50 hover:bg-blue-950/30"
+            }`}
+          >
             <span className="text-2xl font-black text-blue-400">{stats.midground}</span>
             <span className="text-xs text-slate-400 uppercase font-semibold mt-1">Midground</span>
           </div>
-          <div className="bg-slate-900/80 border border-green-900/50 p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md">
+
+          <div 
+            onClick={() => handleQuickFilter("carpet")}
+            className={`p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 ${
+              carpetFilter === "true" ? "bg-green-950/60 ring-2 ring-green-500 border-transparent" : "bg-slate-900/80 border border-green-900/50 hover:bg-green-950/30"
+            }`}
+          >
             <span className="text-2xl font-black text-green-400">{stats.carpet}</span>
             <span className="text-xs text-slate-400 uppercase font-semibold mt-1">Carpet</span>
           </div>
-          <div className="bg-slate-900/80 border border-orange-900/50 p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md">
+
+          <div 
+            onClick={() => handleQuickFilter("shrimp")}
+            className={`p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 ${
+              shrimpFilter === "true" ? "bg-orange-950/60 ring-2 ring-orange-500 border-transparent" : "bg-slate-900/80 border border-orange-900/50 hover:bg-orange-950/30"
+            }`}
+          >
             <span className="text-2xl font-black text-orange-400">{stats.shrimpSafe}</span>
             <span className="text-xs text-slate-400 uppercase font-semibold mt-1">Shrimp Safe</span>
           </div>
@@ -265,7 +346,7 @@ export default function PlantList() {
           </p>
           <Button 
             variant="link" 
-            onClick={() => { setSearchQuery(""); setDifficultyFilter("all"); setPlacementFilter("all"); }}
+            onClick={() => handleQuickFilter("total")}
             className="mt-4 text-teal-400"
           >
             Reset Filter
