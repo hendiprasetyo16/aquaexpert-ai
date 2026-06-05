@@ -28,7 +28,6 @@ export default function PlantDetailPage() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const allImages = [plant?.image_url, ...(plant?.gallery_urls || [])].filter(Boolean) as string[];
   
-  // STATE UNTUK PAN & ZOOM
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -36,7 +35,6 @@ export default function PlantDetailPage() {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [clickStartPos, setClickStartPos] = useState({ x: 0, y: 0 });
 
-  // STATE UNTUK SWIPE & PINCH MOBILE
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [initialPinchDistance, setInitialPinchDistance] = useState<number | null>(null);
@@ -58,28 +56,18 @@ export default function PlantDetailPage() {
   }, [params.id]);
 
   // NAVIGATION HANDLERS
-  const resetZoom = () => {
-    setScale(1);
-    setPosition({ x: 0, y: 0 });
-  };
-
+  const resetZoom = () => { setScale(1); setPosition({ x: 0, y: 0 }); };
   const openLightbox = (url: string) => {
     const idx = allImages.indexOf(url);
     if (idx !== -1) setLightboxIndex(idx);
   };
-
-  const closeLightbox = () => { 
-    setLightboxIndex(null); 
-    resetZoom(); 
-  };
-
+  const closeLightbox = () => { setLightboxIndex(null); resetZoom(); };
   const nextImage = () => {
     if (lightboxIndex !== null && allImages.length > 1) {
       setLightboxIndex((prev) => (prev! + 1) % allImages.length);
       resetZoom();
     }
   };
-
   const prevImage = () => {
     if (lightboxIndex !== null && allImages.length > 1) {
       setLightboxIndex((prev) => (prev! - 1 + allImages.length) % allImages.length);
@@ -87,51 +75,36 @@ export default function PlantDetailPage() {
     }
   };
 
-  // MOBILE TOUCH HANDLERS (SWIPE & PINCH TO ZOOM)
+  // MOBILE TOUCH HANDLERS
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
-      setTouchEnd(null);
-      setTouchStart(e.targetTouches[0].clientX);
-      setInitialPinchDistance(null);
+      setTouchEnd(null); setTouchStart(e.targetTouches[0].clientX); setInitialPinchDistance(null);
     } else if (e.touches.length === 2) {
-      const distance = Math.hypot(
-        e.touches[1].clientX - e.touches[0].clientX, 
-        e.touches[1].clientY - e.touches[0].clientY
-      );
+      const distance = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY);
       setInitialPinchDistance(distance);
     }
   };
-
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 1 && scale === 1) {
-      setTouchEnd(e.targetTouches[0].clientX);
-    } else if (e.touches.length === 2 && initialPinchDistance !== null) {
-      const currentDistance = Math.hypot(
-        e.touches[1].clientX - e.touches[0].clientX, 
-        e.touches[1].clientY - e.touches[0].clientY
-      );
+    if (e.touches.length === 1 && scale === 1) setTouchEnd(e.targetTouches[0].clientX);
+    else if (e.touches.length === 2 && initialPinchDistance !== null) {
+      const currentDistance = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY);
       const pinchRatio = currentDistance / initialPinchDistance;
       const newScale = Math.min(Math.max(1, scale * pinchRatio), 5);
-      
-      setScale(newScale);
-      setInitialPinchDistance(currentDistance);
+      setScale(newScale); setInitialPinchDistance(currentDistance);
       if (newScale === 1) setPosition({ x: 0, y: 0 });
     }
   };
-
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (e.touches.length < 2) setInitialPinchDistance(null);
-
     if (scale === 1 && touchStart !== null && touchEnd !== null) {
       const distance = touchStart - touchEnd;
-      if (distance > 50) nextImage(); // Swipe Kiri
-      if (distance < -50) prevImage(); // Swipe Kanan
-      setTouchStart(null);
-      setTouchEnd(null);
+      if (distance > 50) nextImage();
+      if (distance < -50) prevImage();
+      setTouchStart(null); setTouchEnd(null);
     }
   };
 
-  // KEYBOARD SUPPORT
+  // KEYBOARD
   useEffect(() => {
     if (lightboxIndex === null) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -143,13 +116,54 @@ export default function PlantDetailPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [lightboxIndex, allImages.length]);
 
-  if (loading) {
-    return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-500" /></div>;
-  }
+  // --- HELPER FUNCTIONS UX EDUKASI ---
+  const renderStars = (score: number | null) => {
+    if (!score) return "N/A";
+    const filled = "★".repeat(score);
+    const empty = "☆".repeat(10 - score);
+    return (
+      <div className="flex flex-col items-center">
+        <span className="text-[11px] tracking-widest text-yellow-500 mb-0.5">{filled}<span className="text-slate-600">{empty}</span></span>
+        <span className="text-xl font-black text-white">{score}/10</span>
+      </div>
+    );
+  };
 
-  if (!plant) {
-    return <div className="text-center mt-20 text-slate-400">Data tanaman tidak ditemukan atau telah dinonaktifkan.</div>;
-  }
+  const getTankSizeDesc = (size: string) => {
+    const s = size.toLowerCase();
+    if (s === "nano") return "≤ 40 cm";
+    if (s === "small") return "40–60 cm";
+    if (s === "medium") return "60–90 cm";
+    if (s === "large") return "90–120 cm";
+    if (s === "xl") return "> 120 cm";
+    return "";
+  };
+
+  const getStyleDesc = (style: string) => {
+    const s = style.toLowerCase();
+    if (s.includes("nature")) return "Tata letak alami ala Takashi Amano";
+    if (s.includes("dutch")) return "Fokus pada kontras warna & kerapatan tanaman";
+    if (s.includes("iwagumi")) return "Tata letak minimalis formasi batu";
+    if (s.includes("jungle")) return "Tumbuh liar dan lebat meniru habitat asli";
+    if (s.includes("biotope")) return "Meniru ekosistem spesifik di alam liar";
+    return "Gaya Aquascape";
+  };
+
+  const getPlantTypeDesc = (type: string) => {
+    const t = type.toLowerCase();
+    if (t === "stem") return "Tumbuh memanjang ke atas. Perlu trimming rutin dan diperbanyak melalui stek batang.";
+    if (t === "rhizome") return "Tidak boleh ditanam dalam substrat/pasir. Harus diikat atau dilem pada batu/kayu.";
+    if (t === "rosette") return "Tumbuh memusat dari satu titik akar bawah. Akar sangat lebat, butuh pupuk tancap.";
+    if (t === "carpet") return "Menjalar menutupi area depan (foreground) membentuk padang rumput hijau.";
+    if (t === "moss") return "Lumut yang menempel pada hardscape. Bagus untuk tempat sembunyi udang & burayak.";
+    if (t === "floating") return "Mengapung di permukaan air. Sangat ampuh menyerap racun nitrat berlebih.";
+    if (t === "bulb") return "Tumbuh dari umbi. Umbi tidak boleh dikubur seluruhnya agar tidak membusuk.";
+    if (t === "runner") return "Tumbuh menjalar cepat dengan tunas baru menyebar di sekitar induknya.";
+    return "Tipe tanaman akuatik standar.";
+  };
+
+  if (loading) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-500" /></div>;
+  if (!plant) return <div className="text-center mt-20 text-slate-400">Data tanaman tidak ditemukan atau telah dinonaktifkan.</div>;
 
   return (
     <>
@@ -170,25 +184,13 @@ export default function PlantDetailPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-12">
-          {/* KOLOM KIRI: FOTO COVER, GALERI & IDENTITAS */}
+          {/* KOLOM KIRI */}
           <div className="lg:col-span-4 space-y-6">
             <Card className="border-slate-800 bg-slate-900/60 overflow-hidden shadow-xl">
-              
-              {/* COVER IMAGE MENGGUNAKAN NEXT/IMAGE (TEROPTIMASI) */}
-              <div 
-                className={`h-72 w-full bg-slate-800 flex items-center justify-center relative group ${plant.image_url ? 'cursor-pointer' : ''}`}
-                onClick={() => plant.image_url && openLightbox(plant.image_url)}
-              >
+              <div className={`h-72 w-full bg-slate-800 flex items-center justify-center relative group ${plant.image_url ? 'cursor-pointer' : ''}`} onClick={() => plant.image_url && openLightbox(plant.image_url)}>
                 {plant.image_url ? (
                   <>
-                    <Image 
-                      src={plant.image_url} 
-                      alt={`Cover ${plant.name}`} 
-                      fill 
-                      priority // Mencegah LCP Warning
-                      sizes="(max-width: 768px) 100vw, 33vw" // Mencegah sizes Warning
-                      className="object-cover transition-transform duration-700 group-hover:scale-105" 
-                    />
+                    <Image src={plant.image_url} alt={`Cover ${plant.name}`} fill priority sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 transition-opacity duration-300"></div>
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 pointer-events-none">
                       <Maximize2 className="h-10 w-10 text-white drop-shadow-md scale-75 group-hover:scale-100 transition-transform" />
@@ -202,29 +204,17 @@ export default function PlantDetailPage() {
                 )}
               </div>
 
-              {/* THUMBNAIL GALERI MENGGUNAKAN NEXT/IMAGE (TEROPTIMASI) */}
               {plant.gallery_urls && plant.gallery_urls.length > 0 && (
                 <div className={`grid gap-1 p-1 bg-slate-950 ${plant.gallery_urls.length > 3 ? 'grid-cols-4' : 'grid-cols-3'}`}>
                   {plant.gallery_urls.map((url, idx) => (
-                    <div 
-                      key={idx} 
-                      className="aspect-square relative group cursor-pointer overflow-hidden rounded-sm bg-slate-800"
-                      onClick={() => openLightbox(url)}
-                    >
-                      <Image 
-                        src={url} 
-                        alt={`Gallery ${idx + 1}`} 
-                        fill 
-                        sizes="(max-width: 768px) 25vw, 15vw" // Mencegah sizes Warning
-                        className="object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100" 
-                      />
+                    <div key={idx} className="aspect-square relative group cursor-pointer overflow-hidden rounded-sm bg-slate-800" onClick={() => openLightbox(url)}>
+                      <Image src={url} alt={`Gallery ${idx + 1}`} fill sizes="(max-width: 768px) 25vw, 15vw" className="object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100" />
                       <div className="absolute inset-0 bg-teal-500/0 group-hover:bg-teal-500/20 transition-colors duration-300 pointer-events-none"></div>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* IDENTITAS UTAMA */}
               <CardContent className="p-6 text-center border-t border-slate-800">
                 <h1 className="text-3xl font-extrabold text-teal-400 tracking-tight">{plant.name}</h1>
                 <p className="italic text-slate-400 mt-1 font-serif">{plant.scientific_name || "Scientific name unknown"}</p>
@@ -248,7 +238,7 @@ export default function PlantDetailPage() {
                 
                 {plant.recommended_for && plant.recommended_for.length > 0 && (
                   <div className="mt-6">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3 border-b border-slate-800 pb-2">Rekomendasi Tambahan</p>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3 border-b border-slate-800 pb-2">Kecocokan Ekosistem</p>
                     <div className="flex flex-wrap justify-center gap-2">
                       {plant.recommended_for.map(tag => (
                         <span key={tag} className="flex items-center gap-1.5 rounded-md bg-slate-800/80 px-2.5 py-1.5 text-[11px] font-medium text-slate-300 border border-slate-700">
@@ -273,65 +263,95 @@ export default function PlantDetailPage() {
               </div>
               <CardContent className="p-6 space-y-6">
                 
+                {/* PLANT TYPE EXPLANATION */}
+                <div className="bg-slate-900/60 p-4 rounded-lg border border-slate-800 flex items-start gap-3">
+                   <div className="bg-teal-950/40 p-2 rounded-md border border-teal-900/50 shrink-0">
+                      <Leaf className="h-5 w-5 text-teal-400" />
+                   </div>
+                   <div>
+                      <h4 className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                         Tipe Biologi: <span className="text-teal-400">{plant.plant_type || "Unknown"}</span>
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                         {getPlantTypeDesc(plant.plant_type || "")}
+                      </p>
+                   </div>
+                </div>
+
+                {/* 4 Expert Badges */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-slate-900/80 p-3 rounded-lg border border-slate-800 text-center">
-                    <p className="text-[10px] uppercase text-slate-500 font-bold mb-1">Beginner Score</p>
-                    <p className="text-xl font-black text-white">{plant.beginner_score ? `${plant.beginner_score}/10` : "N/A"}</p>
+                  <div className="bg-slate-900/80 p-3 rounded-lg border border-slate-800 flex flex-col justify-center">
+                    <p className="text-[10px] uppercase text-slate-500 font-bold mb-1 text-center">Beginner Score</p>
+                    {renderStars(plant.beginner_score || null)}
                   </div>
                   <div className="bg-slate-900/80 p-3 rounded-lg border border-slate-800 text-center flex flex-col items-center justify-center">
                     <p className="text-[10px] uppercase text-slate-500 font-bold mb-1">Maintenance</p>
-                    <div className="flex items-center gap-1">
-                      <Scissors className="h-3 w-3 text-yellow-500" />
-                      <span className="text-sm font-bold text-slate-200">{plant.maintenance_level || "Medium"}</span>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Scissors className="h-4 w-4 text-yellow-500" />
+                      <span className="text-base font-bold text-slate-200">{plant.maintenance_level || "Medium"}</span>
                     </div>
                   </div>
-                  <div className={`p-3 rounded-lg border text-center ${plant.shrimp_safe ? "bg-orange-950/20 border-orange-900/30" : "bg-slate-900/80 border-slate-800"}`}>
+                  <div className={`p-3 rounded-lg border text-center flex flex-col items-center justify-center ${plant.shrimp_safe ? "bg-orange-950/20 border-orange-900/30" : "bg-slate-900/80 border-slate-800"}`}>
                     <p className="text-[10px] uppercase text-slate-500 font-bold mb-1">Shrimp Safe</p>
-                    <div className="flex items-center justify-center gap-1">
-                      {plant.shrimp_safe ? <ShieldCheck className="h-4 w-4 text-orange-400" /> : <X className="h-4 w-4 text-red-500" />}
-                      <span className="text-sm font-bold text-slate-200">{plant.shrimp_safe ? "Ya" : "Berisiko"}</span>
+                    <div className="flex items-center justify-center gap-1 mt-1">
+                      {plant.shrimp_safe ? <ShieldCheck className="h-5 w-5 text-orange-400" /> : <X className="h-5 w-5 text-red-500" />}
+                      <span className="text-base font-bold text-slate-200">{plant.shrimp_safe ? "Aman" : "Berisiko"}</span>
                     </div>
                   </div>
-                  <div className={`p-3 rounded-lg border text-center ${plant.carpet_potential ? "bg-green-950/20 border-green-900/30" : "bg-slate-900/80 border-slate-800"}`}>
+                  <div className={`p-3 rounded-lg border text-center flex flex-col items-center justify-center ${plant.carpet_potential ? "bg-green-950/20 border-green-900/30" : "bg-slate-900/80 border-slate-800"}`}>
                     <p className="text-[10px] uppercase text-slate-500 font-bold mb-1">Carpet Potential</p>
-                    <div className="flex items-center justify-center gap-1">
-                      {plant.carpet_potential ? <CheckCircle2 className="h-4 w-4 text-green-400" /> : <X className="h-4 w-4 text-slate-500" />}
-                      <span className="text-sm font-bold text-slate-200">{plant.carpet_potential ? "Ya" : "Tidak"}</span>
+                    <div className="flex items-center justify-center gap-1 mt-1">
+                      {plant.carpet_potential ? <CheckCircle2 className="h-5 w-5 text-green-400" /> : <X className="h-5 w-5 text-slate-500" />}
+                      <span className="text-base font-bold text-slate-200">{plant.carpet_potential ? "Ya" : "Tidak"}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid sm:grid-cols-3 gap-4">
+                {/* Tags, Growth, and Tank Size */}
+                <div className="grid sm:grid-cols-3 gap-4 border-t border-slate-800 pt-6 mt-6">
                   <div>
-                    <p className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1.5"><Activity className="h-3.5 w-3.5"/> Growth Control</p>
-                    <span className="inline-block bg-slate-900 px-3 py-1.5 rounded text-sm text-slate-300 border border-slate-800">
+                    <p className="text-xs font-semibold text-slate-400 mb-3 flex items-center gap-1.5"><Activity className="h-3.5 w-3.5"/> Sifat Pertumbuhan</p>
+                    <span className="inline-block bg-slate-900 px-3 py-1.5 rounded text-sm text-slate-300 border border-slate-800 shadow-sm">
                       {plant.growth_control || "Moderate"}
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1.5"><Target className="h-3.5 w-3.5"/> Aquascape Style</p>
+                    <p className="text-xs font-semibold text-slate-400 mb-3 flex items-center gap-1.5"><Target className="h-3.5 w-3.5"/> Aquascape Style</p>
                     <div className="flex flex-wrap gap-2">
                       {plant.aquascape_style && plant.aquascape_style.length > 0 ? (
                         plant.aquascape_style.map(style => (
-                          <span key={style} className="bg-slate-900 px-2.5 py-1 rounded text-xs text-slate-300 border border-slate-800">{style}</span>
+                          <div key={style} className="relative group cursor-help">
+                            <span className="bg-slate-900 px-2.5 py-1.5 rounded text-xs text-slate-300 border border-slate-800 flex items-center shadow-sm hover:border-teal-700 transition-colors">
+                              {style}
+                            </span>
+                            {/* TOOLTIP GAYA AQUASCAPE */}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[200px] bg-slate-800 text-slate-200 text-[10px] px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 text-center shadow-xl border border-slate-700">
+                               {getStyleDesc(style)}
+                               <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
+                            </div>
+                          </div>
                         ))
                       ) : <span className="text-sm text-slate-500">Universal</span>}
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1.5"><Box className="h-3.5 w-3.5"/> Tank Size</p>
+                    <p className="text-xs font-semibold text-slate-400 mb-3 flex items-center gap-1.5"><Box className="h-3.5 w-3.5"/> Tank Size</p>
                     <div className="flex flex-wrap gap-2">
                       {plant.tank_size_recommendation && plant.tank_size_recommendation.length > 0 ? (
                         plant.tank_size_recommendation.map(size => (
-                          <span key={size} className="bg-slate-900 px-2.5 py-1 rounded text-xs text-slate-300 border border-slate-800">{size}</span>
+                          <span key={size} className="bg-slate-900 px-2.5 py-1 rounded text-xs text-slate-300 border border-slate-800 flex flex-col items-center justify-center min-w-[50px] shadow-sm">
+                            <span className="font-semibold">{size}</span>
+                            <span className="text-slate-500 text-[9px] mt-0.5">{getTankSizeDesc(size)}</span>
+                          </span>
                         ))
                       ) : <span className="text-sm text-slate-500">Semua Ukuran</span>}
                     </div>
                   </div>
                 </div>
 
+                {/* Expert Notes */}
                 {plant.expert_notes && (
-                  <div className="mt-4 bg-teal-950/30 border-l-4 border-teal-500 p-4 rounded-r-lg">
+                  <div className="mt-4 bg-teal-950/30 border-l-4 border-teal-500 p-5 rounded-r-lg shadow-inner">
                     <p className="text-sm text-teal-100/90 italic leading-relaxed">
                       💡 {plant.expert_notes}
                     </p>
