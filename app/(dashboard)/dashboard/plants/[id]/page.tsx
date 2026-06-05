@@ -121,7 +121,7 @@ export default function PlantDetailPage() {
     }
   };
 
-  // TOUCH HANDLERS (Omitted for brevity, they remain identical to your V3)
+  // TOUCH HANDLERS
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       setTouchEnd(null); setTouchStart(e.targetTouches[0].clientX); setInitialPinchDistance(null);
@@ -255,14 +255,15 @@ export default function PlantDetailPage() {
     return "";
   };
 
-  const getTankSizeDesc = (size: string) => {
+  // DIPERBARUI & FIX BUG: Mengembalikan Objek yang memuat informasi dimensi dan volume
+  const getTankSizeDetails = (size: string) => {
     const s = size.toLowerCase();
-    if (s === "nano") return { size_cm: "≤ 40 cm", volume: "10–30 Liter" };
-    if (s === "small") return { size_cm: "40–60 cm", volume: "30–60 Liter" };
-    if (s === "medium") return { size_cm: "60–90 cm", volume: "60–150 Liter" };
-    if (s === "large") return { size_cm: "90–120 cm", volume: "150–300 Liter" };
-    if (s === "xl") return { size_cm: "> 120 cm", volume: "> 300 Liter" };
-    return { size_cm: "", volume: "" };
+    if (s === "nano") return { cm: "≤ 40 cm", liter: "10–30 Liter" };
+    if (s === "small") return { cm: "40–60 cm", liter: "30–60 Liter" };
+    if (s === "medium") return { cm: "60–90 cm", liter: "60–150 Liter" };
+    if (s === "large") return { cm: "90–120 cm", liter: "150–300 Liter" };
+    if (s === "xl") return { cm: "> 120 cm", liter: "> 300 Liter" };
+    return { cm: "", liter: "" };
   };
 
   const getStyleDesc = (style: string) => {
@@ -289,17 +290,22 @@ export default function PlantDetailPage() {
 
   const getRecommendedDesc = (tag: string) => {
     const t = tag.toLowerCase();
-    if (t.includes("low tech")) return "Tanpa Injeksi CO2";
-    if (t.includes("mid tech")) return "Cahaya & CO2 Sedang";
-    if (t.includes("high tech")) return "Wajib CO2 & Cahaya Terang";
-    if (t.includes("beginner")) return "Aman Untuk Pemula";
-    if (t.includes("breeding tank")) return "Sembunyi Burayak";
-    if (t.includes("nano tank")) return "Aquarium Mini (≤ 40cm)";
-    if (t.includes("top cover")) return "Peneduh Kolom Air";
-    if (t.includes("pond")) return "Bisa Hidup di Kolam";
-    if (t.includes("foreground")) return "Posisi Depan";
-    if (t.includes("midground")) return "Posisi Tengah";
-    if (t.includes("background")) return "Posisi Belakang";
+    if (t.includes("pemula")) return "Aman Untuk Pemula";
+    if (t.includes("low tech")) return "Tanpa Tabung CO2";
+    if (t.includes("high tech")) return "Butuh Tabung CO2 & Cahaya Kuat";
+    if (t.includes("shrimp tank")) return "Aman Untuk Udang Hias";
+    if (t.includes("nano tank")) return "Cocok di Aquarium Mini";
+    if (t.includes("dutch style")) return "Kerapatan Tanaman Tinggi";
+    if (t.includes("nature style")) return "Meniru Alam Liar";
+    if (t.includes("betta tank")) return "Aman Untuk Ikan Cupang";
+    if (t.includes("community tank")) return "Aman Untuk Beragam Ikan";
+    if (t.includes("paludarium")) return "Tumbuh Ekstra Menjalar";
+    if (t.includes("blackwater")) return "Cahaya Redup, Air Asam";
+    if (t.includes("discus tank")) return "Suhu Air Hangat";
+    if (t.includes("aquascape contest")) return "Nilai Estetika Tinggi";
+    if (t.includes("breeding tank")) return "Tempat Sembunyi Burayak";
+    if (t.includes("low light setup")) return "Minim Cahaya";
+    if (t.includes("co2 setup")) return "Direkomendasikan CO2";
     return "Cocok untuk setup umum";
   };
 
@@ -429,11 +435,13 @@ export default function PlantDetailPage() {
                 
                 <div className="mt-6 flex flex-col items-center justify-center gap-3">
                   
+                  {/* TIPE */}
                   <span className="px-4 py-2 rounded-lg text-sm font-black uppercase tracking-widest bg-teal-950/40 text-teal-400 border border-teal-900/50 w-full sm:w-auto">
                     Tipe: {plant.plant_type || "N/A"}
                   </span>
 
                   <div className="flex flex-row gap-3 w-full sm:w-auto justify-center">
+                    {/* KESULITAN */}
                     <div className={`flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg border shadow-sm ${
                       plant.difficulty?.toLowerCase() === 'easy' ? 'bg-green-950/20 border-green-900/50' :
                       plant.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-950/20 border-yellow-900/50' :
@@ -450,6 +458,7 @@ export default function PlantDetailPage() {
                       <span className="text-[11px] text-slate-400 mt-0.5">{getIndoLevelCore(plant.difficulty)}</span>
                     </div>
                     
+                    {/* PENEMPATAN DENGAN WARNA PSIKOLOGIS */}
                     <div className={`flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg border shadow-sm ${getPlacementBadgeStyle(plant.placement)}`}>
                       <span className="text-base font-black uppercase tracking-widest">
                         {plant.placement || "Unknown"}
@@ -459,6 +468,7 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
                 
+                {/* TAGS KECOCOKAN */}
                 {plant.recommended_for && plant.recommended_for.length > 0 && (
                   <div className="mt-8 border-t border-slate-800 pt-5">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Kecocokan Ekosistem</p>
@@ -476,6 +486,42 @@ export default function PlantDetailPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* DIPINDAHKAN: RELATED PLANTS SECTION */}
+            {relatedPlants.length > 0 && (
+              <Card className="border-slate-800 bg-slate-900/60 shadow-xl overflow-hidden mt-6">
+                <div className="bg-slate-900/80 px-5 py-3 border-b border-slate-800 flex items-center gap-2">
+                  <Leaf className="h-5 w-5 text-teal-500" />
+                  <h3 className="text-sm font-extrabold text-slate-200 uppercase tracking-wider">Tanaman Serupa</h3>
+                </div>
+                <CardContent className="p-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+                    {relatedPlants.map(related => (
+                      <Link href={`/dashboard/plants/${related.id}`} key={related.id}>
+                        <div className="flex items-center gap-4 bg-slate-950/50 hover:bg-slate-800 border border-slate-800 hover:border-teal-900/50 p-2.5 rounded-lg transition-colors cursor-pointer">
+                          <div className="h-16 w-16 relative rounded-md overflow-hidden bg-slate-800 shrink-0">
+                            {related.image_url ? (
+                              <Image src={related.image_url} alt={related.name} fill sizes="64px" className="object-cover" />
+                            ) : (
+                              <div className="flex h-full items-center justify-center text-slate-600">
+                                <Leaf className="h-6 w-6" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col flex-1 overflow-hidden">
+                            <p className="font-bold text-slate-200 text-sm truncate">{related.name}</p>
+                            <div className="flex flex-wrap gap-1.5 mt-1.5">
+                               <span className="text-[9px] bg-teal-950/40 text-teal-400 px-1.5 py-0.5 rounded border border-teal-900/50 uppercase font-semibold">{related.plant_type}</span>
+                               <span className="text-[9px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700 uppercase font-semibold">{related.placement}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* KOLOM KANAN: PARAMETER PAKAR & DESKRIPSI */}
@@ -559,7 +605,7 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
-                  {/* DIPERBARUI: Struktur Flex Column Murni agar tulisan tidak berantakan */}
+                  {/* DIPERBARUI: Struktur TANK SIZE untuk dirender di bawah Teks Besar */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Box className="h-4 w-4 text-orange-500"/>
@@ -568,13 +614,13 @@ export default function PlantDetailPage() {
                     <div className="flex flex-col gap-3 flex-1 justify-start text-center">
                       {plant.tank_size_recommendation && plant.tank_size_recommendation.length > 0 ? (
                         plant.tank_size_recommendation.map(size => {
-                          const desc = getTankSizeDesc(size);
+                          const details = getTankSizeDetails(size);
                           return (
                             <div key={size} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner items-center justify-center">
-                              <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider mb-2">{size}</span>
-                              <div className="flex flex-col items-center gap-1 w-full border-t border-slate-800/50 pt-2">
-                                <span className="text-[12px] text-slate-400 font-medium">📏 {desc.size_cm}</span>
-                                <span className="text-[12px] text-cyan-400 font-medium mt-0.5">💧 {desc.volume}</span>
+                              <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider">{size}</span>
+                              <div className="flex flex-col items-center gap-0.5 mt-2">
+                                <span className="text-[12px] text-slate-400 font-medium">📏 {details.cm}</span>
+                                <span className="text-[12px] text-cyan-400 font-medium">💧 {details.liter}</span>
                               </div>
                             </div>
                           );
@@ -585,6 +631,7 @@ export default function PlantDetailPage() {
 
                 </div>
 
+                {/* Expert Notes */}
                 {plant.expert_notes && (
                   <div className="mt-4 bg-teal-950/20 border border-teal-900/50 p-6 rounded-xl shadow-inner relative overflow-hidden">
                     <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-teal-500"></div>
@@ -610,6 +657,7 @@ export default function PlantDetailPage() {
                   </p>
                 </div>
 
+                {/* PARAMETER AIR */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Kebutuhan Lingkungan Optimal</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -638,6 +686,7 @@ export default function PlantDetailPage() {
                         <span className="text-[12px] text-blue-400/80 font-medium mt-0.5">({getIndoLevelCore(plant.co2_requirement)})</span>
                       </div>
                       
+                      {/* LENCANA CO2 MANDATORY */}
                       {plant.co2_mandatory === true && (
                         <div className="mt-2.5 rounded-md bg-red-950/40 border border-red-900/50 px-2 py-1.5 text-[11px] font-bold text-red-400">
                           🔴 WAJIB CO2
@@ -722,7 +771,7 @@ export default function PlantDetailPage() {
                         <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Tinggi Max</span>
                       </div>
                       <div className="border-t border-slate-800 pt-2 flex flex-col items-center justify-center h-full">
-                        <span className="text-lg font-black text-slate-200 block">{plant.max_height_cm ? `${plant.max_height_cm} cm` : "N/A"}</span>
+                        <span className="text-lg font-black text-slate-200 block mt-1">{plant.max_height_cm ? `${plant.max_height_cm} cm` : "N/A"}</span>
                       </div>
                     </div>
                     
@@ -732,7 +781,7 @@ export default function PlantDetailPage() {
                         <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Habitat Asli</span>
                       </div>
                       <div className="border-t border-slate-800 pt-2 flex flex-col items-center justify-center h-full">
-                        <span className="text-[13px] font-bold text-slate-200 block leading-snug">{plant.origin_country || "Unknown"}</span>
+                        <span className="text-[14px] font-bold text-slate-200 block mt-1 leading-snug">{plant.origin_country || "Unknown"}</span>
                       </div>
                     </div>
 
@@ -768,39 +817,6 @@ export default function PlantDetailPage() {
 
               </CardContent>
             </Card>
-
-            {/* RELATED PLANTS SECTION (New Feature) */}
-            {relatedPlants.length > 0 && (
-              <div className="mt-8 pt-4">
-                <h3 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2">
-                  <Leaf className="h-5 w-5 text-teal-500" /> Tanaman Serupa
-                </h3>
-                <div className="grid sm:grid-cols-3 gap-4">
-                  {relatedPlants.map(related => (
-                    <Link href={`/dashboard/plants/${related.id}`} key={related.id}>
-                      <Card className="border-slate-800 bg-slate-900/60 hover:bg-slate-800/80 hover:border-teal-900/50 transition-all cursor-pointer h-full">
-                        <CardContent className="p-4 flex flex-col h-full">
-                          <div className="aspect-video w-full relative rounded-md overflow-hidden bg-slate-800 mb-3">
-                            {related.image_url ? (
-                              <Image src={related.image_url} alt={related.name} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
-                            ) : (
-                              <div className="flex h-full items-center justify-center text-slate-600">
-                                <Leaf className="h-8 w-8" />
-                              </div>
-                            )}
-                          </div>
-                          <p className="font-bold text-slate-200 text-sm line-clamp-1">{related.name}</p>
-                          <div className="mt-auto pt-2 flex flex-wrap gap-1">
-                             <span className="text-[10px] bg-teal-950/40 text-teal-400 px-2 py-0.5 rounded border border-teal-900/50">{related.plant_type}</span>
-                             <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">{related.placement}</span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
