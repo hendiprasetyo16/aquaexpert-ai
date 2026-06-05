@@ -139,14 +139,24 @@ export default function PlantDetailPage() {
   // ==========================================
   // HELPER TRANSLASI UNTUK EDUKASI
   // ==========================================
+  
+  // DIPERBARUI: Warna Psikologis untuk Beginner Score
   const renderStars = (score: number | null) => {
     if (!score) return "N/A";
     const filled = "★".repeat(score);
     const empty = "☆".repeat(10 - score);
+    
+    let colorClass = "text-red-500"; // 1-4 (Hard)
+    if (score >= 9) colorClass = "text-green-400"; // 9-10 (Very Easy)
+    else if (score >= 7) colorClass = "text-blue-400"; // 7-8 (Easy)
+    else if (score >= 5) colorClass = "text-yellow-400"; // 5-6 (Medium)
+
     return (
       <div className="flex flex-col items-center">
-        <span className="text-[11px] tracking-widest text-yellow-500 mb-0.5">{filled}<span className="text-slate-600">{empty}</span></span>
-        <span className="text-xl font-black text-white">{score}/10</span>
+        <span className={`text-[11px] tracking-widest mb-0.5 ${colorClass}`}>
+          {filled}<span className="text-slate-600">{empty}</span>
+        </span>
+        <span className={`text-xl font-black ${colorClass}`}>{score}/10</span>
       </div>
     );
   };
@@ -192,6 +202,18 @@ export default function PlantDetailPage() {
     return getIndoLevelCore(level);
   };
 
+  // DIPERBARUI: Warna Psikologis untuk Placement
+  const getPlacementBadgeStyle = (placement: string | null | undefined) => {
+    if (!placement) return "bg-slate-800/50 border-slate-700 text-slate-200";
+    const p = placement.toLowerCase();
+    if (p === "foreground") return "bg-green-950/30 border-green-900/50 text-green-300"; // Depan -> Hijau
+    if (p === "midground") return "bg-blue-950/30 border-blue-900/50 text-blue-300"; // Tengah -> Biru
+    if (p === "background") return "bg-purple-950/30 border-purple-900/50 text-purple-300"; // Belakang -> Ungu
+    if (p === "epiphyte") return "bg-orange-950/30 border-orange-900/50 text-orange-300"; // Tempel -> Orange
+    if (p === "floating") return "bg-cyan-950/30 border-cyan-900/50 text-cyan-300"; // Apung -> Cyan
+    return "bg-slate-800/50 border-slate-700 text-slate-200";
+  };
+
   const getPlacementDesc = (placement: string | null | undefined) => {
     if (!placement) return "";
     const p = placement.toLowerCase();
@@ -203,7 +225,15 @@ export default function PlantDetailPage() {
     return "";
   };
 
-  // DIPERBARUI: Mengembalikan rentang ukuran langsung dalam kurung
+  const getGrowthDesc = (growth: string | null | undefined) => {
+    const g = (growth || "").toLowerCase();
+    if (g.includes("slow")) return "Jarang butuh pangkas.";
+    if (g.includes("moderate") || g.includes("medium")) return "Perawatan standar.";
+    if (g.includes("aggressive") || g.includes("fast")) return "Wajib sering dipangkas.";
+    return "Tumbuh wajar.";
+  };
+
+  // DIPERBARUI: Menghapus kata "Lebar" agar ringkas
   const getTankSizeDesc = (size: string) => {
     const s = size.toLowerCase();
     if (s === "nano") return "(≤ 40 cm)";
@@ -356,34 +386,34 @@ export default function PlantDetailPage() {
 
                   <div className="flex flex-row gap-3 w-full sm:w-auto justify-center">
                     {/* KESULITAN */}
-                    <div className={`flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg border ${
+                    <div className={`flex flex-col items-center justify-center w-[130px] px-2 py-2 rounded-lg border shadow-sm ${
                       plant.difficulty?.toLowerCase() === 'easy' ? 'bg-green-950/20 border-green-900/50' :
                       plant.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-950/20 border-yellow-900/50' :
                       plant.difficulty?.toLowerCase() === 'hard' ? 'bg-red-950/20 border-red-900/50' :
                       'bg-slate-800 border-slate-700'
                     }`}>
-                      <span className={`text-sm font-black uppercase tracking-widest ${
+                      <span className={`text-base font-black uppercase tracking-widest ${
                         plant.difficulty?.toLowerCase() === 'easy' ? 'text-green-400' :
                         plant.difficulty?.toLowerCase() === 'medium' ? 'text-yellow-400' :
                         plant.difficulty?.toLowerCase() === 'hard' ? 'text-red-400' : 'text-slate-300'
                       }`}>
                         {plant.difficulty || "Unknown"}
                       </span>
-                      <span className="text-[11px] text-slate-400 mt-0.5">{getIndoLevelCore(plant.difficulty)}</span>
+                      <span className="text-[12px] text-slate-400 mt-0.5 font-medium">{getIndoLevelCore(plant.difficulty)}</span>
                     </div>
                     
-                    {/* PENEMPATAN */}
-                    <div className="flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg bg-slate-800/50 border border-slate-700">
-                      <span className="text-sm font-black uppercase tracking-widest text-slate-200">
+                    {/* PENEMPATAN DENGAN WARNA PSIKOLOGIS */}
+                    <div className={`flex flex-col items-center justify-center w-[130px] px-2 py-2 rounded-lg border shadow-sm ${getPlacementBadgeStyle(plant.placement)}`}>
+                      <span className="text-base font-black uppercase tracking-widest">
                         {plant.placement || "Unknown"}
                       </span>
-                      <span className="text-[11px] text-slate-400 mt-0.5">{getPlacementDesc(plant.placement)}</span>
+                      <span className="text-[11px] opacity-80 mt-0.5 font-medium">{getPlacementDesc(plant.placement)}</span>
                     </div>
                   </div>
 
                 </div>
                 
-                {/* TAGS KECOCOKAN DENGAN KETERANGAN DI BAWAHNYA */}
+                {/* TAGS KECOCOKAN */}
                 {plant.recommended_for && plant.recommended_for.length > 0 && (
                   <div className="mt-8 border-t border-slate-800 pt-5">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Kecocokan Ekosistem</p>
@@ -456,7 +486,7 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
-                {/* SIFAT, STYLE, TANK */}
+                {/* SIFAT, STYLE, TANK (Dipisah per baris) */}
                 <div className="grid sm:grid-cols-3 gap-4 border-t border-slate-800 pt-6 mt-6">
                   
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
@@ -496,8 +526,8 @@ export default function PlantDetailPage() {
                       {plant.tank_size_recommendation && plant.tank_size_recommendation.length > 0 ? (
                         plant.tank_size_recommendation.map(size => (
                           <div key={size} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner">
-                            <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider mb-1.5">{size}</span>
-                            <span className="text-[12px] text-slate-400 leading-snug font-medium">{getTankSizeDesc(size)}</span>
+                            <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider">{size}</span>
+                            <span className="text-[12px] text-slate-400 leading-snug font-medium mt-1">{getTankSizeDesc(size)}</span>
                           </div>
                         ))
                       ) : <span className="text-sm text-slate-500 italic p-3">Bebas semua ukuran.</span>}
@@ -523,7 +553,6 @@ export default function PlantDetailPage() {
             <Card className="border-slate-800 bg-slate-900/60 shadow-xl h-fit">
               <CardContent className="p-8 space-y-10">
                 
-                {/* ENSIKLOPEDIA BOTANI */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
                     <Info className="h-5 w-5 text-teal-500" /> Ensiklopedia Karakteristik
@@ -533,12 +562,12 @@ export default function PlantDetailPage() {
                   </p>
                 </div>
 
-                {/* PARAMETER AIR (KOTAK RAPI DENGAN SEPARATOR) */}
+                {/* PARAMETER AIR (CO2 Mandatory ditampilkan di sini) */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Kebutuhan Lingkungan Optimal</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     
-                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-sm text-center">
+                    <div className="flex flex-col bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm text-center">
                       <div className="flex items-center justify-center gap-2 mb-3">
                         <Sun className="h-4 w-4 text-yellow-500" />
                         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Cahaya</span>
@@ -552,8 +581,7 @@ export default function PlantDetailPage() {
                       </div>
                     </div>
                     
-                    {/* MENAMPILKAN CO2 REQUIREMENT DAN CO2 MANDATORY */}
-                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-sm text-center">
+                    <div className="flex flex-col bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm text-center">
                       <div className="flex items-center justify-center gap-2 mb-3">
                         <Wind className="h-4 w-4 text-blue-400" />
                         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Injeksi CO2</span>
@@ -562,8 +590,8 @@ export default function PlantDetailPage() {
                         <span className="text-lg font-black text-slate-200 uppercase tracking-widest">{plant.co2_requirement || "N/A"}</span>
                         <span className="text-[12px] text-blue-400/80 font-medium mt-0.5">({getIndoLevelCore(plant.co2_requirement)})</span>
                       </div>
-
-                      {/* BADGE CO2 MANDATORY */}
+                      
+                      {/* LENCANA CO2 MANDATORY */}
                       {plant.co2_mandatory === true && (
                         <div className="mt-2.5 rounded-md bg-red-950/40 border border-red-900/50 px-2 py-1.5 text-[11px] font-bold text-red-400">
                           🔴 WAJIB CO2
@@ -580,7 +608,7 @@ export default function PlantDetailPage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-sm text-center">
+                    <div className="flex flex-col bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm text-center">
                       <div className="flex items-center justify-center gap-2 mb-3">
                         <Thermometer className="h-4 w-4 text-orange-500" />
                         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Suhu Air</span>
@@ -596,7 +624,7 @@ export default function PlantDetailPage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-sm text-center">
+                    <div className="flex flex-col bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm text-center">
                       <div className="flex items-center justify-center gap-2 mb-3">
                         <FlaskConical className="h-4 w-4 text-purple-400" />
                         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Kadar pH</span>
@@ -615,7 +643,7 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
-                {/* BAGIAN KARAKTERISTIK FISIK (KOTAK RAPI DENGAN SEPARATOR) */}
+                {/* BAGIAN KARAKTERISTIK FISIK */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Profil Biologi Tambahan</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
