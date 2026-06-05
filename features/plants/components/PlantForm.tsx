@@ -578,7 +578,10 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               <div className="space-y-2">
                 <Label className="text-slate-300">Sifat Penyebaran (Growth Control)</Label>
                 <select name="growth_control" value={formData.growth_control} onChange={handleChange} className="h-10 w-full rounded-md border border-teal-800/50 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
-                  <option value="Slow">Slow (Terpusat)</option><option value="Moderate">Moderate (Wajar)</option><option value="Aggressive">Aggressive (Menyebar Liar)</option>
+                  <option value="Slow">Slow (Terpusat)</option>
+                  <option value="Moderate">Moderate (Wajar)</option>
+                  <option value="Fast">Fast (Cepat)</option>
+                  <option value="Aggressive">Aggressive (Menyebar Liar)</option>
                 </select>
               </div>
             </div>
