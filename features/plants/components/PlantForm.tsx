@@ -20,8 +20,8 @@ interface PlantFormProps {
   plant?: Plant;
 }
 
-// Opsi statis untuk Checkbox
-const TANK_SIZES = ["Nano (≤40cm)", "Small (45-60cm)", "Medium (60-90cm)", "Large (90-120cm)", "Extra Large (>120cm)"];
+// Opsi statis untuk Checkbox (SUDAH DIPERBAIKI)
+const TANK_SIZES = ["Nano", "Small", "Medium", "Large", "Extra Large"];
 const AQUASCAPE_STYLES = ["Nature", "Dutch", "Iwagumi", "Jungle", "Biotope", "Taiwan"];
 const RECOMMENDATIONS = [
   "Pemula", "Low Tech", "High Tech", "Shrimp Tank", "Nano Tank", 
@@ -29,6 +29,24 @@ const RECOMMENDATIONS = [
   "Paludarium", "Blackwater", "Discus Tank", "Aquascape Contest", 
   "Breeding Tank", "Low Light Setup", "CO2 Setup"
 ];
+
+// Helper untuk Subteks di Checkbox Form
+const getTankSizeLabel = (size: string) => {
+  switch (size) {
+    case "Nano":
+      return "≤ 40 cm • 10–30 Liter";
+    case "Small":
+      return "45–60 cm • 30–60 Liter";
+    case "Medium":
+      return "60–90 cm • 60–150 Liter";
+    case "Large":
+      return "90–120 cm • 150–300 Liter";
+    case "Extra Large":
+      return "> 120 cm • > 300 Liter";
+    default:
+      return "";
+  }
+};
 
 export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   const router = useRouter();
@@ -48,7 +66,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   // TRACKING GAMBAR YANG HARUS DIHAPUS DARI STORAGE MENGGUNAKAN useRef
   const imagesToDeleteRef = useRef<string[]>([]);
 
-  // V2: FIELD EXPERT ENGINE (Ubah aquascape_style, tank_size, & recommended_for menjadi Array + co2_mandatory)
+  // V2: FIELD EXPERT ENGINE
   const [formData, setFormData] = useState({
     name: "", scientific_name: "", placement: "Midground", difficulty: "Easy", 
     light_requirement: "Medium", co2_requirement: "Low", fertilizer_requirement: "Medium",
@@ -58,7 +76,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     recommended_for: [] as string[], 
     plant_type: "Stem", beginner_score: "", maintenance_level: "Medium",
     carpet_potential: false, shrimp_safe: true, growth_control: "Moderate",
-    co2_mandatory: false, // FIELD BARU
+    co2_mandatory: false,
     aquascape_style: [] as string[], 
     tank_size_recommendation: [] as string[], 
     expert_notes: ""
@@ -85,7 +103,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         carpet_potential: plant.carpet_potential || false,
         shrimp_safe: plant.shrimp_safe !== false, 
         growth_control: plant.growth_control || "Moderate",
-        co2_mandatory: plant.co2_mandatory || false, // BINDING KE STATE
+        co2_mandatory: plant.co2_mandatory || false,
         tank_size_recommendation: plant.tank_size_recommendation || [], 
         expert_notes: plant.expert_notes || ""
       });
@@ -135,7 +153,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       setCoverFile(file);
       setCoverPreview(URL.createObjectURL(file));
 
-      // Jika sebelumnya ada cover lama dari DB, masukkan ke daftar hapus via useRef
       if (
         mode === "edit" &&
         plant?.image_url &&
@@ -175,7 +192,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   function removeExistingGallery(index: number) {
     const urlToRemove = existingGallery[index];
     
-    // Gunakan useRef untuk melacak file yang dihapus
     if (!imagesToDeleteRef.current.includes(urlToRemove)) {
       imagesToDeleteRef.current.push(urlToRemove);
     }
@@ -191,7 +207,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     e.preventDefault();
     if (loading) return;
 
-    // --- ARRAY ROLLBACK: Melacak semua file baru yang sukses di-upload ---
     const uploadedImagesToRollback: string[] = [];
 
     try {
@@ -216,7 +231,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       let finalCoverUrl = mode === "edit" ? (plant?.image_url || "") : "";
       let finalGalleryUrls = [...existingGallery];
 
-      // Fix Slug agar tidak buat folder baru jika direname saat mode edit
       const plantSlug =
         mode === "edit"
           ? plant?.slug ||
@@ -232,14 +246,14 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       // 1. UPLOAD COVER BARU
       if (coverFile) {
         finalCoverUrl = await uploadPlantImage(coverFile, plantSlug, `cover`);
-        uploadedImagesToRollback.push(finalCoverUrl); // Catat untuk potensi rollback
+        uploadedImagesToRollback.push(finalCoverUrl);
       }
 
       // 2. UPLOAD GALLERY BARU
       for (let i = 0; i < newGallery.length; i++) {
          const gUrl = await uploadPlantImage(newGallery[i].file, plantSlug, `gallery`);
          finalGalleryUrls.push(gUrl);
-         uploadedImagesToRollback.push(gUrl); // Catat untuk potensi rollback
+         uploadedImagesToRollback.push(gUrl);
       }
 
       const payload: Partial<Plant> = {
@@ -270,7 +284,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         carpet_potential: formData.carpet_potential,
         shrimp_safe: formData.shrimp_safe,
         growth_control: formData.growth_control,
-        co2_mandatory: formData.co2_mandatory, // PENAMBAHAN PAYLOAD BARU
+        co2_mandatory: formData.co2_mandatory,
         tank_size_recommendation: formData.tank_size_recommendation.length > 0 ? formData.tank_size_recommendation : null,
         expert_notes: formData.expert_notes
       };
@@ -286,7 +300,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         toast.success("Data tanaman berhasil diperbarui!");
       }
 
-      // 4. CLEANUP STORAGE: Eksekusi hapus file lama HANYA JIKA save DB sukses
+      // 4. CLEANUP STORAGE
       for (const urlToDelete of imagesToDeleteRef.current) {
         try {
           await removePlantImage(urlToDelete);
@@ -295,7 +309,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         }
       }
       
-      // Reset ref setelah cleanup
       imagesToDeleteRef.current = [];
 
       router.push("/dashboard/plants");
@@ -306,9 +319,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       setError(err?.message || "Terjadi kesalahan saat menyimpan data.");
       toast.error(err?.message || "Terjadi kesalahan saat menyimpan data.");
       
-      // --- LOGIKA ROLLBACK STORAGE ---
       if (uploadedImagesToRollback.length > 0) {
-        console.log("Melakukan rollback pada file yang baru diupload...", uploadedImagesToRollback);
         for (const orphanUrl of uploadedImagesToRollback) {
           await removePlantImage(orphanUrl);
         }
@@ -623,10 +634,20 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               <div className="space-y-3 bg-slate-950/50 p-4 rounded-lg border border-teal-900/30">
                 <Label className="text-slate-300 font-medium">Rekomendasi Ukuran Tank</Label>
                 <div className="grid grid-cols-2 gap-3">
+                  {/* DIPERBARUI: TAMPILAN CHECKBOX LEBIH INFORMATIF UNTUK TANK SIZE */}
                   {TANK_SIZES.map(size => (
-                    <label key={size} className="flex items-center gap-2 cursor-pointer group">
-                      <input type="checkbox" value={size} checked={formData.tank_size_recommendation.includes(size)} onChange={(e) => handleArrayCheckboxChange(e, "tank_size_recommendation")} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900 cursor-pointer" />
-                      <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">{size}</span>
+                    <label key={size} className="flex items-start gap-2 cursor-pointer group">
+                      <input 
+                        type="checkbox" 
+                        value={size} 
+                        checked={formData.tank_size_recommendation.includes(size)} 
+                        onChange={(e) => handleArrayCheckboxChange(e, "tank_size_recommendation")} 
+                        className="mt-1 h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900 cursor-pointer" 
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-sm text-slate-300 font-medium group-hover:text-teal-400 transition-colors">{size}</span>
+                        <span className="text-[10px] text-slate-500 whitespace-pre-line">{getTankSizeLabel(size)}</span>
+                      </div>
                     </label>
                   ))}
                 </div>
@@ -645,7 +666,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               </div>
             </div>
 
-            {/* PERBAIKAN: TAMBAHAN BOOLEAN CO2 MANDATORY DI SAMPING CARPET & SHRIMP */}
             <div className="flex flex-wrap gap-6 mt-4 p-4 bg-slate-950/50 rounded-lg border border-teal-900/30">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" name="carpet_potential" checked={formData.carpet_potential} onChange={handleChange} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900" />
@@ -653,7 +673,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" name="shrimp_safe" checked={formData.shrimp_safe} onChange={handleChange} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900" />
-                <span className="text-sm font-medium text-slate-300">Aman untuk Udang (Shrimp Safe)</span>
+                <span className="text-sm font-medium text-slate-300">Aman untuk Udang</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" name="co2_mandatory" checked={formData.co2_mandatory} onChange={handleChange} className="h-4 w-4 accent-red-600 rounded border-slate-700 bg-slate-900" />
