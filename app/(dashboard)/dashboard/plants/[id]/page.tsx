@@ -39,8 +39,7 @@ export default function PlantDetailPage() {
   // STATE UNTUK SWIPE & PINCH MOBILE
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  // Menyimpan jarak awal antara dua jari saat mencubit
-  const [initialPinchDistance, setInitialPinchDistance] = useState<number | null>(null); 
+  const [initialPinchDistance, setInitialPinchDistance] = useState<number | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -88,60 +87,45 @@ export default function PlantDetailPage() {
     }
   };
 
-  // --- MOBILE TOUCH HANDLERS (DISEMPURNAKAN UNTUK PINCH & SWIPE) ---
+  // MOBILE TOUCH HANDLERS (SWIPE & PINCH TO ZOOM)
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
-      // Usapan satu jari (Mulai Swipe)
       setTouchEnd(null);
       setTouchStart(e.targetTouches[0].clientX);
       setInitialPinchDistance(null);
     } else if (e.touches.length === 2) {
-      // Sentuhan dua jari (Mulai Pinch/Cubit)
-      const touch1 = e.touches[0];
-      const touch2 = e.touches[1];
-      const distance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
+      const distance = Math.hypot(
+        e.touches[1].clientX - e.touches[0].clientX, 
+        e.touches[1].clientY - e.touches[0].clientY
+      );
       setInitialPinchDistance(distance);
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length === 1 && scale === 1) {
-      // Menggeser satu jari HANYA jika tidak di-zoom (Merekam gerakan Swipe)
       setTouchEnd(e.targetTouches[0].clientX);
     } else if (e.touches.length === 2 && initialPinchDistance !== null) {
-      // Menggeser dua jari (Mengeksekusi Pinch-to-Zoom)
-      // Mencegah browser melakukan scroll default
-      if (e.cancelable) e.preventDefault(); 
-      
-      const touch1 = e.touches[0];
-      const touch2 = e.touches[1];
-      const currentDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
-      
-      // Menghitung rasio perbesaran berdasarkan rentang jari
+      const currentDistance = Math.hypot(
+        e.touches[1].clientX - e.touches[0].clientX, 
+        e.touches[1].clientY - e.touches[0].clientY
+      );
       const pinchRatio = currentDistance / initialPinchDistance;
-      // Membatasi zoom maksimal 5x, minimal 1x
       const newScale = Math.min(Math.max(1, scale * pinchRatio), 5);
       
       setScale(newScale);
-      setInitialPinchDistance(currentDistance); // Update titik awal untuk iterasi berikutnya
-      if (newScale === 1) setPosition({ x: 0, y: 0 }); // Reset posisi jika zoom out habis
+      setInitialPinchDistance(currentDistance);
+      if (newScale === 1) setPosition({ x: 0, y: 0 });
     }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (e.touches.length < 2) {
-      setInitialPinchDistance(null); // Selesai mencubit
-    }
+    if (e.touches.length < 2) setInitialPinchDistance(null);
 
     if (scale === 1 && touchStart !== null && touchEnd !== null) {
-      // Mengevaluasi hasil Swipe
       const distance = touchStart - touchEnd;
-      const minSwipeDistance = 50; 
-      
-      if (distance > minSwipeDistance) nextImage(); // Swipe Kiri = Lanjut
-      if (distance < -minSwipeDistance) prevImage(); // Swipe Kanan = Mundur
-      
-      // Reset state swipe
+      if (distance > 50) nextImage(); // Swipe Kiri
+      if (distance < -50) prevImage(); // Swipe Kanan
       setTouchStart(null);
       setTouchEnd(null);
     }
@@ -190,14 +174,21 @@ export default function PlantDetailPage() {
           <div className="lg:col-span-4 space-y-6">
             <Card className="border-slate-800 bg-slate-900/60 overflow-hidden shadow-xl">
               
-              {/* COVER IMAGE MENGGUNAKAN NEXT/IMAGE */}
+              {/* COVER IMAGE MENGGUNAKAN NEXT/IMAGE (TEROPTIMASI) */}
               <div 
                 className={`h-72 w-full bg-slate-800 flex items-center justify-center relative group ${plant.image_url ? 'cursor-pointer' : ''}`}
                 onClick={() => plant.image_url && openLightbox(plant.image_url)}
               >
                 {plant.image_url ? (
                   <>
-                    <Image src={plant.image_url} alt={`Cover ${plant.name}`} fill className="object-cover transition-transform duration-700 group-hover:scale-105" sizes="(max-width: 768px) 100vw, 33vw" priority />
+                    <Image 
+                      src={plant.image_url} 
+                      alt={`Cover ${plant.name}`} 
+                      fill 
+                      priority // Mencegah LCP Warning
+                      sizes="(max-width: 768px) 100vw, 33vw" // Mencegah sizes Warning
+                      className="object-cover transition-transform duration-700 group-hover:scale-105" 
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 transition-opacity duration-300"></div>
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 pointer-events-none">
                       <Maximize2 className="h-10 w-10 text-white drop-shadow-md scale-75 group-hover:scale-100 transition-transform" />
@@ -211,7 +202,7 @@ export default function PlantDetailPage() {
                 )}
               </div>
 
-              {/* THUMBNAIL GALERI MENGGUNAKAN NEXT/IMAGE */}
+              {/* THUMBNAIL GALERI MENGGUNAKAN NEXT/IMAGE (TEROPTIMASI) */}
               {plant.gallery_urls && plant.gallery_urls.length > 0 && (
                 <div className={`grid gap-1 p-1 bg-slate-950 ${plant.gallery_urls.length > 3 ? 'grid-cols-4' : 'grid-cols-3'}`}>
                   {plant.gallery_urls.map((url, idx) => (
@@ -220,7 +211,13 @@ export default function PlantDetailPage() {
                       className="aspect-square relative group cursor-pointer overflow-hidden rounded-sm bg-slate-800"
                       onClick={() => openLightbox(url)}
                     >
-                      <Image src={url} alt={`Gallery ${idx + 1}`} fill className="object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100" sizes="(max-width: 768px) 33vw, 25vw" />
+                      <Image 
+                        src={url} 
+                        alt={`Gallery ${idx + 1}`} 
+                        fill 
+                        sizes="(max-width: 768px) 25vw, 15vw" // Mencegah sizes Warning
+                        className="object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100" 
+                      />
                       <div className="absolute inset-0 bg-teal-500/0 group-hover:bg-teal-500/20 transition-colors duration-300 pointer-events-none"></div>
                     </div>
                   ))}
@@ -251,7 +248,7 @@ export default function PlantDetailPage() {
                 
                 {plant.recommended_for && plant.recommended_for.length > 0 && (
                   <div className="mt-6">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3 border-b border-slate-800 pb-2">Rekomendasi Setup</p>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3 border-b border-slate-800 pb-2">Rekomendasi Tambahan</p>
                     <div className="flex flex-wrap justify-center gap-2">
                       {plant.recommended_for.map(tag => (
                         <span key={tag} className="flex items-center gap-1.5 rounded-md bg-slate-800/80 px-2.5 py-1.5 text-[11px] font-medium text-slate-300 border border-slate-700">
@@ -276,7 +273,6 @@ export default function PlantDetailPage() {
               </div>
               <CardContent className="p-6 space-y-6">
                 
-                {/* 4 Expert Badges */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-slate-900/80 p-3 rounded-lg border border-slate-800 text-center">
                     <p className="text-[10px] uppercase text-slate-500 font-bold mb-1">Beginner Score</p>
@@ -305,7 +301,6 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
-                {/* Tags, Growth, and Tank Size */}
                 <div className="grid sm:grid-cols-3 gap-4">
                   <div>
                     <p className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1.5"><Activity className="h-3.5 w-3.5"/> Growth Control</p>
@@ -335,7 +330,6 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
-                {/* Expert Notes */}
                 {plant.expert_notes && (
                   <div className="mt-4 bg-teal-950/30 border-l-4 border-teal-500 p-4 rounded-r-lg">
                     <p className="text-sm text-teal-100/90 italic leading-relaxed">
@@ -361,19 +355,19 @@ export default function PlantDetailPage() {
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Parameter Lingkungan Optimal</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800 transition-colors hover:border-teal-900/50">
                       <div className="flex items-center gap-2 mb-2"><Sun className="h-5 w-5 text-yellow-500" /><span className="text-xs font-semibold text-slate-400 uppercase">Cahaya</span></div>
                       <span className="text-base font-medium text-slate-200">{plant.light_requirement || "N/A"}</span>
                     </div>
-                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800 transition-colors hover:border-teal-900/50">
                       <div className="flex items-center gap-2 mb-2"><Wind className="h-5 w-5 text-blue-400" /><span className="text-xs font-semibold text-slate-400 uppercase">Kebutuhan CO2</span></div>
                       <span className="text-base font-medium text-slate-200">{plant.co2_requirement || "N/A"}</span>
                     </div>
-                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800 transition-colors hover:border-teal-900/50">
                       <div className="flex items-center gap-2 mb-2"><Thermometer className="h-5 w-5 text-orange-500" /><span className="text-xs font-semibold text-slate-400 uppercase">Suhu Air</span></div>
                       <span className="text-base font-medium text-slate-200">{plant.temperature_min && plant.temperature_max ? `${plant.temperature_min}° - ${plant.temperature_max}°C` : "N/A"}</span>
                     </div>
-                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800 transition-colors hover:border-teal-900/50">
                       <div className="flex items-center gap-2 mb-2"><FlaskConical className="h-5 w-5 text-purple-400" /><span className="text-xs font-semibold text-slate-400 uppercase">Kadar pH</span></div>
                       <span className="text-base font-medium text-slate-200">{plant.ph_min && plant.ph_max ? `${plant.ph_min} - ${plant.ph_max}` : "N/A"}</span>
                     </div>
@@ -449,7 +443,6 @@ export default function PlantDetailPage() {
             onMouseUp={(e) => { e.stopPropagation(); setIsDragging(false); }}
             onMouseLeave={(e) => { if (isDragging) { e.stopPropagation(); setIsDragging(false); } }}
           >
-            {/* Native img untuk interaktifitas zoom/pan yang ringan */}
             <img src={allImages[lightboxIndex]} alt="Detail Gambar" draggable={false} style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`, transition: isDragging ? 'none' : 'transform 0.2s ease-out', cursor: isDragging ? 'grabbing' : (scale > 1 ? 'grab' : 'zoom-in') }} className="max-h-[85vh] w-auto max-w-[95vw] rounded-lg shadow-2xl object-contain border border-white/10" />
             
             {allImages.length > 1 && scale === 1 && (
