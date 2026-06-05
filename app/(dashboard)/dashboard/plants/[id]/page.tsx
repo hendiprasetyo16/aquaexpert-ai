@@ -256,15 +256,45 @@ export default function PlantDetailPage() {
   };
 
   // DIPERBARUI: Pastikan format object, kembalikan size_cm dan liter.
-  const getTankSizeDetails = (size: string) => {
-    const s = size.toLowerCase();
-    if (s.includes("nano")) return { size_cm: "≤ 40 cm", liter: "10–30 Liter" };
-    if (s.includes("small")) return { size_cm: "40–60 cm", liter: "30–60 Liter" };
-    if (s.includes("medium")) return { size_cm: "60–90 cm", liter: "60–150 Liter" };
-    if (s.includes("large")) return { size_cm: "90–120 cm", liter: "150–300 Liter" };
-    if (s.includes("xl") || s.includes("extra")) return { size_cm: "> 120 cm", liter: "> 300 Liter" };
-    return { size_cm: "Bervariasi", liter: "Sesuai kebutuhan" };
+const getTankSizeDetails = (size: string) => {
+  const s = size.trim().toLowerCase();
+
+  if (s.includes("nano"))
+    return {
+      size_cm: "≤ 40 cm",
+      liter: "10–30 Liter",
+    };
+
+  if (s.includes("small"))
+    return {
+      size_cm: "40–60 cm",
+      liter: "30–60 Liter",
+    };
+
+  if (s.includes("medium"))
+    return {
+      size_cm: "60–90 cm",
+      liter: "60–150 Liter",
+    };
+
+  // WAJIB DI ATAS LARGE
+  if (s.includes("extra"))
+    return {
+      size_cm: "> 120 cm",
+      liter: "> 300 Liter",
+    };
+
+  if (s.includes("large"))
+    return {
+      size_cm: "90–120 cm",
+      liter: "150–300 Liter",
+    };
+
+  return {
+    size_cm: "Bervariasi",
+    liter: "Sesuai kebutuhan",
   };
+};
 
   const getStyleDesc = (style: string) => {
     const s = style.toLowerCase();
