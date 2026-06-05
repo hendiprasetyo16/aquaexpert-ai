@@ -10,7 +10,7 @@ import Image from "next/image";
 import { 
   Loader2, ArrowLeft, ArrowRight, Leaf, Edit, Droplets, Wind, Sun, 
   Thermometer, FlaskConical, MapPin, Ruler, CheckCircle2, Maximize2, X, Info, ImageIcon,
-  ChevronLeft, ChevronRight, Brain, ShieldCheck, Scissors, Activity, Target, Box
+  ChevronLeft, ChevronRight, Brain, ShieldCheck, Scissors, Activity, Target, Box, BookOpen
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
@@ -235,19 +235,25 @@ export default function PlantDetailPage() {
     return "Tipe tanaman akuatik standar.";
   };
 
+  // Diperbarui agar selaras dengan tag terbaru
   const getRecommendedDesc = (tag: string) => {
     const t = tag.toLowerCase();
-    if (t.includes("low tech")) return "Tanpa Injeksi CO2";
-    if (t.includes("mid tech")) return "Cahaya & CO2 Sedang";
-    if (t.includes("high tech")) return "Wajib CO2 & Cahaya Terang";
-    if (t.includes("beginner")) return "Aman Untuk Pemula";
-    if (t.includes("breeding tank")) return "Tempat Sembunyi Burayak";
+    if (t.includes("pemula")) return "Aman Untuk Pemula";
+    if (t.includes("low tech")) return "Tanpa Tabung CO2";
+    if (t.includes("high tech")) return "Butuh Tabung CO2 & Cahaya Kuat";
+    if (t.includes("shrimp tank")) return "Aman Untuk Udang Hias";
     if (t.includes("nano tank")) return "Cocok di Aquarium Mini (≤ 40cm)";
-    if (t.includes("top cover")) return "Peneduh Kolom Air";
-    if (t.includes("pond")) return "Bisa Hidup di Kolam";
-    if (t.includes("foreground")) return "Posisi Depan";
-    if (t.includes("midground")) return "Posisi Tengah";
-    if (t.includes("background")) return "Posisi Belakang";
+    if (t.includes("dutch style")) return "Kerapatan Tanaman Tinggi";
+    if (t.includes("nature style")) return "Meniru Alam Liar";
+    if (t.includes("betta tank")) return "Aman Untuk Ikan Cupang";
+    if (t.includes("community tank")) return "Aman Untuk Beragam Ikan";
+    if (t.includes("paludarium")) return "Tumbuh Ekstra Menjalar";
+    if (t.includes("blackwater")) return "Cahaya Redup, Air Asam";
+    if (t.includes("discus tank")) return "Suhu Air Hangat";
+    if (t.includes("aquascape contest")) return "Nilai Estetika Tinggi";
+    if (t.includes("breeding tank")) return "Tempat Sembunyi Burayak";
+    if (t.includes("low light setup")) return "Minim Cahaya";
+    if (t.includes("co2 setup")) return "Direkomendasikan CO2";
     return "Cocok untuk setup umum";
   };
 
@@ -382,17 +388,17 @@ export default function PlantDetailPage() {
 
                 </div>
                 
-                {/* TAGS KECOCOKAN */}
+                {/* TAGS KECOCOKAN DENGAN KETERANGAN DI BAWAHNYA */}
                 {plant.recommended_for && plant.recommended_for.length > 0 && (
                   <div className="mt-8 border-t border-slate-800 pt-5">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Kecocokan Ekosistem</p>
                     <div className="flex flex-wrap justify-center gap-2">
                       {plant.recommended_for.map(tag => (
-                        <div key={tag} className="flex flex-col bg-slate-800/80 px-3 py-2 rounded-md border border-slate-700 shadow-sm text-center">
+                        <div key={tag} className="flex flex-col items-center bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700 shadow-sm min-w-[120px]">
                           <span className="flex items-center justify-center gap-1.5 text-[13px] font-bold text-slate-200 uppercase tracking-widest">
                             <CheckCircle2 className="h-3.5 w-3.5 text-teal-500" /> {tag}
                           </span>
-                          <span className="text-[11px] text-slate-400 mt-1 font-medium">{getRecommendedDesc(tag)}</span>
+                          <span className="text-[11px] text-slate-400 mt-1.5 font-medium">{getRecommendedDesc(tag)}</span>
                         </div>
                       ))}
                     </div>
@@ -455,9 +461,10 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
-                {/* SIFAT, STYLE, TANK */}
+                {/* SIFAT, STYLE, TANK (DUA BARIS DENGAN KOTAK TERPISAH) */}
                 <div className="grid sm:grid-cols-3 gap-4 border-t border-slate-800 pt-6 mt-6">
                   
+                  {/* Sifat Pertumbuhan */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Activity className="h-4 w-4 text-teal-500"/>
@@ -469,6 +476,7 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
+                  {/* Gaya Aquascape */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Target className="h-4 w-4 text-blue-500"/>
@@ -486,6 +494,7 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
+                  {/* Rekomendasi Tank */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Box className="h-4 w-4 text-orange-500"/>
@@ -522,6 +531,7 @@ export default function PlantDetailPage() {
             <Card className="border-slate-800 bg-slate-900/60 shadow-xl h-fit">
               <CardContent className="p-8 space-y-10">
                 
+                {/* ENSIKLOPEDIA BOTANI */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
                     <Info className="h-5 w-5 text-teal-500" /> Ensiklopedia Karakteristik
@@ -543,13 +553,14 @@ export default function PlantDetailPage() {
                       </div>
                       <div className="flex flex-col border-t border-slate-800 pt-3 mt-1">
                         <span className="text-lg font-black text-slate-200 uppercase tracking-widest">{plant.light_requirement || "N/A"}</span>
-                        <span className="text-[12px] text-yellow-500/80 font-medium mt-0.5">{getIndoLevelCore(plant.light_requirement)}</span>
+                        <span className="text-[12px] text-yellow-500/80 font-medium mt-0.5">({getIndoLevelCore(plant.light_requirement)})</span>
                       </div>
-                      <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight">
+                      <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight flex items-center justify-center h-full">
                         💡 {getIndoLevelDetail(plant.light_requirement, "light")}
                       </div>
                     </div>
                     
+                    {/* MENAMPILKAN CO2 REQUIREMENT DAN CO2 MANDATORY (Jika ada di database) */}
                     <div className="flex flex-col bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-sm text-center">
                       <div className="flex items-center justify-center gap-2 mb-3">
                         <Wind className="h-4 w-4 text-blue-400" />
@@ -557,9 +568,10 @@ export default function PlantDetailPage() {
                       </div>
                       <div className="flex flex-col border-t border-slate-800 pt-3 mt-1">
                         <span className="text-lg font-black text-slate-200 uppercase tracking-widest">{plant.co2_requirement || "N/A"}</span>
-                        <span className="text-[12px] text-blue-400/80 font-medium mt-0.5">{getIndoLevelCore(plant.co2_requirement)}</span>
+                        <span className="text-[12px] text-blue-400/80 font-medium mt-0.5">({getIndoLevelCore(plant.co2_requirement)})</span>
                       </div>
-                      <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight">
+                      {/* PENYESUAIAN PADA BAGIAN INI JIKA ADA FLAG MANDATORY ATAU DESKRIPSI LEBIH RINCI */}
+                      <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight flex items-center justify-center h-full">
                         💡 {getIndoLevelDetail(plant.co2_requirement, "co2")}
                       </div>
                     </div>
@@ -648,15 +660,32 @@ export default function PlantDetailPage() {
 
                   </div>
                   
-                  <div className="mt-8 flex flex-col sm:flex-row justify-between items-center gap-3">
-                    <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold border-b border-slate-800 pb-1">
-                      Terverifikasi oleh Database AquaExpert
-                    </span>
-                    {plant.source_url && (
-                      <a href={plant.source_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-teal-500 hover:text-teal-400 hover:bg-teal-950/30 transition-colors px-3 py-1.5 rounded-md border border-teal-900/50 flex items-center gap-1.5">
-                        Referensi Eksternal: {plant.source_name || "Link"}
-                      </a>
-                    )}
+                  {/* SUMBER REFERENSI YANG LEBIH MENONJOL (CARD TERSENDIRI) */}
+                  <div className="mt-8 border-t border-slate-800 pt-6">
+                    <div className="bg-slate-950/50 p-5 rounded-xl border border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-slate-900 p-2 rounded-md border border-slate-700">
+                          <BookOpen className="h-5 w-5 text-slate-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-200">Sumber Referensi / Literatur</p>
+                          <p className="text-xs text-slate-500 mt-0.5">Terverifikasi oleh Database AquaExpert</p>
+                        </div>
+                      </div>
+                      
+                      {plant.source_url ? (
+                        <a 
+                          href={plant.source_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-teal-400 hover:text-teal-300 text-sm font-medium px-4 py-2.5 rounded-lg border border-slate-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                        >
+                          Lihat Jurnal: {plant.source_name || "Link Eksternal"}
+                        </a>
+                      ) : (
+                        <span className="text-xs text-slate-500 italic bg-slate-900 px-3 py-1.5 rounded-md border border-slate-800">Internal Knowledge Base</span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
