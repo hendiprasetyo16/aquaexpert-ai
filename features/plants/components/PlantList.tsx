@@ -26,6 +26,9 @@ export default function PlantList() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
 
+  // FLAG GEMBOK MEMORI (MENCEGAH BUG RESET KE HALAMAN 1)
+  const [isHydrated, setIsHydrated] = useState(false);
+
   // 1. MENGAMBIL DATA DARI DATABASE
   useEffect(() => {
     async function loadData() {
@@ -57,16 +60,23 @@ export default function PlantList() {
 
     const savedSort = sessionStorage.getItem("plantSort");
     if (savedSort) setSortOrder(savedSort as "asc" | "desc");
+
+    // Buka Gembok SETELAH semua memori selesai dibaca
+    setIsHydrated(true);
   }, []);
 
   // 3. MENYIMPAN "INGATAN" SETIAP KALI USER MENGUBAH HALAMAN / FILTER
   useEffect(() => {
+    // JANGAN PERNAH menyimpan (menimpa) memori jika gembok belum terbuka (belum di-hydrated)
+    // Ini yang menyelesaikan bug kembali ke halaman 1!
+    if (!isHydrated) return;
+
     sessionStorage.setItem("plantPage", currentPage.toString());
     sessionStorage.setItem("plantSearch", searchQuery);
     sessionStorage.setItem("plantDiff", difficultyFilter);
     sessionStorage.setItem("plantPlace", placementFilter);
     sessionStorage.setItem("plantSort", sortOrder);
-  }, [currentPage, searchQuery, difficultyFilter, placementFilter, sortOrder]);
+  }, [currentPage, searchQuery, difficultyFilter, placementFilter, sortOrder, isHydrated]);
 
   // HANDLER: Agar saat mengetik / ganti filter, otomatis kembali ke Halaman 1
   const handleSearch = (val: string) => { setSearchQuery(val); setCurrentPage(1); };

@@ -20,7 +20,7 @@ export interface Plant {
   max_height_cm?: number | null; 
   origin_country?: string | null; 
   
-  recommended_for?: string[] | null; // Array untuk Knowledge Base
+  recommended_for?: string[] | null; 
   
   source_name?: string | null; 
   source_url?: string | null;
@@ -29,10 +29,22 @@ export interface Plant {
   image_url?: string | null;
   gallery_urls?: string[] | null;
 
+  // ==========================================
+  // AQUAEXPERT V2: EXPERT ENGINE ATTRIBUTES
+  // ==========================================
+  plant_type?: string | null;
+  aquascape_style?: string[] | null;
+  beginner_score?: number | null;
+  maintenance_level?: string | null;
+  carpet_potential?: boolean | null;
+  shrimp_safe?: boolean | null;
+  growth_control?: string | null;
+  tank_size_recommendation?: string[] | null;
+  expert_notes?: string | null;
+
   created_at: string;
   updated_at?: string | null;
   
-  // Status & Audit Trail
   is_active?: boolean;
   created_by?: string | null;
   updated_by?: string | null;

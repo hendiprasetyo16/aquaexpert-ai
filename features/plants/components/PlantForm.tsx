@@ -33,12 +33,12 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
 
-  // Karena struktur baru sangat komprehensif, kita tambahkan semua field CSV
+  // V2: DITAMBAHKAN 9 FIELD EXPERT ENGINE
   const [formData, setFormData] = useState({
     name: "",
     scientific_name: "",
     placement: "Midground",
-    difficulty: "Easy", // Disesuaikan dengan CSV
+    difficulty: "Easy", 
     light_requirement: "Medium",
     co2_requirement: "Low",
     fertilizer_requirement: "Medium",
@@ -53,11 +53,20 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     source_name: "Tropica", 
     source_url: "https://tropica.com",
     recommended_for: "", 
+    // Expert Fields
+    plant_type: "Stem",
+    aquascape_style: "",
+    beginner_score: "",
+    maintenance_level: "Medium",
+    carpet_potential: false,
+    shrimp_safe: true,
+    growth_control: "Moderate",
+    tank_size_recommendation: "",
+    expert_notes: ""
   });
 
   useEffect(() => {
     if (mode === "edit" && plant) {
-      // PERBAIKAN: Penanganan nilai number yang mungkin 0 atau null dengan lebih aman
       setFormData({
         name: plant.name || "",
         scientific_name: plant.scientific_name || "",
@@ -77,6 +86,16 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         source_name: plant.source_name || "",
         source_url: plant.source_url || "",
         recommended_for: plant.recommended_for?.join(", ") || "", 
+        // Expert Fields
+        plant_type: plant.plant_type || "Stem",
+        aquascape_style: plant.aquascape_style?.join(", ") || "",
+        beginner_score: plant.beginner_score != null ? plant.beginner_score.toString() : "",
+        maintenance_level: plant.maintenance_level || "Medium",
+        carpet_potential: plant.carpet_potential || false,
+        shrimp_safe: plant.shrimp_safe !== false, // Default true if null
+        growth_control: plant.growth_control || "Moderate",
+        tank_size_recommendation: plant.tank_size_recommendation?.join(", ") || "",
+        expert_notes: plant.expert_notes || ""
       });
 
       if (plant.image_url) setCoverPreview(plant.image_url);
@@ -84,8 +103,15 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     }
   }, [plant, mode]);
 
+  // HANDLER: UPDATE UNTUK MENDUKUNG CHECKBOX (BOOLEAN)
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value, type } = e.target;
+    if (type === "checkbox") {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData({ ...formData, [name]: checked });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   }
 
   // HANDLER: UPLOAD COVER IMAGE
@@ -119,11 +145,9 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         toast.error("Beberapa gambar diabaikan karena format tidak valid atau melebihi 2MB.");
       }
 
-      // Gabungkan dengan file yang sudah ada, batasi maksimal 3
       const totalFiles = [...galleryFiles, ...newValidFiles].slice(0, 3);
       setGalleryFiles(totalFiles);
       
-      // Buat previews (gabungan URL lokal untuk file baru dan URL string untuk file lama)
       const newPreviews = newValidFiles.map(f => URL.createObjectURL(f));
       const totalPreviews = [...galleryPreviews.filter(p => !p.startsWith('blob:')), ...newPreviews].slice(0, 3);
       setGalleryPreviews(totalPreviews);
@@ -168,16 +192,13 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       let finalCoverUrl = plant?.image_url || "";
       let finalGalleryUrls = [...(plant?.gallery_urls || [])];
 
-      // Generate slug standar dari nama yang diinput
       const plantSlug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
-      // 1. Upload Cover (Gunakan ekstensi webp sebagai standar/default jika bisa, atau ambil aslinya)
       if (coverFile) {
         const ext = coverFile.name.split(".").pop(); 
         finalCoverUrl = await uploadPlantImage(coverFile, plantSlug, `cover.${ext}`);
       }
 
-      // 2. Upload Gallery (Looping maks 3)
       if (galleryFiles.length > 0) {
         for (let i = 0; i < galleryFiles.length; i++) {
            const ext = galleryFiles[i].name.split(".").pop();
@@ -187,8 +208,9 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         finalGalleryUrls = finalGalleryUrls.slice(0, 3);
       }
 
-      const payloadArrayRecommended = formData.recommended_for
-        .split(",").map((item) => item.trim()).filter((item) => item.length > 0);
+      const payloadArrayRecommended = formData.recommended_for.split(",").map((item) => item.trim()).filter(Boolean);
+      const payloadStyle = formData.aquascape_style.split(",").map((item) => item.trim()).filter(Boolean);
+      const payloadTank = formData.tank_size_recommendation.split(",").map((item) => item.trim()).filter(Boolean);
 
       const payload: Partial<Plant> = {
         name: cleanName,
@@ -208,9 +230,19 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         description: formData.description,
         source_name: formData.source_name,
         source_url: formData.source_url,
-        recommended_for: payloadArrayRecommended,
+        recommended_for: payloadArrayRecommended.length > 0 ? payloadArrayRecommended : null,
         image_url: finalCoverUrl,
         gallery_urls: finalGalleryUrls.length > 0 ? finalGalleryUrls : [],
+        // Payload Expert Fields V2
+        plant_type: formData.plant_type,
+        aquascape_style: payloadStyle.length > 0 ? payloadStyle : null,
+        beginner_score: formData.beginner_score ? parseInt(formData.beginner_score) : null,
+        maintenance_level: formData.maintenance_level,
+        carpet_potential: formData.carpet_potential,
+        shrimp_safe: formData.shrimp_safe,
+        growth_control: formData.growth_control,
+        tank_size_recommendation: payloadTank.length > 0 ? payloadTank : null,
+        expert_notes: formData.expert_notes
       };
 
       if (mode === "create") {
@@ -276,7 +308,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   }
 
   return (
-    <Card className="border-slate-800 bg-slate-900/60 shadow-xl max-w-4xl mx-auto">
+    <Card className="border-slate-800 bg-slate-900/60 shadow-xl max-w-4xl mx-auto mb-20">
       <CardContent className="p-4 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-8">
           
@@ -370,38 +402,38 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
             <div className="space-y-2">
               <Label className="text-slate-300">Posisi Penanaman</Label>
               <select name="placement" value={formData.placement} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
-                <option>Foreground</option><option>Midground</option><option>Background</option><option>Epiphyte</option><option>Floating</option>
+                <option value="Foreground">Foreground</option><option value="Midground">Midground</option><option value="Background">Background</option><option value="Epiphyte">Epiphyte</option><option value="Floating">Floating</option>
               </select>
             </div>
           </div>
 
-          {/* BAGIAN 3: PARAMETER PAKAR LENGKAP */}
+          {/* BAGIAN 3: PARAMETER AIR (WATER PARAMETERS) */}
           <div className="bg-slate-950/30 p-4 sm:p-6 rounded-xl border border-slate-800 space-y-6">
             <h3 className="text-lg font-bold text-slate-300 mb-2">Parameter Air & Perawatan</h3>
             
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">Cahaya</Label>
-                <select name="light_requirement" value={formData.light_requirement} onChange={handleChange} className="h-9 w-full rounded border border-slate-700 bg-slate-950 px-2 text-sm text-slate-200 outline-none">
-                  <option>Low</option><option>Medium</option><option>High</option>
+                <select name="light_requirement" value={formData.light_requirement} onChange={handleChange} className="h-9 w-full rounded border border-slate-700 bg-slate-950 px-2 text-sm text-slate-100 outline-none">
+                  <option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option>
                 </select>
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">Injeksi CO2</Label>
-                <select name="co2_requirement" value={formData.co2_requirement} onChange={handleChange} className="h-9 w-full rounded border border-slate-700 bg-slate-950 px-2 text-sm text-slate-200 outline-none">
-                  <option>Low</option><option>Medium</option><option>High</option>
+                <select name="co2_requirement" value={formData.co2_requirement} onChange={handleChange} className="h-9 w-full rounded border border-slate-700 bg-slate-950 px-2 text-sm text-slate-100 outline-none">
+                  <option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option>
                 </select>
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">Kebutuhan Nutrisi</Label>
-                <select name="fertilizer_requirement" value={formData.fertilizer_requirement} onChange={handleChange} className="h-9 w-full rounded border border-slate-700 bg-slate-950 px-2 text-sm text-slate-200 outline-none">
-                  <option>Low</option><option>Medium</option><option>High</option>
+                <select name="fertilizer_requirement" value={formData.fertilizer_requirement} onChange={handleChange} className="h-9 w-full rounded border border-slate-700 bg-slate-950 px-2 text-sm text-slate-100 outline-none">
+                  <option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option>
                 </select>
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">Laju Pertumbuhan</Label>
-                <select name="growth_rate" value={formData.growth_rate} onChange={handleChange} className="h-9 w-full rounded border border-slate-700 bg-slate-950 px-2 text-sm text-slate-200 outline-none">
-                  <option>Slow</option><option>Medium</option><option>Fast</option>
+                <select name="growth_rate" value={formData.growth_rate} onChange={handleChange} className="h-9 w-full rounded border border-slate-700 bg-slate-950 px-2 text-sm text-slate-100 outline-none">
+                  <option value="Slow">Slow</option><option value="Medium">Medium</option><option value="Fast">Fast</option>
                 </select>
               </div>
             </div>
@@ -409,19 +441,23 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 pt-2">
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">Suhu Min (°C)</Label>
-                <Input type="number" step="0.1" name="temperature_min" value={formData.temperature_min} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-sm" />
+                {/* DITAMBAHKAN class text-slate-100 AGAR TEKS TERLIHAT */}
+                <Input type="number" step="0.1" name="temperature_min" value={formData.temperature_min} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">Suhu Max (°C)</Label>
-                <Input type="number" step="0.1" name="temperature_max" value={formData.temperature_max} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-sm" />
+                {/* DITAMBAHKAN class text-slate-100 AGAR TEKS TERLIHAT */}
+                <Input type="number" step="0.1" name="temperature_max" value={formData.temperature_max} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">pH Min</Label>
-                <Input type="number" step="0.1" name="ph_min" value={formData.ph_min} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-sm" />
+                {/* DITAMBAHKAN class text-slate-100 AGAR TEKS TERLIHAT */}
+                <Input type="number" step="0.1" name="ph_min" value={formData.ph_min} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">pH Max</Label>
-                <Input type="number" step="0.1" name="ph_max" value={formData.ph_max} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-sm" />
+                {/* DITAMBAHKAN class text-slate-100 AGAR TEKS TERLIHAT */}
+                <Input type="number" step="0.1" name="ph_max" value={formData.ph_max} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
             </div>
           </div>
@@ -429,44 +465,102 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
           {/* BAGIAN 4: DESKRIPSI & INFO TAMBAHAN */}
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label className="text-slate-300">Deskripsi Lengkap (Ensiklopedia)</Label>
+              <Label className="text-slate-300">Deskripsi Ilmiah (Ensiklopedia)</Label>
               <textarea 
                 name="description" 
                 rows={4} 
                 value={formData.description} 
                 onChange={handleChange} 
                 className="w-full rounded-md border border-slate-700 bg-slate-950 p-3 text-slate-100 focus:border-teal-500 outline-none leading-relaxed resize-y" 
-                placeholder="Tulis deskripsi detail tanaman, sejarah, atau cara pemotongan..."
+                placeholder="Tulis deskripsi detail tanaman, sejarah, atau karakter biologi..."
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label className="text-slate-300">Tag Rekomendasi (Pisahkan dengan koma)</Label>
-              <Input name="recommended_for" placeholder="Contoh: Low Tech, Shrimp Tank, Iwagumi" value={formData.recommended_for} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 focus:border-teal-500" />
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">Tinggi Max (cm)</Label>
-                <Input type="number" name="max_height_cm" value={formData.max_height_cm} onChange={handleChange} className="bg-slate-950 border-slate-700 text-sm" />
+                {/* DITAMBAHKAN class text-slate-100 AGAR TEKS TERLIHAT */}
+                <Input type="number" name="max_height_cm" value={formData.max_height_cm} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-400 text-xs uppercase">Habitat Asli</Label>
-                <Input name="origin_country" placeholder="Contoh: Asia, South America" value={formData.origin_country} onChange={handleChange} className="bg-slate-950 border-slate-700 text-sm" />
+                <Label className="text-slate-400 text-xs uppercase">Asal Negara/Wilayah</Label>
+                {/* DITAMBAHKAN class text-slate-100 AGAR TEKS TERLIHAT */}
+                <Input name="origin_country" placeholder="Contoh: Asia, Cultivar" value={formData.origin_country} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">Sumber Data (Kredit)</Label>
-                <Input name="source_name" value={formData.source_name} onChange={handleChange} className="bg-slate-950 border-slate-700 text-sm" />
+                {/* DITAMBAHKAN class text-slate-100 AGAR TEKS TERLIHAT */}
+                <Input name="source_name" value={formData.source_name} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
+            </div>
+          </div>
+
+          {/* BAGIAN 5: PARAMETER SISTEM PAKAR (EXPERT ENGINE V2) */}
+          <div className="bg-teal-950/20 p-4 sm:p-6 rounded-xl border border-teal-900/50 space-y-6">
+            <h3 className="text-lg font-bold text-teal-400 mb-2">Konfigurasi Expert Engine (V2)</h3>
+            <p className="text-xs text-teal-500/70 mb-4 -mt-2">Parameter di bawah ini adalah "Otak" yang akan digunakan AI untuk memberikan rekomendasi pintar.</p>
+            
+            <div className="grid gap-5 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label className="text-slate-300">Tipe Tanaman (Plant Type)</Label>
+                <select name="plant_type" value={formData.plant_type} onChange={handleChange} className="h-10 w-full rounded-md border border-teal-800/50 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
+                  <option value="Stem">Stem (Batang)</option><option value="Rosette">Rosette (Roset)</option><option value="Epiphyte">Epiphyte (Menempel)</option>
+                  <option value="Moss">Moss (Lumut)</option><option value="Floating">Floating (Apung)</option><option value="Bulb">Bulb (Umbi)</option><option value="Carpet">Carpet (Karpet)</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-slate-300">Beginner Score (1-10)</Label>
+                <Input type="number" min="1" max="10" name="beginner_score" placeholder="10 = Sangat Mudah" value={formData.beginner_score} onChange={handleChange} className="bg-slate-950 border-teal-800/50 text-slate-100 focus:border-teal-500" />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-slate-300">Sifat Penyebaran (Growth Control)</Label>
+                <select name="growth_control" value={formData.growth_control} onChange={handleChange} className="h-10 w-full rounded-md border border-teal-800/50 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
+                  <option value="Slow">Slow (Terpusat)</option><option value="Moderate">Moderate (Wajar)</option><option value="Aggressive">Aggressive (Menyebar Liar)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-slate-300">Gaya Aquascape (Pisahkan koma)</Label>
+                <Input name="aquascape_style" placeholder="Dutch, Iwagumi, Nature..." value={formData.aquascape_style} onChange={handleChange} className="bg-slate-950 border-teal-800/50 text-slate-100 focus:border-teal-500" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-300">Rekomendasi Ukuran Tank (Pisahkan koma)</Label>
+                <Input name="tank_size_recommendation" placeholder="Nano, Medium, Large" value={formData.tank_size_recommendation} onChange={handleChange} className="bg-slate-950 border-teal-800/50 text-slate-100 focus:border-teal-500" />
+              </div>
+            </div>
+
+            <div className="flex gap-6 mt-2 p-3 bg-slate-950/50 rounded-lg border border-teal-900/30">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="carpet_potential" checked={formData.carpet_potential} onChange={handleChange} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900" />
+                <span className="text-sm font-medium text-slate-300">Potensi Jadi Karpet</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="shrimp_safe" checked={formData.shrimp_safe} onChange={handleChange} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900" />
+                <span className="text-sm font-medium text-slate-300">Aman untuk Udang (Shrimp Safe)</span>
+              </label>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-slate-300 font-bold text-teal-400">Catatan Pakar (Expert Notes)</Label>
+              <textarea 
+                name="expert_notes" 
+                rows={3} 
+                value={formData.expert_notes} 
+                onChange={handleChange} 
+                className="w-full rounded-md border border-teal-800/50 bg-slate-950 p-3 text-slate-100 focus:border-teal-500 outline-none leading-relaxed resize-y" 
+                placeholder="Contoh: Sangat rakus menyerap nitrat, waspadai defisiensi kalium (K) yang menyebabkan daun berlubang..."
+              />
             </div>
           </div>
 
           {error && <div className="rounded border border-red-900 bg-red-950/50 p-3 text-red-400 font-medium text-sm text-center animate-pulse">{error}</div>}
 
-          {/* PERBAIKAN: KELOMPOK TOMBOL AKSI RESPONSIF MOBILE */}
+          {/* KELOMPOK TOMBOL AKSI RESPONSIF MOBILE */}
           <div className="flex flex-col-reverse gap-4 sm:flex-row sm:justify-between border-t border-slate-800 pt-6 mt-8">
-            
-            {/* Tombol Kiri (Hapus) - Di HP ada di bawah */}
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               {mode === "edit" && (
                 <>
@@ -483,7 +577,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               )}
             </div>
 
-            {/* Tombol Kanan (Simpan/Batal) - Di HP ada di atas */}
             <div className="flex flex-col-reverse sm:flex-row gap-3 w-full sm:w-auto">
               <Button type="button" onClick={() => router.back()} disabled={loading} className="w-full sm:w-auto bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
                 Batal
@@ -493,7 +586,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                 {mode === "create" ? "Simpan Tanaman" : "Update Tanaman"}
               </Button>
             </div>
-
           </div>
 
         </form>

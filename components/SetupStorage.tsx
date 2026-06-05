@@ -3,21 +3,31 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-// Daftar 50 slug tanaman yang sudah diurutkan
+// Daftar 101 slug tanaman, di-ekstrak akurat dari AquaExpert_101_Knowledge_Base_v2.csv
 const plantSlugs = [
-  "alternanthera-reineckii-mini", "ammannia-gracilis", "anubias-nana", "anubias-nana-petite", 
-  "aponogeton-madagascariensis", "bacopa-caroliniana", "bolbitis-heudelotii", "bucephalandra-green-wavy", 
-  "cabomba-furcata", "crinum-calamistratum", "cryptocoryne-wendtii-brown", "cryptocoryne-wendtii-green", 
-  "didiplis-diandra", "dwarf-hairgrass", "eleocharis-parvula", "glossostigma-elatinoides", 
-  "hc-cuba", "helanthium-tenellum", "hydrocotyle-tripartita-japan", "hygrophila-corymbosa", 
-  "hygrophila-difformis", "hygrophila-pinnatifida", "java-fern", "java-fern-trident", 
-  "lilaeopsis-brasiliensis", "limnophila-aromatica", "limnophila-sessiliflora", "ludwigia-arcuata", 
-  "ludwigia-palustris", "ludwigia-repens", "ludwigia-super-red", "marsilea-crenata", 
-  "marsilea-hirsuta", "monte-carlo", "myriophyllum-mattogrossense", "pogostemon-erectus", 
-  "pogostemon-helferi", "proserpinaca-palustris", "rotala-blood-red", "rotala-colorata", 
-  "rotala-green", "rotala-hra", "rotala-macrandra", "rotala-orange-juice", "rotala-rotundifolia", 
-  "rotala-wallichii", "staurogyne-repens", "utricularia-graminifolia", "vallisneria-nana", 
-  "vallisneria-spiralis"
+  "alternanthera-reineckii-mini", "amazon-frogbit", "amazon-sword", "ammannia-gracilis", 
+  "ammannia-pedicellata", "anubias-barteri", "anubias-coffeefolia", "anubias-nana", 
+  "anubias-nana-petite", "aponogeton-madagascariensis", "bacopa-caroliniana", "blyxa-japonica", 
+  "bolbitis-heudelotii", "bucephalandra-brownie", "bucephalandra-green-wavy", "bucephalandra-kedagang", 
+  "bucephalandra-skeleton-king", "cabomba-caroliniana", "cabomba-furcata", "cardinal-plant", 
+  "ceratophyllum-demersum", "christmas-moss", "corkscrew-vallisneria", "crinum-calamistratum", 
+  "cryptocoryne-balansae", "cryptocoryne-beckettii", "cryptocoryne-flamingo", "cryptocoryne-lutea", 
+  "cryptocoryne-parva", "cryptocoryne-spiralis", "cryptocoryne-wendtii-brown", "cryptocoryne-wendtii-green", 
+  "cyperus-helferi", "didiplis-diandra", "dwarf-hairgrass", "egeria-densa", "elatine-hydropiper", 
+  "eleocharis-parvula", "eriocaulon-cinereum", "fissidens-fontanus", "flame-moss", "giant-hygro", 
+  "glossostigma-elatinoides", "hc-cuba", "helanthium-tenellum", "hydrocotyle-tripartita-japan", 
+  "hygrophila-corymbosa", "hygrophila-difformis", "hygrophila-pinnatifida", "hygrophila-polysperma", 
+  "java-fern", "java-fern-narrow", "java-fern-trident", "java-fern-windelov", "java-moss", 
+  "lagenandra-meeboldii-red", "lilaeopsis-brasiliensis", "limnophila-aromatica", "limnophila-hippuridoides", 
+  "limnophila-sessiliflora", "ludwigia-arcuata", "ludwigia-brevipes", "ludwigia-glandulosa", 
+  "ludwigia-inclinata", "ludwigia-palustris", "ludwigia-repens", "ludwigia-super-red", "marsilea-crenata", 
+  "marsilea-hirsuta", "micranthemum-umbrosum", "mini-pellia", "monte-carlo", "murdannia-keisak", 
+  "myriophyllum-mattogrossense", "myriophyllum-tuberculatum", "pogostemon-erectus", "pogostemon-helferi", 
+  "proserpinaca-palustris", "red-root-floater", "red-tiger-lotus", "rotala-blood-red", "rotala-colorata", 
+  "rotala-green", "rotala-hra", "rotala-indica", "rotala-macrandra", "rotala-nanjenshan", 
+  "rotala-orange-juice", "rotala-rotundifolia", "rotala-wallichii", "sagittaria-subulata", "salvinia-natans", 
+  "staurogyne-repens", "syngonanthus-belem", "taiwan-moss", "tonina-fluviatilis", "utricularia-graminifolia", 
+  "vallisneria-nana", "vallisneria-spiralis", "water-lettuce", "weeping-moss"
 ];
 
 export default function SetupStorage() {
@@ -50,15 +60,15 @@ export default function SetupStorage() {
       setProgress(i + 1);
     }
 
-    alert("Selesai! 50 Folder berhasil dibuat di Supabase Storage.");
+    alert(`Selesai! ${plantSlugs.length} Folder berhasil dibuat di Supabase Storage.`);
     setLoading(false);
   };
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 text-center shadow-lg">
-      <h3 className="mb-4 text-xl font-bold text-slate-100">Setup Supabase Storage</h3>
+      <h3 className="mb-4 text-xl font-bold text-slate-100">Setup Supabase Storage V2</h3>
       <p className="mb-6 text-sm text-slate-400">
-        Klik tombol di bawah untuk membuat 50 folder tanaman secara otomatis di bucket <strong>plant-images</strong>.
+        Klik tombol di bawah untuk membuat {plantSlugs.length} folder tanaman secara otomatis di bucket <strong>plant-images</strong>.
       </p>
       
       <button
@@ -66,7 +76,7 @@ export default function SetupStorage() {
         disabled={loading}
         className="rounded-md bg-teal-600 px-6 py-3 font-medium text-white transition hover:bg-teal-500 disabled:opacity-50"
       >
-        {loading ? `Memproses... (${progress}/50)` : "Buat 50 Folder Sekarang"}
+        {loading ? `Memproses... (${progress}/${plantSlugs.length})` : `Buat ${plantSlugs.length} Folder Sekarang`}
       </button>
     </div>
   );

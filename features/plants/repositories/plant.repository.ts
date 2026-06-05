@@ -1,12 +1,13 @@
 import { createClient } from "@/lib/supabase/client";
 import { Plant } from "../types/plant.types";
 
-// PERBAIKAN 1: Tambahkan gallery_urls ke dalam query select
 const PLANT_COLUMNS = `
   id, name, slug, scientific_name, light_requirement, co2_requirement, fertilizer_requirement,
   placement, difficulty, growth_rate, ph_min, ph_max, temperature_min, temperature_max,
   description, origin_country, max_height_cm, recommended_for, source_name, source_url, 
-  image_url, gallery_urls, created_at, updated_at, is_active, created_by, updated_by
+  image_url, gallery_urls, plant_type, aquascape_style, beginner_score, maintenance_level, 
+  carpet_potential, shrimp_safe, growth_control, tank_size_recommendation, expert_notes,
+  created_at, updated_at, is_active, created_by, updated_by
 `;
 
 export async function getPlants(): Promise<Plant[]> {
