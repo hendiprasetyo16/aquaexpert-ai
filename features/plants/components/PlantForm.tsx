@@ -23,7 +23,11 @@ interface PlantFormProps {
 // Opsi statis untuk Checkbox
 const TANK_SIZES = ["Nano (≤40cm)", "Small (45-60cm)", "Medium (60-90cm)", "Large (90-120cm)", "Extra Large (>120cm)"];
 const AQUASCAPE_STYLES = ["Nature", "Dutch", "Iwagumi", "Jungle", "Biotope", "Taiwan"];
-const RECOMMENDATIONS = ["Pemula", "Low Tech", "High Tech", "Shrimp Tank", "Nano Tank", "Dutch Style", "Nature Style"];
+const RECOMMENDATIONS = [
+  "Pemula", "Low Tech", "High Tech", "Shrimp Tank", "Nano Tank", 
+  "Dutch Style", "Nature Style", "Betta Tank", "Community Tank", 
+  "Paludarium", "Blackwater"
+];
 
 export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   const router = useRouter();
@@ -548,7 +552,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                 <Label className="text-slate-400 text-xs uppercase">Sumber Data (Kredit)</Label>
                 <Input name="source_name" placeholder="Contoh: Tropica" value={formData.source_name} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
               </div>
-              {/* PERBAIKAN: TAMBAHAN FIELD URL SUMBER */}
               <div className="space-y-2">
                 <Label className="text-slate-400 text-xs uppercase">URL Sumber (Link)</Label>
                 <Input name="source_url" type="url" placeholder="https://tropica.com/..." value={formData.source_url} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
@@ -624,7 +627,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               </div>
             </div>
 
-            {/* PERBAIKAN: TAMBAHAN CHECKBOX DIREKOMENDASIKAN UNTUK */}
             <div className="space-y-3 bg-slate-950/50 p-4 rounded-lg border border-teal-900/30 mt-2">
               <Label className="text-slate-300 font-medium">Direkomendasikan Untuk (Kategori Spesifik)</Label>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
