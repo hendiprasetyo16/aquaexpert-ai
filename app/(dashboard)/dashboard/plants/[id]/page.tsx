@@ -151,7 +151,6 @@ export default function PlantDetailPage() {
     );
   };
 
-  // Menerjemahkan kata kerja utamanya (Dipakai sejajar dengan bahasa Inggris)
   const getIndoLevelCore = (level: string | null | undefined) => {
     if (!level) return "";
     const l = level.toLowerCase();
@@ -162,33 +161,32 @@ export default function PlantDetailPage() {
     return level;
   };
 
-  // Penjelasan detail panjang di kotak terpisah
   const getIndoLevelDetail = (level: string | null | undefined, type: "light" | "co2" | "fert" | "growth" | "general" = "general") => {
     if (!level) return "Data tidak tersedia.";
     const l = level.toLowerCase();
     
     if (type === "light") {
-      if (l === "low") return "Lampu cukup menyala 6-7 Jam / hari.";
-      if (l === "medium") return "Lampu butuh menyala 7-8 Jam / hari.";
-      if (l === "high") return "Lampu wajib menyala 8-10 Jam / hari intensitas tinggi.";
+      if (l === "low") return "Lampu menyala 6-7 Jam";
+      if (l === "medium") return "Lampu menyala 7-8 Jam";
+      if (l === "high") return "Lampu menyala 8-10 Jam";
     }
     
     if (type === "co2") {
-      if (l === "low") return "Bisa hidup tanpa injeksi tabung CO2.";
-      if (l === "medium") return "Disarankan pakai CO2 (1-2 Bps) agar rimbun.";
-      if (l === "high") return "Wajib injeksi tabung CO2 stabil (> 3 Bps).";
+      if (l === "low") return "Tanpa tabung CO2";
+      if (l === "medium") return "Disarankan pakai CO2";
+      if (l === "high") return "Wajib injeksi CO2 tinggi";
     }
 
     if (type === "fert") {
-      if (l === "low") return "Pupuk cair dosis rendah sesekali saja.";
-      if (l === "medium") return "Pemupukan rutin sesuai takaran standar.";
-      if (l === "high") return "Sangat rakus! Wajib pupuk tancap dan cair pekat.";
+      if (l === "low") return "Sesekali saja";
+      if (l === "medium") return "Rutin (Standar)";
+      if (l === "high") return "Wajib pupuk tancap & cair";
     }
 
     if (type === "growth") {
-      if (l === "slow") return "Sangat hemat waktu, jarang butuh dipangkas.";
-      if (l === "medium" || l === "moderate") return "Laju tumbuh wajar, perawatan standar.";
-      if (l === "fast" || l === "aggressive") return "Menyemak kilat! Wajib rajin gunting/trimming.";
+      if (l === "slow") return "Jarang butuh dipangkas";
+      if (l === "medium" || l === "moderate") return "Perawatan standar";
+      if (l === "fast" || l === "aggressive") return "Wajib sering dipangkas";
     }
 
     return getIndoLevelCore(level);
@@ -244,7 +242,7 @@ export default function PlantDetailPage() {
     if (t.includes("high tech")) return "Wajib CO2 & Cahaya Terang";
     if (t.includes("beginner")) return "Aman Untuk Pemula";
     if (t.includes("breeding tank")) return "Tempat Sembunyi Burayak";
-    if (t.includes("nano tank")) return "Cocok di Aquarium Mini";
+    if (t.includes("nano tank")) return "Cocok di Aquarium Mini (≤ 40cm)";
     if (t.includes("top cover")) return "Peneduh Kolom Air";
     if (t.includes("pond")) return "Bisa Hidup di Kolam";
     if (t.includes("foreground")) return "Posisi Depan";
@@ -384,17 +382,17 @@ export default function PlantDetailPage() {
 
                 </div>
                 
-                {/* TAGS KECOCOKAN DENGAN KETERANGAN DI BAWAHNYA */}
+                {/* TAGS KECOCOKAN */}
                 {plant.recommended_for && plant.recommended_for.length > 0 && (
                   <div className="mt-8 border-t border-slate-800 pt-5">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Kecocokan Ekosistem</p>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-wrap justify-center gap-2">
                       {plant.recommended_for.map(tag => (
-                        <div key={tag} className="flex flex-col items-center bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700 shadow-sm min-w-[120px]">
+                        <div key={tag} className="flex flex-col bg-slate-800/80 px-3 py-2 rounded-md border border-slate-700 shadow-sm text-center">
                           <span className="flex items-center justify-center gap-1.5 text-[13px] font-bold text-slate-200 uppercase tracking-widest">
                             <CheckCircle2 className="h-3.5 w-3.5 text-teal-500" /> {tag}
                           </span>
-                          <span className="text-[11px] text-slate-400 mt-1.5 font-medium">{getRecommendedDesc(tag)}</span>
+                          <span className="text-[11px] text-slate-400 mt-1 font-medium">{getRecommendedDesc(tag)}</span>
                         </div>
                       ))}
                     </div>
@@ -457,10 +455,9 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
-                {/* SIFAT, STYLE, TANK (DUA BARIS DENGAN KOTAK TERPISAH) */}
+                {/* SIFAT, STYLE, TANK */}
                 <div className="grid sm:grid-cols-3 gap-4 border-t border-slate-800 pt-6 mt-6">
                   
-                  {/* Sifat Pertumbuhan */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Activity className="h-4 w-4 text-teal-500"/>
@@ -472,7 +469,6 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
-                  {/* Gaya Aquascape */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Target className="h-4 w-4 text-blue-500"/>
@@ -490,7 +486,6 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
-                  {/* Rekomendasi Tank */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Box className="h-4 w-4 text-orange-500"/>
@@ -527,7 +522,6 @@ export default function PlantDetailPage() {
             <Card className="border-slate-800 bg-slate-900/60 shadow-xl h-fit">
               <CardContent className="p-8 space-y-10">
                 
-                {/* ENSIKLOPEDIA BOTANI */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
                     <Info className="h-5 w-5 text-teal-500" /> Ensiklopedia Karakteristik
@@ -549,7 +543,7 @@ export default function PlantDetailPage() {
                       </div>
                       <div className="flex flex-col border-t border-slate-800 pt-3 mt-1">
                         <span className="text-lg font-black text-slate-200 uppercase tracking-widest">{plant.light_requirement || "N/A"}</span>
-                        <span className="text-[12px] text-yellow-500/80 font-medium mt-0.5">({getIndoLevelCore(plant.light_requirement)})</span>
+                        <span className="text-[12px] text-yellow-500/80 font-medium mt-0.5">{getIndoLevelCore(plant.light_requirement)}</span>
                       </div>
                       <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight">
                         💡 {getIndoLevelDetail(plant.light_requirement, "light")}
@@ -563,7 +557,7 @@ export default function PlantDetailPage() {
                       </div>
                       <div className="flex flex-col border-t border-slate-800 pt-3 mt-1">
                         <span className="text-lg font-black text-slate-200 uppercase tracking-widest">{plant.co2_requirement || "N/A"}</span>
-                        <span className="text-[12px] text-blue-400/80 font-medium mt-0.5">({getIndoLevelCore(plant.co2_requirement)})</span>
+                        <span className="text-[12px] text-blue-400/80 font-medium mt-0.5">{getIndoLevelCore(plant.co2_requirement)}</span>
                       </div>
                       <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight">
                         💡 {getIndoLevelDetail(plant.co2_requirement, "co2")}
