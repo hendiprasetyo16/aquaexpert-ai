@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-// Daftar 101 slug tanaman, di-ekstrak akurat dari AquaExpert_101_Knowledge_Base_v2.csv
+// Daftar 120 slug tanaman, di-ekstrak akurat dari AquaExpert_120_Knowledge_Base_V3.csv
 const plantSlugs = [
   "alternanthera-reineckii-mini", "amazon-frogbit", "amazon-sword", "ammannia-gracilis", 
   "ammannia-pedicellata", "anubias-barteri", "anubias-coffeefolia", "anubias-nana", 
@@ -27,7 +27,11 @@ const plantSlugs = [
   "rotala-green", "rotala-hra", "rotala-indica", "rotala-macrandra", "rotala-nanjenshan", 
   "rotala-orange-juice", "rotala-rotundifolia", "rotala-wallichii", "sagittaria-subulata", "salvinia-natans", 
   "staurogyne-repens", "syngonanthus-belem", "taiwan-moss", "tonina-fluviatilis", "utricularia-graminifolia", 
-  "vallisneria-nana", "vallisneria-spiralis", "water-lettuce", "weeping-moss"
+  "vallisneria-nana", "vallisneria-spiralis", "water-lettuce", "weeping-moss", "bacopa-monnieri", 
+  "echinodorus-ozelot", "pearl-weed", "riccia-fluitans", "lemna-minor", "hydrocotyle-verticillata", 
+  "bucephalandra-catherinae", "anubias-nana-pangolino", "ludwigia-rubin", "rotala-bonsai", 
+  "hygrophila-araguaia", "eriocaulon-polaris", "cryptocoryne-undulata", "bucephalandra-deep-blue", 
+  "blyxa-aubertii", "rotala-macrandra-mini", "staurogyne-porto-velho", "limnobium-spongia", "fissidens-nobilis"
 ];
 
 export default function SetupStorage() {
@@ -66,7 +70,7 @@ export default function SetupStorage() {
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 text-center shadow-lg">
-      <h3 className="mb-4 text-xl font-bold text-slate-100">Setup Supabase Storage V2</h3>
+      <h3 className="mb-4 text-xl font-bold text-slate-100">Setup Supabase Storage V3</h3>
       <p className="mb-6 text-sm text-slate-400">
         Klik tombol di bawah untuk membuat {plantSlugs.length} folder tanaman secara otomatis di bucket <strong>plant-images</strong>.
       </p>
