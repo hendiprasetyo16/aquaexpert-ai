@@ -6,6 +6,7 @@ import {
   Activity,
   Users,
   Settings,
+  Database // <-- Tambahan ikon baru
 } from "lucide-react";
 
 export const MENU_BY_ROLE = {
@@ -16,6 +17,7 @@ export const MENU_BY_ROLE = {
     { title: "Algae Expert", href: "/dashboard/algae", icon: Bug },
     { title: "Disease Expert", href: "/dashboard/diseases", icon: Activity },
     { title: "Users", href: "/dashboard/users", icon: Users },
+    { title: "Control Panel", href: "/dashboard/admin-panel", icon: Database }, // <-- Menu khusus Super Admin
     { title: "Settings", href: "/admin/settings", icon: Settings },
   ],
 

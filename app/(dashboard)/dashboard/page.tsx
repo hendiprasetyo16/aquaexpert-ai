@@ -41,11 +41,11 @@ export default function DashboardPage() {
       )}
 
       {/* INI ADALAH KOMPONEN SETUP STORAGE SEMENTARA */}
-      {role === "super_admin" && (
+      {/*role === "super_admin" && (
         <div className="mt-8 border-t border-slate-800 pt-8">
           <SetupStorage />
         </div>
-      )}
+      )*/}
     </div>
   );
 }
