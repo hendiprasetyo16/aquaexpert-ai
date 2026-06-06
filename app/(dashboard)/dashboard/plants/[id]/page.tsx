@@ -316,48 +316,74 @@ export default function PlantDetailPage() {
     return "Tipe tanaman akuatik standar.";
   };
 
-  // DIPERBARUI: Disederhanakan untuk deskripsi tag
+// DIPERBARUI: Disederhanakan untuk deskripsi tag yang lebih lengkap
   const getRecommendedDesc = (tag: string) => {
     const t = tag.toLowerCase();
-    if (t.includes("pemula")) return "Sangat mudah dirawat";
-    if (t.includes("low tech")) return "Tanpa tabung CO2";
-    if (t.includes("high tech")) return "Wajib CO2 & Lampu Terang";
+    
+    // Skill Level
+    if (t.includes("pemula") || t.includes("beginner")) return "Sangat mudah dirawat";
+    if (t.includes("expert") || t.includes("advanced")) return "Hanya untuk profesional";
+    
+    // Peralatan / Parameter
+    if (t.includes("low tech") || t.includes("low light")) return "Tanpa tabung CO2";
+    if (t.includes("high tech") || t.includes("co2 setup")) return "Wajib CO2 & Lampu Terang";
+    if (t.includes("mid tech")) return "Cahaya & Nutrisi Sedang";
+    
+    // Fauna
     if (t.includes("shrimp tank")) return "Aman bagi Udang Hias";
+    if (t.includes("betta tank")) return "Aman bagi Ikan Cupang";
+    if (t.includes("community tank")) return "Aman bagi ragam Ikan";
+    if (t.includes("discus tank")) return "Toleran air bersuhu hangat";
+    if (t.includes("cichlid")) return "Tahan digigit herbivora";
+    
+    // Ukuran Tank
     if (t.includes("nano tank")) return "Cocok di tank kecil";
+    if (t.includes("large tank")) return "Butuh tank ukuran besar";
+    
+    // Tema / Posisi
     if (t.includes("dutch style")) return "Kerapatan sangat tinggi";
     if (t.includes("nature style")) return "Memberi kesan alam liar";
-    if (t.includes("betta tank")) return "Aman bagi Ikan Cupang";
-    if (t.includes("community tank")) return "Aman bagi beragam Ikan";
-    if (t.includes("paludarium")) return "Mampu tumbuh di darat";
+    if (t.includes("iwagumi")) return "Estetika padang rumput";
+    if (t.includes("jungle")) return "Tumbuh liar dan lebat";
+    if (t.includes("foreground")) return "Posisi tanam paling depan";
+    if (t.includes("midground")) return "Posisi tanam tengah";
+    if (t.includes("background")) return "Posisi tanam paling belakang";
+    
+    // Spesifik lainnya
+    if (t.includes("paludarium")) return "Mampu tumbuh di darat (emersed)";
     if (t.includes("blackwater")) return "Toleran cahaya minim";
-    if (t.includes("discus tank")) return "Toleran air bersuhu hangat";
     if (t.includes("aquascape contest")) return "Nilai seni sangat tinggi";
-    if (t.includes("breeding tank")) return "Tempat sembunyi burayak";
-    if (t.includes("low light setup")) return "Tidak rewel soal lampu";
-    if (t.includes("co2 setup")) return "Wajib dengan injeksi CO2";
-    return "Cocok secara umum";
+    if (t.includes("breeding tank")) return "Tempat sembunyi burayak ideal";
+    if (t.includes("pond")) return "Bisa hidup di kolam luar";
+
+    return "Cocok untuk setup umum";
   };
 
-  // DIPERBARUI: Fungsi pewarnaan psikologis spesifik untuk tag rekomendasi
+  // DIPERBARUI: Fungsi pewarnaan psikologis mencakup semua kemungkinan
   const getRecommendationBadgeColor = (tag: string) => {
     const t = tag.toLowerCase();
-    // Sulit / High Tech -> Merah
-    if (t.includes("high tech") || t.includes("contest") || t.includes("co2 setup")) 
+    
+    // Sulit / High Tech / Posisi Belakang (Warna Merah/Pink Gelap)
+    if (t.includes("high tech") || t.includes("contest") || t.includes("co2 setup") || t.includes("background")) 
       return "bg-red-950/40 text-red-400 border-red-900/50";
-    // Mudah / Low Tech -> Hijau
-    if (t.includes("low tech") || t.includes("pemula") || t.includes("low light")) 
+    
+    // Mudah / Low Tech / Foreground / Pemula (Warna Hijau)
+    if (t.includes("low tech") || t.includes("pemula") || t.includes("beginner") || t.includes("low light") || t.includes("foreground")) 
       return "bg-green-950/40 text-green-400 border-green-900/50";
-    // Aman Hewan / Warna Khusus -> Orange
-    if (t.includes("shrimp tank") || t.includes("dutch style") || t.includes("community tank") || t.includes("breeding tank")) 
+    
+    // Aman Hewan / Midground / Gaya Aquascape Khusus (Warna Oranye)
+    if (t.includes("shrimp tank") || t.includes("dutch style") || t.includes("community tank") || t.includes("breeding tank") || t.includes("midground") || t.includes("cichlid")) 
       return "bg-orange-950/40 text-orange-400 border-orange-900/50";
-    // Tank Kecil / Ekosistem Spesifik -> Biru
-    if (t.includes("nano tank") || t.includes("betta tank") || t.includes("discus tank")) 
-      return "bg-blue-950/40 text-blue-400 border-blue-900/50";
-    // Habitat Khusus -> Ungu
-    if (t.includes("blackwater") || t.includes("paludarium") || t.includes("nature style")) 
+    
+    // Tank Ukuran Khusus / Ikan Khusus / Air (Warna Biru/Cyan)
+    if (t.includes("nano tank") || t.includes("betta tank") || t.includes("discus tank") || t.includes("large tank") || t.includes("pond")) 
+      return "bg-cyan-950/30 text-cyan-400 border-cyan-900/50";
+    
+    // Habitat Khusus / Iwagumi / Nature (Warna Ungu)
+    if (t.includes("blackwater") || t.includes("paludarium") || t.includes("nature style") || t.includes("iwagumi") || t.includes("jungle")) 
       return "bg-purple-950/40 text-purple-400 border-purple-900/50";
     
-    // Default -> Abu-abu
+    // Fallback Default jika ada tag aneh -> Abu-abu terang
     return "bg-slate-800/80 text-slate-200 border-slate-700";
   };
 
