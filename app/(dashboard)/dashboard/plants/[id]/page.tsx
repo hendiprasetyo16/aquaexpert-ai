@@ -11,7 +11,7 @@ import {
   Loader2, ArrowLeft, ArrowRight, Leaf, Edit, Droplets, Wind, Sun, 
   Thermometer, FlaskConical, MapPin, Ruler, CheckCircle2, Maximize2, X, Info, ImageIcon,
   ChevronLeft, ChevronRight, Brain, ShieldCheck, Scissors, Activity, Target, Box, BookOpen,
-  Zap, Sprout, Share2, Link as LinkIcon, Check
+  Zap, Sprout, Share2, Link as LinkIcon, Check, CheckSquare
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
@@ -247,11 +247,11 @@ export default function PlantDetailPage() {
   const getPlacementDesc = (placement: string | null | undefined) => {
     if (!placement) return "";
     const p = placement.toLowerCase();
-    if (p === "foreground") return "(Posisi Depan)";
-    if (p === "midground") return "(Posisi Tengah)";
-    if (p === "background") return "(Posisi Belakang)";
-    if (p === "epiphyte") return "(Tempel Kayu/Batu)";
-    if (p === "floating") return "(Apung di Atas)";
+    if (p === "foreground") return "Posisi Depan";
+    if (p === "midground") return "Posisi Tengah";
+    if (p === "background") return "Posisi Belakang";
+    if (p === "epiphyte") return "Tempel Kayu/Batu";
+    if (p === "floating") return "Apung di Atas";
     return "";
   };
 
@@ -316,42 +316,48 @@ export default function PlantDetailPage() {
     return "Tipe tanaman akuatik standar.";
   };
 
+  // DIPERBARUI: Disederhanakan untuk deskripsi tag
   const getRecommendedDesc = (tag: string) => {
     const t = tag.toLowerCase();
-    if (t.includes("pemula")) return "Aman Untuk Pemula";
-    if (t.includes("low tech")) return "Tanpa Tabung CO2";
-    if (t.includes("high tech")) return "Butuh Tabung CO2 & Cahaya Kuat";
-    if (t.includes("shrimp tank")) return "Aman Untuk Udang Hias";
-    if (t.includes("nano tank")) return "Cocok di Aquarium Mini";
-    if (t.includes("dutch style")) return "Kerapatan Tanaman Tinggi";
-    if (t.includes("nature style")) return "Meniru Alam Liar";
-    if (t.includes("betta tank")) return "Aman Untuk Ikan Cupang";
-    if (t.includes("community tank")) return "Aman Untuk Beragam Ikan";
-    if (t.includes("paludarium")) return "Tumbuh Ekstra Menjalar";
-    if (t.includes("blackwater")) return "Cahaya Redup, Air Asam";
-    if (t.includes("discus tank")) return "Suhu Air Hangat";
-    if (t.includes("aquascape contest")) return "Nilai Estetika Tinggi";
-    if (t.includes("breeding tank")) return "Tempat Sembunyi Burayak";
-    if (t.includes("low light setup")) return "Minim Cahaya";
-    if (t.includes("co2 setup")) return "Direkomendasikan CO2";
-    return "Cocok untuk setup umum";
+    if (t.includes("pemula")) return "Sangat mudah dirawat";
+    if (t.includes("low tech")) return "Tanpa tabung CO2";
+    if (t.includes("high tech")) return "Wajib CO2 & Lampu Terang";
+    if (t.includes("shrimp tank")) return "Aman bagi Udang Hias";
+    if (t.includes("nano tank")) return "Cocok di tank kecil";
+    if (t.includes("dutch style")) return "Kerapatan sangat tinggi";
+    if (t.includes("nature style")) return "Memberi kesan alam liar";
+    if (t.includes("betta tank")) return "Aman bagi Ikan Cupang";
+    if (t.includes("community tank")) return "Aman bagi beragam Ikan";
+    if (t.includes("paludarium")) return "Mampu tumbuh di darat";
+    if (t.includes("blackwater")) return "Toleran cahaya minim";
+    if (t.includes("discus tank")) return "Toleran air bersuhu hangat";
+    if (t.includes("aquascape contest")) return "Nilai seni sangat tinggi";
+    if (t.includes("breeding tank")) return "Tempat sembunyi burayak";
+    if (t.includes("low light setup")) return "Tidak rewel soal lampu";
+    if (t.includes("co2 setup")) return "Wajib dengan injeksi CO2";
+    return "Cocok secara umum";
   };
 
   // DIPERBARUI: Fungsi pewarnaan psikologis spesifik untuk tag rekomendasi
   const getRecommendationBadgeColor = (tag: string) => {
     const t = tag.toLowerCase();
+    // Sulit / High Tech -> Merah
     if (t.includes("high tech") || t.includes("contest") || t.includes("co2 setup")) 
       return "bg-red-950/40 text-red-400 border-red-900/50";
+    // Mudah / Low Tech -> Hijau
     if (t.includes("low tech") || t.includes("pemula") || t.includes("low light")) 
       return "bg-green-950/40 text-green-400 border-green-900/50";
-    if (t.includes("shrimp tank") || t.includes("dutch style")) 
+    // Aman Hewan / Warna Khusus -> Orange
+    if (t.includes("shrimp tank") || t.includes("dutch style") || t.includes("community tank") || t.includes("breeding tank")) 
       return "bg-orange-950/40 text-orange-400 border-orange-900/50";
-    if (t.includes("nano tank") || t.includes("betta tank")) 
+    // Tank Kecil / Ekosistem Spesifik -> Biru
+    if (t.includes("nano tank") || t.includes("betta tank") || t.includes("discus tank")) 
       return "bg-blue-950/40 text-blue-400 border-blue-900/50";
-    if (t.includes("blackwater") || t.includes("paludarium")) 
+    // Habitat Khusus -> Ungu
+    if (t.includes("blackwater") || t.includes("paludarium") || t.includes("nature style")) 
       return "bg-purple-950/40 text-purple-400 border-purple-900/50";
     
-    // Default
+    // Default -> Abu-abu
     return "bg-slate-800/80 text-slate-200 border-slate-700";
   };
 
@@ -485,53 +491,60 @@ export default function PlantDetailPage() {
                       <span className="text-base font-black uppercase tracking-widest">
                         {plant.placement || "Unknown"}
                       </span>
-                      <span className="text-[11px] opacity-80 mt-0.5 font-medium">{getPlacementDesc(plant.placement)}</span>
+                      <span className="text-[11px] opacity-80 mt-0.5 font-medium text-center">{getPlacementDesc(plant.placement)}</span>
                     </div>
-                  </div>
-                </div>
-
-                {/* DIPINDAHKAN: QUICK TAGS HEADER SEKARANG DI DALAM CARD KIRI */}
-                <div className="mt-8 border-t border-slate-800 pt-5 w-full">
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {plant.difficulty?.toLowerCase() === 'easy' && (
-                      <span className="flex items-center gap-1.5 rounded-full bg-green-950/40 px-3 py-1 text-xs font-bold text-green-400 border border-green-900/50 shadow-sm">
-                        <Sprout className="h-3.5 w-3.5" /> BEGINNER FRIENDLY
-                      </span>
-                    )}
-                    {plant.shrimp_safe && (
-                      <span className="flex items-center gap-1.5 rounded-full bg-orange-950/40 px-3 py-1 text-xs font-bold text-orange-400 border border-orange-900/50 shadow-sm">
-                        <ShieldCheck className="h-3.5 w-3.5" /> SHRIMP SAFE
-                      </span>
-                    )}
-                    {plant.co2_requirement?.toLowerCase() === 'low' && (
-                      <span className="flex items-center gap-1.5 rounded-full bg-blue-950/40 px-3 py-1 text-xs font-bold text-blue-400 border border-blue-900/50 shadow-sm">
-                        <Wind className="h-3.5 w-3.5" /> LOW TECH
-                      </span>
-                    )}
-                    {plant.co2_mandatory === true && (
-                      <span className="flex items-center gap-1.5 rounded-full bg-red-950/40 px-3 py-1 text-xs font-bold text-red-400 border border-red-900/50 shadow-sm">
-                        <Zap className="h-3.5 w-3.5 animate-pulse" /> HIGH TECH
-                      </span>
-                    )}
                   </div>
                 </div>
                 
-                {/* TAGS KECOCOKAN DENGAN WARNA PSIKOLOGIS */}
-                {plant.recommended_for && plant.recommended_for.length > 0 && (
-                  <div className="mt-5 border-t border-slate-800 pt-5 w-full">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Kecocokan Ekosistem</p>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {plant.recommended_for.map(tag => (
-                        <div key={tag} className={`flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] ${getRecommendationBadgeColor(tag)}`}>
-                          <span className="flex items-center justify-center gap-1.5 text-[13px] font-bold uppercase tracking-widest">
-                            <CheckCircle2 className="h-3.5 w-3.5 opacity-70" /> {tag}
-                          </span>
-                          <span className="text-[11px] opacity-70 mt-1.5 font-medium">{getRecommendedDesc(tag)}</span>
-                        </div>
-                      ))}
-                    </div>
+                {/* TAGS KECOCOKAN DENGAN WARNA PSIKOLOGIS (DIPERBARUI) */}
+                <div className="mt-8 border-t border-slate-800 pt-5 w-full">
+                  <div className="flex items-center gap-2 justify-center mb-4">
+                    <CheckSquare className="h-4 w-4 text-teal-500" />
+                    <p className="text-[13px] font-bold text-slate-300 uppercase tracking-widest">Kecocokan Ekosistem</p>
                   </div>
-                )}
+                  
+                  {/* Gabungan dari Recommended For + Fitur Karpet/Udang/CO2 */}
+                  <div className="flex flex-wrap justify-center gap-2">
+                    
+                    {/* Tag Tambahan Otomatis dari Logika */}
+                    {plant.carpet_potential && (
+                      <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-green-950/40 text-green-400 border-green-900/50">
+                        <span className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase tracking-widest">
+                          <CheckCircle2 className="h-3.5 w-3.5 opacity-70" /> Karpet
+                        </span>
+                        <span className="text-[10px] opacity-70 mt-1 font-medium">Bisa tumbuh merayap</span>
+                      </div>
+                    )}
+                    
+                    {plant.shrimp_safe && (
+                      <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-orange-950/40 text-orange-400 border-orange-900/50">
+                        <span className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase tracking-widest">
+                          <CheckCircle2 className="h-3.5 w-3.5 opacity-70" /> Shrimp Safe
+                        </span>
+                        <span className="text-[10px] opacity-70 mt-1 font-medium">Aman bagi udang hias</span>
+                      </div>
+                    )}
+
+                    {plant.co2_mandatory === true && (
+                      <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-red-950/40 text-red-400 border-red-900/50">
+                        <span className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase tracking-widest">
+                          <Zap className="h-3.5 w-3.5 opacity-70" /> CO2 Wajib
+                        </span>
+                        <span className="text-[10px] opacity-70 mt-1 font-medium">Sangat butuh Injeksi</span>
+                      </div>
+                    )}
+
+                    {/* Tag dari Database (Recommended For) */}
+                    {plant.recommended_for && plant.recommended_for.map(tag => (
+                      <div key={tag} className={`flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] ${getRecommendationBadgeColor(tag)}`}>
+                        <span className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase tracking-widest">
+                          <CheckCircle2 className="h-3.5 w-3.5 opacity-70" /> {tag}
+                        </span>
+                        <span className="text-[10px] opacity-70 mt-1 font-medium text-center leading-tight max-w-[110px]">{getRecommendedDesc(tag)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -703,6 +716,7 @@ export default function PlantDetailPage() {
                   </p>
                 </div>
 
+                {/* PARAMETER AIR */}
                 <div>
                   <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Kebutuhan Lingkungan Optimal</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -731,17 +745,6 @@ export default function PlantDetailPage() {
                         <span className="text-[12px] text-blue-400/80 font-medium mt-0.5">({getIndoLevelCore(plant.co2_requirement)})</span>
                       </div>
                       
-                      {plant.co2_mandatory === true && (
-                        <div className="mt-2.5 rounded-md bg-red-950/40 border border-red-900/50 px-2 py-1.5 text-[11px] font-bold text-red-400">
-                          🔴 WAJIB CO2
-                        </div>
-                      )}
-                      {plant.co2_mandatory === false && (
-                        <div className="mt-2.5 rounded-md bg-green-950/40 border border-green-900/50 px-2 py-1.5 text-[11px] font-bold text-green-400">
-                          🟢 CO2 OPSIONAL
-                        </div>
-                      )}
-
                       <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight flex items-center justify-center h-full">
                         💡 {getIndoLevelDetail(plant.co2_requirement, "co2")}
                       </div>
@@ -868,12 +871,10 @@ export default function PlantDetailPage() {
       {/* MODAL LIGHTBOX NATIVE IMG */}
       {lightboxIndex !== null && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 overflow-hidden select-none backdrop-blur-sm" onClick={closeLightbox}>
-          {/* DIPERBARUI: Tombol X menyala merah dan transisi jelas */}
           <button className="absolute top-6 right-6 z-[110] flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20 text-red-500 border border-red-500/50 shadow-xl transition-all hover:bg-red-500 hover:text-white active:scale-95 cursor-pointer" onClick={(e) => { e.stopPropagation(); closeLightbox(); }}>
             <X className="h-8 w-8" />
           </button>
 
-          {/* DIPERBARUI: Navigasi Kiri-Kanan disembunyikan di layar HP (hidden md:flex) */}
           {allImages.length > 1 && (
             <>
               <button className="absolute left-6 z-[110] hidden md:flex h-16 w-16 items-center justify-center rounded-full bg-slate-800/80 text-slate-200 border border-slate-700 shadow-xl transition-all hover:bg-teal-500 hover:text-white active:scale-95" onClick={(e) => { e.stopPropagation(); prevImage(); }}>
