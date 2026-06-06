@@ -6,7 +6,7 @@ const PLANT_COLUMNS = `
   placement, difficulty, growth_rate, ph_min, ph_max, temperature_min, temperature_max,
   description, origin_country, max_height_cm, recommended_for, source_name, source_url, 
   image_url, gallery_urls, plant_type, aquascape_style, beginner_score, maintenance_level, 
-  carpet_potential, shrimp_safe, growth_control, tank_size_recommendation, expert_notes,
+  carpet_potential, shrimp_safe, co2_mandatory, growth_control, tank_size_recommendation, expert_notes,
   created_at, updated_at, is_active, created_by, updated_by
 `;
 
