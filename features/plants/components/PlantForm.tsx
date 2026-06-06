@@ -20,7 +20,7 @@ interface PlantFormProps {
   plant?: Plant;
 }
 
-// Opsi statis untuk Checkbox (SUDAH DIPERBAIKI)
+// Opsi statis untuk Checkbox
 const TANK_SIZES = ["Nano", "Small", "Medium", "Large", "Extra Large"];
 const AQUASCAPE_STYLES = ["Nature", "Dutch", "Iwagumi", "Jungle", "Biotope", "Taiwan"];
 const RECOMMENDATIONS = [
@@ -59,7 +59,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState("");
   
-  // STATE GALLERY (Dipecah agar bisa hapus satu-satu - MAKSIMAL 5)
+  // STATE GALLERY (Dipecah agar bisa hapus satu-satu - MAKSIMAL 8)
   const [existingGallery, setExistingGallery] = useState<string[]>([]);
   const [newGallery, setNewGallery] = useState<{file: File, preview: string}[]>([]);
   
@@ -163,7 +163,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     }
   }
 
-  // --- LOGIKA GALLERY BARU (MAKS 5) ---
+  // --- LOGIKA GALLERY BARU (DITINGKATKAN MENJADI MAKS 8) ---
   function handleGalleryChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
@@ -175,10 +175,10 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         toast.error("Beberapa gambar diabaikan karena format tidak valid atau melebihi 2MB.");
       }
 
-      // BATAS MAKSIMAL 5
-      const spaceLeft = 5 - (existingGallery.length + newGallery.length);
+      // BATAS MAKSIMAL DITAMBAH JADI 8
+      const spaceLeft = 8 - (existingGallery.length + newGallery.length);
       if (spaceLeft <= 0) {
-        toast.error("Maksimal 5 gambar galeri."); return;
+        toast.error("Maksimal 8 gambar galeri."); return;
       }
 
       const filesToAdd = newValidFiles.slice(0, spaceLeft).map(file => ({
@@ -409,11 +409,12 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               {/* UPLOAD GALERI */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label className="text-slate-300 font-semibold text-sm">Galeri Tambahan (Maks 5)</Label>
-                  <span className="text-xs text-slate-500">{totalGalleryCount}/5</span>
+                  <Label className="text-slate-300 font-semibold text-sm">Galeri Tambahan (Maks 8)</Label>
+                  <span className="text-xs text-slate-500">{totalGalleryCount}/8</span>
                 </div>
                 
-                {totalGalleryCount < 5 && (
+                {/* MAKSIMAL GALERI DINAIKKAN MENJADI 8 */}
+                {totalGalleryCount < 8 && (
                   <>
                     <input id="gallery-image" type="file" accept="image/*" multiple onChange={handleGalleryChange} className="hidden" />
                     <label htmlFor="gallery-image" className="cursor-pointer block mb-3">
@@ -478,6 +479,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                 <option value="Midground">Midground</option>
                 <option value="Background">Background</option>
                 <option value="Floating">Floating</option>
+                <option value="Epiphyte">Epiphyte</option>
               </select>
             </div>
             
@@ -634,7 +636,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               <div className="space-y-3 bg-slate-950/50 p-4 rounded-lg border border-teal-900/30">
                 <Label className="text-slate-300 font-medium">Rekomendasi Ukuran Tank</Label>
                 <div className="grid grid-cols-2 gap-3">
-                  {/* DIPERBARUI: TAMPILAN CHECKBOX LEBIH INFORMATIF UNTUK TANK SIZE */}
                   {TANK_SIZES.map(size => (
                     <label key={size} className="flex items-start gap-2 cursor-pointer group">
                       <input 
