@@ -255,7 +255,6 @@ export default function PlantDetailPage() {
     return "";
   };
 
-  // DIPERBARUI: Urutan pengecekan ("extra" dipindah ke atas "large" untuk mencegah false positive)
   const getTankSizeDetails = (size: string) => {
     const s = size.trim().toLowerCase();
 
@@ -277,7 +276,6 @@ export default function PlantDetailPage() {
         liter: "60–150 Liter",
       };
 
-    // WAJIB DI ATAS LARGE
     if (s.includes("extra"))
       return {
         size_cm: "> 120 cm",
@@ -448,22 +446,23 @@ export default function PlantDetailPage() {
                 </div>
               )}
 
-              <CardContent className="p-6 text-center border-t border-slate-800 relative">
+              {/* DIPERBARUI: Struktur tombol Share & Judul agar tidak bertabrakan */}
+              <CardContent className="p-6 flex flex-col items-center text-center border-t border-slate-800 relative">
                 
                 {/* TOMBOL SHARE NATIVE */}
-                <div className="absolute top-4 right-4 flex gap-1">
-                   <button onClick={handleShare} className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-teal-400 rounded-md transition-colors" title="Bagikan">
+                <div className="flex gap-2 justify-end w-full mb-2">
+                   <button onClick={handleShare} className="p-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-teal-400 rounded-md transition-colors" title="Bagikan">
                      <Share2 className="h-4 w-4" />
                    </button>
-                   <button onClick={handleCopyLink} className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-teal-400 rounded-md transition-colors" title="Salin Tautan">
+                   <button onClick={handleCopyLink} className="p-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-teal-400 rounded-md transition-colors" title="Salin Tautan">
                      {copied ? <Check className="h-4 w-4 text-green-500" /> : <LinkIcon className="h-4 w-4" />}
                    </button>
                 </div>
 
-                <h1 className="text-3xl font-extrabold text-teal-400 tracking-tight mt-2">{plant.name}</h1>
-                <p className="italic text-slate-400 mt-1 font-serif">{plant.scientific_name || "Scientific name unknown"}</p>
+                <h1 className="text-3xl font-extrabold text-teal-400 tracking-tight leading-tight w-full px-2">{plant.name}</h1>
+                <p className="italic text-slate-400 mt-2 font-serif">{plant.scientific_name || "Scientific name unknown"}</p>
                 
-                <div className="mt-6 flex flex-col items-center justify-center gap-3">
+                <div className="mt-6 flex flex-col items-center justify-center gap-3 w-full">
                   
                   {/* TIPE */}
                   <span className="px-4 py-2 rounded-lg text-sm font-black uppercase tracking-widest bg-teal-950/40 text-teal-400 border border-teal-900/50 w-full sm:w-auto">
@@ -500,7 +499,7 @@ export default function PlantDetailPage() {
                 
                 {/* TAGS KECOCOKAN */}
                 {plant.recommended_for && plant.recommended_for.length > 0 && (
-                  <div className="mt-8 border-t border-slate-800 pt-5">
+                  <div className="mt-8 border-t border-slate-800 pt-5 w-full">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Kecocokan Ekosistem</p>
                     <div className="flex flex-wrap justify-center gap-2">
                       {plant.recommended_for.map(tag => (
@@ -517,7 +516,7 @@ export default function PlantDetailPage() {
               </CardContent>
             </Card>
 
-            {/* RELATED PLANTS SECTION (Pindah ke bawah Tipe & Kecocokan) */}
+            {/* RELATED PLANTS SECTION */}
             {relatedPlants.length > 0 && (
               <Card className="border-slate-800 bg-slate-900/60 shadow-xl overflow-hidden mt-6">
                 <div className="bg-slate-900/80 px-5 py-3 border-b border-slate-800 flex items-center gap-2">
@@ -565,7 +564,6 @@ export default function PlantDetailPage() {
               </div>
               <CardContent className="p-6 space-y-6">
                 
-                {/* PENJELASAN TIPE TANAMAN */}
                 <div className="bg-slate-900/80 p-5 rounded-xl border border-slate-800 flex items-start gap-4 shadow-sm">
                    <div className="bg-teal-950/40 p-2.5 rounded-md border border-teal-900/50 shrink-0 mt-0.5">
                       <Leaf className="h-6 w-6 text-teal-400" />
@@ -580,7 +578,6 @@ export default function PlantDetailPage() {
                    </div>
                 </div>
 
-                {/* 4 EXPERT BADGES */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col justify-center shadow-sm relative">
                     <p className="text-[11px] uppercase text-slate-500 font-bold mb-2 text-center">Beginner Score</p>
@@ -607,7 +604,6 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
-                {/* SIFAT, STYLE, TANK (Dipisah per baris) */}
                 <div className="grid sm:grid-cols-3 gap-4 border-t border-slate-800 pt-6 mt-6">
                   
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
@@ -638,7 +634,6 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
-                  {/* DIPERBARUI: TANK SIZE DENGAN IKON 📏 & 💧 TERPISAH */}
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <Box className="h-4 w-4 text-orange-500"/>
@@ -719,7 +714,6 @@ export default function PlantDetailPage() {
                         <span className="text-[12px] text-blue-400/80 font-medium mt-0.5">({getIndoLevelCore(plant.co2_requirement)})</span>
                       </div>
                       
-                      {/* LENCANA CO2 MANDATORY */}
                       {plant.co2_mandatory === true && (
                         <div className="mt-2.5 rounded-md bg-red-950/40 border border-red-900/50 px-2 py-1.5 text-[11px] font-bold text-red-400">
                           🔴 WAJIB CO2
@@ -814,7 +808,7 @@ export default function PlantDetailPage() {
                         <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Habitat Asli</span>
                       </div>
                       <div className="border-t border-slate-800 pt-2 flex flex-col items-center justify-center h-full">
-                        <span className="text-[13px] font-bold text-slate-200 block mt-1 leading-snug">{plant.origin_country || "Unknown"}</span>
+                        <span className="text-[14px] font-bold text-slate-200 block mt-1 leading-snug">{plant.origin_country || "Unknown"}</span>
                       </div>
                     </div>
 
@@ -857,17 +851,19 @@ export default function PlantDetailPage() {
       {/* MODAL LIGHTBOX NATIVE IMG */}
       {lightboxIndex !== null && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 overflow-hidden select-none backdrop-blur-sm" onClick={closeLightbox}>
-          <button className="absolute top-6 right-6 z-[110] flex h-12 w-12 items-center justify-center rounded-full bg-slate-800/80 text-slate-200 border border-slate-700 shadow-xl transition-all hover:bg-red-500 hover:text-white active:scale-95 cursor-pointer" onClick={(e) => { e.stopPropagation(); closeLightbox(); }}>
-            <X className="h-6 w-6" />
+          {/* DIPERBARUI: Tombol X menyala merah dan transisi jelas */}
+          <button className="absolute top-6 right-6 z-[110] flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20 text-red-500 border border-red-500/50 shadow-xl transition-all hover:bg-red-500 hover:text-white active:scale-95 cursor-pointer" onClick={(e) => { e.stopPropagation(); closeLightbox(); }}>
+            <X className="h-8 w-8" />
           </button>
 
+          {/* DIPERBARUI: Navigasi Kiri-Kanan disembunyikan di layar HP (hidden md:flex) */}
           {allImages.length > 1 && (
             <>
-              <button className="absolute left-6 z-[110] flex h-14 w-14 items-center justify-center rounded-full bg-slate-800/80 text-slate-200 border border-slate-700 shadow-xl transition-all hover:bg-teal-500 hover:text-white active:scale-95" onClick={(e) => { e.stopPropagation(); prevImage(); }}>
-                <ChevronLeft className="h-8 w-8 -ml-1" />
+              <button className="absolute left-6 z-[110] hidden md:flex h-16 w-16 items-center justify-center rounded-full bg-slate-800/80 text-slate-200 border border-slate-700 shadow-xl transition-all hover:bg-teal-500 hover:text-white active:scale-95" onClick={(e) => { e.stopPropagation(); prevImage(); }}>
+                <ChevronLeft className="h-10 w-10 -ml-1" />
               </button>
-              <button className="absolute right-6 z-[110] flex h-14 w-14 items-center justify-center rounded-full bg-slate-800/80 text-slate-200 border border-slate-700 shadow-xl transition-all hover:bg-teal-500 hover:text-white active:scale-95" onClick={(e) => { e.stopPropagation(); nextImage(); }}>
-                <ChevronRight className="h-8 w-8 ml-1" />
+              <button className="absolute right-6 z-[110] hidden md:flex h-16 w-16 items-center justify-center rounded-full bg-slate-800/80 text-slate-200 border border-slate-700 shadow-xl transition-all hover:bg-teal-500 hover:text-white active:scale-95" onClick={(e) => { e.stopPropagation(); nextImage(); }}>
+                <ChevronRight className="h-10 w-10 ml-1" />
               </button>
             </>
           )}
