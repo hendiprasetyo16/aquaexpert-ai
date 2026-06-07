@@ -20,9 +20,11 @@ interface PlantFormProps {
   plant?: Plant;
 }
 
-// Opsi statis untuk Checkbox
+// Opsi statis untuk Checkbox (NILAI BERSIH UNTUK DATABASE)
 const TANK_SIZES = ["Nano", "Small", "Medium", "Large", "Extra Large"];
 const AQUASCAPE_STYLES = ["Nature", "Dutch", "Iwagumi", "Jungle", "Biotope", "Taiwan"];
+
+// RECOMMENDATIONS BERSIH DENGAN "Beginner" & Tambahan "Pond"
 const RECOMMENDATIONS = [
   "Beginner", "Low Tech", "High Tech", "Shrimp Tank", "Nano Tank", 
   "Dutch Style", "Nature Style", "Betta Tank", "Community Tank", 
@@ -30,7 +32,7 @@ const RECOMMENDATIONS = [
   "Breeding Tank", "Low Light Setup", "CO2 Setup", "Pond"
 ];
 
-// Helper untuk Subteks di Checkbox Form
+// Helper untuk Subteks di Checkbox Form (LAYER PRESENTASI UI)
 const getTankSizeLabel = (size: string) => {
   switch (size) {
     case "Nano":
@@ -84,6 +86,12 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
   useEffect(() => {
     if (mode === "edit" && plant) {
+      
+      // AUTO-REPAIR SAAT LOAD: Jika ada data "Pemula" yang nyangkut, paksa ke "Beginner" di UI
+      const repairedRecommendations = (plant.recommended_for || []).map(r => 
+        r === "Pemula" ? "Beginner" : r
+      );
+
       setFormData({
         name: plant.name || "", scientific_name: plant.scientific_name || "",
         placement: plant.placement || "Midground", difficulty: plant.difficulty || "Easy",
@@ -95,7 +103,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         origin_country: plant.origin_country || "", max_height_cm: plant.max_height_cm != null ? plant.max_height_cm.toString() : "",
         description: plant.description || "", source_name: plant.source_name || "",
         source_url: plant.source_url || "", 
-        recommended_for: plant.recommended_for || [], 
+        recommended_for: repairedRecommendations, 
         plant_type: plant.plant_type || "Stem", 
         aquascape_style: plant.aquascape_style || [], 
         beginner_score: plant.beginner_score != null ? plant.beginner_score.toString() : "",
@@ -175,7 +183,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         toast.error("Beberapa gambar diabaikan karena format tidak valid atau melebihi 2MB.");
       }
 
-      // BATAS MAKSIMAL DITAMBAH JADI 8
       const spaceLeft = 8 - (existingGallery.length + newGallery.length);
       if (spaceLeft <= 0) {
         toast.error("Maksimal 8 gambar galeri."); return;
@@ -413,7 +420,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                   <span className="text-xs text-slate-500">{totalGalleryCount}/8</span>
                 </div>
                 
-                {/* MAKSIMAL GALERI DINAIKKAN MENJADI 8 */}
                 {totalGalleryCount < 8 && (
                   <>
                     <input id="gallery-image" type="file" accept="image/*" multiple onChange={handleGalleryChange} className="hidden" />
