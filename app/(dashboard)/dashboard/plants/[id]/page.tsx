@@ -165,7 +165,6 @@ export default function PlantDetailPage() {
   // HELPER TRANSLASI & LOGIKA
   // ==========================================
   
-  // HELPER STATUS CO2 DINAMIS
   const getCO2DisplayStatus = (
     requirement: string | null | undefined,
     isMandatory: boolean | null | undefined
@@ -312,7 +311,6 @@ export default function PlantDetailPage() {
     return "Tipe tanaman akuatik standar.";
   };
 
-  // CLEANED UP RECOMMENDED DESC
   const getRecommendedDesc = (tag: string) => {
     const t = tag.toLowerCase();
     
@@ -336,7 +334,7 @@ export default function PlantDetailPage() {
     if (t.includes("nano tank")) return "Cocok di tank kecil";
     if (t.includes("large tank")) return "Cocok di tank besar";
     
-    // Tema (Sisa yang bukan placement/style utama)
+    // Tema (Sisanya)
     if (t.includes("dutch style")) return "Kerapatan tanaman tinggi";
     if (t.includes("nature style")) return "Memberi kesan alam liar";
     
@@ -353,43 +351,27 @@ export default function PlantDetailPage() {
   const getRecommendationBadgeColor = (tag: string) => {
     const t = tag.toLowerCase();
     
-    // Skill
     if (t === "pemula" || t === "beginner") return "bg-emerald-950/40 text-emerald-400 border-emerald-900/50";
-    
-    // Setup Type
     if (t.includes("low tech") || t.includes("low light")) return "bg-green-950/40 text-green-400 border-green-900/50";
     if (t.includes("high tech")) return "bg-red-950/40 text-red-400 border-red-900/50";
     if (t.includes("co2 setup")) return "bg-cyan-950/40 text-cyan-400 border-cyan-900/50";
-    
-    // Style
     if (t.includes("dutch style")) return "bg-orange-950/40 text-orange-400 border-orange-900/50";
     if (t.includes("nature style")) return "bg-yellow-950/40 text-yellow-400 border-yellow-900/50";
     if (t.includes("iwagumi")) return "bg-slate-800 text-slate-300 border-slate-600";
     if (t.includes("contest")) return "bg-violet-950/40 text-violet-400 border-violet-900/50";
-    
-    // Fauna
     if (t.includes("shrimp tank")) return "bg-rose-950/40 text-rose-400 border-rose-900/50";
     if (t.includes("community tank")) return "bg-indigo-950/40 text-indigo-400 border-indigo-900/50";
     if (t.includes("betta tank")) return "bg-fuchsia-950/40 text-fuchsia-400 border-fuchsia-900/50";
     if (t.includes("cichlid")) return "bg-purple-950/40 text-purple-400 border-purple-900/50";
     if (t.includes("breeding tank")) return "bg-teal-950/40 text-teal-400 border-teal-900/50";
-    
-    // Sizes & Misc
     if (t.includes("nano tank")) return "bg-blue-950/40 text-blue-400 border-blue-900/50";
     if (t.includes("large tank")) return "bg-zinc-900/80 text-zinc-300 border-zinc-700";
     if (t.includes("blackwater")) return "bg-amber-950/40 text-amber-500 border-amber-900/50";
     if (t.includes("paludarium")) return "bg-pink-950/40 text-pink-400 border-pink-900/50";
     if (t.includes("pond")) return "bg-sky-950/40 text-sky-400 border-sky-900/50";
     
-    // Default
     return "bg-slate-800/80 text-slate-200 border-slate-700";
   };
-
-  // MENCARI TANAMAN SERUPA
-  const relatedPlants = allPlantsList
-    .filter(p => p.id !== plant?.id && p.is_active)
-    .filter(p => p.plant_type === plant?.plant_type || p.placement === plant?.placement)
-    .slice(0, 3);
 
   // MENGHILANGKAN DUPLIKASI TAG "Pemula" dan "Beginner" saat rendering
   const uniqueRecommendedTags = Array.from(
@@ -406,11 +388,31 @@ export default function PlantDetailPage() {
   // Render variables
   const co2Status = getCO2DisplayStatus(plant.co2_requirement, plant.co2_mandatory);
 
+  // MENCARI TANAMAN SERUPA (SMART DIFF SCORING AI SYSTEM)
+  const relatedPlants = allPlantsList
+    .filter(p => p.id !== plant.id && p.is_active)
+    .map(p => {
+      let score = 0;
+      if (p.plant_type === plant.plant_type) score += 4;
+      if (p.placement === plant.placement) score += 3;
+      if (p.difficulty === plant.difficulty) score += 2;
+      if (p.light_requirement === plant.light_requirement) score += 2;
+      if (p.co2_requirement === plant.co2_requirement) score += 2;
+      
+      // Bonus skor tipis jika asalnya sama
+      if (p.origin_country === plant.origin_country) score += 1;
+      
+      return { ...p, similarityScore: score };
+    })
+    .filter(p => p.similarityScore >= 5) // Minimal mirip 2 parameter penting
+    .sort((a, b) => b.similarityScore - a.similarityScore)
+    .slice(0, 3);
+
   return (
     <>
       <div className="max-w-6xl space-y-6 pb-10">
         
-        {/* HEADER TOOLBAR DENGAN FITUR NEXT & PREVIOUS & INFO INDEX */}
+        {/* HEADER TOOLBAR */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -544,16 +546,13 @@ export default function PlantDetailPage() {
                     </p>
                   </div>
 
-                  {/* ===================================================== */}
                   {/* COCOK UNTUK */}
-                  {/* ===================================================== */}
                   <div className="mb-6">
                     <h4 className="text-xs font-bold uppercase tracking-widest text-teal-400 mb-3">
                       Cocok Untuk
                     </h4>
 
                     <div className="flex flex-wrap justify-center gap-2">
-
                       {(uniqueRecommendedTags || [])
                         .filter(tag =>
                           [
@@ -569,7 +568,6 @@ export default function PlantDetailPage() {
                             <span className="text-[12px] font-bold uppercase tracking-widest">
                               {tag}
                             </span>
-
                             <span className="text-[10px] opacity-70 mt-1">
                               {getRecommendedDesc(tag)}
                             </span>
@@ -578,16 +576,13 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
-                  {/* ===================================================== */}
                   {/* SETUP REKOMENDASI */}
-                  {/* ===================================================== */}
                   <div className="mb-6">
                     <h4 className="text-xs font-bold uppercase tracking-widest text-yellow-400 mb-3">
                       Setup Rekomendasi
                     </h4>
 
                     <div className="flex flex-wrap justify-center gap-2">
-
                       {(uniqueRecommendedTags || [])
                         .filter(tag =>
                           [
@@ -605,7 +600,6 @@ export default function PlantDetailPage() {
                             <span className="text-[12px] font-bold uppercase tracking-widest">
                               {tag}
                             </span>
-
                             <span className="text-[10px] opacity-70 mt-1 text-center">
                               {getRecommendedDesc(tag)}
                             </span>
@@ -614,9 +608,7 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
-                  {/* ===================================================== */}
                   {/* EKOSISTEM COCOK */}
-                  {/* ===================================================== */}
                   <div>
                     <h4 className="text-xs font-bold uppercase tracking-widest text-cyan-400 mb-3">
                       Ekosistem Cocok
@@ -624,36 +616,39 @@ export default function PlantDetailPage() {
 
                     <div className="flex flex-wrap justify-center gap-2">
 
+                      {/* SMART CO2 BADGE (IMPLEMENTASI BARU) */}
+                      <div className={`flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] ${
+                        co2Status.variant === 'danger' ? 'bg-red-950/40 text-red-400 border-red-900/50' :
+                        co2Status.variant === 'warning' ? 'bg-amber-950/40 text-amber-400 border-amber-900/50' :
+                        'bg-emerald-950/40 text-emerald-400 border-emerald-900/50'
+                      }`}>
+                        <span className="text-[12px] font-bold uppercase tracking-widest">
+                          {co2Status.label === "Wajib Injeksi" ? "CO2 Wajib" : co2Status.label === "Disarankan" ? "CO2 Disarankan" : "Tanpa CO2"}
+                        </span>
+                        <span className="text-[10px] opacity-70 mt-1">
+                          {co2Status.variant === 'danger' ? 'Butuh injeksi CO2' : co2Status.variant === 'warning' ? 'Lebih baik dgn CO2' : 'Aman tanpa CO2'}
+                        </span>
+                      </div>
+
                       {plant.carpet_potential && (
                         <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-green-950/40 text-green-400 border-green-900/50">
-                          <span className="text-[12px] font-bold uppercase tracking-widest">
-                            Karpet
-                          </span>
-                          <span className="text-[10px] opacity-70 mt-1">
-                            Bisa tumbuh merayap
-                          </span>
+                          <span className="text-[12px] font-bold uppercase tracking-widest">Karpet</span>
+                          <span className="text-[10px] opacity-70 mt-1">Bisa merayap</span>
                         </div>
                       )}
 
                       {plant.shrimp_safe && (
                         <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-rose-950/40 text-rose-400 border-rose-900/50">
-                          <span className="text-[12px] font-bold uppercase tracking-widest">
-                            Shrimp Safe
-                          </span>
-                          <span className="text-[10px] opacity-70 mt-1">
-                            Aman untuk udang
-                          </span>
+                          <span className="text-[12px] font-bold uppercase tracking-widest">Shrimp Safe</span>
+                          <span className="text-[10px] opacity-70 mt-1">Aman untuk udang</span>
                         </div>
                       )}
-
-                      {plant.co2_mandatory === true && (
-                        <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-red-950/40 text-red-400 border-red-900/50">
-                          <span className="text-[12px] font-bold uppercase tracking-widest">
-                            CO2 Wajib
-                          </span>
-                          <span className="text-[10px] opacity-70 mt-1">
-                            Butuh injeksi CO2
-                          </span>
+                      
+                      {/* BADGE EMERSED CAPABLE (IMPLEMENTASI BARU) */}
+                      {plant.emersed_capable && (
+                        <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-emerald-950/40 text-emerald-400 border-emerald-900/50">
+                          <span className="text-[12px] font-bold uppercase tracking-widest">Emersed</span>
+                          <span className="text-[10px] opacity-70 mt-1">Bisa tumbuh di darat</span>
                         </div>
                       )}
 
@@ -679,13 +674,8 @@ export default function PlantDetailPage() {
                             key={tag}
                             className={`flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] ${getRecommendationBadgeColor(tag)}`}
                           >
-                            <span className="text-[12px] font-bold uppercase tracking-widest">
-                              {tag}
-                            </span>
-
-                            <span className="text-[10px] opacity-70 mt-1 text-center">
-                              {getRecommendedDesc(tag)}
-                            </span>
+                            <span className="text-[12px] font-bold uppercase tracking-widest">{tag}</span>
+                            <span className="text-[10px] opacity-70 mt-1 text-center">{getRecommendedDesc(tag)}</span>
                           </div>
                       ))}
                     </div>
@@ -695,7 +685,7 @@ export default function PlantDetailPage() {
               </CardContent>
             </Card>
 
-            {/* RELATED PLANTS SECTION */}
+            {/* RELATED PLANTS SECTION (SMART AI REC) */}
             {relatedPlants.length > 0 && (
               <Card className="border-slate-800 bg-slate-900/60 shadow-xl overflow-hidden mt-6">
                 <div className="bg-slate-900/80 px-5 py-3 border-b border-slate-800 flex items-center gap-2">
@@ -706,7 +696,10 @@ export default function PlantDetailPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
                     {relatedPlants.map(related => (
                       <Link href={`/dashboard/plants/${related.id}`} key={related.id}>
-                        <div className="flex items-center gap-4 bg-slate-950/50 hover:bg-slate-800 border border-slate-800 hover:border-teal-900/50 p-2.5 rounded-lg transition-colors cursor-pointer">
+                        <div className="flex items-center gap-4 bg-slate-950/50 hover:bg-slate-800 border border-slate-800 hover:border-teal-900/50 p-2.5 rounded-lg transition-colors cursor-pointer relative overflow-hidden">
+                          {/* Indikator Match Score Kecil */}
+                          <div className="absolute right-0 top-0 bottom-0 w-1 bg-teal-500/20"></div>
+                          
                           <div className="h-16 w-16 relative rounded-md overflow-hidden bg-slate-800 shrink-0">
                             {related.image_url ? (
                               <Image src={related.image_url} alt={related.name} fill sizes="64px" className="object-cover" />
@@ -783,7 +776,7 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
-                {/* SIFAT, STYLE, TANK (GRID PRESISI, TINGGI SAMA RATA) */}
+                {/* SIFAT, STYLE, TANK */}
                 <div className="grid sm:grid-cols-3 gap-4 border-t border-slate-800 pt-6 mt-6">
                   
                   <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
@@ -791,7 +784,6 @@ export default function PlantDetailPage() {
                       <Activity className="h-4 w-4 text-teal-500"/>
                       <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">Sifat Rambat</p>
                     </div>
-                    {/* Menggunakan flex-col, flex-1, justify-center, items-center agar konten selalu di tengah */}
                     <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 flex flex-col flex-1 justify-center items-center shadow-inner text-center">
                       <span className="text-base font-black text-slate-100 uppercase tracking-wider mb-1.5">{plant.growth_control || "N/A"}</span>
                       <span className="text-[12px] text-slate-400 leading-snug">{getIndoLevelDetail(plant.growth_control, "growth")}</span>
@@ -872,7 +864,7 @@ export default function PlantDetailPage() {
                     {plant.description || "Belum ada deskripsi untuk tanaman ini."}
                   </p>
 
-                  {/* BADGE EMERSED CAPABLE */}
+                  {/* BADGE EMERSED CAPABLE BAWAH DESKRIPSI (opsional, karena di atas sudah ada) */}
                   {plant.emersed_capable && (
                     <div className="mt-4 flex items-center gap-3 p-3 rounded-lg bg-emerald-950/20 border border-emerald-900/40 text-emerald-300">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-900/50 text-emerald-400 font-bold text-xs shrink-0">
@@ -907,7 +899,6 @@ export default function PlantDetailPage() {
                       </div>
                     </div>
                     
-                    {/* IMPLEMENTASI CO2 STATUS BARU */}
                     <div className="flex flex-col bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm text-center">
                       <div className="flex items-center justify-center gap-2 mb-3">
                         <Wind className={`h-4 w-4 ${co2Status.variant === "danger" ? "text-red-400" : co2Status.variant === "warning" ? "text-amber-400" : "text-emerald-400"}`} />

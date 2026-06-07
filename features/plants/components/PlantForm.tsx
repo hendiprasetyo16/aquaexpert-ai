@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, ImagePlus, Archive, Trash2, X, Images } from "lucide-react";
+import { Loader2, ImagePlus, Archive, Trash2, X, Images, Brain } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface PlantFormProps {
@@ -80,7 +80,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     plant_type: "Stem", beginner_score: "", maintenance_level: "Medium",
     carpet_potential: false, shrimp_safe: true, growth_control: "Moderate",
     co2_mandatory: false,
-    emersed_capable: false,
+    emersed_capable: false, // <-- FIELD BARU (Sudah Masuk)
     aquascape_style: [] as string[], 
     tank_size_recommendation: [] as string[], 
     expert_notes: ""
@@ -114,7 +114,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         shrimp_safe: plant.shrimp_safe !== false, 
         growth_control: plant.growth_control || "Moderate",
         co2_mandatory: plant.co2_mandatory || false,
-        emersed_capable: plant.emersed_capable || false,
+        emersed_capable: plant.emersed_capable || false, // <-- State dari Database terisi
         tank_size_recommendation: plant.tank_size_recommendation || [], 
         expert_notes: plant.expert_notes || ""
       });
@@ -126,12 +126,23 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     const { name, value, type } = e.target;
+    let finalValue: any = value;
+    
     if (type === "checkbox") {
-      const checked = (e.target as HTMLInputElement).checked;
-      setFormData({ ...formData, [name]: checked });
-    } else {
-      setFormData({ ...formData, [name]: value });
+      finalValue = (e.target as HTMLInputElement).checked;
+    } else if (type === "number") {
+      finalValue = value === "" ? "" : Number(value);
+      
+      // VALIDASI CERDAS: Kunci Beginner Score antara 0 sampai 10
+      if (name === "beginner_score" && finalValue !== "") {
+        finalValue = Math.min(10, Math.max(0, finalValue));
+      }
     }
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: finalValue,
+    }));
   }
 
   // KHUSUS UNTUK CHECKBOX ARRAY
@@ -289,13 +300,13 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         gallery_urls: finalGalleryUrls,
         plant_type: formData.plant_type,
         aquascape_style: formData.aquascape_style.length > 0 ? formData.aquascape_style : null,
-        beginner_score: formData.beginner_score ? parseInt(formData.beginner_score) : null,
+        beginner_score: formData.beginner_score ? parseInt(formData.beginner_score as string) : null,
         maintenance_level: formData.maintenance_level,
         carpet_potential: formData.carpet_potential,
         shrimp_safe: formData.shrimp_safe,
         growth_control: formData.growth_control,
         co2_mandatory: formData.co2_mandatory,
-        emersed_capable: formData.emersed_capable,
+        emersed_capable: formData.emersed_capable, // <-- Data Tersimpan dengan Benar
         tank_size_recommendation: formData.tank_size_recommendation.length > 0 ? formData.tank_size_recommendation : null,
         expert_notes: formData.expert_notes
       };
@@ -611,12 +622,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
               <div className="space-y-2">
                 <Label className="text-slate-300">Beginner Score (1-10)</Label>
-                <select name="beginner_score" value={formData.beginner_score} onChange={handleChange} className="h-10 w-full rounded-md border border-teal-800/50 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
-                  <option value="">-- Pilih --</option>
-                  {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(num => (
-                    <option key={num} value={num}>{num} {num === 10 ? "(Sangat Mudah)" : num === 1 ? "(Sangat Sulit)" : ""}</option>
-                  ))}
-                </select>
+                <Input type="number" name="beginner_score" min="0" max="10" placeholder="Contoh: 8" value={formData.beginner_score} onChange={handleChange} className="h-10 bg-slate-950 border-teal-800/50 text-slate-100 focus:border-teal-500" />
               </div>
 
               <div className="space-y-2">
@@ -631,49 +637,31 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 pt-2">
-              <div className="space-y-3 bg-slate-950/50 p-4 rounded-lg border border-teal-900/30">
-                <Label className="text-slate-300 font-medium">Gaya Aquascape (Bisa pilih lebih dari satu)</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {AQUASCAPE_STYLES.map(style => (
-                    <label key={style} className="flex items-center gap-2 cursor-pointer group">
-                      <input type="checkbox" value={style} checked={formData.aquascape_style.includes(style)} onChange={(e) => handleArrayCheckboxChange(e, "aquascape_style")} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900 cursor-pointer" />
-                      <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">{style}</span>
+              <div className="space-y-3">
+                <Label className="text-slate-300">Gaya Aquascape (Cocok Untuk)</Label>
+                <div className="grid grid-cols-2 gap-2 bg-slate-950 p-4 rounded-lg border border-slate-800">
+                  {AQUASCAPE_STYLES.map((style) => (
+                    <label key={style} className="flex items-center space-x-2 cursor-pointer">
+                      <input type="checkbox" value={style} checked={formData.aquascape_style.includes(style)} onChange={(e) => handleArrayCheckboxChange(e, "aquascape_style")} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900" />
+                      <span className="text-sm text-slate-300">{style}</span>
                     </label>
                   ))}
                 </div>
               </div>
-              
-              <div className="space-y-3 bg-slate-950/50 p-4 rounded-lg border border-teal-900/30">
-                <Label className="text-slate-300 font-medium">Rekomendasi Ukuran Tank</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {TANK_SIZES.map(size => (
-                    <label key={size} className="flex items-start gap-2 cursor-pointer group">
-                      <input 
-                        type="checkbox" 
-                        value={size} 
-                        checked={formData.tank_size_recommendation.includes(size)} 
-                        onChange={(e) => handleArrayCheckboxChange(e, "tank_size_recommendation")} 
-                        className="mt-1 h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900 cursor-pointer" 
-                      />
+
+              <div className="space-y-3">
+                <Label className="text-slate-300">Ukuran Aquarium Ideal</Label>
+                <div className="flex flex-col gap-2 bg-slate-950 p-4 rounded-lg border border-slate-800">
+                  {TANK_SIZES.map((size) => (
+                    <label key={size} className="flex items-center space-x-2 cursor-pointer">
+                      <input type="checkbox" value={size} checked={formData.tank_size_recommendation.includes(size)} onChange={(e) => handleArrayCheckboxChange(e, "tank_size_recommendation")} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900" />
                       <div className="flex flex-col">
-                        <span className="text-sm text-slate-300 font-medium group-hover:text-teal-400 transition-colors">{size}</span>
-                        <span className="text-[10px] text-slate-500 whitespace-pre-line">{getTankSizeLabel(size)}</span>
+                         <span className="text-sm font-medium text-slate-300">{size}</span>
+                         <span className="text-[10px] text-slate-500">{getTankSizeLabel(size)}</span>
                       </div>
                     </label>
                   ))}
                 </div>
-              </div>
-            </div>
-
-            <div className="space-y-3 bg-slate-950/50 p-4 rounded-lg border border-teal-900/30 mt-2">
-              <Label className="text-slate-300 font-medium">Direkomendasikan Untuk (Kategori Spesifik)</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {RECOMMENDATIONS.map(rec => (
-                  <label key={rec} className="flex items-center gap-2 cursor-pointer group">
-                    <input type="checkbox" value={rec} checked={formData.recommended_for.includes(rec)} onChange={(e) => handleArrayCheckboxChange(e, "recommended_for")} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900 cursor-pointer" />
-                    <span className="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">{rec}</span>
-                  </label>
-                ))}
               </div>
             </div>
 
@@ -690,32 +678,43 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                 <input type="checkbox" name="co2_mandatory" checked={formData.co2_mandatory} onChange={handleChange} className="h-4 w-4 accent-red-600 rounded border-slate-700 bg-slate-900" />
                 <span className="text-sm font-medium text-red-400">Wajib Injeksi CO2 (Mandatory)</span>
               </label>
-              {/* Checkbox Baru Emersed Capable */}
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" name="emersed_capable" checked={formData.emersed_capable} onChange={handleChange} className="h-4 w-4 accent-emerald-600 rounded border-slate-700 bg-slate-900" />
                 <span className="text-sm font-medium text-emerald-400">Bisa Tumbuh Emersed (Darat)</span>
               </label>
             </div>
 
+            <div className="space-y-3 pt-2">
+              <Label className="text-slate-300">Sistem Pakar: Label Kecocokan & Rekomendasi</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 bg-slate-950 p-4 rounded-lg border border-slate-800 max-h-60 overflow-y-auto custom-scrollbar">
+                {RECOMMENDATIONS.map((rec) => (
+                  <label key={rec} className="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" value={rec} checked={formData.recommended_for.includes(rec)} onChange={(e) => handleArrayCheckboxChange(e, "recommended_for")} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900 shrink-0" />
+                    <span className="text-xs text-slate-300 leading-tight">{rec}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-2 pt-2">
-              <Label className="text-slate-300 font-bold text-teal-400">Catatan Pakar (Expert Notes)</Label>
+              <Label className="text-teal-400 flex items-center gap-2"><Brain className="h-4 w-4" /> Catatan Khusus Pakar (Opsional)</Label>
               <textarea 
                 name="expert_notes" 
                 rows={3} 
                 value={formData.expert_notes} 
                 onChange={handleChange} 
-                className="w-full rounded-md border border-teal-800/50 bg-slate-950 p-3 text-slate-100 focus:border-teal-500 outline-none leading-relaxed resize-y" 
-                placeholder="Contoh: Sangat rakus menyerap nitrat, waspadai defisiensi kalium (K)..."
+                className="w-full rounded-md border border-teal-900/50 bg-teal-950/20 p-3 text-teal-100 focus:border-teal-500 outline-none leading-relaxed resize-y placeholder:text-teal-900" 
+                placeholder="Tips rahasia menumbuhkan tanaman ini, trik trimming, dll..."
               />
             </div>
           </div>
 
-          {error && <div className="rounded border border-red-900 bg-red-950/50 p-3 text-red-400 font-medium text-sm text-center animate-pulse">{error}</div>}
+          {error && <div className="rounded-md bg-red-950/50 border border-red-900/50 p-4 text-sm text-red-400">{error}</div>}
 
-          {/* KELOMPOK TOMBOL AKSI RESPONSIF MOBILE */}
-          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:justify-between border-t border-slate-800 pt-6 mt-8">
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              {mode === "edit" && (
+          {/* ACTION BUTTONS */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-800">
+            <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
+              {mode === "edit" && plant && (
                 <>
                   <Button type="button" variant="secondary" onClick={handleDelete} disabled={loading} className="w-full sm:w-auto bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
                     <Archive className="mr-2 h-4 w-4" /> Arsipkan
@@ -735,8 +734,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                 Batal
               </Button>
               <Button type="submit" disabled={loading} className="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 text-white font-semibold transition-all shadow-lg shadow-teal-900/20">
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {mode === "create" ? "Simpan Tanaman" : "Update Tanaman"}
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : mode === "create" ? "Simpan Tanaman" : "Perbarui Data"}
               </Button>
             </div>
           </div>

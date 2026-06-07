@@ -2,12 +2,44 @@ import { createClient } from "@/lib/supabase/client";
 import { Plant } from "../types/plant.types";
 
 const PLANT_COLUMNS = `
-  id, name, slug, scientific_name, light_requirement, co2_requirement, fertilizer_requirement,
-  placement, difficulty, growth_rate, ph_min, ph_max, temperature_min, temperature_max,
-  description, origin_country, max_height_cm, recommended_for, source_name, source_url, 
-  image_url, gallery_urls, plant_type, aquascape_style, beginner_score, maintenance_level, 
-  carpet_potential, shrimp_safe, co2_mandatory, emersed_capable, growth_control, tank_size_recommendation, expert_notes,
-  created_at, updated_at, is_active, created_by, updated_by
+  id,
+  name,
+  slug,
+  scientific_name,
+  light_requirement,
+  co2_requirement,
+  fertilizer_requirement,
+  placement,
+  difficulty,
+  growth_rate,
+  ph_min,
+  ph_max,
+  temperature_min,
+  temperature_max,
+  description,
+  origin_country,
+  max_height_cm,
+  recommended_for,
+  source_name,
+  source_url,
+  image_url,
+  gallery_urls,
+  plant_type,
+  aquascape_style,
+  beginner_score,
+  maintenance_level,
+  carpet_potential,
+  shrimp_safe,
+  co2_mandatory,
+  emersed_capable,
+  growth_control,
+  tank_size_recommendation,
+  expert_notes,
+  created_at,
+  updated_at,
+  is_active,
+  created_by,
+  updated_by
 `;
 
 export async function getPlants(): Promise<Plant[]> {
@@ -33,18 +65,13 @@ export async function getPlantById(id: string): Promise<Plant | null> {
     .eq("id", id)
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error(error);
+    return null;
+  }
   return data as Plant;
 }
 
-export async function deletePlant(id: string) {
-  const supabase = createClient();
-  const { error } = await supabase.from("plants").update({ is_active: false }).eq("id", id);
-  if (error) throw error;
-  return true;
-}
-
-// PERBAIKAN FINAL: Cache-Busting (Date.now) + Upsert: False
 export async function uploadPlantImage(file: File, slug: string, prefix: string): Promise<string> {
   const supabase = createClient();
   const ext = file.name.split(".").pop();
@@ -81,12 +108,25 @@ export async function getArchivedPlants(): Promise<Plant[]> {
   const { data, error } = await supabase
     .from("plants")
     .select(PLANT_COLUMNS)
-    .eq("is_active", false) 
-    .order("updated_at", { ascending: false }); 
+    .eq("is_active", false)
+    .order("name");
 
   if (error) {
-    console.error("Gagal mengambil data arsip tanaman:", error);
+    console.error("Gagal mengambil data tanaman yang diarsipkan:", error);
     return [];
   }
   return (data ?? []) as Plant[];
+}
+
+// PERBAIKAN KRITIS: Soft Delete (Arsip)
+export async function deletePlant(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("plants")
+    .update({
+      is_active: false
+    })
+    .eq("id", id);
+    
+  if (error) throw error;
 }
