@@ -1,4 +1,3 @@
-// app/api/create-folders/route.ts
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
@@ -36,9 +35,8 @@ const plantSlugs: string[] = [
 ];
 
 export async function GET(request: Request) {
-  // 1. Kunci Keamanan
-  const { searchParams } = new URL(request.url);
-  const secret = searchParams.get("secret");
+  // 1. KEAMANAN: Membaca secret dari Header, BUKAN dari URL params
+  const secret = request.headers.get("x-admin-secret");
 
   if (secret !== "aquaexpert-sinkron-2024") {
     return NextResponse.json({ error: "Akses Ditolak." }, { status: 401 });

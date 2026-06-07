@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, FolderPlus, RefreshCw, Server, AlertTriangle } from "lucide-react";
+import { Loader2, FolderPlus, RefreshCw, Server, AlertTriangle, Database, HardDriveDownload } from "lucide-react";
 import toast from "react-hot-toast";
+
+// Kunci rahasia (Pastikan sama persis dengan yang ada di API Route)
+const ADMIN_SECRET = "aquaexpert-sinkron-2024";
 
 export default function SetupStorage() {
   const [loadingFolder, setLoadingFolder] = useState(false);
   const [loadingSync, setLoadingSync] = useState(false);
+  const [loadingBackup, setLoadingBackup] = useState(false);
 
   // 1. PANGGIL API BUAT FOLDER
   const handleCreateFolders = async () => {
@@ -15,8 +19,10 @@ export default function SetupStorage() {
 
     setLoadingFolder(true);
     try {
-      const response = await fetch("/api/create-folders?secret=aquaexpert-sinkron-2024", {
+      // PERBAIKAN: Menggunakan Headers untuk mengirim Secret Key
+      const response = await fetch("/api/create-folders", {
         method: "GET",
+        headers: { "x-admin-secret": ADMIN_SECRET }
       });
       
       const data = await response.json();
@@ -40,8 +46,9 @@ export default function SetupStorage() {
 
     setLoadingSync(true);
     try {
-      const response = await fetch("/api/sync-images?secret=aquaexpert-sinkron-2024", {
+      const response = await fetch("/api/sync-images", {
         method: "GET",
+        headers: { "x-admin-secret": ADMIN_SECRET }
       });
       
       const data = await response.json();
@@ -58,8 +65,56 @@ export default function SetupStorage() {
     }
   };
 
+  // 3. PANGGIL API BACKUP DATABASE (JSON SAJA)
+  const handleBackup = async () => {
+    if (!window.confirm("Backup seluruh teks Database ke file JSON di Supabase Storage? (Ini TIDAK mengunduh gambar fisik).")) return;
+    
+    setLoadingBackup(true);
+    try {
+      const res = await fetch("/api/backup-restore", { 
+        method: "POST", 
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": ADMIN_SECRET
+        },
+        body: JSON.stringify({ action: "BACKUP" }) 
+      });
+      const data = await res.json();
+      data.success ? toast.success(data.message) : toast.error(data.error);
+    } catch (error) {
+      toast.error("Terjadi kesalahan jaringan.");
+    } finally {
+      setLoadingBackup(false);
+    }
+  };
+
+  // 4. PANGGIL API RESTORE DATABASE (JSON SAJA)
+  const handleRestore = async () => {
+    if (!window.confirm("PERINGATAN! RESTORE akan menimpa data saat ini dengan file backup JSON terakhir. Lanjutkan?")) return;
+    
+    setLoadingBackup(true);
+    try {
+      const res = await fetch("/api/backup-restore", { 
+        method: "POST", 
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": ADMIN_SECRET
+        },
+        body: JSON.stringify({ action: "RESTORE" }) 
+      });
+      const data = await res.json();
+      data.success ? toast.success(data.message) : toast.error(data.error);
+    } catch (error) {
+      toast.error("Terjadi kesalahan jaringan.");
+    } finally {
+      setLoadingBackup(false);
+    }
+  };
+
+  const isAnyLoading = loadingFolder || loadingSync || loadingBackup;
+
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-4xl mx-auto pb-20">
       <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl">
         
         {/* Ornamen Latar Belakang (Glow) */}
@@ -88,44 +143,69 @@ export default function SetupStorage() {
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
             <div className="text-sm leading-relaxed">
               <strong className="block text-amber-400 font-semibold mb-1">Perhatian Eksekusi Server</strong>
-              Proses di bawah ini akan memanggil API Server untuk mengeksekusi operasi massal secara langsung ke Supabase. Harap pastikan koneksi stabil saat proses berjalan.
+              Proses di bawah ini akan mengeksekusi operasi massal secara langsung ke Supabase. Harap pastikan koneksi internet Anda stabil. Fitur Backup hanya mengamankan metadata teks (JSON), bukan file gambar fisik.
             </div>
           </div>
 
-          {/* Area Tombol Aksi */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Tombol Buat Folder */}
-            <div className="group relative">
-              <button
-                type="button"
-                onClick={handleCreateFolders}
-                disabled={loadingFolder || loadingSync}
-                className="relative flex w-full items-center justify-center gap-3 rounded-xl border border-slate-700 bg-slate-800 px-6 py-4 font-medium text-slate-200 transition-all hover:bg-slate-700 hover:border-slate-600 disabled:opacity-50 disabled:hover:bg-slate-800 disabled:hover:border-slate-700"
-              >
-                {loadingFolder ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
-                ) : (
-                  <FolderPlus className="h-5 w-5 text-slate-400 group-hover:text-slate-200 transition-colors" />
-                )}
-                {loadingFolder ? "Memproses..." : "Setup Folder Storage"}
-              </button>
-            </div>
+          {/* Area Tombol Storage (Baris 1) */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">1. Manajemen Storage</h4>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="group relative">
+                <button
+                  type="button"
+                  onClick={handleCreateFolders}
+                  disabled={isAnyLoading}
+                  className="relative flex w-full items-center justify-center gap-3 rounded-xl border border-slate-700 bg-slate-800 px-6 py-4 font-medium text-slate-200 transition-all hover:bg-slate-700 hover:border-slate-600 disabled:opacity-50"
+                >
+                  {loadingFolder ? <Loader2 className="h-5 w-5 animate-spin text-slate-400" /> : <FolderPlus className="h-5 w-5 text-slate-400" />}
+                  {loadingFolder ? "Memproses..." : "Setup Folder Storage"}
+                </button>
+              </div>
 
-            {/* Tombol Sync Gambar */}
-            <div className="group relative">
-              <button
-                type="button"
-                onClick={handleSyncImages}
-                disabled={loadingFolder || loadingSync}
-                className="relative flex w-full items-center justify-center gap-3 rounded-xl bg-teal-600 px-6 py-4 font-medium text-white shadow-lg shadow-teal-900/20 transition-all hover:bg-teal-500 hover:shadow-teal-900/40 disabled:opacity-50 disabled:hover:bg-teal-600"
-              >
-                {loadingSync ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-5 w-5" />
-                )}
-                {loadingSync ? "Mensinkronkan..." : "Auto-Sync Gambar Database"}
-              </button>
+              <div className="group relative">
+                <button
+                  type="button"
+                  onClick={handleSyncImages}
+                  disabled={isAnyLoading}
+                  className="relative flex w-full items-center justify-center gap-3 rounded-xl bg-teal-600 px-6 py-4 font-medium text-white shadow-lg shadow-teal-900/20 transition-all hover:bg-teal-500 hover:shadow-teal-900/40 disabled:opacity-50"
+                >
+                  {loadingSync ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
+                  {loadingSync ? "Mensinkronkan..." : "Auto-Sync Gambar"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <hr className="border-slate-800" />
+
+          {/* Area Tombol Backup Database (Baris 2) */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">2. Disaster Recovery (Database)</h4>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="group relative">
+                <button
+                  type="button"
+                  onClick={handleBackup}
+                  disabled={isAnyLoading}
+                  className="relative flex w-full items-center justify-center gap-3 rounded-xl border border-sky-900/50 bg-sky-950/30 px-6 py-4 font-medium text-sky-400 transition-all hover:bg-sky-900/50 hover:border-sky-700/50 disabled:opacity-50"
+                >
+                  {loadingBackup ? <Loader2 className="h-5 w-5 animate-spin" /> : <Database className="h-5 w-5" />}
+                  Backup Database (JSON)
+                </button>
+              </div>
+
+              <div className="group relative">
+                <button
+                  type="button"
+                  onClick={handleRestore}
+                  disabled={isAnyLoading}
+                  className="relative flex w-full items-center justify-center gap-3 rounded-xl border border-red-900/50 bg-red-950/30 px-6 py-4 font-medium text-red-400 transition-all hover:bg-red-900/50 hover:border-red-700/50 disabled:opacity-50"
+                >
+                  {loadingBackup ? <Loader2 className="h-5 w-5 animate-spin" /> : <HardDriveDownload className="h-5 w-5" />}
+                  Restore Database (JSON)
+                </button>
+              </div>
             </div>
           </div>
 

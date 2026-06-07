@@ -1,13 +1,11 @@
-// app/api/sync-images/route.ts
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
 export const dynamic = 'force-dynamic'; // Memastikan route tidak di-cache oleh Next.js
 
 export async function GET(request: Request) {
-  // 1. KEAMANAN: Cek kata sandi rahasia di URL
-  const { searchParams } = new URL(request.url);
-  const secret = searchParams.get("secret");
+  // 1. KEAMANAN: Membaca secret dari Header, BUKAN dari URL params
+  const secret = request.headers.get("x-admin-secret");
 
   if (secret !== "aquaexpert-sinkron-2024") {
     return NextResponse.json({ error: "Akses Ditolak. Secret key salah." }, { status: 401 });
@@ -54,7 +52,7 @@ export async function GET(request: Request) {
       // 6. LOGIKA OTOMATIS: 
       // Karena Anda tidak membedakan "cover", kita ambil file ke-1 sbg Cover, sisanya sbg Galeri
       const newCoverUrl = publicUrls[0]; 
-      const newGalleryUrls = publicUrls.slice(1, 6); // Ambil maksimal 5 gambar setelahnya
+      const newGalleryUrls = publicUrls.slice(1, 9); // Maksimal ambil 8 gambar galeri
 
       // 7. Simpan URL ke Database
       await supabase
