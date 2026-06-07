@@ -39,6 +39,7 @@ export interface Plant {
   carpet_potential?: boolean | null;
   shrimp_safe?: boolean | null;
   co2_mandatory?: boolean | null; // <--- FIELD BARU DITAMBAHKAN DI SINI
+  emersed_capable?: boolean | null; // <--- FIELD BARU UNTUK MENANDAI JIKA TANAMAN BISA TUMBUH EMERSED (DI DARAT)
   growth_control?: string | null;
   tank_size_recommendation?: string[] | null;
   expert_notes?: string | null;

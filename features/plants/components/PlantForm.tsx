@@ -80,6 +80,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     plant_type: "Stem", beginner_score: "", maintenance_level: "Medium",
     carpet_potential: false, shrimp_safe: true, growth_control: "Moderate",
     co2_mandatory: false,
+    emersed_capable: false,
     aquascape_style: [] as string[], 
     tank_size_recommendation: [] as string[], 
     expert_notes: ""
@@ -113,6 +114,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         shrimp_safe: plant.shrimp_safe !== false, 
         growth_control: plant.growth_control || "Moderate",
         co2_mandatory: plant.co2_mandatory || false,
+        emersed_capable: plant.emersed_capable || false,
         tank_size_recommendation: plant.tank_size_recommendation || [], 
         expert_notes: plant.expert_notes || ""
       });
@@ -293,6 +295,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         shrimp_safe: formData.shrimp_safe,
         growth_control: formData.growth_control,
         co2_mandatory: formData.co2_mandatory,
+        emersed_capable: formData.emersed_capable,
         tank_size_recommendation: formData.tank_size_recommendation.length > 0 ? formData.tank_size_recommendation : null,
         expert_notes: formData.expert_notes
       };
@@ -686,6 +689,11 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" name="co2_mandatory" checked={formData.co2_mandatory} onChange={handleChange} className="h-4 w-4 accent-red-600 rounded border-slate-700 bg-slate-900" />
                 <span className="text-sm font-medium text-red-400">Wajib Injeksi CO2 (Mandatory)</span>
+              </label>
+              {/* Checkbox Baru Emersed Capable */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="emersed_capable" checked={formData.emersed_capable} onChange={handleChange} className="h-4 w-4 accent-emerald-600 rounded border-slate-700 bg-slate-900" />
+                <span className="text-sm font-medium text-emerald-400">Bisa Tumbuh Emersed (Darat)</span>
               </label>
             </div>
 
