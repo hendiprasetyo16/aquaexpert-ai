@@ -294,7 +294,6 @@ export default function PlantDetailPage() {
     return "Tipe tanaman akuatik standar.";
   };
 
-  // DIPERBARUI: Fungsi yang menjelaskan secara akurat masing-masing tag.
   const getRecommendedDesc = (tag: string) => {
     const t = tag.toLowerCase();
     
@@ -337,7 +336,6 @@ export default function PlantDetailPage() {
     return "Cocok secara umum";
   };
 
-  // DIPERBARUI: Warna Psikologis yang tidak tumpang tindih (100% berbeda)
   const getRecommendationBadgeColor = (tag: string) => {
     const t = tag.toLowerCase();
     
@@ -517,54 +515,165 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
                 
-                {/* TAGS KECOCOKAN DENGAN WARNA PSIKOLOGIS (DIPERBARUI) */}
+                {/* ===================================================== */}
+                {/* KECOCOKAN EKOSISTEM V2 */}
+                {/* ===================================================== */}
                 <div className="mt-8 border-t border-slate-800 pt-5 w-full">
-                  <div className="flex items-center gap-2 justify-center mb-4">
+
+                  <div className="flex items-center gap-2 justify-center mb-6">
                     <CheckSquare className="h-4 w-4 text-teal-500" />
-                    <p className="text-[13px] font-bold text-slate-300 uppercase tracking-widest">Kecocokan Ekosistem</p>
+                    <p className="text-[13px] font-bold text-slate-300 uppercase tracking-widest">
+                      Analisis Kecocokan
+                    </p>
                   </div>
-                  
-                  {/* Gabungan dari Recommended For + Fitur Karpet/Udang/CO2 */}
-                  <div className="flex flex-wrap justify-center gap-2">
-                    
-                    {/* Tag Tambahan Otomatis dari Logika */}
-                    {plant.carpet_potential && (
-                      <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-green-950/40 text-green-400 border-green-900/50">
-                        <span className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase tracking-widest">
-                          <CheckCircle2 className="h-3.5 w-3.5 opacity-70" /> Karpet
-                        </span>
-                        <span className="text-[10px] opacity-70 mt-1 font-medium">Bisa tumbuh merayap</span>
-                      </div>
-                    )}
-                    
-                    {plant.shrimp_safe && (
-                      <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-rose-950/40 text-rose-400 border-rose-900/50">
-                        <span className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase tracking-widest">
-                          <ShieldCheck className="h-3.5 w-3.5 opacity-70" /> Shrimp Safe
-                        </span>
-                        <span className="text-[10px] opacity-70 mt-1 font-medium">Aman bagi udang hias</span>
-                      </div>
-                    )}
 
-                    {plant.co2_mandatory === true && (
-                      <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-red-950/40 text-red-400 border-red-900/50">
-                        <span className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase tracking-widest">
-                          <Zap className="h-3.5 w-3.5 opacity-70" /> CO2 Wajib
-                        </span>
-                        <span className="text-[10px] opacity-70 mt-1 font-medium">Sangat butuh Injeksi</span>
-                      </div>
-                    )}
+                  {/* ===================================================== */}
+                  {/* COCOK UNTUK */}
+                  {/* ===================================================== */}
+                  <div className="mb-6">
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-teal-400 mb-3">
+                      Cocok Untuk
+                    </h4>
 
-                    {/* Tag dari Database (Recommended For yang sudah di-deduplikasi) */}
-                    {uniqueRecommendedTags.map(tag => (
-                      <div key={tag} className={`flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] ${getRecommendationBadgeColor(tag)}`}>
-                        <span className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase tracking-widest">
-                          <CheckCircle2 className="h-3.5 w-3.5 opacity-70" /> {tag}
-                        </span>
-                        <span className="text-[10px] opacity-70 mt-1 font-medium text-center leading-tight max-w-[110px]">{getRecommendedDesc(tag)}</span>
-                      </div>
-                    ))}
+                    <div className="flex flex-wrap justify-center gap-2">
+
+                      {(uniqueRecommendedTags || [])
+                        .filter(tag =>
+                          [
+                            "beginner",
+                            "aquascape contest"
+                          ].includes(tag.toLowerCase())
+                        )
+                        .map(tag => (
+                          <div
+                            key={tag}
+                            className={`flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] ${getRecommendationBadgeColor(tag)}`}
+                          >
+                            <span className="text-[12px] font-bold uppercase tracking-widest">
+                              {tag}
+                            </span>
+
+                            <span className="text-[10px] opacity-70 mt-1">
+                              {getRecommendedDesc(tag)}
+                            </span>
+                          </div>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* ===================================================== */}
+                  {/* SETUP REKOMENDASI */}
+                  {/* ===================================================== */}
+                  <div className="mb-6">
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-yellow-400 mb-3">
+                      Setup Rekomendasi
+                    </h4>
+
+                    <div className="flex flex-wrap justify-center gap-2">
+
+                      {(uniqueRecommendedTags || [])
+                        .filter(tag =>
+                          [
+                            "low tech",
+                            "high tech",
+                            "low light setup",
+                            "co2 setup"
+                          ].includes(tag.toLowerCase())
+                        )
+                        .map(tag => (
+                          <div
+                            key={tag}
+                            className={`flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] ${getRecommendationBadgeColor(tag)}`}
+                          >
+                            <span className="text-[12px] font-bold uppercase tracking-widest">
+                              {tag}
+                            </span>
+
+                            <span className="text-[10px] opacity-70 mt-1 text-center">
+                              {getRecommendedDesc(tag)}
+                            </span>
+                          </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ===================================================== */}
+                  {/* EKOSISTEM COCOK */}
+                  {/* ===================================================== */}
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-cyan-400 mb-3">
+                      Ekosistem Cocok
+                    </h4>
+
+                    <div className="flex flex-wrap justify-center gap-2">
+
+                      {plant.carpet_potential && (
+                        <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-green-950/40 text-green-400 border-green-900/50">
+                          <span className="text-[12px] font-bold uppercase tracking-widest">
+                            Karpet
+                          </span>
+                          <span className="text-[10px] opacity-70 mt-1">
+                            Bisa tumbuh merayap
+                          </span>
+                        </div>
+                      )}
+
+                      {plant.shrimp_safe && (
+                        <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-rose-950/40 text-rose-400 border-rose-900/50">
+                          <span className="text-[12px] font-bold uppercase tracking-widest">
+                            Shrimp Safe
+                          </span>
+                          <span className="text-[10px] opacity-70 mt-1">
+                            Aman untuk udang
+                          </span>
+                        </div>
+                      )}
+
+                      {plant.co2_mandatory === true && (
+                        <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-red-950/40 text-red-400 border-red-900/50">
+                          <span className="text-[12px] font-bold uppercase tracking-widest">
+                            CO2 Wajib
+                          </span>
+                          <span className="text-[10px] opacity-70 mt-1">
+                            Butuh injeksi CO2
+                          </span>
+                        </div>
+                      )}
+
+                      {(uniqueRecommendedTags || [])
+                        .filter(tag =>
+                          [
+                            "shrimp tank",
+                            "betta tank",
+                            "community tank",
+                            "discus tank",
+                            "cichlid tank",
+                            "blackwater",
+                            "paludarium",
+                            "pond",
+                            "breeding tank",
+                            "nano tank",
+                            "nature style",
+                            "dutch style"
+                          ].includes(tag.toLowerCase())
+                        )
+                        .map(tag => (
+                          <div
+                            key={tag}
+                            className={`flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] ${getRecommendationBadgeColor(tag)}`}
+                          >
+                            <span className="text-[12px] font-bold uppercase tracking-widest">
+                              {tag}
+                            </span>
+
+                            <span className="text-[10px] opacity-70 mt-1 text-center">
+                              {getRecommendedDesc(tag)}
+                            </span>
+                          </div>
+                      ))}
+                    </div>
+                  </div>
+
                 </div>
               </CardContent>
             </Card>
