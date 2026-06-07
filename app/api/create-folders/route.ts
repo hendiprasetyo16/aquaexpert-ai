@@ -36,16 +36,19 @@ const plantSlugs: string[] = [
 export async function GET(request: Request) {
   // 1. KEAMANAN
   const secret = request.headers.get("x-admin-secret");
-  if (secret !== "aquaexpert-sinkron-2024") {
-    return NextResponse.json({ error: "Akses Ditolak." }, { status: 401 });
+  const validSecret = process.env.API_SECRET_KEY || "aquaexpert-sinkron-2024";
+  
+  if (secret !== validSecret) {
+    return NextResponse.json({ error: "Akses Ditolak. Secret key tidak valid." }, { status: 401 });
   }
 
-  // 2. INISIALISASI
+  // 2. INISIALISASI AMAN (Runtime di dalam fungsi)
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Wajib menggunakan SERVICE_ROLE untuk admin action yang memanipulasi Storage
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY; 
   
   if (!supabaseUrl || !supabaseKey) {
-    return NextResponse.json({ error: "Kredensial Supabase tidak lengkap di env." }, { status: 500 });
+    return NextResponse.json({ error: "Kredensial Supabase (termasuk SERVICE ROLE KEY) tidak lengkap di environment." }, { status: 500 });
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);

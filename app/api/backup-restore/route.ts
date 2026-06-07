@@ -3,31 +3,37 @@ import { NextResponse } from "next/server";
 
 export const dynamic = 'force-dynamic';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! 
-);
-
-// DAFTAR TABEL YANG INGIN DI-BACKUP (Anda bisa tambahkan 'fishes', 'algae', dll nanti)
 const TABLES_TO_BACKUP = ['algae', 'diseases', 'fishes', 'plants', 'profiles', 'tanks', 'users']; 
 
 export async function POST(request: Request) {
-  // KEAMANAN TERBARU: Mengecek Secret Key dari Header
+  // 1. KEAMANAN TERBARU: Menggunakan Env Variable, BUKAN Hardcoded!
+  // Pastikan Anda menambahkan variabel API_SECRET_KEY di Vercel dengan nilai "aquaexpert-sinkron-2024"
   const secret = request.headers.get("x-admin-secret");
-  if (secret !== "aquaexpert-sinkron-2024") {
+  const validSecret = process.env.API_SECRET_KEY || "aquaexpert-sinkron-2024"; // Fallback sementara untuk lokal
+  
+  if (secret !== validSecret) {
     return NextResponse.json({ error: "Akses Ditolak. Secret key tidak valid." }, { status: 401 });
   }
+
+  // 2. INISIALISASI AMAN DI DALAM FUNGSI (Mencegah Error Vercel Build)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // Wajib Service Role untuk admin task
+  
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.json({ error: "Kredensial Supabase tidak lengkap di env server." }, { status: 500 });
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
     const { action } = await request.json();
 
     // ==========================================
-    // LOGIKA BACKUP (MULTI-TABEL)
+    // LOGIKA BACKUP
     // ==========================================
     if (action === 'BACKUP') {
       const backupData: Record<string, any[]> = {};
 
-      // Looping untuk mengambil data dari seluruh tabel yang didaftarkan
       for (const tableName of TABLES_TO_BACKUP) {
         const { data, error } = await supabase.from(tableName).select('*');
         if (!error && data) {
@@ -35,14 +41,12 @@ export async function POST(request: Request) {
         }
       }
       
-      // Mengunggah file JSON gabungan ke Storage
       const { error: uploadError } = await supabase.storage
         .from('system-backups')
         .upload(`backup-${Date.now()}.json`, JSON.stringify(backupData), { upsert: true });
 
-      // Menangkap error jika Bucket belum dibuat di Dasbor
       if (uploadError) {
-        throw new Error(`Gagal upload: Pastikan bucket 'system-backups' sudah Anda buat di Supabase! Detail: ${uploadError.message}`);
+        throw new Error(`Gagal upload ke Storage: ${uploadError.message}`);
       }
 
       return NextResponse.json({ 
@@ -52,27 +56,24 @@ export async function POST(request: Request) {
     }
 
     // ==========================================
-    // LOGIKA RESTORE (MULTI-TABEL)
+    // LOGIKA RESTORE
     // ==========================================
     if (action === 'RESTORE') {
       const { data: files, error: listError } = await supabase.storage
         .from('system-backups')
         .list('', { sortBy: { column: 'created_at', order: 'desc' } });
         
-      if (listError || !files || files.length === 0) throw new Error("Tidak ada file backup ditemukan di Storage.");
+      if (listError || !files || files.length === 0) throw new Error("Tidak ada file backup ditemukan.");
 
-      // Ambil file paling atas (paling terbaru)
       const { data: fileContent, error: dlError } = await supabase.storage
         .from('system-backups')
         .download(files[0].name);
         
-      if (dlError || !fileContent) throw new Error("Gagal mengunduh file backup dari Storage.");
+      if (dlError || !fileContent) throw new Error("Gagal mengunduh file backup.");
 
-      // Parsing isi JSON
       const json = JSON.parse(await fileContent.text());
       let restoredTables = 0;
 
-      // Looping untuk melakukan upsert data ke masing-masing tabel
       for (const tableName of Object.keys(json)) {
          const tableData = json[tableName];
          if (tableData && tableData.length > 0) {
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
              if (!upsertError) {
                 restoredTables++;
              } else {
-                console.error(`Gagal memulihkan tabel ${tableName}:`, upsertError.message);
+                console.error(`Gagal pulih tabel ${tableName}:`, upsertError.message);
              }
          }
       }
