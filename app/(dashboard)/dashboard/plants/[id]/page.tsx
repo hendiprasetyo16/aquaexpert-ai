@@ -259,44 +259,22 @@ export default function PlantDetailPage() {
     const s = size.trim().toLowerCase();
 
     if (s.includes("nano"))
-      return {
-        size_cm: "≤ 40 cm",
-        liter: "10–30 Liter",
-      };
-
+      return { size_cm: "≤ 40 cm", liter: "10–30 Liter" };
     if (s.includes("small"))
-      return {
-        size_cm: "40–60 cm",
-        liter: "30–60 Liter",
-      };
-
+      return { size_cm: "40–60 cm", liter: "30–60 Liter" };
     if (s.includes("medium"))
-      return {
-        size_cm: "60–90 cm",
-        liter: "60–150 Liter",
-      };
-
+      return { size_cm: "60–90 cm", liter: "60–150 Liter" };
     if (s.includes("extra"))
-      return {
-        size_cm: "> 120 cm",
-        liter: "> 300 Liter",
-      };
-
+      return { size_cm: "> 120 cm", liter: "> 300 Liter" };
     if (s.includes("large"))
-      return {
-        size_cm: "90–120 cm",
-        liter: "150–300 Liter",
-      };
+      return { size_cm: "90–120 cm", liter: "150–300 Liter" };
 
-    return {
-      size_cm: "Bervariasi",
-      liter: "Sesuai kebutuhan",
-    };
+    return { size_cm: "Bervariasi", liter: "Sesuai kebutuhan" };
   };
 
   const getStyleDesc = (style: string) => {
     const s = style.toLowerCase();
-    if (s.includes("nature")) return "Alami spt hutan/tebing";
+    if (s.includes("nature")) return "Alami seperti hutan/tebing";
     if (s.includes("dutch")) return "Fokus warna & padat";
     if (s.includes("iwagumi")) return "Formasi padang batu";
     if (s.includes("jungle")) return "Tumbuh liar & lebat";
@@ -316,74 +294,82 @@ export default function PlantDetailPage() {
     return "Tipe tanaman akuatik standar.";
   };
 
-// DIPERBARUI: Disederhanakan untuk deskripsi tag yang lebih lengkap
+  // DIPERBARUI: Fungsi yang menjelaskan secara akurat masing-masing tag.
   const getRecommendedDesc = (tag: string) => {
     const t = tag.toLowerCase();
     
     // Skill Level
-    if (t.includes("pemula") || t.includes("beginner")) return "Sangat mudah dirawat";
-    if (t.includes("expert") || t.includes("advanced")) return "Hanya untuk profesional";
+    if (t === "pemula" || t === "beginner") return "Sangat mudah dirawat";
+    if (t.includes("expert") || t.includes("advanced")) return "Hanya profesional";
     
     // Peralatan / Parameter
     if (t.includes("low tech") || t.includes("low light")) return "Tanpa tabung CO2";
-    if (t.includes("high tech") || t.includes("co2 setup")) return "Wajib CO2 & Lampu Terang";
+    if (t.includes("high tech") || t.includes("co2 setup")) return "Wajib CO2 & Lampu";
     if (t.includes("mid tech")) return "Cahaya & Nutrisi Sedang";
     
     // Fauna
     if (t.includes("shrimp tank")) return "Aman bagi Udang Hias";
     if (t.includes("betta tank")) return "Aman bagi Ikan Cupang";
-    if (t.includes("community tank")) return "Aman bagi ragam Ikan";
-    if (t.includes("discus tank")) return "Toleran air bersuhu hangat";
+    if (t.includes("community tank")) return "Aman bagi ragam ikan";
+    if (t.includes("discus tank")) return "Toleran air suhu hangat";
     if (t.includes("cichlid")) return "Tahan digigit herbivora";
     
     // Ukuran Tank
     if (t.includes("nano tank")) return "Cocok di tank kecil";
-    if (t.includes("large tank")) return "Butuh tank ukuran besar";
+    if (t.includes("large tank")) return "Cocok di tank besar";
     
     // Tema / Posisi
-    if (t.includes("dutch style")) return "Kerapatan sangat tinggi";
+    if (t.includes("dutch style")) return "Kerapatan tanaman tinggi";
     if (t.includes("nature style")) return "Memberi kesan alam liar";
-    if (t.includes("iwagumi")) return "Estetika padang rumput";
+    if (t.includes("iwagumi")) return "Estetika padang batu";
     if (t.includes("jungle")) return "Tumbuh liar dan lebat";
     if (t.includes("foreground")) return "Posisi tanam paling depan";
-    if (t.includes("midground")) return "Posisi tanam tengah";
+    if (t.includes("midground")) return "Posisi tanam di tengah";
     if (t.includes("background")) return "Posisi tanam paling belakang";
     
     // Spesifik lainnya
-    if (t.includes("paludarium")) return "Mampu tumbuh di darat (emersed)";
+    if (t.includes("paludarium")) return "Tumbuh rimbun di darat";
     if (t.includes("blackwater")) return "Toleran cahaya minim";
     if (t.includes("aquascape contest")) return "Nilai seni sangat tinggi";
-    if (t.includes("breeding tank")) return "Tempat sembunyi burayak ideal";
+    if (t.includes("breeding tank")) return "Tempat sembunyi burayak";
     if (t.includes("pond")) return "Bisa hidup di kolam luar";
 
-    return "Cocok untuk setup umum";
+    return "Cocok secara umum";
   };
 
-  // DIPERBARUI: Fungsi pewarnaan psikologis mencakup semua kemungkinan
+  // DIPERBARUI: Warna Psikologis yang tidak tumpang tindih (100% berbeda)
   const getRecommendationBadgeColor = (tag: string) => {
     const t = tag.toLowerCase();
     
-    // Sulit / High Tech / Posisi Belakang (Warna Merah/Pink Gelap)
-    if (t.includes("high tech") || t.includes("contest") || t.includes("co2 setup") || t.includes("background")) 
-      return "bg-red-950/40 text-red-400 border-red-900/50";
+    // Skill
+    if (t === "pemula" || t === "beginner") return "bg-emerald-950/40 text-emerald-400 border-emerald-900/50";
     
-    // Mudah / Low Tech / Foreground / Pemula (Warna Hijau)
-    if (t.includes("low tech") || t.includes("pemula") || t.includes("beginner") || t.includes("low light") || t.includes("foreground")) 
-      return "bg-green-950/40 text-green-400 border-green-900/50";
+    // Setup Type
+    if (t.includes("low tech") || t.includes("low light")) return "bg-green-950/40 text-green-400 border-green-900/50";
+    if (t.includes("high tech")) return "bg-red-950/40 text-red-400 border-red-900/50";
+    if (t.includes("co2 setup")) return "bg-cyan-950/40 text-cyan-400 border-cyan-900/50";
     
-    // Aman Hewan / Midground / Gaya Aquascape Khusus (Warna Oranye)
-    if (t.includes("shrimp tank") || t.includes("dutch style") || t.includes("community tank") || t.includes("breeding tank") || t.includes("midground") || t.includes("cichlid")) 
-      return "bg-orange-950/40 text-orange-400 border-orange-900/50";
+    // Style
+    if (t.includes("dutch style")) return "bg-orange-950/40 text-orange-400 border-orange-900/50";
+    if (t.includes("nature style")) return "bg-yellow-950/40 text-yellow-400 border-yellow-900/50";
+    if (t.includes("iwagumi")) return "bg-slate-800 text-slate-300 border-slate-600";
+    if (t.includes("contest")) return "bg-violet-950/40 text-violet-400 border-violet-900/50";
     
-    // Tank Ukuran Khusus / Ikan Khusus / Air (Warna Biru/Cyan)
-    if (t.includes("nano tank") || t.includes("betta tank") || t.includes("discus tank") || t.includes("large tank") || t.includes("pond")) 
-      return "bg-cyan-950/30 text-cyan-400 border-cyan-900/50";
+    // Fauna
+    if (t.includes("shrimp tank")) return "bg-rose-950/40 text-rose-400 border-rose-900/50";
+    if (t.includes("community tank")) return "bg-indigo-950/40 text-indigo-400 border-indigo-900/50";
+    if (t.includes("betta tank")) return "bg-fuchsia-950/40 text-fuchsia-400 border-fuchsia-900/50";
+    if (t.includes("cichlid")) return "bg-purple-950/40 text-purple-400 border-purple-900/50";
+    if (t.includes("breeding tank")) return "bg-teal-950/40 text-teal-400 border-teal-900/50";
     
-    // Habitat Khusus / Iwagumi / Nature (Warna Ungu)
-    if (t.includes("blackwater") || t.includes("paludarium") || t.includes("nature style") || t.includes("iwagumi") || t.includes("jungle")) 
-      return "bg-purple-950/40 text-purple-400 border-purple-900/50";
+    // Sizes & Misc
+    if (t.includes("nano tank")) return "bg-blue-950/40 text-blue-400 border-blue-900/50";
+    if (t.includes("large tank")) return "bg-zinc-900/80 text-zinc-300 border-zinc-700";
+    if (t.includes("blackwater")) return "bg-amber-950/40 text-amber-500 border-amber-900/50";
+    if (t.includes("paludarium")) return "bg-pink-950/40 text-pink-400 border-pink-900/50";
+    if (t.includes("pond")) return "bg-sky-950/40 text-sky-400 border-sky-900/50";
     
-    // Fallback Default jika ada tag aneh -> Abu-abu terang
+    // Default
     return "bg-slate-800/80 text-slate-200 border-slate-700";
   };
 
@@ -392,6 +378,15 @@ export default function PlantDetailPage() {
     .filter(p => p.id !== plant?.id && p.is_active)
     .filter(p => p.plant_type === plant?.plant_type || p.placement === plant?.placement)
     .slice(0, 3);
+
+  // MENGHILANGKAN DUPLIKASI TAG "Pemula" dan "Beginner" saat rendering
+  const uniqueRecommendedTags = Array.from(
+    new Set(
+      (plant?.recommended_for || []).map(tag => 
+        tag.toLowerCase() === "pemula" ? "Beginner" : tag
+      )
+    )
+  );
 
   if (loading) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-500" /></div>;
   if (!plant) return <div className="text-center mt-20 text-slate-400">Data tanaman tidak ditemukan atau telah dinonaktifkan.</div>;
@@ -543,9 +538,9 @@ export default function PlantDetailPage() {
                     )}
                     
                     {plant.shrimp_safe && (
-                      <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-orange-950/40 text-orange-400 border-orange-900/50">
+                      <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-rose-950/40 text-rose-400 border-rose-900/50">
                         <span className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase tracking-widest">
-                          <CheckCircle2 className="h-3.5 w-3.5 opacity-70" /> Shrimp Safe
+                          <ShieldCheck className="h-3.5 w-3.5 opacity-70" /> Shrimp Safe
                         </span>
                         <span className="text-[10px] opacity-70 mt-1 font-medium">Aman bagi udang hias</span>
                       </div>
@@ -560,8 +555,8 @@ export default function PlantDetailPage() {
                       </div>
                     )}
 
-                    {/* Tag dari Database (Recommended For) */}
-                    {plant.recommended_for && plant.recommended_for.map(tag => (
+                    {/* Tag dari Database (Recommended For yang sudah di-deduplikasi) */}
+                    {uniqueRecommendedTags.map(tag => (
                       <div key={tag} className={`flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] ${getRecommendationBadgeColor(tag)}`}>
                         <span className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase tracking-widest">
                           <CheckCircle2 className="h-3.5 w-3.5 opacity-70" /> {tag}
@@ -648,10 +643,10 @@ export default function PlantDetailPage() {
                       <span className="text-[12px] text-slate-400 font-medium mt-1">{getIndoLevelCore(plant.maintenance_level)}</span>
                     </div>
                   </div>
-                  <div className={`p-4 rounded-xl border text-center flex flex-col items-center justify-center shadow-sm ${plant.shrimp_safe ? "bg-orange-950/10 border-orange-900/30" : "bg-slate-900/80 border-slate-800"}`}>
+                  <div className={`p-4 rounded-xl border text-center flex flex-col items-center justify-center shadow-sm ${plant.shrimp_safe ? "bg-rose-950/10 border-rose-900/30" : "bg-slate-900/80 border-slate-800"}`}>
                     <p className="text-[11px] uppercase text-slate-500 font-bold mb-2">Aman Untuk Udang</p>
                     <div className="flex flex-col items-center justify-center mt-1">
-                      <span className="text-lg font-black text-slate-200 uppercase tracking-widest flex items-center gap-1.5">{plant.shrimp_safe ? <ShieldCheck className="h-5 w-5 text-orange-400" /> : <X className="h-5 w-5 text-red-500" />}{plant.shrimp_safe ? "Aman" : "Berisiko"}</span>
+                      <span className="text-lg font-black text-slate-200 uppercase tracking-widest flex items-center gap-1.5">{plant.shrimp_safe ? <ShieldCheck className="h-5 w-5 text-rose-400" /> : <X className="h-5 w-5 text-red-500" />}{plant.shrimp_safe ? "Aman" : "Berisiko"}</span>
                     </div>
                   </div>
                   <div className={`p-4 rounded-xl border text-center flex flex-col items-center justify-center shadow-sm ${plant.carpet_potential ? "bg-green-950/10 border-green-900/30" : "bg-slate-900/80 border-slate-800"}`}>
