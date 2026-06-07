@@ -164,6 +164,24 @@ export default function PlantDetailPage() {
   // ==========================================
   // HELPER TRANSLASI & LOGIKA
   // ==========================================
+  
+  // HELPER STATUS CO2 DINAMIS
+  const getCO2DisplayStatus = (
+    requirement: string | null | undefined,
+    isMandatory: boolean | null | undefined
+  ): { label: string; variant: "danger" | "warning" | "success" } => {
+    if (isMandatory) {
+      return { label: "Wajib Injeksi", variant: "danger" };
+    }
+
+    const req = (requirement || "").toLowerCase();
+    if (req === "medium" || req === "high") {
+      return { label: "Disarankan", variant: "warning" };
+    }
+
+    return { label: "Tidak Perlu CO2", variant: "success" };
+  };
+
   const getSummaryScoreDesc = (score: number | null) => {
     if (!score) return "Penilaian belum tersedia.";
     if (score >= 8) return "Sangat direkomendasikan untuk aquascaper pemula.";
@@ -294,6 +312,7 @@ export default function PlantDetailPage() {
     return "Tipe tanaman akuatik standar.";
   };
 
+  // CLEANED UP RECOMMENDED DESC
   const getRecommendedDesc = (tag: string) => {
     const t = tag.toLowerCase();
     
@@ -317,14 +336,9 @@ export default function PlantDetailPage() {
     if (t.includes("nano tank")) return "Cocok di tank kecil";
     if (t.includes("large tank")) return "Cocok di tank besar";
     
-    // Tema / Posisi
+    // Tema (Sisa yang bukan placement/style utama)
     if (t.includes("dutch style")) return "Kerapatan tanaman tinggi";
     if (t.includes("nature style")) return "Memberi kesan alam liar";
-    if (t.includes("iwagumi")) return "Estetika padang batu";
-    if (t.includes("jungle")) return "Tumbuh liar dan lebat";
-    if (t.includes("foreground")) return "Posisi tanam paling depan";
-    if (t.includes("midground")) return "Posisi tanam di tengah";
-    if (t.includes("background")) return "Posisi tanam paling belakang";
     
     // Spesifik lainnya
     if (t.includes("paludarium")) return "Tumbuh rimbun di darat";
@@ -388,6 +402,9 @@ export default function PlantDetailPage() {
 
   if (loading) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-500" /></div>;
   if (!plant) return <div className="text-center mt-20 text-slate-400">Data tanaman tidak ditemukan atau telah dinonaktifkan.</div>;
+
+  // Render variables
+  const co2Status = getCO2DisplayStatus(plant.co2_requirement, plant.co2_mandatory);
 
   return (
     <>
@@ -854,6 +871,21 @@ export default function PlantDetailPage() {
                   <p className="text-slate-300 text-[15px] leading-relaxed text-justify bg-slate-950/50 p-5 rounded-xl border border-slate-800/50 whitespace-pre-line">
                     {plant.description || "Belum ada deskripsi untuk tanaman ini."}
                   </p>
+
+                  {/* BADGE EMERSED CAPABLE */}
+                  {plant.emersed_capable && (
+                    <div className="mt-4 flex items-center gap-3 p-3 rounded-lg bg-emerald-950/20 border border-emerald-900/40 text-emerald-300">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-900/50 text-emerald-400 font-bold text-xs shrink-0">
+                        🌱
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold">Emersed Capable (Dua Alam)</span>
+                        <span className="text-xs text-slate-400">
+                          Tanaman ini dapat tumbuh subur di luar air asalkan kelembabannya terjaga. Sangat cocok untuk Paludarium, Terrarium, Riparium, atau Wabi-Kusa.
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* PARAMETER AIR */}
@@ -875,18 +907,21 @@ export default function PlantDetailPage() {
                       </div>
                     </div>
                     
+                    {/* IMPLEMENTASI CO2 STATUS BARU */}
                     <div className="flex flex-col bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm text-center">
                       <div className="flex items-center justify-center gap-2 mb-3">
-                        <Wind className="h-4 w-4 text-blue-400" />
+                        <Wind className={`h-4 w-4 ${co2Status.variant === "danger" ? "text-red-400" : co2Status.variant === "warning" ? "text-amber-400" : "text-emerald-400"}`} />
                         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Injeksi CO2</span>
                       </div>
                       <div className="flex flex-col border-t border-slate-800 pt-3 mt-1">
-                        <span className="text-lg font-black text-slate-200 uppercase tracking-widest">{plant.co2_requirement || "N/A"}</span>
-                        <span className="text-[12px] text-blue-400/80 font-medium mt-0.5">({getIndoLevelCore(plant.co2_requirement)})</span>
+                        <span className={`text-sm font-black uppercase tracking-widest ${co2Status.variant === "danger" ? "text-red-400" : co2Status.variant === "warning" ? "text-amber-400" : "text-emerald-400"}`}>
+                          {co2Status.label}
+                        </span>
+                        <span className="text-[12px] text-slate-400 font-medium mt-0.5">(Kebutuhan: {plant.co2_requirement || "Low"})</span>
                       </div>
                       
                       <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight flex items-center justify-center h-full">
-                        💡 {getIndoLevelDetail(plant.co2_requirement, "co2")}
+                         💡 {co2Status.variant === "danger" ? "Wajib pakai tabung CO2" : co2Status.variant === "warning" ? "Disarankan untuk tumbuh maksimal" : "Bisa hidup subur tanpa injeksi CO2"}
                       </div>
                     </div>
 
