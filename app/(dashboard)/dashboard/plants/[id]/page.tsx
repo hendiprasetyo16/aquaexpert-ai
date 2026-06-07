@@ -379,14 +379,18 @@ export default function PlantDetailPage() {
     .filter(p => p.plant_type === plant?.plant_type || p.placement === plant?.placement)
     .slice(0, 3);
 
-  // MENGHILANGKAN DUPLIKASI TAG "Pemula" dan "Beginner" saat rendering
+  // MENGHILANGKAN DUPLIKASI TAG "Pemula", "Beginner", & "Shrimp Tank" saat rendering
   const uniqueRecommendedTags = Array.from(
     new Set(
       (plant?.recommended_for || []).map(tag => 
         tag.toLowerCase() === "pemula" ? "Beginner" : tag
       )
     )
-  );
+  ).filter(tag => {
+    // Jika tanaman shrimp_safe = true, jangan render "Shrimp Tank" dari array
+    if (plant?.shrimp_safe && tag.toLowerCase() === "shrimp tank") return false;
+    return true;
+  });
 
   if (loading) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-500" /></div>;
   if (!plant) return <div className="text-center mt-20 text-slate-400">Data tanaman tidak ditemukan atau telah dinonaktifkan.</div>;
@@ -657,9 +661,10 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
+                {/* SIFAT, STYLE, TANK (Dipisah per baris dengan Grid yang presisi) */}
                 <div className="grid sm:grid-cols-3 gap-4 border-t border-slate-800 pt-6 mt-6">
                   
-                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
+                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col h-full">
                     <div className="flex items-center gap-2 mb-3">
                       <Activity className="h-4 w-4 text-teal-500"/>
                       <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">Sifat Rambat</p>
@@ -670,15 +675,16 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
-                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
+                  {/* DIPERBARUI: Layout Grid untuk Aquascape Style diselaraskan */}
+                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col h-full">
                     <div className="flex items-center gap-2 mb-3">
                       <Target className="h-4 w-4 text-blue-500"/>
                       <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">Gaya Aquascape</p>
                     </div>
-                    <div className="flex flex-col gap-3 flex-1 justify-start text-center">
+                    <div className="flex flex-col gap-3 flex-1 justify-center text-center">
                       {plant.aquascape_style && plant.aquascape_style.length > 0 ? (
                         plant.aquascape_style.map(style => (
-                          <div key={style} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner">
+                          <div key={style} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner items-center justify-center">
                             <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider mb-1.5">{style}</span>
                             <span className="text-[12px] text-slate-400 leading-snug">{getStyleDesc(style)}</span>
                           </div>
@@ -687,12 +693,12 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
 
-                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
+                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col h-full">
                     <div className="flex items-center gap-2 mb-3">
                       <Box className="h-4 w-4 text-orange-500"/>
                       <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">Ukuran Aquarium</p>
                     </div>
-                    <div className="flex flex-col gap-3 flex-1 justify-start text-center">
+                    <div className="flex flex-col gap-3 flex-1 justify-center text-center">
                       {plant.tank_size_recommendation && plant.tank_size_recommendation.length > 0 ? (
                         plant.tank_size_recommendation.map(size => {
                           const details = getTankSizeDetails(size);
@@ -766,6 +772,17 @@ export default function PlantDetailPage() {
                         <span className="text-[12px] text-blue-400/80 font-medium mt-0.5">({getIndoLevelCore(plant.co2_requirement)})</span>
                       </div>
                       
+                      {plant.co2_mandatory === true && (
+                        <div className="mt-2.5 rounded-md bg-red-950/40 border border-red-900/50 px-2 py-1.5 text-[11px] font-bold text-red-400">
+                          🔴 WAJIB CO2
+                        </div>
+                      )}
+                      {plant.co2_mandatory === false && (
+                        <div className="mt-2.5 rounded-md bg-green-950/40 border border-green-900/50 px-2 py-1.5 text-[11px] font-bold text-green-400">
+                          🟢 CO2 OPSIONAL
+                        </div>
+                      )}
+
                       <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight flex items-center justify-center h-full">
                         💡 {getIndoLevelDetail(plant.co2_requirement, "co2")}
                       </div>
