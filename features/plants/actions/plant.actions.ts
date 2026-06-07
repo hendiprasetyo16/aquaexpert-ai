@@ -127,25 +127,42 @@ export async function hardDeletePlantAction(id: string) {
       throw new Error("Hanya Super Admin yang boleh menghapus permanen.");
     }
 
-    // 1. CARI TANAMAN UNTUK MENDAPATKAN IMAGE_URL
+    // 1. CARI TANAMAN UNTUK MENDAPATKAN IMAGE_URL DAN GALLERY_URLS
     const { data: plant, error: fetchError } = await supabase
       .from("plants")
-      .select("image_url")
+      .select("image_url, gallery_urls") // <-- SEKARANG KITA AMBIL DUA-DUANYA
       .eq("id", id)
       .single();
 
     if (fetchError) throw new Error("Data tanaman tidak ditemukan.");
 
-    // 2. HAPUS FILE DI STORAGE JIKA ADA
+    // Penampung untuk semua path file yang akan dihapus dari storage
+    const filesToDelete: string[] = [];
+
+    // 2. AMBIL PATH DARI IMAGE_URL (COVER)
     if (plant?.image_url) {
       const pathParts = plant.image_url.split("plant-images/");
       if (pathParts.length === 2) {
-        const filePath = pathParts[1];
-        await supabase.storage.from("plant-images").remove([filePath]);
+        filesToDelete.push(pathParts[1]);
       }
     }
 
-    // 3. EKSEKUSI HARD DELETE DARI DATABASE
+    // 3. AMBIL PATH DARI SEMUA GAMBAR DI GALLERY_URLS
+    if (plant?.gallery_urls && Array.isArray(plant.gallery_urls)) {
+      for (const url of plant.gallery_urls) {
+        const pathParts = url.split("plant-images/");
+        if (pathParts.length === 2) {
+          filesToDelete.push(pathParts[1]);
+        }
+      }
+    }
+
+    // 4. HAPUS SEMUA FILE SEKALIGUS DI STORAGE JIKA ADA
+    if (filesToDelete.length > 0) {
+      await supabase.storage.from("plant-images").remove(filesToDelete);
+    }
+
+    // 5. EKSEKUSI HARD DELETE DARI DATABASE
     const { error } = await supabase.from("plants").delete().eq("id", id);
     if (error) throw error;
 
