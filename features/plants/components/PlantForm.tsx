@@ -24,10 +24,10 @@ interface PlantFormProps {
 const TANK_SIZES = ["Nano", "Small", "Medium", "Large", "Extra Large"];
 const AQUASCAPE_STYLES = ["Nature", "Dutch", "Iwagumi", "Jungle", "Biotope", "Taiwan"];
 const RECOMMENDATIONS = [
-  "Pemula", "Low Tech", "High Tech", "Shrimp Tank", "Nano Tank", 
+  "Beginner", "Low Tech", "High Tech", "Shrimp Tank", "Nano Tank", 
   "Dutch Style", "Nature Style", "Betta Tank", "Community Tank", 
   "Paludarium", "Blackwater", "Discus Tank", "Aquascape Contest", 
-  "Breeding Tank", "Low Light Setup", "CO2 Setup"
+  "Breeding Tank", "Low Light Setup", "CO2 Setup", "Pond"
 ];
 
 // Helper untuk Subteks di Checkbox Form
