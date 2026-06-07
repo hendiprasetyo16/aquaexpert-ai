@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 
 export const dynamic = 'force-dynamic';
 
-// Pindahkan array 120 slug ke server, UI tidak perlu tahu daftar ini.
 const plantSlugs: string[] = [
   "alternanthera-reineckii-mini", "amazon-frogbit", "amazon-sword", "ammannia-gracilis", 
   "ammannia-pedicellata", "anubias-barteri", "anubias-coffeefolia", "anubias-nana", 
@@ -35,22 +34,26 @@ const plantSlugs: string[] = [
 ];
 
 export async function GET(request: Request) {
-  // 1. KEAMANAN: Membaca secret dari Header, BUKAN dari URL params
+  // 1. KEAMANAN
   const secret = request.headers.get("x-admin-secret");
-
   if (secret !== "aquaexpert-sinkron-2024") {
     return NextResponse.json({ error: "Akses Ditolak." }, { status: 401 });
   }
 
-  // 2. Inisialisasi Supabase Server-Side
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  // 2. INISIALISASI
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.json({ error: "Kredensial Supabase tidak lengkap di env." }, { status: 500 });
+  }
+
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    // Di Node.js Server, kita gunakan Blob sebagai pengganti File browser
     const emptyFile = new Blob([""], { type: "text/plain" });
     let createdCount = 0;
+    const failedSlugs: string[] = []; // Menampung data yang gagal
 
     for (const slug of plantSlugs) {
       const filePath = `${slug}/.keep`;
@@ -63,15 +66,25 @@ export async function GET(request: Request) {
         createdCount++;
       } else {
         console.error(`Gagal membuat folder ${slug}:`, error.message);
+        failedSlugs.push(`${slug} (${error.message})`);
       }
+    }
+
+    if (failedSlugs.length > 0) {
+      return NextResponse.json({ 
+        success: true, 
+        message: `Selesai dengan catatan. Berhasil: ${createdCount}, Gagal: ${failedSlugs.length}`,
+        errors: failedSlugs 
+      });
     }
 
     return NextResponse.json({ 
       success: true, 
-      message: `Selesai! ${createdCount} Folder berhasil dibuat di Supabase Storage.` 
+      message: `Selesai! Seluruh ${createdCount} Folder berhasil dibuat tanpa error.` 
     });
 
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("Kesalahan sistem Create Folders:", error);
+    return NextResponse.json({ success: false, error: error.message || "Terjadi kesalahan internal server." }, { status: 500 });
   }
 }

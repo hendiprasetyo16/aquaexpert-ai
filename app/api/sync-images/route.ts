@@ -1,61 +1,71 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-export const dynamic = 'force-dynamic'; // Memastikan route tidak di-cache oleh Next.js
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  // 1. KEAMANAN: Membaca secret dari Header, BUKAN dari URL params
+  // 1. KEAMANAN
   const secret = request.headers.get("x-admin-secret");
-
   if (secret !== "aquaexpert-sinkron-2024") {
     return NextResponse.json({ error: "Akses Ditolak. Secret key salah." }, { status: 401 });
   }
 
-  // 2. Inisialisasi Supabase (Menggunakan env default Next.js Anda)
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  // Jika Anda punya SUPABASE_SERVICE_ROLE_KEY, pakai itu. Jika tidak, pakai ANON_KEY.
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  // 2. INISIALISASI
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.json({ error: "Kredensial Supabase tidak lengkap di env." }, { status: 500 });
+  }
+
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    // 3. Ambil semua data tanaman
+    // 3. Ambil data tanaman aktif
     const { data: plants, error: plantsError } = await supabase
       .from("plants")
-      .select("id, slug")
+      .select("id, slug, name")
       .eq("is_active", true);
 
-    if (plantsError) throw plantsError;
+    if (plantsError) throw new Error(`Gagal fetch data plants: ${plantsError.message}`);
+    if (!plants || plants.length === 0) throw new Error("Tidak ada tanaman aktif ditemukan di database.");
 
     let updatedCount = 0;
+    const failedSyncs: string[] = []; // Menampung nama tanaman yang gagal sync
 
-    // 4. Looping untuk mengintip Storage masing-masing tanaman
+    // 4. Looping & Sinkronisasi
     for (const plant of plants) {
-      if (!plant.slug) continue;
+      if (!plant.slug) {
+        failedSyncs.push(`${plant.name} (Slug kosong)`);
+        continue;
+      }
 
       const { data: files, error: filesError } = await supabase.storage
         .from("plant-images")
         .list(plant.slug);
 
-      if (filesError || !files || files.length === 0) continue;
+      if (filesError) {
+        failedSyncs.push(`${plant.name} (Gagal akses storage: ${filesError.message})`);
+        continue;
+      }
 
-      // Filter file yang valid (bukan folder tersembunyi atau file .empty)
+      if (!files || files.length === 0) continue;
+
+      // Filter folder/file tersembunyi
       const validFiles = files.filter(f => !f.name.startsWith("."));
       if (validFiles.length === 0) continue;
 
-      // 5. Ubah daftar nama file menjadi daftar URL Publik
       const publicUrls = validFiles.map((file) => {
         return supabase.storage
           .from("plant-images")
           .getPublicUrl(`${plant.slug}/${file.name}`).data.publicUrl;
       });
 
-      // 6. LOGIKA OTOMATIS: 
-      // Karena Anda tidak membedakan "cover", kita ambil file ke-1 sbg Cover, sisanya sbg Galeri
       const newCoverUrl = publicUrls[0]; 
-      const newGalleryUrls = publicUrls.slice(1, 9); // Maksimal ambil 8 gambar galeri
+      const newGalleryUrls = publicUrls.slice(1, 9); // Maks 8 galeri
 
-      // 7. Simpan URL ke Database
-      await supabase
+      // Simpan perubahan
+      const { error: updateError } = await supabase
         .from("plants")
         .update({
           image_url: newCoverUrl,
@@ -63,15 +73,28 @@ export async function GET(request: Request) {
         })
         .eq("id", plant.id);
       
-      updatedCount++;
+      if (updateError) {
+        failedSyncs.push(`${plant.name} (Gagal update DB: ${updateError.message})`);
+      } else {
+        updatedCount++;
+      }
+    }
+
+    if (failedSyncs.length > 0) {
+       return NextResponse.json({ 
+        success: true, 
+        message: `Selesai dengan catatan. Berhasil Sync: ${updatedCount} tanaman. Gagal Sync: ${failedSyncs.length}`,
+        errors: failedSyncs
+      });
     }
 
     return NextResponse.json({ 
       success: true, 
-      message: `TADAA! 🎉 Berhasil mendeteksi dan melakukan sinkronisasi URL gambar untuk ${updatedCount} tanaman.` 
+      message: `TADAA! 🎉 Berhasil melakukan sinkronisasi URL gambar untuk ${updatedCount} tanaman.` 
     });
 
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("Kesalahan sistem Sync Images:", error);
+    return NextResponse.json({ success: false, error: error.message || "Terjadi kesalahan internal server." }, { status: 500 });
   }
 }
