@@ -26,10 +26,11 @@ const AQUASCAPE_STYLES = ["Nature", "Dutch", "Iwagumi", "Jungle", "Biotope", "Ta
 
 // RECOMMENDATIONS BERSIH DENGAN "Beginner" & Tambahan "Pond"
 const RECOMMENDATIONS = [
-  "Beginner", "Low Tech", "High Tech", "Shrimp Tank", "Nano Tank", 
-  "Dutch Style", "Nature Style", "Betta Tank", "Community Tank", 
-  "Paludarium", "Blackwater", "Discus Tank", "Aquascape Contest", 
-  "Breeding Tank", "Low Light Setup", "CO2 Setup", "Pond"
+  "Beginner", "Low Tech", "High Tech", "Shrimp Tank", "Nano Tank",
+  "Dutch Style", "Nature Style", "Betta Tank", "Community Tank",
+  "Paludarium", "Blackwater", "Discus Tank", "Cichlid Tank",
+  "Aquascape Contest", "Breeding Tank", "Low Light Setup",
+  "CO2 Setup", "Pond"
 ];
 
 // Helper untuk Subteks di Checkbox Form (LAYER PRESENTASI UI)
