@@ -517,70 +517,79 @@ export default function PlantDetailPage() {
               </div>
             </div>
 
-            {/* 3 GRID: Sifat Rambat, Style & Tank (Sesuai masukan layout) */}
-            <div className="grid sm:grid-cols-3 gap-4 border-t border-slate-200 dark:border-slate-800 pt-6 mt-6 transition-colors">
-              
-              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors">
-                <div className="flex items-center gap-2 mb-3">
-                  <Activity className="h-4 w-4 text-teal-600 dark:text-teal-500"/>
-                  <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Sifat Rambat</p>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col flex-1 justify-center items-center shadow-inner text-center transition-colors">
-                  <span className="text-base font-black text-gray-900 dark:text-slate-100 uppercase tracking-wider mb-1.5">{plant.growth_control || "N/A"}</span>
-                  <span className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug">{getIndoLevelDetail(plant.growth_control, "growth")}</span>
-                </div>
-              </div>
+{/* 3 GRID: Sifat Rambat, Style & Tank (Sesuai masukan layout) */}
+<div className="grid lg:grid-cols-12 gap-4 border-t border-slate-200 dark:border-slate-800 pt-6 mt-6 transition-colors">
+  
+  {/* Kotak 1: Sifat Rambat (3 Kolom - SAMA BESAR DENGAN STYLE) */}
+  <div className="lg:col-span-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors">
+    <div className="flex items-center gap-2 mb-3">
+      <Activity className="h-4 w-4 text-teal-600 dark:text-teal-500"/>
+      <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Sifat Rambat</p>
+    </div>
+    <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col flex-1 justify-center items-center shadow-inner text-center transition-colors">
+      <span className="text-base font-black text-gray-900 dark:text-slate-100 uppercase tracking-wider mb-1.5">{plant.growth_control || "N/A"}</span>
+      <span className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug">{getIndoLevelDetail(plant.growth_control, "growth")}</span>
+    </div>
+  </div>
 
-              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors">
-                <div className="flex items-center gap-2 mb-3">
-                  <Target className="h-4 w-4 text-blue-600 dark:text-blue-500"/>
-                  <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Gaya Aquascape</p>
-                </div>
-                <div className="flex flex-col gap-2 flex-1 justify-center">
-                  {plant.aquascape_style && plant.aquascape_style.length > 0 ? (
-                    plant.aquascape_style.map(style => (
-                      <div key={style} className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col shadow-inner items-center justify-center h-full text-center transition-colors">
-                        <span className="text-[15px] font-black text-gray-900 dark:text-slate-200 uppercase tracking-wider mb-1">{style}</span>
-                        <span className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug">{getStyleDesc(style)}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col shadow-inner items-center justify-center h-full text-center transition-colors">
-                      <span className="text-sm text-slate-500 italic">Cocok untuk gaya apapun.</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+  {/* Kotak 2: Gaya Aquascape (3 Kolom - SAMA BESAR DENGAN RAMBAT) */}
+  <div className="lg:col-span-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors">
+    <div className="flex items-center gap-2 mb-3">
+      <Target className="h-4 w-4 text-blue-600 dark:text-blue-500"/>
+      <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Gaya Aquascape</p>
+    </div>
+    <div className="flex flex-col gap-2 flex-1 justify-center">
+      {plant.aquascape_style && plant.aquascape_style.length > 0 ? (
+        plant.aquascape_style.map(style => (
+          <div key={style} className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col flex-1 shadow-inner items-center justify-center text-center transition-colors">
+            <span className="text-[15px] font-black text-gray-900 dark:text-slate-200 uppercase tracking-wider mb-1">{style}</span>
+            <span className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug">{getStyleDesc(style)}</span>
+          </div>
+        ))
+      ) : (
+        <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col flex-1 shadow-inner items-center justify-center text-center transition-colors">
+          <span className="text-sm text-slate-500 italic">Cocok untuk gaya apapun.</span>
+        </div>
+      )}
+    </div>
+  </div>
 
-              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors">
-                <div className="flex items-center gap-2 mb-3">
-                  <Box className="h-4 w-4 text-orange-600 dark:text-orange-500"/>
-                  <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Ukuran Aquarium</p>
-                </div>
-                <div className="flex flex-col gap-2 flex-1 justify-center">
-                  {plant.tank_size_recommendation && plant.tank_size_recommendation.length > 0 ? (
-                    plant.tank_size_recommendation.map(size => {
-                      const details = getTankSizeDetails(size);
-                      return (
-                        <div key={size} className="bg-slate-50 dark:bg-slate-950 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between shadow-inner transition-colors">
-                          <span className="text-[13px] font-black text-gray-900 dark:text-slate-200 uppercase tracking-wider mb-1 sm:mb-0">{size}</span>
-                          <div className="flex items-center gap-1.5 text-right transition-colors">
-                            <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium">📏 {details.size_cm}</span>
-                            <span className="text-[10px] text-slate-400 font-medium">|</span>
-                            <span className="text-[10px] text-cyan-700 dark:text-cyan-400 font-medium">💧 {details.liter}</span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col shadow-inner items-center justify-center h-full text-center transition-colors">
-                      <span className="text-sm text-slate-500 italic">Bebas semua ukuran.</span>
-                    </div>
-                  )}
-                </div>
+  {/* Kotak 3: Ukuran Aquarium (6 Kolom - Bergeser & Mengisi Sisa Ruang 50%) */}
+  <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors">
+    <div className="flex items-center gap-2 mb-3">
+      <Box className="h-4 w-4 text-orange-600 dark:text-orange-500"/>
+      <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Ukuran Aquarium</p>
+    </div>
+    <div className="flex flex-col gap-2 flex-1 justify-center">
+      {plant.tank_size_recommendation && plant.tank_size_recommendation.length > 0 ? (
+        plant.tank_size_recommendation.map(size => {
+          const details = getTankSizeDetails(size);
+          return (
+            <div 
+              key={size} 
+              className="bg-slate-50 dark:bg-slate-950 px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-inner transition-colors"
+            >
+              <span className="text-sm font-black text-gray-900 dark:text-slate-200 uppercase tracking-wider">
+                {size}
+              </span>
+              <div className="flex items-center gap-3 text-right">
+                <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium">📏 {details.size_cm}</span>
+                <span className="text-[10px] text-slate-400 font-medium">|</span>
+                <span className="text-[10px] text-cyan-700 dark:text-cyan-400 font-medium">💧 {details.liter}</span>
               </div>
             </div>
+          );
+        })
+      ) : (
+        <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col flex-1 shadow-inner items-center justify-center text-center transition-colors">
+          <span className="text-sm text-slate-500 italic">Bebas semua ukuran.</span>
+        </div>
+      )}
+    </div>
+  </div>
 
+</div>
+            
             {/* ENSIKLOPEDIA BOTANI (Sesuai Gambar Referensi 1) */}
             <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl h-fit transition-colors">
               <CardContent className="p-8 space-y-10">
