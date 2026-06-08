@@ -520,7 +520,7 @@ export default function PlantDetailPage() {
             </div>
 
             {/* 3 GRID: Kontrol Pertumbuhan, Style & Tank (Rasio 3 : 3 : 6) */}
-            <div className="grid lg:grid-cols-12 gap-4 border-t border-slate-200 dark:border-slate-800 pt-6 mt-6 transition-colors">
+            <div className="grid lg:grid-cols-12 gap-4 mt-4 transition-colors">
               
               {/* KOTAK 1: Kontrol Pertumbuhan (Kolom 3) */}
               <div className="lg:col-span-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors">
