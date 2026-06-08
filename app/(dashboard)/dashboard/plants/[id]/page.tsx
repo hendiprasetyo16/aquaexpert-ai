@@ -485,21 +485,22 @@ export default function PlantDetailPage() {
                </div>
             </div>
 
-            {/* 4 GRID STATS: Beginner, Repot, Aman Udang, Bisa Karpet */}
+            {/* 4 GRID STATS: Beginner, Perawatan, Aman Udang, Bisa Karpet */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col justify-center shadow-sm relative transition-colors">
                 <p className="text-[11px] uppercase text-slate-500 font-bold mb-2 text-center">Beginner Score</p>
                 {renderStars(plant.beginner_score || null)}
               </div>
               <div className="bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col items-center justify-center shadow-sm transition-colors">
-                <p className="text-[11px] uppercase text-slate-500 font-bold mb-2">Tingkat Repot</p>
+                {/* UBAH NAMA DI SINI */}
+                <p className="text-[11px] uppercase text-slate-500 font-bold mb-2 text-center">Tingkat Perawatan</p>
                 <div className="flex flex-col items-center justify-center mt-1">
                   <span className="text-lg font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5 transition-colors"><Scissors className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />{plant.maintenance_level || "Medium"}</span>
                   <span className="text-[12px] text-slate-600 dark:text-slate-400 font-medium mt-1 transition-colors">{getIndoLevelCore(plant.maintenance_level)}</span>
                 </div>
               </div>
               <div className={`p-4 rounded-xl border text-center flex flex-col items-center justify-center shadow-sm transition-colors ${plant.shrimp_safe ? "bg-rose-50 dark:bg-rose-950/10 border-rose-200 dark:border-rose-900/30" : "bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800"}`}>
-                <p className="text-[11px] uppercase text-slate-500 font-bold mb-2">Aman Untuk Udang</p>
+                <p className="text-[11px] uppercase text-slate-500 font-bold mb-2 text-center">Aman Untuk Udang</p>
                 <div className="flex flex-col items-center justify-center mt-1">
                   <span className={`text-lg font-black uppercase tracking-widest flex items-center gap-1.5 transition-colors ${plant.shrimp_safe ? "text-rose-600 dark:text-rose-400" : "text-gray-900 dark:text-slate-200"}`}>
                     {plant.shrimp_safe ? <ShieldCheck className="h-5 w-5" /> : <X className="h-5 w-5 text-slate-400" />}
@@ -508,7 +509,7 @@ export default function PlantDetailPage() {
                 </div>
               </div>
               <div className={`p-4 rounded-xl border text-center flex flex-col items-center justify-center shadow-sm transition-colors ${plant.carpet_potential ? "bg-green-50 dark:bg-green-950/10 border-green-200 dark:border-green-900/30" : "bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800"}`}>
-                <p className="text-[11px] uppercase text-slate-500 font-bold mb-2">Bisa Jadi Karpet?</p>
+                <p className="text-[11px] uppercase text-slate-500 font-bold mb-2 text-center">Bisa Jadi Karpet?</p>
                 <div className="flex flex-col items-center justify-center mt-1">
                   <span className={`text-lg font-black uppercase tracking-widest flex items-center gap-1.5 transition-colors ${plant.carpet_potential ? "text-green-600 dark:text-green-400" : "text-gray-900 dark:text-slate-200"}`}>
                     {plant.carpet_potential ? <CheckCircle2 className="h-5 w-5" /> : <X className="h-5 w-5 text-slate-400" />}
@@ -518,7 +519,7 @@ export default function PlantDetailPage() {
               </div>
             </div>
 
-{/* 3 GRID: Kontrol Pertumbuhan, Style & Tank (Rasio 3 : 3 : 6) */}
+            {/* 3 GRID: Kontrol Pertumbuhan, Style & Tank (Rasio 3 : 3 : 6) */}
             <div className="grid lg:grid-cols-12 gap-4 border-t border-slate-200 dark:border-slate-800 pt-6 mt-6 transition-colors">
               
               {/* KOTAK 1: Kontrol Pertumbuhan (Kolom 3) */}
