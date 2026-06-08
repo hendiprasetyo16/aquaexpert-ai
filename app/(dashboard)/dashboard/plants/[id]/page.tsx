@@ -199,7 +199,7 @@ export default function PlantDetailPage() {
 
   return (
     <>
-      <div className="max-w-6xl space-y-6 pb-10 transition-colors duration-300">
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-10 space-y-6 transition-colors duration-300">
         
         {/* HEADER TOOLBAR */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
