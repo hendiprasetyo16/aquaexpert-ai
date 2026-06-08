@@ -9,7 +9,8 @@ export const metadata: Metadata = {
 
 export default function PlantsPage() {
   return (
-    <div className="min-h-screen bg-slate-950 p-6 text-slate-50">
+    // PERBAIKAN: Background dihapus agar transparan dan menyatu dengan background dari layout.tsx
+    <div className="p-6 text-gray-900 dark:text-slate-50 transition-colors duration-300">
       <PlantList />
     </div>
   );

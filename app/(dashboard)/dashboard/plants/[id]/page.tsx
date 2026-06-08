@@ -17,6 +17,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
+// MENGIMPOR LOGIKA DARI HELPER
+import { 
+  getCO2DisplayStatus, renderStars, getIndoLevelDetail, getPlacementBadgeStyle, 
+  getPlacementDesc, getTankSizeDetails, getStyleDesc, getPlantTypeDesc, 
+  getRecommendedDesc, getRecommendationBadgeColor, getIndoLevelCore 
+} from "./plant-helpers";
+
 export default function PlantDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -26,14 +33,12 @@ export default function PlantDetailPage() {
   const [allPlantsList, setAllPlantsList] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // --- UI STATES ---
   const [copied, setCopied] = useState(false);
   const [prevPlantId, setPrevPlantId] = useState<string | null>(null);
   const [nextPlantId, setNextPlantId] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [totalPlants, setTotalPlants] = useState<number>(0);
 
-  // --- STATE MODAL LIGHTBOX ---
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const allImages = [plant?.image_url, ...(plant?.gallery_urls || [])].filter(Boolean) as string[];
   
@@ -78,7 +83,6 @@ export default function PlantDetailPage() {
     loadData();
   }, [params.id]);
 
-  // ACTION HANDLERS
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -101,7 +105,6 @@ export default function PlantDetailPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // NAVIGATION HANDLERS
   const resetZoom = () => { setScale(1); setPosition({ x: 0, y: 0 }); };
   const openLightbox = (url: string) => {
     const idx = allImages.indexOf(url);
@@ -121,7 +124,6 @@ export default function PlantDetailPage() {
     }
   };
 
-  // TOUCH HANDLERS
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       setTouchEnd(null); setTouchStart(e.targetTouches[0].clientX); setInitialPinchDistance(null);
@@ -161,219 +163,6 @@ export default function PlantDetailPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [lightboxIndex, allImages.length]);
 
-  // ==========================================
-  // HELPER TRANSLASI & LOGIKA
-  // ==========================================
-  
-  const getCO2DisplayStatus = (
-    requirement: string | null | undefined,
-    isMandatory: boolean | null | undefined
-  ): { label: string; variant: "danger" | "warning" | "success" } => {
-    if (isMandatory) {
-      return { label: "Wajib Injeksi", variant: "danger" };
-    }
-
-    const req = (requirement || "").toLowerCase();
-    if (req === "medium" || req === "high") {
-      return { label: "Disarankan", variant: "warning" };
-    }
-
-    return { label: "Tidak Perlu CO2", variant: "success" };
-  };
-
-  const getSummaryScoreDesc = (score: number | null) => {
-    if (!score) return "Penilaian belum tersedia.";
-    if (score >= 8) return "Sangat direkomendasikan untuk aquascaper pemula.";
-    if (score >= 6) return "Cocok jika Anda sudah memahami dasar-dasar aquascape.";
-    if (score >= 4) return "Cukup menantang, butuh perhatian ekstra.";
-    return "Hanya untuk aquascaper tingkat lanjut / profesional.";
-  };
-
-  const renderStars = (score: number | null) => {
-    if (!score) return "N/A";
-    const filled = "★".repeat(score);
-    const empty = "☆".repeat(10 - score);
-    
-    let colorClass = "text-red-500"; 
-    if (score >= 9) colorClass = "text-green-400"; 
-    else if (score >= 7) colorClass = "text-blue-400"; 
-    else if (score >= 5) colorClass = "text-yellow-400"; 
-
-    return (
-      <div className="flex flex-col items-center">
-        <span className={`text-[11px] tracking-widest mb-0.5 ${colorClass}`}>
-          {filled}<span className="text-slate-600">{empty}</span>
-        </span>
-        <span className={`text-xl font-black text-white ${colorClass}`}>{score}/10</span>
-        <span className="text-[10px] text-slate-400 mt-1 leading-tight text-center max-w-[120px]">
-          {getSummaryScoreDesc(score)}
-        </span>
-      </div>
-    );
-  };
-
-  const getIndoLevelCore = (level: string | null | undefined) => {
-    if (!level) return "";
-    const l = level.toLowerCase();
-    if (l === "low" || l === "easy") return "Rendah";
-    if (l === "medium" || l === "moderate") return "Sedang";
-    if (l === "high" || l === "hard" || l === "aggressive" || l === "fast") return "Tinggi";
-    if (l === "slow") return "Lambat";
-    return level;
-  };
-
-  const getIndoLevelDetail = (level: string | null | undefined, type: "light" | "co2" | "fert" | "growth" | "general" = "general") => {
-    if (!level) return "Data tidak tersedia.";
-    const l = level.toLowerCase();
-    
-    if (type === "light") {
-      if (l === "low") return "Lampu menyala 6-7 Jam";
-      if (l === "medium") return "Lampu menyala 7-8 Jam";
-      if (l === "high") return "Lampu menyala 8-10 Jam";
-    }
-    if (type === "co2") {
-      if (l === "low") return "Tanpa tabung CO2";
-      if (l === "medium") return "Disarankan pakai CO2";
-      if (l === "high") return "Wajib injeksi CO2 tinggi";
-    }
-    if (type === "fert") {
-      if (l === "low") return "Sesekali saja";
-      if (l === "medium") return "Rutin (Standar)";
-      if (l === "high") return "Wajib pupuk tancap & cair";
-    }
-    if (type === "growth") {
-      if (l === "slow") return "Jarang butuh dipangkas";
-      if (l === "medium" || l === "moderate") return "Perawatan standar";
-      if (l === "fast" || l === "aggressive") return "Wajib sering dipangkas";
-    }
-
-    return getIndoLevelCore(level);
-  };
-
-  const getPlacementBadgeStyle = (placement: string | null | undefined) => {
-    if (!placement) return "bg-slate-800/50 border-slate-700 text-slate-200";
-    const p = placement.toLowerCase();
-    if (p === "foreground") return "bg-green-950/30 border-green-900/50 text-green-300"; 
-    if (p === "midground") return "bg-blue-950/30 border-blue-900/50 text-blue-300"; 
-    if (p === "background") return "bg-purple-950/30 border-purple-900/50 text-purple-300"; 
-    if (p === "epiphyte") return "bg-orange-950/30 border-orange-900/50 text-orange-300"; 
-    if (p === "floating") return "bg-cyan-950/30 border-cyan-900/50 text-cyan-300"; 
-    return "bg-slate-800/50 border-slate-700 text-slate-200";
-  };
-
-  const getPlacementDesc = (placement: string | null | undefined) => {
-    if (!placement) return "";
-    const p = placement.toLowerCase();
-    if (p === "foreground") return "Posisi Depan";
-    if (p === "midground") return "Posisi Tengah";
-    if (p === "background") return "Posisi Belakang";
-    if (p === "epiphyte") return "Tempel Kayu/Batu";
-    if (p === "floating") return "Apung di Atas";
-    return "";
-  };
-
-  const getTankSizeDetails = (size: string) => {
-    const s = size.trim().toLowerCase();
-
-    if (s.includes("nano"))
-      return { size_cm: "≤ 40 cm", liter: "10–30 Liter" };
-    if (s.includes("small"))
-      return { size_cm: "40–60 cm", liter: "30–60 Liter" };
-    if (s.includes("medium"))
-      return { size_cm: "60–90 cm", liter: "60–150 Liter" };
-    if (s.includes("extra"))
-      return { size_cm: "> 120 cm", liter: "> 300 Liter" };
-    if (s.includes("large"))
-      return { size_cm: "90–120 cm", liter: "150–300 Liter" };
-
-    return { size_cm: "Bervariasi", liter: "Sesuai kebutuhan" };
-  };
-
-  const getStyleDesc = (style: string) => {
-    const s = style.toLowerCase();
-    if (s.includes("nature")) return "Alami seperti hutan/tebing";
-    if (s.includes("dutch")) return "Fokus warna & padat";
-    if (s.includes("iwagumi")) return "Formasi padang batu";
-    if (s.includes("jungle")) return "Tumbuh liar & lebat";
-    return "Gaya Aquascape Universal";
-  };
-
-  const getPlantTypeDesc = (type: string) => {
-    const t = (type || "").toLowerCase();
-    if (t === "stem") return "Tanaman Batang. Tumbuh menjulang ke atas, perlu dipotong dan ditancap ulang.";
-    if (t === "rhizome") return "Tanaman Rimpang. Jangan dikubur di pasir, harus diikat pada batu atau kayu.";
-    if (t === "rosette") return "Tumbuh berpusat dari satu pangkal akar bawah. Sangat butuh pupuk tancap.";
-    if (t === "carpet") return "Tanaman Karpet. Menjalar menutupi dasar aquarium layaknya padang rumput.";
-    if (t === "moss") return "Lumut Air. Diikat pada batu/kayu. Surganya udang hias untuk bersembunyi.";
-    if (t === "floating") return "Tanaman Apung. Berada di permukaan. Penyerap racun nitrat paling ampuh.";
-    if (t === "bulb") return "Tumbuh dari umbi. Umbinya jangan dikubur total ke dalam pasir agar tidak busuk.";
-    if (t === "runner") return "Tanaman Menjalar. Berkembang menyebar cepat lewat tunas di bawah pasir.";
-    return "Tipe tanaman akuatik standar.";
-  };
-
-  const getRecommendedDesc = (tag: string) => {
-    const t = tag.toLowerCase();
-    
-    // Skill Level
-    if (t === "pemula" || t === "beginner") return "Sangat mudah dirawat";
-    if (t.includes("expert") || t.includes("advanced")) return "Hanya profesional";
-    
-    // Peralatan / Parameter
-    if (t.includes("low tech") || t.includes("low light")) return "Tanpa tabung CO2";
-    if (t.includes("high tech") || t.includes("co2 setup")) return "Wajib CO2 & Lampu";
-    if (t.includes("mid tech")) return "Cahaya & Nutrisi Sedang";
-    
-    // Fauna
-    if (t.includes("shrimp tank")) return "Aman bagi Udang Hias";
-    if (t.includes("betta tank")) return "Aman bagi Ikan Cupang";
-    if (t.includes("community tank")) return "Aman bagi ragam ikan";
-    if (t.includes("discus tank")) return "Toleran air suhu hangat";
-    if (t.includes("cichlid")) return "Tahan digigit herbivora";
-    
-    // Ukuran Tank
-    if (t.includes("nano tank")) return "Cocok di tank kecil";
-    if (t.includes("large tank")) return "Cocok di tank besar";
-    
-    // Tema (Sisanya)
-    if (t.includes("dutch style")) return "Kerapatan tanaman tinggi";
-    if (t.includes("nature style")) return "Memberi kesan alam liar";
-    
-    // Spesifik lainnya
-    if (t.includes("paludarium")) return "Tumbuh rimbun di darat";
-    if (t.includes("blackwater")) return "Toleran cahaya minim";
-    if (t.includes("aquascape contest")) return "Nilai seni sangat tinggi";
-    if (t.includes("breeding tank")) return "Tempat sembunyi burayak";
-    if (t.includes("pond")) return "Bisa hidup di kolam luar";
-
-    return "Cocok secara umum";
-  };
-
-  const getRecommendationBadgeColor = (tag: string) => {
-    const t = tag.toLowerCase();
-    
-    if (t === "pemula" || t === "beginner") return "bg-emerald-950/40 text-emerald-400 border-emerald-900/50";
-    if (t.includes("low tech") || t.includes("low light")) return "bg-green-950/40 text-green-400 border-green-900/50";
-    if (t.includes("high tech")) return "bg-red-950/40 text-red-400 border-red-900/50";
-    if (t.includes("co2 setup")) return "bg-cyan-950/40 text-cyan-400 border-cyan-900/50";
-    if (t.includes("dutch style")) return "bg-orange-950/40 text-orange-400 border-orange-900/50";
-    if (t.includes("nature style")) return "bg-yellow-950/40 text-yellow-400 border-yellow-900/50";
-    if (t.includes("iwagumi")) return "bg-slate-800 text-slate-300 border-slate-600";
-    if (t.includes("contest")) return "bg-violet-950/40 text-violet-400 border-violet-900/50";
-    if (t.includes("shrimp tank")) return "bg-rose-950/40 text-rose-400 border-rose-900/50";
-    if (t.includes("community tank")) return "bg-indigo-950/40 text-indigo-400 border-indigo-900/50";
-    if (t.includes("betta tank")) return "bg-fuchsia-950/40 text-fuchsia-400 border-fuchsia-900/50";
-    if (t.includes("cichlid")) return "bg-purple-950/40 text-purple-400 border-purple-900/50";
-    if (t.includes("breeding tank")) return "bg-teal-950/40 text-teal-400 border-teal-900/50";
-    if (t.includes("nano tank")) return "bg-blue-950/40 text-blue-400 border-blue-900/50";
-    if (t.includes("large tank")) return "bg-zinc-900/80 text-zinc-300 border-zinc-700";
-    if (t.includes("blackwater")) return "bg-amber-950/40 text-amber-500 border-amber-900/50";
-    if (t.includes("paludarium")) return "bg-pink-950/40 text-pink-400 border-pink-900/50";
-    if (t.includes("pond")) return "bg-sky-950/40 text-sky-400 border-sky-900/50";
-    
-    return "bg-slate-800/80 text-slate-200 border-slate-700";
-  };
-
-  // MENGHILANGKAN DUPLIKASI TAG "Pemula" dan "Beginner" saat rendering
   const uniqueRecommendedTags = Array.from(
     new Set(
       (plant?.recommended_for || []).map(tag => 
@@ -382,13 +171,11 @@ export default function PlantDetailPage() {
     )
   );
 
-  if (loading) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-500" /></div>;
-  if (!plant) return <div className="text-center mt-20 text-slate-400">Data tanaman tidak ditemukan atau telah dinonaktifkan.</div>;
+  if (loading) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-600 dark:text-teal-500" /></div>;
+  if (!plant) return <div className="text-center mt-20 text-slate-500 dark:text-slate-400">Data tanaman tidak ditemukan atau telah dinonaktifkan.</div>;
 
-  // Render variables
   const co2Status = getCO2DisplayStatus(plant.co2_requirement, plant.co2_mandatory);
 
-  // MENCARI TANAMAN SERUPA (SMART DIFF SCORING AI SYSTEM)
   const relatedPlants = allPlantsList
     .filter(p => p.id !== plant.id && p.is_active)
     .map(p => {
@@ -398,41 +185,38 @@ export default function PlantDetailPage() {
       if (p.difficulty === plant.difficulty) score += 2;
       if (p.light_requirement === plant.light_requirement) score += 2;
       if (p.co2_requirement === plant.co2_requirement) score += 2;
-      
-      // Bonus skor tipis jika asalnya sama
       if (p.origin_country === plant.origin_country) score += 1;
-      
       return { ...p, similarityScore: score };
     })
-    .filter(p => p.similarityScore >= 5) // Minimal mirip 2 parameter penting
+    .filter(p => p.similarityScore >= 5) 
     .sort((a, b) => b.similarityScore - a.similarityScore)
     .slice(0, 3);
 
   return (
     <>
-      <div className="max-w-6xl space-y-6 pb-10">
+      <div className="max-w-6xl space-y-6 pb-10 transition-colors duration-300">
         
         {/* HEADER TOOLBAR */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Button variant="outline" onClick={() => router.push("/dashboard/plants")} className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white active:scale-95 transition-all">
+              <Button variant="outline" onClick={() => router.push("/dashboard/plants")} className="border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white active:scale-95 transition-all">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
               </Button>
               
-              <div className="flex bg-slate-900 border border-slate-700 rounded-md overflow-hidden">
-                <Button variant="ghost" disabled={!prevPlantId} onClick={() => prevPlantId && router.push(`/dashboard/plants/${prevPlantId}`)} className="rounded-none border-r border-slate-700 hover:bg-teal-900/40 hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent" title="Tanaman Sebelumnya">
+              <div className="flex bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md overflow-hidden transition-colors">
+                <Button variant="ghost" disabled={!prevPlantId} onClick={() => prevPlantId && router.push(`/dashboard/plants/${prevPlantId}`)} className="rounded-none border-r border-slate-300 dark:border-slate-700 hover:bg-teal-50 dark:hover:bg-teal-900/40 hover:text-teal-600 dark:hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300" title="Tanaman Sebelumnya">
                   <ChevronLeft className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" disabled={!nextPlantId} onClick={() => nextPlantId && router.push(`/dashboard/plants/${nextPlantId}`)} className="rounded-none hover:bg-teal-900/40 hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent" title="Tanaman Berikutnya">
+                <Button variant="ghost" disabled={!nextPlantId} onClick={() => nextPlantId && router.push(`/dashboard/plants/${nextPlantId}`)} className="rounded-none hover:bg-teal-50 dark:hover:bg-teal-900/40 hover:text-teal-600 dark:hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300" title="Tanaman Berikutnya">
                   <ChevronRight className="h-5 w-5" />
                 </Button>
               </div>
             </div>
             
             {totalPlants > 0 && (
-              <span className="text-xs font-medium text-slate-400 bg-slate-800/50 px-3 py-1.5 rounded-md border border-slate-700/50 w-full sm:w-auto text-center">
-                Tanaman <strong className="text-slate-200">{currentIndex}</strong> dari <strong className="text-slate-200">{totalPlants}</strong>
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700/50 w-full sm:w-auto text-center transition-colors">
+                Tanaman <strong className="text-gray-900 dark:text-slate-200">{currentIndex}</strong> dari <strong className="text-gray-900 dark:text-slate-200">{totalPlants}</strong>
               </span>
             )}
           </div>
@@ -440,7 +224,7 @@ export default function PlantDetailPage() {
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {role !== "user" && (
               <Link href={`/dashboard/plants/${plant.id}/edit`} className="w-full sm:w-auto">
-                <Button className="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 text-white shadow-lg active:scale-95 transition-all">
+                <Button className="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 text-white shadow-lg shadow-teal-600/10 dark:shadow-teal-900/20 active:scale-95 transition-all">
                   <Edit className="mr-2 h-4 w-4" /> Edit
                 </Button>
               </Link>
@@ -451,10 +235,10 @@ export default function PlantDetailPage() {
         <div className="grid gap-6 lg:grid-cols-12">
           {/* KOLOM KIRI */}
           <div className="lg:col-span-4 space-y-6">
-            <Card className="border-slate-800 bg-slate-900/60 overflow-hidden shadow-xl">
+            <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden shadow-xl transition-colors">
               
               <div 
-                className={`h-72 w-full bg-slate-800 flex items-center justify-center relative group ${plant.image_url ? 'cursor-pointer' : ''}`}
+                className={`h-72 w-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center relative group transition-colors ${plant.image_url ? 'cursor-pointer' : ''}`}
                 onClick={() => plant.image_url && openLightbox(plant.image_url)}
               >
                 {plant.image_url ? (
@@ -464,19 +248,19 @@ export default function PlantDetailPage() {
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 pointer-events-none">
                       <Maximize2 className="h-10 w-10 text-white drop-shadow-md scale-75 group-hover:scale-100 transition-transform" />
                     </div>
-                    <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-md text-[10px] font-medium text-slate-300 uppercase tracking-widest border border-white/10 flex items-center gap-1.5">
+                    <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-md text-[10px] font-medium text-slate-200 uppercase tracking-widest border border-white/10 flex items-center gap-1.5">
                       <ImageIcon className="h-3 w-3" /> Cover
                     </div>
                   </>
                 ) : (
-                  <Leaf className="h-20 w-20 text-slate-600" />
+                  <Leaf className="h-20 w-20 text-slate-300 dark:text-slate-600" />
                 )}
               </div>
 
               {plant.gallery_urls && plant.gallery_urls.length > 0 && (
-                <div className={`grid gap-1 p-1 bg-slate-950 ${plant.gallery_urls.length > 3 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                <div className={`grid gap-1 p-1 bg-slate-50 dark:bg-slate-950 transition-colors ${plant.gallery_urls.length > 3 ? 'grid-cols-4' : 'grid-cols-3'}`}>
                   {plant.gallery_urls.map((url, idx) => (
-                    <div key={idx} className="aspect-square relative group cursor-pointer overflow-hidden rounded-sm bg-slate-800" onClick={() => openLightbox(url)}>
+                    <div key={idx} className="aspect-square relative group cursor-pointer overflow-hidden rounded-sm bg-slate-200 dark:bg-slate-800 transition-colors" onClick={() => openLightbox(url)}>
                       <Image src={url} alt={`Gallery ${idx + 1}`} fill sizes="(max-width: 768px) 25vw, 15vw" className="object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100" />
                       <div className="absolute inset-0 bg-teal-500/0 group-hover:bg-teal-500/20 transition-colors duration-300 pointer-events-none"></div>
                     </div>
@@ -484,48 +268,43 @@ export default function PlantDetailPage() {
                 </div>
               )}
 
-              <CardContent className="p-6 flex flex-col items-center text-center border-t border-slate-800 relative">
+              <CardContent className="p-6 flex flex-col items-center text-center border-t border-slate-200 dark:border-slate-800 relative transition-colors">
                 
-                {/* TOMBOL SHARE NATIVE */}
                 <div className="flex gap-2 justify-end w-full mb-2">
-                   <button onClick={handleShare} className="p-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-teal-400 rounded-md transition-colors" title="Bagikan">
+                   <button onClick={handleShare} className="p-2 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 rounded-md transition-colors" title="Bagikan">
                      <Share2 className="h-4 w-4" />
                    </button>
-                   <button onClick={handleCopyLink} className="p-2 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-teal-400 rounded-md transition-colors" title="Salin Tautan">
-                     {copied ? <Check className="h-4 w-4 text-green-500" /> : <LinkIcon className="h-4 w-4" />}
+                   <button onClick={handleCopyLink} className="p-2 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 rounded-md transition-colors" title="Salin Tautan">
+                     {copied ? <Check className="h-4 w-4 text-green-600 dark:text-green-500" /> : <LinkIcon className="h-4 w-4" />}
                    </button>
                 </div>
 
-                <h1 className="text-3xl font-extrabold text-teal-400 tracking-tight leading-tight w-full px-2">{plant.name}</h1>
-                <p className="italic text-slate-400 mt-2 font-serif">{plant.scientific_name || "Scientific name unknown"}</p>
+                <h1 className="text-3xl font-extrabold text-teal-700 dark:text-teal-400 tracking-tight leading-tight w-full px-2">{plant.name}</h1>
+                <p className="italic text-slate-500 dark:text-slate-400 mt-2 font-serif">{plant.scientific_name || "Scientific name unknown"}</p>
                 
                 <div className="mt-6 flex flex-col items-center justify-center gap-3 w-full">
-                  
-                  {/* TIPE */}
-                  <span className="px-4 py-2 rounded-lg text-sm font-black uppercase tracking-widest bg-teal-950/40 text-teal-400 border border-teal-900/50 w-full sm:w-auto">
+                  <span className="px-4 py-2 rounded-lg text-sm font-black uppercase tracking-widest bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-900/50 w-full sm:w-auto transition-colors">
                     Tipe: {plant.plant_type || "N/A"}
                   </span>
-
+                  
                   <div className="flex flex-row gap-3 w-full sm:w-auto justify-center">
-                    {/* KESULITAN */}
-                    <div className={`flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg border shadow-sm ${
-                      plant.difficulty?.toLowerCase() === 'easy' ? 'bg-green-950/20 border-green-900/50' :
-                      plant.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-950/20 border-yellow-900/50' :
-                      plant.difficulty?.toLowerCase() === 'hard' ? 'bg-red-950/20 border-red-900/50' :
-                      'bg-slate-800 border-slate-700'
+                    <div className={`flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg border shadow-sm transition-colors ${
+                      plant.difficulty?.toLowerCase() === 'easy' ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900/50' :
+                      plant.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-900/50' :
+                      plant.difficulty?.toLowerCase() === 'hard' ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50' :
+                      'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
                     }`}>
-                      <span className={`text-sm font-black uppercase tracking-widest ${
-                        plant.difficulty?.toLowerCase() === 'easy' ? 'text-green-400' :
-                        plant.difficulty?.toLowerCase() === 'medium' ? 'text-yellow-400' :
-                        plant.difficulty?.toLowerCase() === 'hard' ? 'text-red-400' : 'text-slate-300'
+                      <span className={`text-sm font-black uppercase tracking-widest transition-colors ${
+                        plant.difficulty?.toLowerCase() === 'easy' ? 'text-green-700 dark:text-green-400' :
+                        plant.difficulty?.toLowerCase() === 'medium' ? 'text-yellow-700 dark:text-yellow-400' :
+                        plant.difficulty?.toLowerCase() === 'hard' ? 'text-red-700 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'
                       }`}>
                         {plant.difficulty || "Unknown"}
                       </span>
-                      <span className="text-[11px] text-slate-400 mt-0.5">{getIndoLevelCore(plant.difficulty)}</span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{getIndoLevelCore(plant.difficulty)}</span>
                     </div>
                     
-                    {/* PENEMPATAN DENGAN WARNA PSIKOLOGIS */}
-                    <div className={`flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg border shadow-sm ${getPlacementBadgeStyle(plant.placement)}`}>
+                    <div className={`flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg border shadow-sm transition-colors ${getPlacementBadgeStyle(plant.placement)}`}>
                       <span className="text-base font-black uppercase tracking-widest">
                         {plant.placement || "Unknown"}
                       </span>
@@ -533,187 +312,132 @@ export default function PlantDetailPage() {
                     </div>
                   </div>
                 </div>
-                
-                {/* ===================================================== */}
-                {/* KECOCOKAN EKOSISTEM V2 */}
-                {/* ===================================================== */}
-                <div className="mt-8 border-t border-slate-800 pt-5 w-full">
 
+                {/* KECOCOKAN EKOSISTEM (Diperbaiki agar rapi dan tidak terlalu sempit) */}
+                <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-5 w-full transition-colors">
                   <div className="flex items-center gap-2 justify-center mb-6">
-                    <CheckSquare className="h-4 w-4 text-teal-500" />
-                    <p className="text-[13px] font-bold text-slate-300 uppercase tracking-widest">
+                    <CheckSquare className="h-4 w-4 text-teal-600 dark:text-teal-500" />
+                    <p className="text-[13px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
                       Analisis Kecocokan
                     </p>
                   </div>
 
-                  {/* COCOK UNTUK */}
                   <div className="mb-6">
-                    <h4 className="text-xs font-bold uppercase tracking-widest text-teal-400 mb-3">
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-teal-700 dark:text-teal-400 mb-3">
                       Cocok Untuk
                     </h4>
-
                     <div className="flex flex-wrap justify-center gap-2">
                       {(uniqueRecommendedTags || [])
-                        .filter(tag =>
-                          [
-                            "beginner",
-                            "aquascape contest"
-                          ].includes(tag.toLowerCase())
-                        )
+                        .filter(tag => ["beginner", "aquascape contest"].includes(tag.toLowerCase()))
                         .map(tag => (
-                          <div
-                            key={tag}
-                            className={`flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] ${getRecommendationBadgeColor(tag)}`}
-                          >
-                            <span className="text-[12px] font-bold uppercase tracking-widest">
-                              {tag}
-                            </span>
-                            <span className="text-[10px] opacity-70 mt-1">
-                              {getRecommendedDesc(tag)}
-                            </span>
+                          <div key={tag} className={`flex flex-col items-center justify-center px-3 py-2 rounded-lg border shadow-sm flex-1 min-w-[110px] sm:min-w-[120px] transition-colors ${getRecommendationBadgeColor(tag)}`} >
+                            <span className="text-[12px] font-bold uppercase tracking-widest text-center">{tag}</span>
+                            <span className="text-[10px] opacity-80 mt-1 text-center">{getRecommendedDesc(tag)}</span>
                           </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* SETUP REKOMENDASI */}
                   <div className="mb-6">
-                    <h4 className="text-xs font-bold uppercase tracking-widest text-yellow-400 mb-3">
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-yellow-600 dark:text-yellow-400 mb-3">
                       Setup Rekomendasi
                     </h4>
-
                     <div className="flex flex-wrap justify-center gap-2">
                       {(uniqueRecommendedTags || [])
-                        .filter(tag =>
-                          [
-                            "low tech",
-                            "high tech",
-                            "low light setup",
-                            "co2 setup"
-                          ].includes(tag.toLowerCase())
-                        )
+                        .filter(tag => ["low tech", "high tech", "low light setup", "co2 setup"].includes(tag.toLowerCase()))
                         .map(tag => (
-                          <div
-                            key={tag}
-                            className={`flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] ${getRecommendationBadgeColor(tag)}`}
-                          >
-                            <span className="text-[12px] font-bold uppercase tracking-widest">
-                              {tag}
-                            </span>
-                            <span className="text-[10px] opacity-70 mt-1 text-center">
-                              {getRecommendedDesc(tag)}
-                            </span>
+                          <div key={tag} className={`flex flex-col items-center justify-center px-3 py-2 rounded-lg border shadow-sm flex-1 min-w-[110px] sm:min-w-[120px] transition-colors ${getRecommendationBadgeColor(tag)}`} >
+                            <span className="text-[12px] font-bold uppercase tracking-widest text-center">{tag}</span>
+                            <span className="text-[10px] opacity-80 mt-1 text-center">{getRecommendedDesc(tag)}</span>
                           </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* EKOSISTEM COCOK */}
                   <div>
-                    <h4 className="text-xs font-bold uppercase tracking-widest text-cyan-400 mb-3">
-                      Ekosistem Cocok
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-cyan-600 dark:text-cyan-400 mb-3">
+                      Ekosistem Spesifik
                     </h4>
-
                     <div className="flex flex-wrap justify-center gap-2">
-
-                      {/* SMART CO2 BADGE (IMPLEMENTASI BARU) */}
-                      <div className={`flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] ${
-                        co2Status.variant === 'danger' ? 'bg-red-950/40 text-red-400 border-red-900/50' :
-                        co2Status.variant === 'warning' ? 'bg-amber-950/40 text-amber-400 border-amber-900/50' :
-                        'bg-emerald-950/40 text-emerald-400 border-emerald-900/50'
+                      {/* Badge CO2 */}
+                      <div className={`flex flex-col items-center justify-center px-3 py-2 rounded-lg border shadow-sm flex-1 min-w-[110px] sm:min-w-[120px] transition-colors ${
+                        co2Status.variant === 'danger' ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50' : 
+                        co2Status.variant === 'warning' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/50' : 
+                        'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50'
                       }`}>
-                        <span className="text-[12px] font-bold uppercase tracking-widest">
+                        <span className="text-[12px] font-bold uppercase tracking-widest text-center">
                           {co2Status.label === "Wajib Injeksi" ? "CO2 Wajib" : co2Status.label === "Disarankan" ? "CO2 Disarankan" : "Tanpa CO2"}
                         </span>
-                        <span className="text-[10px] opacity-70 mt-1">
-                          {co2Status.variant === 'danger' ? 'Butuh injeksi CO2' : co2Status.variant === 'warning' ? 'Lebih baik dgn CO2' : 'Aman tanpa CO2'}
+                        <span className="text-[10px] opacity-80 mt-1 text-center">
+                          {co2Status.variant === 'danger' ? 'Butuh injeksi' : co2Status.variant === 'warning' ? 'Lebih baik dgn CO2' : 'Aman tanpa CO2'}
                         </span>
                       </div>
-
+                      
                       {plant.carpet_potential && (
-                        <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-green-950/40 text-green-400 border-green-900/50">
-                          <span className="text-[12px] font-bold uppercase tracking-widest">Karpet</span>
-                          <span className="text-[10px] opacity-70 mt-1">Bisa merayap</span>
-                        </div>
-                      )}
-
-                      {plant.shrimp_safe && (
-                        <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-rose-950/40 text-rose-400 border-rose-900/50">
-                          <span className="text-[12px] font-bold uppercase tracking-widest">Shrimp Safe</span>
-                          <span className="text-[10px] opacity-70 mt-1">Aman untuk udang</span>
+                        <div className="flex flex-col items-center justify-center px-3 py-2 rounded-lg border shadow-sm flex-1 min-w-[110px] sm:min-w-[120px] bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/50 transition-colors">
+                          <span className="text-[12px] font-bold uppercase tracking-widest text-center">Karpet</span>
+                          <span className="text-[10px] opacity-80 mt-1 text-center">Bisa merayap</span>
                         </div>
                       )}
                       
-                      {/* BADGE EMERSED CAPABLE (IMPLEMENTASI BARU) */}
+                      {plant.shrimp_safe && (
+                        <div className="flex flex-col items-center justify-center px-3 py-2 rounded-lg border shadow-sm flex-1 min-w-[110px] sm:min-w-[120px] bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 transition-colors">
+                          <span className="text-[12px] font-bold uppercase tracking-widest text-center">Shrimp Safe</span>
+                          <span className="text-[10px] opacity-80 mt-1 text-center">Aman bagi udang</span>
+                        </div>
+                      )}
+
                       {plant.emersed_capable && (
-                        <div className="flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] bg-emerald-950/40 text-emerald-400 border-emerald-900/50">
-                          <span className="text-[12px] font-bold uppercase tracking-widest">Emersed</span>
-                          <span className="text-[10px] opacity-70 mt-1">Bisa tumbuh di darat</span>
+                        <div className="flex flex-col items-center justify-center px-3 py-2 rounded-lg border shadow-sm flex-1 min-w-[110px] sm:min-w-[120px] bg-lime-50 dark:bg-lime-950/40 text-lime-700 dark:text-lime-400 border-lime-200 dark:border-lime-900/50 transition-colors">
+                          <span className="text-[12px] font-bold uppercase tracking-widest text-center">Emersed</span>
+                          <span className="text-[10px] opacity-80 mt-1 text-center">Tumbuh darat</span>
                         </div>
                       )}
 
                       {(uniqueRecommendedTags || [])
-                        .filter(tag =>
-                          [
-                            "shrimp tank",
-                            "betta tank",
-                            "community tank",
-                            "discus tank",
-                            "cichlid tank",
-                            "blackwater",
-                            "paludarium",
-                            "pond",
-                            "breeding tank",
-                            "nano tank",
-                            "nature style",
-                            "dutch style"
-                          ].includes(tag.toLowerCase())
+                        .filter(tag => ![
+                          "beginner", "low tech", "high tech", "low light setup", "co2 setup", "aquascape contest"
+                        ].includes(tag.toLowerCase())
                         )
                         .map(tag => (
-                          <div
-                            key={tag}
-                            className={`flex flex-col items-center px-3 py-2 rounded-lg border shadow-sm min-w-[120px] ${getRecommendationBadgeColor(tag)}`}
-                          >
-                            <span className="text-[12px] font-bold uppercase tracking-widest">{tag}</span>
-                            <span className="text-[10px] opacity-70 mt-1 text-center">{getRecommendedDesc(tag)}</span>
+                          <div key={tag} className={`flex flex-col items-center justify-center px-3 py-2 rounded-lg border shadow-sm flex-1 min-w-[110px] sm:min-w-[120px] transition-colors ${getRecommendationBadgeColor(tag)}`} >
+                            <span className="text-[12px] font-bold uppercase tracking-widest text-center">{tag}</span>
+                            <span className="text-[10px] opacity-80 mt-1 text-center">{getRecommendedDesc(tag)}</span>
                           </div>
                       ))}
                     </div>
                   </div>
-
                 </div>
               </CardContent>
             </Card>
 
-            {/* RELATED PLANTS SECTION (SMART AI REC) */}
+            {/* RELATED PLANTS CARD Pindah ke bawah kiri agar kolom kanan terfokus */}
             {relatedPlants.length > 0 && (
-              <Card className="border-slate-800 bg-slate-900/60 shadow-xl overflow-hidden mt-6">
-                <div className="bg-slate-900/80 px-5 py-3 border-b border-slate-800 flex items-center gap-2">
-                  <Leaf className="h-5 w-5 text-teal-500" />
-                  <h3 className="text-sm font-extrabold text-slate-200 uppercase tracking-wider">Tanaman Serupa</h3>
+              <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl overflow-hidden mt-6 transition-colors">
+                <div className="bg-slate-50 dark:bg-slate-900/80 px-5 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 transition-colors">
+                  <Leaf className="h-5 w-5 text-teal-600 dark:text-teal-500" />
+                  <h3 className="text-sm font-extrabold text-gray-900 dark:text-slate-200 uppercase tracking-wider">Tanaman Serupa</h3>
                 </div>
                 <CardContent className="p-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     {relatedPlants.map(related => (
                       <Link href={`/dashboard/plants/${related.id}`} key={related.id}>
-                        <div className="flex items-center gap-4 bg-slate-950/50 hover:bg-slate-800 border border-slate-800 hover:border-teal-900/50 p-2.5 rounded-lg transition-colors cursor-pointer relative overflow-hidden">
-                          {/* Indikator Match Score Kecil */}
-                          <div className="absolute right-0 top-0 bottom-0 w-1 bg-teal-500/20"></div>
-                          
-                          <div className="h-16 w-16 relative rounded-md overflow-hidden bg-slate-800 shrink-0">
+                        <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-950/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 hover:border-teal-500 dark:hover:border-teal-900/50 p-2.5 rounded-lg transition-colors cursor-pointer relative overflow-hidden group">
+                          <div className="absolute right-0 top-0 bottom-0 w-1 bg-teal-500/20 group-hover:bg-teal-500/50 transition-colors"></div>
+                          <div className="h-16 w-16 relative rounded-md overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0">
                             {related.image_url ? (
                               <Image src={related.image_url} alt={related.name} fill sizes="64px" className="object-cover" />
                             ) : (
-                              <div className="flex h-full items-center justify-center text-slate-600">
+                              <div className="flex h-full items-center justify-center text-slate-400 dark:text-slate-600">
                                 <Leaf className="h-6 w-6" />
                               </div>
                             )}
                           </div>
                           <div className="flex flex-col flex-1 overflow-hidden">
-                            <p className="font-bold text-slate-200 text-sm truncate">{related.name}</p>
+                            <p className="font-bold text-gray-900 dark:text-slate-200 text-sm truncate">{related.name}</p>
                             <div className="flex flex-wrap gap-1.5 mt-1.5">
-                               <span className="text-[9px] bg-teal-950/40 text-teal-400 px-1.5 py-0.5 rounded border border-teal-900/50 uppercase font-semibold">{related.plant_type}</span>
-                               <span className="text-[9px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700 uppercase font-semibold">{related.placement}</span>
+                               <span className="text-[9px] bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 px-1.5 py-0.5 rounded border border-teal-200 dark:border-teal-900/50 uppercase font-semibold">{related.plant_type}</span>
+                               <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 uppercase font-semibold">{related.placement}</span>
                             </div>
                           </div>
                         </div>
@@ -725,113 +449,127 @@ export default function PlantDetailPage() {
             )}
           </div>
 
-          {/* KOLOM KANAN: PARAMETER PAKAR & DESKRIPSI */}
+          {/* KOLOM KANAN (DATA UTAMA) */}
           <div className="lg:col-span-8 space-y-6">
             
-            {/* 🧠 EXPERT RECOMMENDATION SECTION */}
-            <Card className="border-teal-900/50 bg-teal-950/10 shadow-xl overflow-hidden">
-              <div className="bg-teal-900/30 px-6 py-4 border-b border-teal-900/50 flex items-center gap-3">
-                <Brain className="h-6 w-6 text-teal-400" />
-                <h3 className="text-lg font-extrabold text-teal-400">Expert Recommendation</h3>
+            {plant.co2_mandatory && (
+              <div className="bg-red-50 dark:bg-red-950/20 border-l-4 border-red-500 p-4 rounded-r-xl shadow-sm flex items-start gap-4 transition-colors">
+                <div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-full shrink-0 mt-0.5 transition-colors">
+                  <Zap className="h-5 w-5 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-red-800 dark:text-red-300">Peringatan Expert Engine</h4>
+                  <p className="text-[13px] text-red-700 dark:text-red-400/90 mt-1 leading-relaxed">
+                    Tanaman ini <strong>wajib menggunakan injeksi CO2</strong> agar bisa bertahan hidup dan tumbuh optimal. Tidak disarankan untuk setup Low-Tech.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* CARD 1: EXPERT RECOMMENDATION (Struktur dikembalikan ke versi lama) */}
+            <Card className="border-slate-200 dark:border-teal-900/50 bg-white dark:bg-teal-950/10 shadow-xl overflow-hidden transition-colors">
+              <div className="bg-slate-50 dark:bg-teal-900/30 px-6 py-4 border-b border-slate-200 dark:border-teal-900/50 flex items-center gap-3 transition-colors">
+                <Brain className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                <h3 className="text-lg font-extrabold text-gray-900 dark:text-teal-400">Expert Recommendation</h3>
               </div>
               <CardContent className="p-6 space-y-6">
                 
-                <div className="bg-slate-900/80 p-5 rounded-xl border border-slate-800 flex items-start gap-4 shadow-sm">
-                   <div className="bg-teal-950/40 p-2.5 rounded-md border border-teal-900/50 shrink-0 mt-0.5">
-                      <Leaf className="h-6 w-6 text-teal-400" />
+                <div className="bg-slate-50 dark:bg-slate-900/80 p-5 rounded-xl border border-slate-200 dark:border-slate-800 flex items-start gap-4 shadow-sm transition-colors">
+                   <div className="bg-teal-50 dark:bg-teal-950/40 p-2.5 rounded-md border border-teal-200 dark:border-teal-900/50 shrink-0 mt-0.5 transition-colors">
+                      <Leaf className="h-6 w-6 text-teal-600 dark:text-teal-400" />
                    </div>
                    <div>
-                      <h4 className="text-sm font-bold text-slate-200 flex items-center gap-2 mb-1.5">
-                         Karakteristik Tanam: <span className="text-teal-400 uppercase tracking-widest">{plant.plant_type || "N/A"}</span>
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-slate-200 flex items-center gap-2 mb-1.5 transition-colors">
+                         Karakteristik Tanam: <span className="text-teal-700 dark:text-teal-400 uppercase tracking-widest">{plant.plant_type || "N/A"}</span>
                       </h4>
-                      <p className="text-[14px] text-slate-400 leading-relaxed">
+                      <p className="text-[14px] text-slate-600 dark:text-slate-400 leading-relaxed transition-colors">
                          {getPlantTypeDesc(plant.plant_type || "")}
                       </p>
                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col justify-center shadow-sm relative">
+                  <div className="bg-slate-50 dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col justify-center shadow-sm relative transition-colors">
                     <p className="text-[11px] uppercase text-slate-500 font-bold mb-2 text-center">Beginner Score</p>
                     {renderStars(plant.beginner_score || null)}
                   </div>
-                  <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 text-center flex flex-col items-center justify-center shadow-sm">
+                  <div className="bg-slate-50 dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col items-center justify-center shadow-sm transition-colors">
                     <p className="text-[11px] uppercase text-slate-500 font-bold mb-2">Tingkat Repot</p>
                     <div className="flex flex-col items-center justify-center mt-1">
-                      <span className="text-lg font-black text-slate-200 uppercase tracking-widest flex items-center gap-1.5"><Scissors className="h-4 w-4 text-yellow-500" />{plant.maintenance_level || "Medium"}</span>
-                      <span className="text-[12px] text-slate-400 font-medium mt-1">{getIndoLevelCore(plant.maintenance_level)}</span>
+                      <span className="text-lg font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5 transition-colors"><Scissors className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />{plant.maintenance_level || "Medium"}</span>
+                      <span className="text-[12px] text-slate-600 dark:text-slate-400 font-medium mt-1 transition-colors">{getIndoLevelCore(plant.maintenance_level)}</span>
                     </div>
                   </div>
-                  <div className={`p-4 rounded-xl border text-center flex flex-col items-center justify-center shadow-sm ${plant.shrimp_safe ? "bg-rose-950/10 border-rose-900/30" : "bg-slate-900/80 border-slate-800"}`}>
+                  <div className={`p-4 rounded-xl border text-center flex flex-col items-center justify-center shadow-sm transition-colors ${plant.shrimp_safe ? "bg-rose-50 dark:bg-rose-950/10 border-rose-200 dark:border-rose-900/30" : "bg-slate-50 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800"}`}>
                     <p className="text-[11px] uppercase text-slate-500 font-bold mb-2">Aman Untuk Udang</p>
                     <div className="flex flex-col items-center justify-center mt-1">
-                      <span className="text-lg font-black text-slate-200 uppercase tracking-widest flex items-center gap-1.5">{plant.shrimp_safe ? <ShieldCheck className="h-5 w-5 text-rose-400" /> : <X className="h-5 w-5 text-red-500" />}{plant.shrimp_safe ? "Aman" : "Berisiko"}</span>
+                      <span className="text-lg font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5 transition-colors">{plant.shrimp_safe ? <ShieldCheck className="h-5 w-5 text-rose-600 dark:text-rose-400" /> : <X className="h-5 w-5 text-red-600 dark:text-red-500" />}{plant.shrimp_safe ? "Aman" : "Berisiko"}</span>
                     </div>
                   </div>
-                  <div className={`p-4 rounded-xl border text-center flex flex-col items-center justify-center shadow-sm ${plant.carpet_potential ? "bg-green-950/10 border-green-900/30" : "bg-slate-900/80 border-slate-800"}`}>
+                  <div className={`p-4 rounded-xl border text-center flex flex-col items-center justify-center shadow-sm transition-colors ${plant.carpet_potential ? "bg-green-50 dark:bg-green-950/10 border-green-200 dark:border-green-900/30" : "bg-slate-50 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800"}`}>
                     <p className="text-[11px] uppercase text-slate-500 font-bold mb-2">Bisa Jadi Karpet?</p>
                     <div className="flex flex-col items-center justify-center mt-1">
-                      <span className="text-lg font-black text-slate-200 uppercase tracking-widest flex items-center gap-1.5">{plant.carpet_potential ? <CheckCircle2 className="h-5 w-5 text-green-400" /> : <X className="h-5 w-5 text-slate-500" />}{plant.carpet_potential ? "Bisa" : "Tidak"}</span>
+                      <span className="text-lg font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5 transition-colors">{plant.carpet_potential ? <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" /> : <X className="h-5 w-5 text-slate-500" />}{plant.carpet_potential ? "Bisa" : "Tidak"}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* SIFAT, STYLE, TANK */}
-                <div className="grid sm:grid-cols-3 gap-4 border-t border-slate-800 pt-6 mt-6">
+                {/* SIFAT, STYLE, TANK (Tersusun rapi dalam 3 Grid sesuai request) */}
+                <div className="grid sm:grid-cols-3 gap-4 border-t border-slate-200 dark:border-slate-800 pt-6 mt-6 transition-colors">
                   
-                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
+                  <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors">
                     <div className="flex items-center gap-2 mb-3">
-                      <Activity className="h-4 w-4 text-teal-500"/>
-                      <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">Sifat Rambat</p>
+                      <Activity className="h-4 w-4 text-teal-600 dark:text-teal-500"/>
+                      <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Sifat Rambat</p>
                     </div>
-                    <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 flex flex-col flex-1 justify-center items-center shadow-inner text-center">
-                      <span className="text-base font-black text-slate-100 uppercase tracking-wider mb-1.5">{plant.growth_control || "N/A"}</span>
-                      <span className="text-[12px] text-slate-400 leading-snug">{getIndoLevelDetail(plant.growth_control, "growth")}</span>
+                    <div className="bg-white dark:bg-slate-950 p-4 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col flex-1 justify-center items-center shadow-inner text-center transition-colors">
+                      <span className="text-base font-black text-gray-900 dark:text-slate-100 uppercase tracking-wider mb-1.5">{plant.growth_control || "N/A"}</span>
+                      <span className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug">{getIndoLevelDetail(plant.growth_control, "growth")}</span>
                     </div>
                   </div>
 
-                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
+                  <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors">
                     <div className="flex items-center gap-2 mb-3">
-                      <Target className="h-4 w-4 text-blue-500"/>
-                      <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">Gaya Aquascape</p>
+                      <Target className="h-4 w-4 text-blue-600 dark:text-blue-500"/>
+                      <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Gaya Aquascape</p>
                     </div>
                     <div className="flex flex-col gap-2 flex-1 justify-center">
                       {plant.aquascape_style && plant.aquascape_style.length > 0 ? (
                         plant.aquascape_style.map(style => (
-                          <div key={style} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner items-center justify-center h-full text-center">
-                            <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider mb-1">{style}</span>
-                            <span className="text-[12px] text-slate-400 leading-snug">{getStyleDesc(style)}</span>
+                          <div key={style} className="bg-white dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col shadow-inner items-center justify-center h-full text-center transition-colors">
+                            <span className="text-[15px] font-black text-gray-900 dark:text-slate-200 uppercase tracking-wider mb-1">{style}</span>
+                            <span className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug">{getStyleDesc(style)}</span>
                           </div>
                         ))
                       ) : (
-                        <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner items-center justify-center h-full text-center">
+                        <div className="bg-white dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col shadow-inner items-center justify-center h-full text-center transition-colors">
                           <span className="text-sm text-slate-500 italic">Cocok untuk gaya apapun.</span>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex flex-col">
+                  <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col transition-colors">
                     <div className="flex items-center gap-2 mb-3">
-                      <Box className="h-4 w-4 text-orange-500"/>
-                      <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">Ukuran Aquarium</p>
+                      <Box className="h-4 w-4 text-orange-600 dark:text-orange-500"/>
+                      <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Ukuran Aquarium</p>
                     </div>
                     <div className="flex flex-col gap-2 flex-1 justify-center">
                       {plant.tank_size_recommendation && plant.tank_size_recommendation.length > 0 ? (
                         plant.tank_size_recommendation.map(size => {
                           const details = getTankSizeDetails(size);
                           return (
-                            <div key={size} className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner items-center justify-center h-full text-center">
-                              <span className="text-[15px] font-black text-slate-200 uppercase tracking-wider mb-1.5">{size}</span>
-                              <div className="flex flex-col items-center gap-0.5 mt-1">
-                                <span className="text-[12px] text-slate-400 font-medium">📏 {details.size_cm}</span>
-                                <span className="text-[12px] text-cyan-400 font-medium">💧 {details.liter}</span>
+                            <div key={size} className="bg-white dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col shadow-inner items-center justify-center h-full text-center transition-colors">
+                              <span className="text-[15px] font-black text-gray-900 dark:text-slate-200 uppercase tracking-wider mb-1.5">{size}</span>
+                              <div className="flex flex-col items-center gap-0.5 mt-1 transition-colors">
+                                <span className="text-[12px] text-slate-600 dark:text-slate-400 font-medium">📏 {details.size_cm}</span>
+                                <span className="text-[12px] text-cyan-700 dark:text-cyan-400 font-medium">💧 {details.liter}</span>
                               </div>
                             </div>
                           );
                         })
                       ) : (
-                        <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col shadow-inner items-center justify-center h-full text-center">
+                        <div className="bg-white dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col shadow-inner items-center justify-center h-full text-center transition-colors">
                           <span className="text-sm text-slate-500 italic">Bebas semua ukuran.</span>
                         </div>
                       )}
@@ -841,10 +579,10 @@ export default function PlantDetailPage() {
                 </div>
 
                 {plant.expert_notes && (
-                  <div className="mt-4 bg-teal-950/20 border border-teal-900/50 p-6 rounded-xl shadow-inner relative overflow-hidden">
+                  <div className="mt-4 bg-teal-50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-900/50 p-6 rounded-xl shadow-inner relative overflow-hidden transition-colors">
                     <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-teal-500"></div>
-                    <p className="text-[15px] text-teal-100/90 leading-relaxed font-medium">
-                      <span className="font-bold mr-2 text-teal-400 uppercase tracking-widest text-xs block mb-2">💡 Catatan Pakar</span> 
+                    <p className="text-[15px] text-teal-900 dark:text-teal-100/90 leading-relaxed font-medium transition-colors">
+                      <span className="font-bold mr-2 text-teal-700 dark:text-teal-400 uppercase tracking-widest text-xs block mb-2 transition-colors">💡 Catatan Pakar</span> 
                       {plant.expert_notes}
                     </p>
                   </div>
@@ -852,27 +590,26 @@ export default function PlantDetailPage() {
               </CardContent>
             </Card>
 
-            {/* ENSIKLOPEDIA & BIOLOGI */}
-            <Card className="border-slate-800 bg-slate-900/60 shadow-xl h-fit">
+            {/* CARD 2: ENSIKLOPEDIA & BIOLOGI */}
+            <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl h-fit transition-colors">
               <CardContent className="p-8 space-y-10">
                 
                 <div>
-                  <h3 className="text-xl font-bold text-slate-100 mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
-                    <Info className="h-5 w-5 text-teal-500" /> Ensiklopedia Karakteristik
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-4 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 transition-colors">
+                    <Info className="h-5 w-5 text-teal-600 dark:text-teal-500" /> Ensiklopedia Karakteristik
                   </h3>
-                  <p className="text-slate-300 text-[15px] leading-relaxed text-justify bg-slate-950/50 p-5 rounded-xl border border-slate-800/50 whitespace-pre-line">
+                  <p className="text-slate-700 dark:text-slate-300 text-[15px] leading-relaxed text-justify bg-slate-50 dark:bg-slate-950/50 p-5 rounded-xl border border-slate-200 dark:border-slate-800/50 whitespace-pre-line transition-colors">
                     {plant.description || "Belum ada deskripsi untuk tanaman ini."}
                   </p>
 
-                  {/* BADGE EMERSED CAPABLE BAWAH DESKRIPSI (opsional, karena di atas sudah ada) */}
                   {plant.emersed_capable && (
-                    <div className="mt-4 flex items-center gap-3 p-3 rounded-lg bg-emerald-950/20 border border-emerald-900/40 text-emerald-300">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-900/50 text-emerald-400 font-bold text-xs shrink-0">
+                    <div className="mt-4 flex items-center gap-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300 transition-colors">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-200 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 font-bold text-xs shrink-0 transition-colors">
                         🌱
                       </div>
                       <div className="flex flex-col">
                         <span className="text-sm font-semibold">Emersed Capable (Dua Alam)</span>
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-emerald-700/80 dark:text-slate-400 transition-colors">
                           Tanaman ini dapat tumbuh subur di luar air asalkan kelembabannya terjaga. Sangat cocok untuk Paludarium, Terrarium, Riparium, atau Wabi-Kusa.
                         </span>
                       </div>
@@ -880,70 +617,69 @@ export default function PlantDetailPage() {
                   )}
                 </div>
 
-                {/* PARAMETER AIR */}
+                {/* PARAMETER AIR (Kini kembali jelas berkat adanya wrapper background putih dari Card) */}
                 <div>
-                  <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Kebutuhan Lingkungan Optimal</h3>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-4 border-b border-slate-200 dark:border-slate-800 pb-3 transition-colors">Kebutuhan Lingkungan Optimal</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     
-                    <div className="flex flex-col bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm text-center">
+                    <div className="flex flex-col bg-slate-50 dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm text-center transition-colors">
                       <div className="flex items-center justify-center gap-2 mb-3">
-                        <Sun className="h-4 w-4 text-yellow-500" />
-                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Cahaya</span>
+                        <Sun className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cahaya</span>
                       </div>
-                      <div className="flex flex-col border-t border-slate-800 pt-3 mt-1">
-                        <span className="text-lg font-black text-slate-200 uppercase tracking-widest">{plant.light_requirement || "N/A"}</span>
-                        <span className="text-[12px] text-yellow-500/80 font-medium mt-0.5">({getIndoLevelCore(plant.light_requirement)})</span>
+                      <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors">
+                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest">{plant.light_requirement || "N/A"}</span>
+                        <span className="text-[12px] text-yellow-600 dark:text-yellow-500/80 font-medium mt-0.5">({getIndoLevelCore(plant.light_requirement)})</span>
                       </div>
-                      <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight flex items-center justify-center h-full">
+                      <div className="bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-600 dark:text-slate-400 leading-tight flex items-center justify-center h-full transition-colors">
                         💡 {getIndoLevelDetail(plant.light_requirement, "light")}
                       </div>
                     </div>
                     
-                    <div className="flex flex-col bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm text-center">
+                    <div className="flex flex-col bg-slate-50 dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm text-center transition-colors">
                       <div className="flex items-center justify-center gap-2 mb-3">
-                        <Wind className={`h-4 w-4 ${co2Status.variant === "danger" ? "text-red-400" : co2Status.variant === "warning" ? "text-amber-400" : "text-emerald-400"}`} />
-                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Injeksi CO2</span>
+                        <Wind className={`h-4 w-4 ${co2Status.variant === "danger" ? "text-red-500 dark:text-red-400" : co2Status.variant === "warning" ? "text-amber-500 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`} />
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Injeksi CO2</span>
                       </div>
-                      <div className="flex flex-col border-t border-slate-800 pt-3 mt-1">
-                        <span className={`text-sm font-black uppercase tracking-widest ${co2Status.variant === "danger" ? "text-red-400" : co2Status.variant === "warning" ? "text-amber-400" : "text-emerald-400"}`}>
+                      <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors">
+                        <span className={`text-sm font-black uppercase tracking-widest ${co2Status.variant === "danger" ? "text-red-600 dark:text-red-400" : co2Status.variant === "warning" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                           {co2Status.label}
                         </span>
-                        <span className="text-[12px] text-slate-400 font-medium mt-0.5">(Kebutuhan: {plant.co2_requirement || "Low"})</span>
+                        <span className="text-[12px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">(Kebutuhan: {plant.co2_requirement || "Low"})</span>
                       </div>
-                      
-                      <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight flex items-center justify-center h-full">
+                      <div className="bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-600 dark:text-slate-400 leading-tight flex items-center justify-center h-full transition-colors">
                          💡 {co2Status.variant === "danger" ? "Wajib pakai tabung CO2" : co2Status.variant === "warning" ? "Disarankan untuk tumbuh maksimal" : "Bisa hidup subur tanpa injeksi CO2"}
                       </div>
                     </div>
 
-                    <div className="flex flex-col bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm text-center">
+                    <div className="flex flex-col bg-slate-50 dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm text-center transition-colors">
                       <div className="flex items-center justify-center gap-2 mb-3">
-                        <Thermometer className="h-4 w-4 text-orange-500" />
-                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Suhu Air</span>
+                        <Thermometer className="h-4 w-4 text-orange-600 dark:text-orange-500" />
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Suhu Air</span>
                       </div>
-                      <div className="flex flex-col border-t border-slate-800 pt-3 mt-1">
-                        <span className="text-lg font-black text-slate-200 tracking-wider">
+                      <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors">
+                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 tracking-wider">
                           {plant.temperature_min && plant.temperature_max ? `${plant.temperature_min}–${plant.temperature_max}` : "N/A"}
                         </span>
-                        <span className="text-[12px] text-orange-400/80 font-medium mt-0.5">Celcius (°C)</span>
+                        <span className="text-[12px] text-orange-600 dark:text-orange-400/80 font-medium mt-0.5">Celcius (°C)</span>
                       </div>
-                      <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight flex items-center justify-center h-full">
+                      <div className="bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-600 dark:text-slate-400 leading-tight flex items-center justify-center h-full transition-colors">
                         Suhu ideal untuk fotosintesis.
                       </div>
                     </div>
 
-                    <div className="flex flex-col bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm text-center">
+                    <div className="flex flex-col bg-slate-50 dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm text-center transition-colors">
                       <div className="flex items-center justify-center gap-2 mb-3">
-                        <FlaskConical className="h-4 w-4 text-purple-400" />
-                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Kadar pH</span>
+                        <FlaskConical className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Kadar pH</span>
                       </div>
-                      <div className="flex flex-col border-t border-slate-800 pt-3 mt-1">
-                        <span className="text-lg font-black text-slate-200 tracking-wider">
+                      <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors">
+                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 tracking-wider">
                           {plant.ph_min && plant.ph_max ? `${plant.ph_min}–${plant.ph_max}` : "N/A"}
                         </span>
-                        <span className="text-[12px] text-purple-400/80 font-medium mt-0.5">Asam - Basa</span>
+                        <span className="text-[12px] text-purple-600 dark:text-purple-400/80 font-medium mt-0.5">Asam - Basa</span>
                       </div>
-                      <div className="bg-slate-900 rounded border border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-400 leading-tight flex items-center justify-center h-full">
+                      <div className="bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-600 dark:text-slate-400 leading-tight flex items-center justify-center h-full transition-colors">
                         Tingkat keasaman air optimal.
                       </div>
                     </div>
@@ -953,61 +689,61 @@ export default function PlantDetailPage() {
 
                 {/* BAGIAN KARAKTERISTIK FISIK */}
                 <div>
-                  <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-800 pb-3">Profil Biologi Tambahan</h3>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-4 border-b border-slate-200 dark:border-slate-800 pb-3 transition-colors">Profil Biologi Tambahan</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     
-                    <div className="bg-slate-950/50 p-5 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
+                    <div className="bg-slate-50 dark:bg-slate-950/50 p-5 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-between transition-colors">
                       <div className="flex flex-col items-center justify-center mb-3">
-                        <Droplets className="h-4 w-4 text-teal-400 mb-1"/>
-                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Pupuk</span>
+                        <Droplets className="h-4 w-4 text-teal-600 dark:text-teal-400 mb-1"/>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-500 uppercase font-bold tracking-wider">Pupuk</span>
                       </div>
-                      <div className="border-t border-slate-800 pt-2 flex flex-col">
-                        <span className="text-base font-black text-slate-200 uppercase tracking-widest">{plant.fertilizer_requirement || "Unknown"}</span>
-                        <span className="text-[11px] text-slate-400 mt-1">{getIndoLevelDetail(plant.fertilizer_requirement, "fert")}</span>
+                      <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col transition-colors">
+                        <span className="text-base font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest">{plant.fertilizer_requirement || "Unknown"}</span>
+                        <span className="text-[11px] text-slate-600 dark:text-slate-400 mt-1">{getIndoLevelDetail(plant.fertilizer_requirement, "fert")}</span>
                       </div>
                     </div>
                     
-                    <div className="bg-slate-950/50 p-5 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
+                    <div className="bg-slate-50 dark:bg-slate-950/50 p-5 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-between transition-colors">
                       <div className="flex flex-col items-center justify-center mb-3">
-                        <Leaf className="h-4 w-4 text-green-400 mb-1"/>
-                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Kecepatan Tumbuh</span>
+                        <Leaf className="h-4 w-4 text-green-600 dark:text-green-400 mb-1"/>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-500 uppercase font-bold tracking-wider">Kecepatan Tumbuh</span>
                       </div>
-                      <div className="border-t border-slate-800 pt-2 flex flex-col">
-                        <span className="text-base font-black text-slate-200 uppercase tracking-widest">{plant.growth_rate || "Unknown"}</span>
-                        <span className="text-[11px] text-slate-400 mt-1">{getIndoLevelDetail(plant.growth_rate, "growth")}</span>
+                      <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col transition-colors">
+                        <span className="text-base font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest">{plant.growth_rate || "Unknown"}</span>
+                        <span className="text-[11px] text-slate-600 dark:text-slate-400 mt-1">{getIndoLevelDetail(plant.growth_rate, "growth")}</span>
                       </div>
                     </div>
                     
-                    <div className="bg-slate-950/50 p-5 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
+                    <div className="bg-slate-50 dark:bg-slate-950/50 p-5 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-between transition-colors">
                       <div className="flex flex-col items-center justify-center mb-3">
-                        <Ruler className="h-4 w-4 text-blue-400 mb-1"/>
-                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Tinggi Max</span>
+                        <Ruler className="h-4 w-4 text-blue-600 dark:text-blue-400 mb-1"/>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-500 uppercase font-bold tracking-wider">Tinggi Max</span>
                       </div>
-                      <div className="border-t border-slate-800 pt-2 flex flex-col items-center justify-center h-full">
-                        <span className="text-lg font-black text-slate-200 block mt-1">{plant.max_height_cm ? `${plant.max_height_cm} cm` : "N/A"}</span>
+                      <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col items-center justify-center h-full transition-colors">
+                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 block mt-1">{plant.max_height_cm ? `${plant.max_height_cm} cm` : "N/A"}</span>
                       </div>
                     </div>
                     
-                    <div className="bg-slate-950/50 p-5 rounded-xl border border-slate-800 text-center flex flex-col justify-between">
+                    <div className="bg-slate-50 dark:bg-slate-950/50 p-5 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-between transition-colors">
                       <div className="flex flex-col items-center justify-center mb-3">
-                        <MapPin className="h-4 w-4 text-orange-400 mb-1"/>
-                        <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Habitat Asli</span>
+                        <MapPin className="h-4 w-4 text-orange-600 dark:text-orange-400 mb-1"/>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-500 uppercase font-bold tracking-wider">Habitat Asli</span>
                       </div>
-                      <div className="border-t border-slate-800 pt-2 flex flex-col items-center justify-center h-full">
-                        <span className="text-[14px] font-bold text-slate-200 block mt-1 leading-snug">{plant.origin_country || "Unknown"}</span>
+                      <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col items-center justify-center h-full transition-colors">
+                        <span className="text-[14px] font-bold text-gray-900 dark:text-slate-200 block mt-1 leading-snug">{plant.origin_country || "Unknown"}</span>
                       </div>
                     </div>
 
                   </div>
                   
-                  <div className="mt-8 border-t border-slate-800 pt-6">
-                    <div className="bg-slate-950/50 p-5 rounded-xl border border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-6 transition-colors">
+                    <div className="bg-slate-50 dark:bg-slate-950/50 p-5 rounded-xl border border-slate-200 dark:border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-4 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="bg-slate-900 p-2 rounded-md border border-slate-700">
-                          <BookOpen className="h-5 w-5 text-slate-400" />
+                        <div className="bg-white dark:bg-slate-900 p-2 rounded-md border border-slate-200 dark:border-slate-700 transition-colors">
+                          <BookOpen className="h-5 w-5 text-slate-500 dark:text-slate-400" />
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-slate-200">Sumber Referensi / Literatur</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-slate-200">Sumber Referensi / Literatur</p>
                           <p className="text-xs text-slate-500 mt-0.5">Terverifikasi oleh Database AquaExpert</p>
                         </div>
                       </div>
@@ -1017,12 +753,12 @@ export default function PlantDetailPage() {
                           href={plant.source_url} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-teal-400 hover:text-teal-300 text-sm font-medium px-4 py-2.5 rounded-lg border border-slate-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                          className="w-full sm:w-auto bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 text-sm font-medium px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
                         >
                           Lihat Jurnal: {plant.source_name || "Link Eksternal"}
                         </a>
                       ) : (
-                        <span className="text-xs text-slate-500 italic bg-slate-900 px-3 py-1.5 rounded-md border border-slate-800">Internal Knowledge Base</span>
+                        <span className="text-xs text-slate-500 italic bg-white dark:bg-slate-900 px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-800 transition-colors">Internal Knowledge Base</span>
                       )}
                     </div>
                   </div>
@@ -1034,45 +770,50 @@ export default function PlantDetailPage() {
         </div>
       </div>
 
-      {/* MODAL LIGHTBOX NATIVE IMG */}
+      {/* MODAL LIGHTBOX FOTO */}
       {lightboxIndex !== null && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 overflow-hidden select-none backdrop-blur-sm" onClick={closeLightbox}>
-          <button className="absolute top-6 right-6 z-[110] flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20 text-red-500 border border-red-500/50 shadow-xl transition-all hover:bg-red-500 hover:text-white active:scale-95 cursor-pointer" onClick={(e) => { e.stopPropagation(); closeLightbox(); }}>
-            <X className="h-8 w-8" />
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm"
+          onWheel={(e) => {
+            if (e.deltaY < 0) setScale(s => Math.min(s + 0.25, 5));
+            else setScale(s => Math.max(s - 0.25, 1));
+          }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <button onClick={closeLightbox} className="absolute right-4 top-4 z-50 rounded-full bg-white/10 p-3 text-white/70 hover:bg-white/20 hover:text-white transition-colors" title="Tutup (Esc)">
+            <X className="h-6 w-6" />
           </button>
 
-          {allImages.length > 1 && (
+          {allImages.length > 1 && scale === 1 && (
             <>
-              <button className="absolute left-6 z-[110] hidden md:flex h-16 w-16 items-center justify-center rounded-full bg-slate-800/80 text-slate-200 border border-slate-700 shadow-xl transition-all hover:bg-teal-500 hover:text-white active:scale-95" onClick={(e) => { e.stopPropagation(); prevImage(); }}>
-                <ChevronLeft className="h-10 w-10 -ml-1" />
+              <button onClick={(e) => { e.stopPropagation(); prevImage(); }} className="absolute left-4 top-1/2 z-50 -translate-y-1/2 rounded-full bg-black/50 p-4 text-white/50 hover:bg-black/80 hover:text-white border border-white/10 transition-all active:scale-95 hidden sm:block" title="Sebelumnya (Kiri)">
+                <ChevronLeft className="h-8 w-8" />
               </button>
-              <button className="absolute right-6 z-[110] hidden md:flex h-16 w-16 items-center justify-center rounded-full bg-slate-800/80 text-slate-200 border border-slate-700 shadow-xl transition-all hover:bg-teal-500 hover:text-white active:scale-95" onClick={(e) => { e.stopPropagation(); nextImage(); }}>
-                <ChevronRight className="h-10 w-10 ml-1" />
+              <button onClick={(e) => { e.stopPropagation(); nextImage(); }} className="absolute right-4 top-1/2 z-50 -translate-y-1/2 rounded-full bg-black/50 p-4 text-white/50 hover:bg-black/80 hover:text-white border border-white/10 transition-all active:scale-95 hidden sm:block" title="Selanjutnya (Kanan)">
+                <ChevronRight className="h-8 w-8" />
               </button>
             </>
           )}
 
           <div 
-            className="relative flex items-center justify-center w-full h-full"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onClick={(e) => { e.stopPropagation(); if (!hasDragged) { if (scale > 1) resetZoom(); else setScale(2.5); } }}
-            onWheel={(e) => {
-              e.stopPropagation();
-              const newScale = Math.max(1, Math.min(scale + (e.deltaY < 0 ? 0.15 : -0.15), 5));
-              setScale(newScale);
-              if (newScale === 1) setPosition({ x: 0, y: 0 });
+            className={`relative flex h-full w-full items-center justify-center ${scale > 1 ? 'overflow-hidden' : ''}`}
+            onClick={(e) => {
+              if (hasDragged) return;
+              if (e.target === e.currentTarget && scale === 1) closeLightbox();
             }}
             onMouseDown={(e) => {
-              e.stopPropagation(); e.preventDefault(); 
-              setIsDragging(true); setHasDragged(false);
-              setClickStartPos({ x: e.clientX, y: e.clientY });
-              setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+              if (scale > 1) {
+                e.preventDefault(); setIsDragging(true); setHasDragged(false);
+                setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+                setClickStartPos({ x: e.clientX, y: e.clientY });
+              }
             }}
             onMouseMove={(e) => {
-              if (!isDragging) return; e.stopPropagation();
-              if (Math.abs(e.clientX - clickStartPos.x) > 5 || Math.abs(e.clientY - clickStartPos.y) > 5) setHasDragged(true); 
+              if (!isDragging) return;
+              const moveDist = Math.hypot(e.clientX - clickStartPos.x, e.clientY - clickStartPos.y);
+              if (moveDist > 5) setHasDragged(true); 
               setPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
             }}
             onMouseUp={(e) => { e.stopPropagation(); setIsDragging(false); }}
@@ -1086,8 +827,8 @@ export default function PlantDetailPage() {
               </div>
             )}
             {scale === 1 && (
-              <p className="absolute bottom-10 text-white/80 text-sm font-medium tracking-wide animate-in fade-in duration-300 bg-black/60 px-6 py-2 rounded-full pointer-events-none border border-white/10 hidden md:block">
-                Sekali Klik untuk Zoom | Scroll Mouse | Klik & Geser | Panah Keyboard
+              <p className="absolute bottom-10 text-white/80 text-sm font-medium tracking-wide animate-in fade-in duration-300 bg-black/60 px-6 py-2 rounded-full pointer-events-none hidden sm:block">
+                Gunakan panah ◀ / ▶ atau geser untuk berpindah
               </p>
             )}
           </div>

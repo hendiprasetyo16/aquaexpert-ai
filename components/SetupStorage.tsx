@@ -19,7 +19,6 @@ export default function SetupStorage() {
 
     setLoadingFolder(true);
     try {
-      // PERBAIKAN: Menggunakan Headers untuk mengirim Secret Key
       const response = await fetch("/api/create-folders", {
         method: "GET",
         headers: { "x-admin-secret": ADMIN_SECRET }
@@ -115,20 +114,22 @@ export default function SetupStorage() {
 
   return (
     <div className="w-full max-w-4xl mx-auto pb-20">
-      <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl">
+      {/* Container utama diubah agar adaptif bg-white / dark:bg-slate-900 */}
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl transition-colors duration-300">
         
         {/* Ornamen Latar Belakang (Glow) */}
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-teal-900/20 blur-3xl pointer-events-none"></div>
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-teal-500/10 dark:bg-teal-900/20 blur-3xl pointer-events-none"></div>
 
         {/* Header Card */}
-        <div className="relative border-b border-slate-800 bg-slate-950/40 px-6 py-5 sm:px-8">
+        <div className="relative border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 px-6 py-5 sm:px-8 transition-colors duration-300">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10 text-teal-400 shadow-inner">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-teal-200 dark:border-teal-500/20 bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 shadow-inner">
               <Server className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-slate-100">Super Admin Control Panel</h3>
-              <p className="mt-1 text-sm text-slate-400">
+              {/* PERBAIKAN DI SINI: Menggunakan text-slate-800 untuk mode terang dan dark:text-slate-100 untuk mode gelap */}
+              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Super Admin Control Panel</h3>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Pusat eksekusi skrip massal untuk Database & Storage AquaExpert.
               </p>
             </div>
@@ -139,26 +140,26 @@ export default function SetupStorage() {
         <div className="relative px-6 py-6 sm:px-8 sm:py-8 space-y-8">
           
           {/* Box Peringatan */}
-          <div className="flex items-start gap-3 rounded-xl border border-amber-900/30 bg-amber-900/10 p-4 text-amber-200/80">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 p-4 text-amber-800 dark:text-amber-200/80 transition-colors duration-300">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-500" />
             <div className="text-sm leading-relaxed">
-              <strong className="block text-amber-400 font-semibold mb-1">Perhatian Eksekusi Server</strong>
+              <strong className="block text-amber-700 dark:text-amber-400 font-semibold mb-1">Perhatian Eksekusi Server</strong>
               Proses di bawah ini akan mengeksekusi operasi massal secara langsung ke Supabase. Harap pastikan koneksi internet Anda stabil. Fitur Backup hanya mengamankan metadata teks (JSON), bukan file gambar fisik.
             </div>
           </div>
 
           {/* Area Tombol Storage (Baris 1) */}
           <div>
-            <h4 className="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">1. Manajemen Storage</h4>
+            <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">1. Manajemen Storage</h4>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="group relative">
                 <button
                   type="button"
                   onClick={handleCreateFolders}
                   disabled={isAnyLoading}
-                  className="relative flex w-full items-center justify-center gap-3 rounded-xl border border-slate-700 bg-slate-800 px-6 py-4 font-medium text-slate-200 transition-all hover:bg-slate-700 hover:border-slate-600 disabled:opacity-50"
+                  className="relative flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-6 py-4 font-medium text-slate-700 dark:text-slate-200 transition-all hover:bg-slate-200 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 disabled:opacity-50"
                 >
-                  {loadingFolder ? <Loader2 className="h-5 w-5 animate-spin text-slate-400" /> : <FolderPlus className="h-5 w-5 text-slate-400" />}
+                  {loadingFolder ? <Loader2 className="h-5 w-5 animate-spin text-slate-500 dark:text-slate-400" /> : <FolderPlus className="h-5 w-5 text-slate-500 dark:text-slate-400" />}
                   {loadingFolder ? "Memproses..." : "Setup Folder Storage"}
                 </button>
               </div>
@@ -168,7 +169,7 @@ export default function SetupStorage() {
                   type="button"
                   onClick={handleSyncImages}
                   disabled={isAnyLoading}
-                  className="relative flex w-full items-center justify-center gap-3 rounded-xl bg-teal-600 px-6 py-4 font-medium text-white shadow-lg shadow-teal-900/20 transition-all hover:bg-teal-500 hover:shadow-teal-900/40 disabled:opacity-50"
+                  className="relative flex w-full items-center justify-center gap-3 rounded-xl bg-teal-600 px-6 py-4 font-medium text-white shadow-lg shadow-teal-600/20 dark:shadow-teal-900/20 transition-all hover:bg-teal-500 hover:shadow-teal-600/40 dark:hover:shadow-teal-900/40 disabled:opacity-50"
                 >
                   {loadingSync ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
                   {loadingSync ? "Mensinkronkan..." : "Auto-Sync Gambar"}
@@ -177,18 +178,18 @@ export default function SetupStorage() {
             </div>
           </div>
 
-          <hr className="border-slate-800" />
+          <hr className="border-slate-200 dark:border-slate-800 transition-colors duration-300" />
 
           {/* Area Tombol Backup Database (Baris 2) */}
           <div>
-            <h4 className="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">2. Disaster Recovery (Database)</h4>
+            <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">2. Disaster Recovery (Database)</h4>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="group relative">
                 <button
                   type="button"
                   onClick={handleBackup}
                   disabled={isAnyLoading}
-                  className="relative flex w-full items-center justify-center gap-3 rounded-xl border border-sky-900/50 bg-sky-950/30 px-6 py-4 font-medium text-sky-400 transition-all hover:bg-sky-900/50 hover:border-sky-700/50 disabled:opacity-50"
+                  className="relative flex w-full items-center justify-center gap-3 rounded-xl border border-sky-200 dark:border-sky-900/50 bg-sky-50 dark:bg-sky-950/30 px-6 py-4 font-medium text-sky-700 dark:text-sky-400 transition-all hover:bg-sky-100 dark:hover:bg-sky-900/50 hover:border-sky-300 dark:hover:border-sky-700/50 disabled:opacity-50"
                 >
                   {loadingBackup ? <Loader2 className="h-5 w-5 animate-spin" /> : <Database className="h-5 w-5" />}
                   Backup Database (JSON)
@@ -200,7 +201,7 @@ export default function SetupStorage() {
                   type="button"
                   onClick={handleRestore}
                   disabled={isAnyLoading}
-                  className="relative flex w-full items-center justify-center gap-3 rounded-xl border border-red-900/50 bg-red-950/30 px-6 py-4 font-medium text-red-400 transition-all hover:bg-red-900/50 hover:border-red-700/50 disabled:opacity-50"
+                  className="relative flex w-full items-center justify-center gap-3 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-6 py-4 font-medium text-red-700 dark:text-red-400 transition-all hover:bg-red-100 dark:hover:bg-red-900/50 hover:border-red-300 dark:hover:border-red-700/50 disabled:opacity-50"
                 >
                   {loadingBackup ? <Loader2 className="h-5 w-5 animate-spin" /> : <HardDriveDownload className="h-5 w-5" />}
                   Restore Database (JSON)

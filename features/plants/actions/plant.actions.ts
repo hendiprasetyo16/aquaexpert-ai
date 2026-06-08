@@ -2,10 +2,11 @@
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache"; // <-- IMPORT INI UNTUK REFRESH CACHE NEXT.JS
+import { revalidatePath } from "next/cache"; 
 import { Plant } from "../types/plant.types";
 
-async function getAuditUserId() {
+// Fungsi pembantu untuk mendapatkan data User yang sedang aktif
+async function getAuditUser() {
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,7 +15,7 @@ async function getAuditUserId() {
   );
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
-  return user.id;
+  return user;
 }
 
 const generateSlug = (text: string) => {
@@ -22,11 +23,14 @@ const generateSlug = (text: string) => {
 };
 
 // ==========================================
-// 1. CREATE PLANT
+// 1. CREATE PLANT (TAMBAH TANAMAN)
 // ==========================================
 export async function createPlantAction(plantData: Partial<Plant>) {
   try {
-    const userId = await getAuditUserId();
+    const user = await getAuditUser();
+    const userId = user.id;
+    const userName = user.email || "System";
+
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -56,6 +60,15 @@ export async function createPlantAction(plantData: Partial<Plant>) {
     const { data, error } = await supabase.from("plants").insert(payload).select().maybeSingle();
     if (error) throw new Error(error.message);
     
+    // === TAMBAHAN KODE: CATAT LOG AKTIVITAS ===
+    await supabase.from("system_activities").insert({
+      title: "Tanaman Baru Ditambahkan",
+      message: `Tanaman "${plantData.name}" berhasil ditambahkan ke database oleh admin.`,
+      category: "data_crud",
+      created_by: userName
+    });
+    // ==========================================
+
     // BERSIHKAN CACHE HALAMAN AGAR LANGSUNG UPDATE
     revalidatePath("/dashboard/plants"); 
     
@@ -66,11 +79,14 @@ export async function createPlantAction(plantData: Partial<Plant>) {
 }
 
 // ==========================================
-// 2. UPDATE PLANT
+// 2. UPDATE PLANT (EDIT TANAMAN)
 // ==========================================
 export async function updatePlantAction(id: string, plantData: Partial<Plant>) {
   try {
-    const userId = await getAuditUserId();
+    const user = await getAuditUser();
+    const userId = user.id;
+    const userName = user.email || "System";
+
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -99,6 +115,15 @@ export async function updatePlantAction(id: string, plantData: Partial<Plant>) {
     const { data, error } = await supabase.from("plants").update(payload).eq("id", id).select().maybeSingle();
     if (error) throw new Error(error.message);
 
+    // === TAMBAHAN KODE: CATAT LOG AKTIVITAS ===
+    await supabase.from("system_activities").insert({
+      title: "Tanaman Diperbarui",
+      message: `Data tanaman "${plantData.name || data?.name || 'Tanaman'}" berhasil diperbarui.`,
+      category: "data_crud",
+      created_by: userName
+    });
+    // ==========================================
+
     // BERSIHKAN CACHE HALAMAN AGAR LANGSUNG UPDATE
     revalidatePath("/dashboard/plants");
     revalidatePath(`/dashboard/plants/${id}`); 
@@ -110,11 +135,14 @@ export async function updatePlantAction(id: string, plantData: Partial<Plant>) {
 }
 
 // ==========================================
-// 3. HARD DELETE (Storage Cleanup Included)
+// 3. HARD DELETE (HAPUS PERMANEN)
 // ==========================================
 export async function hardDeletePlantAction(id: string) {
   try {
-    const userId = await getAuditUserId();
+    const user = await getAuditUser();
+    const userId = user.id;
+    const userName = user.email || "System";
+
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -127,16 +155,15 @@ export async function hardDeletePlantAction(id: string) {
       throw new Error("Hanya Super Admin yang boleh menghapus permanen.");
     }
 
-    // 1. CARI TANAMAN UNTUK MENDAPATKAN IMAGE_URL DAN GALLERY_URLS
+    // 1. CARI TANAMAN UNTUK MENDAPATKAN NAMA, IMAGE_URL DAN GALLERY_URLS
     const { data: plant, error: fetchError } = await supabase
       .from("plants")
-      .select("image_url, gallery_urls") // <-- SEKARANG KITA AMBIL DUA-DUANYA
+      .select("name, image_url, gallery_urls") // <-- Ditambahkan 'name' agar bisa dicatat di log
       .eq("id", id)
       .single();
 
     if (fetchError) throw new Error("Data tanaman tidak ditemukan.");
 
-    // Penampung untuk semua path file yang akan dihapus dari storage
     const filesToDelete: string[] = [];
 
     // 2. AMBIL PATH DARI IMAGE_URL (COVER)
@@ -166,6 +193,15 @@ export async function hardDeletePlantAction(id: string) {
     const { error } = await supabase.from("plants").delete().eq("id", id);
     if (error) throw error;
 
+    // === TAMBAHAN KODE: CATAT LOG AKTIVITAS ===
+    await supabase.from("system_activities").insert({
+      title: "Tanaman Dihapus Permanen",
+      message: `Tanaman "${plant?.name || 'Tanaman'}" berhasil dihapus permanen dari sistem beserta file gambarnya.`,
+      category: "data_crud",
+      created_by: userName
+    });
+    // ==========================================
+
     // BERSIHKAN CACHE HALAMAN AGAR LANGSUNG UPDATE
     revalidatePath("/dashboard/plants");
     revalidatePath("/dashboard/plants/archive");
@@ -177,11 +213,14 @@ export async function hardDeletePlantAction(id: string) {
 }
 
 // ==========================================
-// 4. RESTORE PLANT
+// 4. RESTORE PLANT (PULIHKAN TANAMAN)
 // ==========================================
 export async function restorePlantAction(id: string) {
   try {
-    const userId = await getAuditUserId();
+    const user = await getAuditUser();
+    const userId = user.id;
+    const userName = user.email || "System";
+
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -205,6 +244,15 @@ export async function restorePlantAction(id: string) {
 
     const { error } = await supabase.from("plants").update({ is_active: true, updated_by: userId }).eq("id", id);
     if (error) throw new Error(error.message);
+
+    // === TAMBAHAN KODE: CATAT LOG AKTIVITAS ===
+    await supabase.from("system_activities").insert({
+      title: "Tanaman Dipulihkan",
+      message: `Tanaman "${archivedPlant.name}" berhasil dipulihkan dari arsip kembali ke database aktif.`,
+      category: "data_crud",
+      created_by: userName
+    });
+    // ==========================================
 
     // BERSIHKAN CACHE HALAMAN AGAR LANGSUNG UPDATE
     revalidatePath("/dashboard/plants");

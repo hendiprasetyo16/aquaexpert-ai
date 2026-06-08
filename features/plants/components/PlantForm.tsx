@@ -37,15 +37,15 @@ const RECOMMENDATIONS = [
 const getTankSizeLabel = (size: string) => {
   switch (size) {
     case "Nano":
-      return "≤ 40 cm • 10–30 Liter";
+      return "≤ 40 cm • 10–30 L";
     case "Small":
-      return "45–60 cm • 30–60 Liter";
+      return "45–60 cm • 30–60 L";
     case "Medium":
-      return "60–90 cm • 60–150 Liter";
+      return "60–90 cm • 60–150 L";
     case "Large":
-      return "90–120 cm • 150–300 Liter";
+      return "90–120 cm • 150–300 L";
     case "Extra Large":
-      return "> 120 cm • > 300 Liter";
+      return "> 120 cm • > 300 L";
     default:
       return "";
   }
@@ -80,7 +80,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     plant_type: "Stem", beginner_score: "", maintenance_level: "Medium",
     carpet_potential: false, shrimp_safe: true, growth_control: "Moderate",
     co2_mandatory: false,
-    emersed_capable: false, // <-- FIELD BARU (Sudah Masuk)
+    emersed_capable: false, 
     aquascape_style: [] as string[], 
     tank_size_recommendation: [] as string[], 
     expert_notes: ""
@@ -88,8 +88,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
   useEffect(() => {
     if (mode === "edit" && plant) {
-      
-      // AUTO-REPAIR SAAT LOAD: Jika ada data "Pemula" yang nyangkut, paksa ke "Beginner" di UI
       const repairedRecommendations = (plant.recommended_for || []).map(r => 
         r === "Pemula" ? "Beginner" : r
       );
@@ -114,7 +112,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         shrimp_safe: plant.shrimp_safe !== false, 
         growth_control: plant.growth_control || "Moderate",
         co2_mandatory: plant.co2_mandatory || false,
-        emersed_capable: plant.emersed_capable || false, // <-- State dari Database terisi
+        emersed_capable: plant.emersed_capable || false, 
         tank_size_recommendation: plant.tank_size_recommendation || [], 
         expert_notes: plant.expert_notes || ""
       });
@@ -133,9 +131,8 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     } else if (type === "number") {
       finalValue = value === "" ? "" : Number(value);
       
-      // VALIDASI CERDAS: Kunci Beginner Score antara 0 sampai 10
       if (name === "beginner_score" && finalValue !== "") {
-        finalValue = Math.min(10, Math.max(0, finalValue));
+        finalValue = Math.min(10, Math.max(1, finalValue));
       }
     }
 
@@ -145,7 +142,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     }));
   }
 
-  // KHUSUS UNTUK CHECKBOX ARRAY
   function handleArrayCheckboxChange(e: React.ChangeEvent<HTMLInputElement>, field: "aquascape_style" | "tank_size_recommendation" | "recommended_for") {
     const { value, checked } = e.target;
     setFormData(prev => {
@@ -158,7 +154,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     });
   }
 
-  // --- LOGIKA COVER ---
   function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -175,17 +170,12 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       setCoverFile(file);
       setCoverPreview(URL.createObjectURL(file));
 
-      if (
-        mode === "edit" &&
-        plant?.image_url &&
-        !imagesToDeleteRef.current.includes(plant.image_url)
-      ) {
+      if (mode === "edit" && plant?.image_url && !imagesToDeleteRef.current.includes(plant.image_url)) {
         imagesToDeleteRef.current.push(plant.image_url);
       }
     }
   }
 
-  // --- LOGIKA GALLERY BARU (DITINGKATKAN MENJADI MAKS 8) ---
   function handleGalleryChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
@@ -212,11 +202,9 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
   function removeExistingGallery(index: number) {
     const urlToRemove = existingGallery[index];
-    
     if (!imagesToDeleteRef.current.includes(urlToRemove)) {
       imagesToDeleteRef.current.push(urlToRemove);
     }
-
     setExistingGallery(prev => prev.filter((_, i) => i !== index));
   }
 
@@ -237,7 +225,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       const supabase = createClient();
       const cleanName = formData.name.trim();
 
-      // VALIDASI NAMA UNIK
       let query = supabase.from("plants").select("id").ilike("name", cleanName).eq("is_active", true);
       if (mode === "edit" && plant) query = query.neq("id", plant.id);
 
@@ -252,25 +239,15 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       let finalCoverUrl = mode === "edit" ? (plant?.image_url || "") : "";
       let finalGalleryUrls = [...existingGallery];
 
-      const plantSlug =
-        mode === "edit"
-          ? plant?.slug ||
-            cleanName
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, "-")
-              .replace(/(^-|-$)/g, "")
-          : cleanName
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, "-")
-              .replace(/(^-|-$)/g, "");
+      const plantSlug = mode === "edit"
+          ? plant?.slug || cleanName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+          : cleanName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
-      // 1. UPLOAD COVER BARU
       if (coverFile) {
         finalCoverUrl = await uploadPlantImage(coverFile, plantSlug, `cover`);
         uploadedImagesToRollback.push(finalCoverUrl);
       }
 
-      // 2. UPLOAD GALLERY BARU
       for (let i = 0; i < newGallery.length; i++) {
          const gUrl = await uploadPlantImage(newGallery[i].file, plantSlug, `gallery`);
          finalGalleryUrls.push(gUrl);
@@ -306,12 +283,11 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         shrimp_safe: formData.shrimp_safe,
         growth_control: formData.growth_control,
         co2_mandatory: formData.co2_mandatory,
-        emersed_capable: formData.emersed_capable, // <-- Data Tersimpan dengan Benar
+        emersed_capable: formData.emersed_capable, 
         tank_size_recommendation: formData.tank_size_recommendation.length > 0 ? formData.tank_size_recommendation : null,
         expert_notes: formData.expert_notes
       };
 
-      // 3. SIMPAN KE DATABASE
       if (mode === "create") {
         const result = await createPlantAction(payload);
         if (!result.success) throw new Error(result.error);
@@ -322,7 +298,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         toast.success("Data tanaman berhasil diperbarui!");
       }
 
-      // 4. CLEANUP STORAGE
       for (const urlToDelete of imagesToDeleteRef.current) {
         try {
           await removePlantImage(urlToDelete);
@@ -332,7 +307,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       }
       
       imagesToDeleteRef.current = [];
-
       router.push("/dashboard/plants");
       router.refresh();
 
@@ -394,23 +368,23 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   const totalGalleryCount = existingGallery.length + newGallery.length;
 
   return (
-    <Card className="border-slate-800 bg-slate-900/60 shadow-xl max-w-4xl mx-auto mb-20">
+    <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl max-w-4xl mx-auto mb-20 transition-colors duration-300">
       <CardContent className="p-4 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-8">
           
-          {/* BAGIAN 1: UPLOAD GAMBAR FINAL */}
-          <div className="space-y-4 bg-slate-950/50 p-4 sm:p-6 rounded-xl border border-slate-800">
-            <h3 className="text-lg font-bold text-slate-200 border-b border-slate-800 pb-2 flex items-center gap-2">
-              <Images className="h-5 w-5 text-teal-500" /> Visual Tanaman
+          {/* BAGIAN 1: VISUAL TANAMAN */}
+          <div className="space-y-4 bg-slate-50 dark:bg-slate-950/50 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-2 transition-colors">
+              <Images className="h-5 w-5 text-teal-600 dark:text-teal-500" /> Visual Tanaman
             </h3>
             
             <div className="grid gap-6 md:grid-cols-2">
               {/* UPLOAD COVER */}
               <div className="space-y-2">
-                <Label className="text-slate-300 font-semibold text-sm">Cover Utama (1 Gambar)</Label>
+                <Label className="text-slate-700 dark:text-slate-300 font-semibold text-sm">Cover Utama (1 Gambar)</Label>
                 <input id="cover-image" type="file" accept="image/*" onChange={handleCoverChange} className="hidden" />
                 <label htmlFor="cover-image" className="cursor-pointer block">
-                  <div className="overflow-hidden rounded-lg border-2 border-dashed border-slate-700 hover:border-teal-500 transition-all group">
+                  <div className="overflow-hidden rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-500 transition-all group bg-white dark:bg-slate-900">
                     {coverPreview ? (
                       <div className="relative h-48 w-full">
                         <Image src={coverPreview} alt="Cover Preview" fill className="object-cover" unoptimized />
@@ -419,7 +393,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex h-48 flex-col items-center justify-center bg-slate-900/50 text-slate-500 group-hover:text-teal-400 transition-colors">
+                      <div className="flex h-48 flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50 text-slate-500 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
                         <ImagePlus className="h-10 w-10 mb-2" />
                         <span className="text-sm font-medium">Klik untuk upload Cover</span>
                       </div>
@@ -431,7 +405,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               {/* UPLOAD GALERI */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label className="text-slate-300 font-semibold text-sm">Galeri Tambahan (Maks 8)</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 font-semibold text-sm">Galeri Tambahan (Maks 8)</Label>
                   <span className="text-xs text-slate-500">{totalGalleryCount}/8</span>
                 </div>
                 
@@ -439,7 +413,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                   <>
                     <input id="gallery-image" type="file" accept="image/*" multiple onChange={handleGalleryChange} className="hidden" />
                     <label htmlFor="gallery-image" className="cursor-pointer block mb-3">
-                      <div className="rounded-lg border border-slate-700 bg-slate-900/50 py-3 text-center text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-teal-400 transition-colors">
+                      <div className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/50 py-3 text-center text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
                         + Tambah Gambar Galeri
                       </div>
                     </label>
@@ -450,9 +424,9 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                     {/* Render Existing */}
                     {existingGallery.map((url, index) => (
-                      <div key={`exist-${index}`} className="relative aspect-square rounded-md overflow-hidden border border-slate-700 group">
+                      <div key={`exist-${index}`} className="relative aspect-square rounded-md overflow-hidden border border-slate-300 dark:border-slate-700 group bg-white dark:bg-slate-900">
                         <Image src={url} alt={`Gallery DB ${index+1}`} fill className="object-cover opacity-80" unoptimized />
-                        <div className="absolute bottom-0 inset-x-0 bg-black/60 text-[9px] text-center text-slate-300 py-0.5 z-10">Tersimpan</div>
+                        <div className="absolute bottom-0 inset-x-0 bg-black/60 text-[9px] text-center text-slate-200 py-0.5 z-10">Tersimpan</div>
                         <button type="button" onClick={() => removeExistingGallery(index)} className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                           <X className="h-3 w-3" />
                         </button>
@@ -460,7 +434,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                     ))}
                     {/* Render New */}
                     {newGallery.map((item, index) => (
-                      <div key={`new-${index}`} className="relative aspect-square rounded-md overflow-hidden border border-teal-700 group">
+                      <div key={`new-${index}`} className="relative aspect-square rounded-md overflow-hidden border border-teal-500 dark:border-teal-700 group bg-white dark:bg-slate-900">
                         <Image src={item.preview} alt={`Gallery Baru ${index+1}`} fill className="object-cover" unoptimized />
                         <div className="absolute bottom-0 inset-x-0 bg-teal-600/80 text-[9px] text-center text-white py-0.5 font-bold z-10">Baru</div>
                         <button type="button" onClick={() => removeNewGallery(index)} className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -477,25 +451,25 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
           {/* BAGIAN 2: IDENTITAS & PARAMETER DASAR */}
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-2">
-              <Label className="text-slate-300">Nama Tanaman <span className="text-red-500">*</span></Label>
-              <Input name="name" required value={formData.name} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 focus:border-teal-500" />
+              <Label className="text-slate-700 dark:text-slate-300">Nama Tanaman <span className="text-red-500">*</span></Label>
+              <Input name="name" required value={formData.name} onChange={handleChange} className="bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-teal-500 transition-colors" />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-300">Nama Ilmiah (Latin)</Label>
-              <Input name="scientific_name" value={formData.scientific_name} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 focus:border-teal-500 italic" />
+              <Label className="text-slate-700 dark:text-slate-300">Nama Ilmiah (Latin)</Label>
+              <Input name="scientific_name" value={formData.scientific_name} onChange={handleChange} className="bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-teal-500 italic transition-colors" />
             </div>
             
             <div className="space-y-2">
-              <Label className="text-slate-300">Tingkat Kesulitan</Label>
-              <select name="difficulty" value={formData.difficulty} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
+              <Label className="text-slate-700 dark:text-slate-300">Tingkat Kesulitan</Label>
+              <select name="difficulty" value={formData.difficulty} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 text-slate-900 dark:text-slate-100 focus:border-teal-500 outline-none transition-colors">
                 <option value="Easy">Easy (Mudah)</option>
                 <option value="Medium">Medium (Sedang)</option>
                 <option value="Hard">Hard (Sulit)</option>
               </select>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-300">Posisi Penanaman</Label>
-              <select name="placement" value={formData.placement} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
+              <Label className="text-slate-700 dark:text-slate-300">Posisi Penanaman</Label>
+              <select name="placement" value={formData.placement} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 text-slate-900 dark:text-slate-100 focus:border-teal-500 outline-none transition-colors">
                 <option value="Foreground">Foreground</option>
                 <option value="Midground">Midground</option>
                 <option value="Background">Background</option>
@@ -505,8 +479,8 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-slate-300">Tingkat Perawatan (Maintenance)</Label>
-              <select name="maintenance_level" value={formData.maintenance_level} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
+              <Label className="text-slate-700 dark:text-slate-300">Tingkat Perawatan (Maintenance)</Label>
+              <select name="maintenance_level" value={formData.maintenance_level} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 text-slate-900 dark:text-slate-100 focus:border-teal-500 outline-none transition-colors">
                 <option value="Low">Low (Jarang Trimming/Perawatan)</option>
                 <option value="Medium">Medium (Perawatan Rutin)</option>
                 <option value="High">High (Sering Trimming/Replant)</option>
@@ -514,32 +488,32 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
             </div>
           </div>
 
-          {/* BAGIAN 3: PARAMETER AIR (WATER PARAMETERS) */}
-          <div className="bg-slate-950/30 p-4 sm:p-6 rounded-xl border border-slate-800 space-y-6">
-            <h3 className="text-lg font-bold text-slate-300 mb-2">Parameter Air & Perawatan</h3>
+          {/* BAGIAN 3: PARAMETER AIR */}
+          <div className="bg-slate-50 dark:bg-slate-950/30 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 space-y-6 transition-colors">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-slate-300 mb-2">Parameter Air & Perawatan</h3>
             
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
-                <Label className="text-slate-400 text-xs uppercase">Cahaya</Label>
-                <select name="light_requirement" value={formData.light_requirement} onChange={handleChange} className="h-9 w-full rounded border border-slate-700 bg-slate-950 px-2 text-sm text-slate-100 outline-none">
+                <Label className="text-slate-500 dark:text-slate-400 text-xs uppercase font-semibold">Cahaya</Label>
+                <select name="light_requirement" value={formData.light_requirement} onChange={handleChange} className="h-9 w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 text-sm text-slate-900 dark:text-slate-100 outline-none transition-colors">
                   <option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-400 text-xs uppercase">Level Injeksi CO2</Label>
-                <select name="co2_requirement" value={formData.co2_requirement} onChange={handleChange} className="h-9 w-full rounded border border-slate-700 bg-slate-950 px-2 text-sm text-slate-100 outline-none">
+                <Label className="text-slate-500 dark:text-slate-400 text-xs uppercase font-semibold">Level Injeksi CO2</Label>
+                <select name="co2_requirement" value={formData.co2_requirement} onChange={handleChange} className="h-9 w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 text-sm text-slate-900 dark:text-slate-100 outline-none transition-colors">
                   <option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-400 text-xs uppercase">Kebutuhan Nutrisi</Label>
-                <select name="fertilizer_requirement" value={formData.fertilizer_requirement} onChange={handleChange} className="h-9 w-full rounded border border-slate-700 bg-slate-950 px-2 text-sm text-slate-100 outline-none">
+                <Label className="text-slate-500 dark:text-slate-400 text-xs uppercase font-semibold">Kebutuhan Nutrisi</Label>
+                <select name="fertilizer_requirement" value={formData.fertilizer_requirement} onChange={handleChange} className="h-9 w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 text-sm text-slate-900 dark:text-slate-100 outline-none transition-colors">
                   <option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-400 text-xs uppercase">Laju Pertumbuhan</Label>
-                <select name="growth_rate" value={formData.growth_rate} onChange={handleChange} className="h-9 w-full rounded border border-slate-700 bg-slate-950 px-2 text-sm text-slate-100 outline-none">
+                <Label className="text-slate-500 dark:text-slate-400 text-xs uppercase font-semibold">Laju Pertumbuhan</Label>
+                <select name="growth_rate" value={formData.growth_rate} onChange={handleChange} className="h-9 w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 text-sm text-slate-900 dark:text-slate-100 outline-none transition-colors">
                   <option value="Slow">Slow</option><option value="Medium">Medium</option><option value="Fast">Fast</option>
                 </select>
               </div>
@@ -547,20 +521,20 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 pt-2">
               <div className="space-y-2">
-                <Label className="text-slate-400 text-xs uppercase">Suhu Min (°C)</Label>
-                <Input type="number" step="0.1" name="temperature_min" value={formData.temperature_min} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
+                <Label className="text-slate-500 dark:text-slate-400 text-xs uppercase font-semibold">Suhu Min (°C)</Label>
+                <Input type="number" step="0.1" name="temperature_min" value={formData.temperature_min} onChange={handleChange} className="h-9 bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:border-teal-500 transition-colors" />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-400 text-xs uppercase">Suhu Max (°C)</Label>
-                <Input type="number" step="0.1" name="temperature_max" value={formData.temperature_max} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
+                <Label className="text-slate-500 dark:text-slate-400 text-xs uppercase font-semibold">Suhu Max (°C)</Label>
+                <Input type="number" step="0.1" name="temperature_max" value={formData.temperature_max} onChange={handleChange} className="h-9 bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:border-teal-500 transition-colors" />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-400 text-xs uppercase">pH Min</Label>
-                <Input type="number" step="0.1" name="ph_min" value={formData.ph_min} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
+                <Label className="text-slate-500 dark:text-slate-400 text-xs uppercase font-semibold">pH Min</Label>
+                <Input type="number" step="0.1" name="ph_min" value={formData.ph_min} onChange={handleChange} className="h-9 bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:border-teal-500 transition-colors" />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-400 text-xs uppercase">pH Max</Label>
-                <Input type="number" step="0.1" name="ph_max" value={formData.ph_max} onChange={handleChange} className="h-9 bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
+                <Label className="text-slate-500 dark:text-slate-400 text-xs uppercase font-semibold">pH Max</Label>
+                <Input type="number" step="0.1" name="ph_max" value={formData.ph_max} onChange={handleChange} className="h-9 bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:border-teal-500 transition-colors" />
               </div>
             </div>
           </div>
@@ -568,45 +542,45 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
           {/* BAGIAN 4: DESKRIPSI & INFO TAMBAHAN */}
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label className="text-slate-300">Deskripsi Ilmiah (Ensiklopedia)</Label>
+              <Label className="text-slate-700 dark:text-slate-300">Deskripsi Ilmiah (Ensiklopedia)</Label>
               <textarea 
                 name="description" 
                 rows={4} 
                 value={formData.description} 
                 onChange={handleChange} 
-                className="w-full rounded-md border border-slate-700 bg-slate-950 p-3 text-slate-100 focus:border-teal-500 outline-none leading-relaxed resize-y" 
+                className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-3 text-slate-900 dark:text-slate-100 focus:border-teal-500 outline-none leading-relaxed resize-y transition-colors" 
                 placeholder="Tulis deskripsi detail tanaman, sejarah, atau karakter biologi..."
               />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
-                <Label className="text-slate-400 text-xs uppercase">Tinggi Max (cm)</Label>
-                <Input type="number" name="max_height_cm" value={formData.max_height_cm} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
+                <Label className="text-slate-500 dark:text-slate-400 text-xs uppercase font-semibold">Tinggi Max (cm)</Label>
+                <Input type="number" name="max_height_cm" value={formData.max_height_cm} onChange={handleChange} className="bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:border-teal-500 transition-colors" />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-400 text-xs uppercase">Asal Negara/Wilayah</Label>
-                <Input name="origin_country" placeholder="Contoh: Asia, Cultivar" value={formData.origin_country} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
+                <Label className="text-slate-500 dark:text-slate-400 text-xs uppercase font-semibold">Asal Negara/Wilayah</Label>
+                <Input name="origin_country" placeholder="Contoh: Asia, Cultivar" value={formData.origin_country} onChange={handleChange} className="bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:border-teal-500 transition-colors" />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-400 text-xs uppercase">Sumber Data (Kredit)</Label>
-                <Input name="source_name" placeholder="Contoh: Tropica" value={formData.source_name} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
+                <Label className="text-slate-500 dark:text-slate-400 text-xs uppercase font-semibold">Sumber Data (Kredit)</Label>
+                <Input name="source_name" placeholder="Contoh: Tropica" value={formData.source_name} onChange={handleChange} className="bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:border-teal-500 transition-colors" />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-400 text-xs uppercase">URL Sumber (Link)</Label>
-                <Input name="source_url" type="url" placeholder="https://tropica.com/..." value={formData.source_url} onChange={handleChange} className="bg-slate-950 border-slate-700 text-slate-100 text-sm focus:border-teal-500" />
+                <Label className="text-slate-500 dark:text-slate-400 text-xs uppercase font-semibold">URL Sumber (Link)</Label>
+                <Input name="source_url" type="url" placeholder="https://tropica.com/..." value={formData.source_url} onChange={handleChange} className="bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-sm focus:border-teal-500 transition-colors" />
               </div>
             </div>
           </div>
 
           {/* BAGIAN 5: PARAMETER SISTEM PAKAR (EXPERT ENGINE V2) */}
-          <div className="bg-teal-950/20 p-4 sm:p-6 rounded-xl border border-teal-900/50 space-y-6">
-            <h3 className="text-lg font-bold text-teal-400 mb-2">Konfigurasi Expert Engine (V2)</h3>
+          <div className="bg-teal-50/50 dark:bg-teal-950/20 p-4 sm:p-6 rounded-xl border border-teal-200 dark:border-teal-900/50 space-y-6 transition-colors">
+            <h3 className="text-lg font-bold text-teal-700 dark:text-teal-400 mb-2">Konfigurasi Expert Engine (V2)</h3>
             
             <div className="grid gap-5 md:grid-cols-3">
               <div className="space-y-2">
-                <Label className="text-slate-300">Tipe Tanaman (Plant Type)</Label>
-                <select name="plant_type" value={formData.plant_type} onChange={handleChange} className="h-10 w-full rounded-md border border-teal-800/50 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
+                <Label className="text-slate-700 dark:text-slate-300">Tipe Tanaman (Plant Type)</Label>
+                <select name="plant_type" value={formData.plant_type} onChange={handleChange} className="h-10 w-full rounded-md border border-teal-300 dark:border-teal-800/50 bg-white dark:bg-slate-950 px-3 text-slate-900 dark:text-slate-100 focus:border-teal-500 outline-none transition-colors">
                   <option value="Stem">Stem (Batang)</option>
                   <option value="Rhizome">Rhizome (Rimpang)</option>
                   <option value="Runner">Runner (Menjalar)</option>
@@ -620,14 +594,20 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                 </select>
               </div>
 
+              {/* BERHASIL DIPERBAIKI: PENJELASAN AKURAT SKOR PEMULA */}
               <div className="space-y-2">
-                <Label className="text-slate-300">Beginner Score (1-10)</Label>
-                <Input type="number" name="beginner_score" min="0" max="10" placeholder="Contoh: 8" value={formData.beginner_score} onChange={handleChange} className="h-10 bg-slate-950 border-teal-800/50 text-slate-100 focus:border-teal-500" />
+                <Label className="text-slate-700 dark:text-slate-300">Beginner Score (1-10)</Label>
+                <Input type="number" name="beginner_score" min="1" max="10" placeholder="Contoh: 8" value={formData.beginner_score} onChange={handleChange} className="h-10 bg-white dark:bg-slate-950 border-teal-300 dark:border-teal-800/50 text-slate-900 dark:text-slate-100 focus:border-teal-500 transition-colors" />
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">
+                  💡 <span className="font-semibold text-red-600 dark:text-red-400">1</span> = Sangat Sulit/Pakar 
+                  <span className="mx-1">s/d</span> 
+                  <span className="font-semibold text-teal-600 dark:text-teal-400">10</span> = Sangat Mudah/Pemula
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-300">Sifat Penyebaran (Growth Control)</Label>
-                <select name="growth_control" value={formData.growth_control} onChange={handleChange} className="h-10 w-full rounded-md border border-teal-800/50 bg-slate-950 px-3 text-slate-100 focus:border-teal-500 outline-none">
+                <Label className="text-slate-700 dark:text-slate-300">Sifat Penyebaran (Growth Control)</Label>
+                <select name="growth_control" value={formData.growth_control} onChange={handleChange} className="h-10 w-full rounded-md border border-teal-300 dark:border-teal-800/50 bg-white dark:bg-slate-950 px-3 text-slate-900 dark:text-slate-100 focus:border-teal-500 outline-none transition-colors">
                   <option value="Slow">Slow (Terpusat)</option>
                   <option value="Moderate">Moderate (Wajar)</option>
                   <option value="Fast">Fast (Cepat)</option>
@@ -638,26 +618,27 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
             <div className="grid gap-6 md:grid-cols-2 pt-2">
               <div className="space-y-3">
-                <Label className="text-slate-300">Gaya Aquascape (Cocok Untuk)</Label>
-                <div className="grid grid-cols-2 gap-2 bg-slate-950 p-4 rounded-lg border border-slate-800">
+                <Label className="text-slate-700 dark:text-slate-300">Gaya Aquascape (Cocok Untuk)</Label>
+                <div className="grid grid-cols-2 gap-2 bg-white dark:bg-slate-950 p-4 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors">
                   {AQUASCAPE_STYLES.map((style) => (
                     <label key={style} className="flex items-center space-x-2 cursor-pointer">
-                      <input type="checkbox" value={style} checked={formData.aquascape_style.includes(style)} onChange={(e) => handleArrayCheckboxChange(e, "aquascape_style")} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900" />
-                      <span className="text-sm text-slate-300">{style}</span>
+                      <input type="checkbox" value={style} checked={formData.aquascape_style.includes(style)} onChange={(e) => handleArrayCheckboxChange(e, "aquascape_style")} className="h-4 w-4 accent-teal-600 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900" />
+                      <span className="text-sm text-slate-700 dark:text-slate-300">{style}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
+              {/* BERHASIL DIPERBAIKI: SEKARANG LAYOUT MENJADI GRID 2 KOLOM (TIDAK TERLALU PANJANG) */}
               <div className="space-y-3">
-                <Label className="text-slate-300">Ukuran Aquarium Ideal</Label>
-                <div className="flex flex-col gap-2 bg-slate-950 p-4 rounded-lg border border-slate-800">
+                <Label className="text-slate-700 dark:text-slate-300">Ukuran Aquarium Ideal</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white dark:bg-slate-950 p-4 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors">
                   {TANK_SIZES.map((size) => (
                     <label key={size} className="flex items-center space-x-2 cursor-pointer">
-                      <input type="checkbox" value={size} checked={formData.tank_size_recommendation.includes(size)} onChange={(e) => handleArrayCheckboxChange(e, "tank_size_recommendation")} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900" />
-                      <div className="flex flex-col">
-                         <span className="text-sm font-medium text-slate-300">{size}</span>
-                         <span className="text-[10px] text-slate-500">{getTankSizeLabel(size)}</span>
+                      <input type="checkbox" value={size} checked={formData.tank_size_recommendation.includes(size)} onChange={(e) => handleArrayCheckboxChange(e, "tank_size_recommendation")} className="h-4 w-4 accent-teal-600 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shrink-0" />
+                      <div className="flex flex-col min-w-0">
+                         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate">{size}</span>
+                         <span className="text-[10px] text-slate-500 dark:text-slate-500 tracking-tight">{getTankSizeLabel(size)}</span>
                       </div>
                     </label>
                   ))}
@@ -665,63 +646,63 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-6 mt-4 p-4 bg-slate-950/50 rounded-lg border border-teal-900/30">
+            <div className="flex flex-wrap gap-6 mt-4 p-4 bg-white dark:bg-slate-950/50 rounded-lg border border-teal-200 dark:border-teal-900/30 transition-colors">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" name="carpet_potential" checked={formData.carpet_potential} onChange={handleChange} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900" />
-                <span className="text-sm font-medium text-slate-300">Potensi Jadi Karpet</span>
+                <input type="checkbox" name="carpet_potential" checked={formData.carpet_potential} onChange={handleChange} className="h-4 w-4 accent-teal-600 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900" />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Potensi Jadi Karpet</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" name="shrimp_safe" checked={formData.shrimp_safe} onChange={handleChange} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900" />
-                <span className="text-sm font-medium text-slate-300">Aman untuk Udang</span>
+                <input type="checkbox" name="shrimp_safe" checked={formData.shrimp_safe} onChange={handleChange} className="h-4 w-4 accent-teal-600 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900" />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Aman untuk Udang</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" name="co2_mandatory" checked={formData.co2_mandatory} onChange={handleChange} className="h-4 w-4 accent-red-600 rounded border-slate-700 bg-slate-900" />
-                <span className="text-sm font-medium text-red-400">Wajib Injeksi CO2 (Mandatory)</span>
+                <input type="checkbox" name="co2_mandatory" checked={formData.co2_mandatory} onChange={handleChange} className="h-4 w-4 accent-red-600 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900" />
+                <span className="text-sm font-medium text-red-600 dark:text-red-400">Wajib Injeksi CO2 (Mandatory)</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" name="emersed_capable" checked={formData.emersed_capable} onChange={handleChange} className="h-4 w-4 accent-emerald-600 rounded border-slate-700 bg-slate-900" />
-                <span className="text-sm font-medium text-emerald-400">Bisa Tumbuh Emersed (Darat)</span>
+                <input type="checkbox" name="emersed_capable" checked={formData.emersed_capable} onChange={handleChange} className="h-4 w-4 accent-emerald-600 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900" />
+                <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Bisa Tumbuh Emersed (Darat)</span>
               </label>
             </div>
 
             <div className="space-y-3 pt-2">
-              <Label className="text-slate-300">Sistem Pakar: Label Kecocokan & Rekomendasi</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 bg-slate-950 p-4 rounded-lg border border-slate-800 max-h-60 overflow-y-auto custom-scrollbar">
+              <Label className="text-slate-700 dark:text-slate-300">Sistem Pakar: Label Kecocokan & Rekomendasi</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 bg-white dark:bg-slate-950 p-4 rounded-lg border border-slate-200 dark:border-slate-800 max-h-60 overflow-y-auto custom-scrollbar transition-colors">
                 {RECOMMENDATIONS.map((rec) => (
                   <label key={rec} className="flex items-center space-x-2 cursor-pointer">
-                    <input type="checkbox" value={rec} checked={formData.recommended_for.includes(rec)} onChange={(e) => handleArrayCheckboxChange(e, "recommended_for")} className="h-4 w-4 accent-teal-600 rounded border-slate-700 bg-slate-900 shrink-0" />
-                    <span className="text-xs text-slate-300 leading-tight">{rec}</span>
+                    <input type="checkbox" value={rec} checked={formData.recommended_for.includes(rec)} onChange={(e) => handleArrayCheckboxChange(e, "recommended_for")} className="h-4 w-4 accent-teal-600 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shrink-0" />
+                    <span className="text-xs text-slate-700 dark:text-slate-300 leading-tight">{rec}</span>
                   </label>
                 ))}
               </div>
             </div>
 
             <div className="space-y-2 pt-2">
-              <Label className="text-teal-400 flex items-center gap-2"><Brain className="h-4 w-4" /> Catatan Khusus Pakar (Opsional)</Label>
+              <Label className="text-teal-700 dark:text-teal-400 flex items-center gap-2"><Brain className="h-4 w-4" /> Catatan Khusus Pakar (Opsional)</Label>
               <textarea 
                 name="expert_notes" 
                 rows={3} 
                 value={formData.expert_notes} 
                 onChange={handleChange} 
-                className="w-full rounded-md border border-teal-900/50 bg-teal-950/20 p-3 text-teal-100 focus:border-teal-500 outline-none leading-relaxed resize-y placeholder:text-teal-900" 
+                className="w-full rounded-md border border-teal-200 dark:border-teal-900/50 bg-teal-50/50 dark:bg-teal-950/20 p-3 text-teal-900 dark:text-teal-100 focus:border-teal-500 outline-none leading-relaxed resize-y placeholder:text-teal-700/50 dark:placeholder:text-teal-900 transition-colors" 
                 placeholder="Tips rahasia menumbuhkan tanaman ini, trik trimming, dll..."
               />
             </div>
           </div>
 
-          {error && <div className="rounded-md bg-red-950/50 border border-red-900/50 p-4 text-sm text-red-400">{error}</div>}
+          {error && <div className="rounded-md bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 p-4 text-sm text-red-600 dark:text-red-400 transition-colors">{error}</div>}
 
           {/* ACTION BUTTONS */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-800">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200 dark:border-slate-800 transition-colors">
             <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
               {mode === "edit" && plant && (
                 <>
-                  <Button type="button" variant="secondary" onClick={handleDelete} disabled={loading} className="w-full sm:w-auto bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
+                  <Button type="button" variant="secondary" onClick={handleDelete} disabled={loading} className="w-full sm:w-auto bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition-colors">
                     <Archive className="mr-2 h-4 w-4" /> Arsipkan
                   </Button>
 
                   {role === "super_admin" && (
-                    <Button type="button" variant="destructive" onClick={handleHardDelete} disabled={loading} className="w-full sm:w-auto bg-red-900/80 hover:bg-red-800 text-red-100 border border-red-800">
+                    <Button type="button" variant="destructive" onClick={handleHardDelete} disabled={loading} className="w-full sm:w-auto bg-red-50 dark:bg-red-900/80 hover:bg-red-100 dark:hover:bg-red-800 text-red-600 dark:text-red-100 border border-red-200 dark:border-red-800 transition-colors">
                       <Trash2 className="mr-2 h-4 w-4" /> Hapus Permanen
                     </Button>
                   )}
@@ -730,10 +711,10 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row gap-3 w-full sm:w-auto">
-              <Button type="button" onClick={() => router.back()} disabled={loading} className="w-full sm:w-auto bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
+              <Button type="button" onClick={() => router.back()} disabled={loading} className="w-full sm:w-auto bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition-colors">
                 Batal
               </Button>
-              <Button type="submit" disabled={loading} className="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 text-white font-semibold transition-all shadow-lg shadow-teal-900/20">
+              <Button type="submit" disabled={loading} className="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 text-white font-semibold transition-all shadow-lg shadow-teal-600/10 dark:shadow-teal-900/20">
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : mode === "create" ? "Simpan Tanaman" : "Perbarui Data"}
               </Button>
             </div>

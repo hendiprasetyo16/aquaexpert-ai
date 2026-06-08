@@ -5,9 +5,8 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { MENU_BY_ROLE } from "@/features/auth/constants/menu";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, ShieldAlert, Loader2, X } from "lucide-react"; // Tambahkan X
+import { LogOut, ShieldAlert, Loader2, X } from "lucide-react";
 
-// Tambahkan Interface Props untuk menerima perintah dari Layout
 interface SidebarProps {
   className?: string;
   onClose?: () => void;
@@ -41,17 +40,16 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
   const menus = role ? MENU_BY_ROLE[role] : [];
 
   return (
-    // Gabungkan className bawaan dengan className dari prop
-    <div className={`flex h-screen w-64 flex-col border-r border-slate-800 bg-slate-950 text-slate-300 ${className}`}>
+    // Menggunakan bg-white (terang) dan dark:bg-slate-950 (gelap)
+    <div className={`flex h-screen w-64 flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 transition-colors ${className}`}>
       
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-800 px-6">
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6 transition-colors">
         <Link href="/dashboard" className="transition-transform hover:scale-105" onClick={onClose}>
-          <h1 className="text-xl font-bold">
-            <span className="text-teal-400">Aqua</span>Expert
+          <h1 className="text-xl font-bold dark:text-white text-slate-800">
+            <span className="text-teal-600 dark:text-teal-400">Aqua</span>Expert
           </h1>
         </Link>
-        {/* Tombol Tutup Sidebar khusus Mobile */}
-        <button onClick={onClose} className="text-slate-400 hover:text-white md:hidden">
+        <button onClick={onClose} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white md:hidden">
           <X className="h-6 w-6" />
         </button>
       </div>
@@ -65,11 +63,13 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
             <Link
               key={menu.href}
               href={menu.href}
-              onClick={onClose} // Tutup sidebar setelah menu diklik
+              onClick={onClose}
               className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                 active
-                  ? "bg-teal-900/50 text-teal-400"
-                  : "hover:bg-slate-900 hover:text-slate-100"
+                  // Warna saat menu aktif (Terang: bg-teal-100, Gelap: bg-teal-900/50)
+                  ? "bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-400"
+                  // Warna saat menu tidak aktif (Terang: hover abu-abu muda, Gelap: hover abu-abu tua)
+                  : "hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-slate-100"
               }`}
             >
               <Icon className="h-4 w-4 shrink-0" />
@@ -79,16 +79,16 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
         })}
       </nav>
 
-      <div className="border-t border-slate-800 p-4">
+      <div className="border-t border-slate-200 dark:border-slate-800 p-4 transition-colors">
         {isLoading ? (
-          <div className="mb-4 flex h-14 items-center justify-center rounded-md bg-slate-900 p-3">
-             <Loader2 className="h-5 w-5 animate-spin text-teal-500" />
+          <div className="mb-4 flex h-14 items-center justify-center rounded-md bg-slate-50 dark:bg-slate-900 p-3">
+             <Loader2 className="h-5 w-5 animate-spin text-teal-600 dark:text-teal-500" />
           </div>
         ) : profile ? (
           <Link 
             href="/dashboard/profile"
-            onClick={onClose} // Tutup sidebar
-            className="mb-4 flex items-center gap-3 rounded-md bg-slate-900 p-3 transition-colors hover:bg-slate-800 group"
+            onClick={onClose}
+            className="mb-4 flex items-center gap-3 rounded-md bg-slate-50 dark:bg-slate-900 p-3 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 group"
             title="Buka Pengaturan Profil Saya"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-600 font-bold text-white shadow-md group-hover:bg-teal-500 transition-colors">
@@ -96,10 +96,10 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
             </div>
 
             <div className="overflow-hidden">
-              <p className="truncate text-sm font-medium text-slate-200 group-hover:text-white transition-colors">
+              <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-200 group-hover:text-black dark:group-hover:text-white transition-colors">
                 {profile.full_name}
               </p>
-              <div className="flex items-center gap-1 text-xs text-teal-400">
+              <div className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400">
                 <ShieldAlert className="h-3 w-3 shrink-0" />
                 <span className="truncate">{formatRole(profile.role)}</span>
               </div>
@@ -109,7 +109,7 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
 
         <button
           onClick={handleLogout}
-          className="flex w-full items-center justify-center gap-2 rounded-md bg-red-950/30 px-3 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-900/50"
+          className="flex w-full items-center justify-center gap-2 rounded-md bg-red-50 dark:bg-red-950/30 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 transition-colors hover:bg-red-100 dark:hover:bg-red-900/50"
         >
           <LogOut className="h-4 w-4 shrink-0" />
           Keluar Akun

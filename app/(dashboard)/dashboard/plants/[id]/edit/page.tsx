@@ -43,7 +43,7 @@ export default function EditPlantPage() {
   if (authLoading || dataLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-teal-600 dark:text-teal-500" />
       </div>
     );
   }
@@ -54,11 +54,11 @@ export default function EditPlantPage() {
   // Jika data ID tanaman tidak valid
   if (!plant) {
     return (
-      <div className="flex h-[60vh] flex-col items-center justify-center text-slate-400">
+      <div className="flex h-[60vh] flex-col items-center justify-center text-slate-600 dark:text-slate-400 transition-colors">
         <p>Data tanaman tidak ditemukan.</p>
         <button 
           onClick={() => router.back()} 
-          className="mt-4 text-teal-500 hover:text-teal-400"
+          className="mt-4 font-medium text-teal-600 dark:text-teal-500 hover:text-teal-700 dark:hover:text-teal-400 transition-colors"
         >
           Kembali ke Daftar
         </button>
@@ -67,13 +67,14 @@ export default function EditPlantPage() {
   }
 
   return (
-    <div className="max-w-4xl space-y-6 pb-10">
+    <div className="max-w-4xl space-y-6 pb-10 transition-colors duration-300">
       
       {/* HEADER HALAMAN */}
       <div>
-        <h2 className="text-3xl font-bold text-slate-100">Edit Tanaman</h2>
-        <p className="mt-1 text-slate-400">
-          Perbarui informasi detail untuk <span className="font-semibold text-slate-200">{plant.name}</span>.
+        {/* PERBAIKAN: text-gray-900 untuk mode terang, dark:text-slate-100 untuk gelap */}
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-slate-100">Edit Tanaman</h2>
+        <p className="mt-1 text-slate-600 dark:text-slate-400">
+          Perbarui informasi detail untuk <span className="font-semibold text-gray-900 dark:text-slate-200">{plant.name}</span>.
         </p>
       </div>
 

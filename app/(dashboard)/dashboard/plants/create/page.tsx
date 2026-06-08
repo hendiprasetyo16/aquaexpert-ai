@@ -22,7 +22,8 @@ export default function CreatePlantPage() {
   if (authLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
+        {/* PERBAIKAN: Loader menjadi teal-600 di mode terang */}
+        <Loader2 className="h-8 w-8 animate-spin text-teal-600 dark:text-teal-500" />
       </div>
     );
   }
@@ -31,12 +32,13 @@ export default function CreatePlantPage() {
   if (role === "user") return null;
 
   return (
-    <div className="max-w-4xl space-y-6 pb-10">
+    <div className="max-w-4xl space-y-6 pb-10 p-6 transition-colors duration-300">
       
       {/* HEADER HALAMAN */}
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-slate-100">Tambah Tanaman Baru</h2>
-        <p className="mt-1 text-slate-400">Masukkan detail tanaman aquascape beserta gambarnya ke database.</p>
+        {/* PERBAIKAN: Warna teks disesuaikan */}
+        <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-slate-100">Tambah Tanaman Baru</h2>
+        <p className="mt-1 text-slate-600 dark:text-slate-400">Masukkan detail tanaman aquascape beserta gambarnya ke database.</p>
       </div>
 
       {/* FORM CREATE */}

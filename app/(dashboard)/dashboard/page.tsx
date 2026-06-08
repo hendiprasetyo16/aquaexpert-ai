@@ -19,20 +19,23 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-6 text-white space-y-6">
+    // text-white diganti menjadi text-foreground agar otomatis hitam di mode terang dan putih di mode gelap
+    <div className="p-6 text-foreground space-y-6 transition-colors duration-300">
       <h1 className="text-3xl font-bold">
         Dashboard AquaExpert AI
       </h1>
 
       {profile && (
-        <div className="rounded-lg border border-slate-700 bg-slate-900/50 p-6 shadow-sm">
-          <h2 className="mb-4 text-xl font-semibold text-teal-400">Informasi Sesi Anda</h2>
-          <div className="space-y-2 text-slate-300">
-            <p><span className="font-medium text-slate-400">Nama:</span> {profile.full_name}</p>
-            <p><span className="font-medium text-slate-400">Email:</span> {user?.email}</p>
-            <p>
-              <span className="font-medium text-slate-400">Role:</span>{" "}
-              <span className="rounded-md bg-teal-900/50 px-2 py-1 text-xs text-teal-400">
+        // Latar kotak disesuaikan: Terang = bg-white, Gelap = bg-slate-900/50
+        <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 p-6 shadow-sm transition-colors duration-300">
+          <h2 className="mb-4 text-xl font-semibold text-teal-600 dark:text-teal-400">Informasi Sesi Anda</h2>
+          <div className="space-y-2 text-slate-700 dark:text-slate-300">
+            <p><span className="font-medium text-slate-500 dark:text-slate-400">Nama:</span> {profile.full_name}</p>
+            <p><span className="font-medium text-slate-500 dark:text-slate-400">Email:</span> {user?.email}</p>
+            <p className="flex items-center gap-2 mt-2">
+              <span className="font-medium text-slate-500 dark:text-slate-400">Role:</span>
+              {/* Lencana (Badge) Role disesuaikan warnanya */}
+              <span className="rounded-md bg-teal-100 dark:bg-teal-900/50 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:text-teal-400">
                 {role}
               </span>
             </p>
@@ -41,11 +44,12 @@ export default function DashboardPage() {
       )}
 
       {/* INI ADALAH KOMPONEN SETUP STORAGE SEMENTARA */}
-      {/*role === "super_admin" && (
-        <div className="mt-8 border-t border-slate-800 pt-8">
+      {/* Jika kamu ingin membukanya, hapus komentar di bawah ini */}
+      {/* role === "super_admin" && (
+        <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-8 transition-colors duration-300">
           <SetupStorage />
         </div>
-      )*/}
+      ) */}
     </div>
   );
 }

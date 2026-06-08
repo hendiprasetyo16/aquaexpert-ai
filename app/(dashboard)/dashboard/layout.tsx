@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
-import { Menu, Bell } from "lucide-react"; 
+import { ThemeToggle } from "@/components/layout/ThemeToggle"; // <-- SUDAH DIPERBAIKI (Ditambahkan kurung kurawal {})
+import NotificationBell from "@/components/layout/NotificationBell"; 
+import { Menu } from "lucide-react"; 
 import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -10,12 +12,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { profile } = useAuth();
 
   return (
-    <div className="flex min-h-screen bg-slate-950 text-slate-50 overflow-hidden">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 overflow-hidden transition-colors duration-200">
       
       {/* OVERLAY MOBILE */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm transition-opacity md:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -32,40 +34,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="flex w-full flex-1 flex-col h-screen overflow-hidden relative">
         
         {/* HEADER */}
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-950/80 px-4 sm:px-6 backdrop-blur-md">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 px-4 sm:px-6 backdrop-blur-md transition-colors">
           
-          {/* BAGIAN KIRI: Tombol Mobile (Judul Halaman Telah Dihapus) */}
+          {/* BAGIAN KIRI: Tombol Mobile */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="md:hidden text-slate-300 hover:text-white p-2 -ml-2 rounded-md hover:bg-slate-800 focus:outline-none transition-colors"
+              className="md:hidden text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white p-2 -ml-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none transition-colors"
             >
               <Menu className="h-6 w-6" />
             </button>
           </div>
           
-          {/* BAGIAN KANAN: Info Sapaan & Notifikasi */}
-          <div className="flex items-center gap-4 ml-auto">
+          {/* BAGIAN KANAN: Info Sapaan, Theme Toggle & Notifikasi */}
+          <div className="flex items-center gap-2 ml-auto">
             {profile && (
-              <span className="text-sm text-slate-400 hidden md:block">
-                Selamat datang, <span className="font-medium text-slate-200">{profile.full_name.split(" ")[0]}</span>
+              <span className="text-sm text-slate-500 dark:text-slate-400 hidden md:block mr-2">
+                Selamat datang, <span className="font-medium text-slate-800 dark:text-slate-200">{profile.full_name.split(" ")[0]}</span>
               </span>
             )}
             
-            {/* Tombol Notifikasi (Disiapkan untuk pengembangan fitur selanjutnya) */}
-            <button className="relative p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors" title="Notifikasi Sistem">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-500"></span>
-              </span>
-            </button>
+            {/* TOMBOL TOGGLE TEMA (Gelap/Terang) */}
+            <ThemeToggle />
+            
+            {/* TOMBOL NOTIFIKASI REAL-TIME */}
+            <NotificationBell role={profile?.role || ""} />
+
           </div>
 
         </header>
         
         {/* KONTEN HALAMAN */}
-        <div className="flex-1 overflow-y-auto bg-slate-950">
+        <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950 transition-colors">
           {children}
         </div>
       </main>

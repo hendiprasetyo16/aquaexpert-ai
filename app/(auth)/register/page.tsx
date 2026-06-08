@@ -1,24 +1,22 @@
 "use client";
 
 import { useState } from "react";
-//import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react"; // <-- Import Ikon Mata
+import { Eye, EyeOff } from "lucide-react";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // <-- State untuk Ikon Mata
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  //const router = useRouter();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,30 +70,27 @@ export default function RegisterPage() {
     setSuccessMsg("Pendaftaran berhasil! Mengarahkan ke dashboard...");
     
     setTimeout(() => {
-      //router.push("/dashboard");
-      // MENDOBRAK CACHE NEXT.JS SECARA AMAN:
       window.location.replace("/dashboard");
-    //}, 2000);
     }, 500);
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
-      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-teal-900/20 via-slate-950 to-slate-950"></div>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 relative transition-colors duration-300">
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-teal-500/10 dark:from-teal-900/20 via-background to-background"></div>
       
-      <Card className="z-10 w-full max-w-md border-slate-800 bg-slate-900/80 text-slate-50 backdrop-blur-sm">
+      <Card className="z-10 w-full max-w-md border-border bg-card/90 text-card-foreground backdrop-blur-sm shadow-xl transition-colors duration-300">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-3xl font-bold tracking-tight">
             Buat Akun
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-muted-foreground">
             Daftar untuk mulai mengelola aquarium Anda
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-slate-300">Nama Lengkap</Label>
+              <Label htmlFor="fullName" className="text-foreground font-medium">Nama Lengkap</Label>
               <Input 
                 id="fullName" 
                 type="text" 
@@ -103,11 +98,11 @@ export default function RegisterPage() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
-                className="border-slate-700 bg-slate-950 text-slate-200 focus-visible:ring-teal-500"
+                className="border-input bg-background text-foreground focus-visible:ring-teal-500"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-300">Email</Label>
+              <Label htmlFor="email" className="text-foreground font-medium">Email</Label>
               <Input 
                 id="email" 
                 type="email" 
@@ -115,13 +110,12 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="border-slate-700 bg-slate-950 text-slate-200 focus-visible:ring-teal-500"
+                className="border-input bg-background text-foreground focus-visible:ring-teal-500"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-300">Password</Label>
-              {/* Desain Kotak Password dengan Ikon */}
+              <Label htmlFor="password" className="text-foreground font-medium">Password</Label>
               <div className="relative">
                 <Input 
                   id="password" 
@@ -130,12 +124,12 @@ export default function RegisterPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="border-slate-700 bg-slate-950 pr-10 text-slate-200 focus-visible:ring-teal-500"
+                  className="border-input bg-background text-foreground pr-10 focus-visible:ring-teal-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -144,24 +138,24 @@ export default function RegisterPage() {
                   )}
                 </button>
               </div>
-              <p className="text-xs text-slate-500">Minimal 6 karakter, dengan kombinasi huruf dan angka.</p>
+              <p className="text-xs text-muted-foreground">Minimal 6 karakter, dengan kombinasi huruf dan angka.</p>
             </div>
             
             {error && <p className="text-sm font-medium text-red-500">{error}</p>}
-            {successMsg && <p className="text-sm font-medium text-teal-400">{successMsg}</p>}
+            {successMsg && <p className="text-sm font-medium text-teal-600 dark:text-teal-400">{successMsg}</p>}
             
             <Button 
               type="submit" 
-              className="w-full bg-teal-600 text-white hover:bg-teal-500"
+              className="w-full bg-teal-600 text-white hover:bg-teal-500 font-semibold shadow-md shadow-teal-600/10"
               disabled={loading}
             >
               {loading ? "Mendaftarkan..." : "Daftar Sekarang"}
             </Button>
           </form>
           
-          <div className="mt-4 text-center text-sm text-slate-400">
+          <div className="mt-4 text-center text-sm text-muted-foreground">
             Sudah punya akun?{" "}
-            <Link href="/login" className="font-medium text-teal-400 hover:underline">
+            <Link href="/login" className="font-medium text-teal-600 dark:text-teal-400 hover:underline">
               Masuk di sini
             </Link>
           </div>

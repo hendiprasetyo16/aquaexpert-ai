@@ -1,4 +1,3 @@
-// app/(dashboard)/dashboard/admin-panel/page.tsx
 "use client";
 
 import { useEffect } from "react";
@@ -31,9 +30,18 @@ export default function AdminPanelPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="border-b border-slate-800 pb-4">
-        <h1 className="text-3xl font-bold text-white">Super Admin Control Panel</h1>
-        <p className="text-slate-400 mt-2">Pusat kendali database, storage, dan sistem pakar AquaExpert.</p>
+      {/* PERBAIKAN: border-slate-200 untuk mode terang, dark:border-slate-800 untuk mode gelap */}
+      <div className="border-b border-slate-200 dark:border-slate-800 pb-4 transition-colors duration-300">
+        
+        {/* PERBAIKAN UTAMA: text-gray-900 (mode terang) dan dark:text-white (mode gelap) */}
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          Super Admin Control Panel
+        </h1>
+        
+        {/* PERBAIKAN DESKRIPSI: text-slate-600 (mode terang) dan dark:text-slate-400 (mode gelap) */}
+        <p className="text-slate-600 dark:text-slate-400 mt-2">
+          Pusat kendali database, storage, dan sistem pakar AquaExpert.
+        </p>
       </div>
 
       {/* Panggil komponen SetupStorage di sini */}
