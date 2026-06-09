@@ -1,10 +1,9 @@
 import { createClient } from "@/lib/supabase/client";
-import { UserProfile, UserRole } from "../types/user.types";
+import type { UserProfile, UserRole } from "@/features/users/types/user.types";
 
 export async function getUsers(): Promise<UserProfile[]> {
   const supabase = createClient();
 
-  // PERBAIKAN: Tambahkan last_login_at di sini
   const { data, error } = await supabase
     .from("profiles")
     .select(`
@@ -31,7 +30,7 @@ export async function updateUserRole(
   newRole: UserRole
 ): Promise<boolean> {
   const allowedRoles: UserRole[] = ["super_admin", "admin", "user"];
-  
+
   if (!allowedRoles.includes(newRole)) {
     console.error("Role tidak valid!");
     return false;
@@ -41,9 +40,7 @@ export async function updateUserRole(
 
   const { error } = await supabase
     .from("profiles")
-    .update({
-      role: newRole,
-    })
+    .update({ role: newRole })
     .eq("id", userId);
 
   if (error) {
