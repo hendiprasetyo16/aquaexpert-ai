@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { updateProfileName, updateProfilePassword } from "@/features/profile/actions/profile.actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Save, KeyRound, User as UserIcon, Mail, ShieldAlert, Eye, EyeOff } from "lucide-react"; // <-- Menambahkan Eye & EyeOff
+import { Loader2, Save, KeyRound, User as UserIcon, Mail, ShieldAlert, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
+import { createClient } from "@/lib/supabase/client"; // <-- IMPORT DITAMBAHKAN
 
 export default function ProfilePage() {
   const { user, profile, role, isLoading } = useAuth();
@@ -30,26 +31,40 @@ export default function ProfilePage() {
     }
   }, [profile]);
 
-  // Handler: Ubah Nama Lengkap (Via Server Action)
+  // ===================================================================================
+  // FUNGSI INTI: MENGAMBIL TOKEN CLIENT UNTUK MEMBANTU SERVER ACTION DI HP/PWA
+  // ===================================================================================
+  const getAccessToken = async () => {
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token || null; 
+  };
+
+  // Handler: Ubah Nama Lengkap
   const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     setIsSavingName(true);
 
-    const result = await updateProfileName(fullName);
-    
-    if (result.success) {
-      toast.success(result.message || "Berhasil");
-      toast.success("Perubahan nama akan terlihat sepenuhnya setelah halaman di-refresh.", { icon: '🔄' });
-    } else {
-      toast.error(result.error || "Gagal");
-      setFullName(profile?.full_name || ""); // Rollback UI
+    try {
+      const token = await getAccessToken(); // AMBIL TOKEN
+      const result = await updateProfileName(fullName, token); // KIRIM TOKEN
+      
+      if (result.success) {
+        toast.success(result.message || "Berhasil");
+        toast.success("Perubahan nama akan terlihat sepenuhnya setelah halaman di-refresh.", { icon: '🔄' });
+      } else {
+        toast.error(result.error || "Gagal");
+        setFullName(profile?.full_name || ""); // Rollback UI
+      }
+    } catch (error: any) {
+      toast.error("Terjadi kesalahan sistem.");
+    } finally {
+      setIsSavingName(false);
     }
-    
-    setIsSavingName(false);
   };
 
-  // Handler: Ubah Password (Via Server Action)
+  // Handler: Ubah Password
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -60,19 +75,24 @@ export default function ProfilePage() {
     
     setIsSavingPassword(true);
 
-    const result = await updateProfilePassword(newPassword);
+    try {
+      const token = await getAccessToken(); // AMBIL TOKEN
+      const result = await updateProfilePassword(newPassword, token); // KIRIM TOKEN
 
-    if (result.success) {
-      toast.success(result.message || "Berhasil");
-      setNewPassword("");
-      setConfirmPassword("");
-      setShowNewPassword(false);
-      setShowConfirmPassword(false);
-    } else {
-      toast.error(result.error || "Gagal");
+      if (result.success) {
+        toast.success(result.message || "Berhasil");
+        setNewPassword("");
+        setConfirmPassword("");
+        setShowNewPassword(false);
+        setShowConfirmPassword(false);
+      } else {
+        toast.error(result.error || "Gagal");
+      }
+    } catch (error: any) {
+      toast.error("Terjadi kesalahan sistem.");
+    } finally {
+      setIsSavingPassword(false);
     }
-    
-    setIsSavingPassword(false);
   };
 
   if (isLoading) {

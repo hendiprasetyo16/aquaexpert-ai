@@ -1,7 +1,19 @@
 "use server";
 
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+
+const supabaseAdmin = createSupabaseClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+);
 
 export type ProfileActionResult = {
   success: boolean;
@@ -10,77 +22,101 @@ export type ProfileActionResult = {
 };
 
 // =====================================================
+// FUNGSI HELPER: MENDAPATKAN USER AKTIF (ANTI BUG HP)
+// =====================================================
+async function getAuthenticatedUser(token?: string | null) {
+  if (token) {
+    // Jalur HP: Verifikasi via Token JWT dari Client
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
+    if (error || !data.user) throw new Error("Sesi token tidak valid dari perangkat ini.");
+    return data.user;
+  }
+
+  // Jalur Desktop: Verifikasi via Cookies
+  const cookieStore = await cookies();
+  const supabaseUser = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll(); },
+        setAll() {},
+      },
+    }
+  );
+  
+  const { data, error } = await supabaseUser.auth.getUser();
+  if (error || !data.user) {
+    throw new Error("Sesi tidak terbaca oleh server. Harap login ulang.");
+  }
+  
+  return data.user;
+}
+
+// =====================================================
 // UPDATE NAMA LENGKAP PROFIL
 // =====================================================
-export async function updateProfileName(newFullName: string): Promise<ProfileActionResult> {
+export async function updateProfileName(
+  newFullName: string,
+  token?: string | null
+): Promise<ProfileActionResult> {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll(); },
-          setAll() {},
-        },
-      }
-    );
+    // Gunakan fungsi helper yang sudah kebal dari bug HP
+    const user = await getAuthenticatedUser(token);
 
-    // Pastikan user valid dan ambil ID-nya
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw new Error("Sesi tidak valid atau telah kedaluwarsa.");
+    if (!newFullName || newFullName.trim() === "") {
+      throw new Error("Nama lengkap tidak boleh kosong.");
     }
 
-    // Update tabel profiles
-    const { error: updateError } = await supabase
+    const { error } = await supabaseAdmin
       .from("profiles")
-      .update({ full_name: newFullName })
+      .update({ full_name: newFullName.trim() })
       .eq("id", user.id);
 
-    if (updateError) throw new Error(updateError.message);
+    if (error) throw new Error(error.message);
 
-    return { success: true, message: "Nama lengkap berhasil diperbarui." };
+    return {
+      success: true,
+      message: "Profil berhasil diperbarui.",
+    };
   } catch (error: any) {
-    return { success: false, error: error?.message || "Gagal memperbarui profil." };
+    return {
+      success: false,
+      error: error?.message || "Gagal memperbarui profil.",
+    };
   }
 }
 
 // =====================================================
 // UPDATE PASSWORD SENDIRI
 // =====================================================
-export async function updateProfilePassword(newPassword: string): Promise<ProfileActionResult> {
+export async function updateProfilePassword(
+  newPassword: string,
+  token?: string | null
+): Promise<ProfileActionResult> {
   try {
+    // Gunakan fungsi helper yang sudah kebal dari bug HP
+    const user = await getAuthenticatedUser(token);
+
     if (newPassword.length < 6) {
       throw new Error("Password minimal 6 karakter.");
     }
 
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll(); },
-          setAll() {},
-        },
-      }
-    );
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw new Error("Sesi tidak valid atau telah kedaluwarsa.");
-    }
-
     // Update password di sistem Auth Supabase
-    const { error: updateError } = await supabase.auth.updateUser({
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
       password: newPassword,
     });
 
-    if (updateError) throw new Error(updateError.message);
+    if (error) throw new Error(error.message);
 
-    return { success: true, message: "Kata sandi berhasil diperbarui." };
+    return {
+      success: true,
+      message: "Kata sandi berhasil diperbarui.",
+    };
   } catch (error: any) {
-    return { success: false, error: error?.message || "Gagal memperbarui kata sandi." };
+    return {
+      success: false,
+      error: error?.message || "Gagal memperbarui kata sandi.",
+    };
   }
 }
