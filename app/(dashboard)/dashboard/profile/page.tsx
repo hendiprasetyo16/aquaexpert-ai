@@ -6,7 +6,7 @@ import { updateProfileName, updateProfilePassword } from "@/features/profile/act
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Save, KeyRound, User as UserIcon, Mail, ShieldAlert, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
-import { createClient } from "@/lib/supabase/client"; // <-- IMPORT DITAMBAHKAN
+import { createClient } from "@/lib/supabase/client"; 
 
 export default function ProfilePage() {
   const { user, profile, role, isLoading } = useAuth();
@@ -47,18 +47,24 @@ export default function ProfilePage() {
     setIsSavingName(true);
 
     try {
-      const token = await getAccessToken(); // AMBIL TOKEN
-      const result = await updateProfileName(fullName, token); // KIRIM TOKEN
+      const token = await getAccessToken(); 
+      const result = await updateProfileName(fullName, token); 
       
       if (result.success) {
-        toast.success(result.message || "Berhasil");
-        toast.success("Perubahan nama akan terlihat sepenuhnya setelah halaman di-refresh.", { icon: '🔄' });
+        toast.success(result.message || "Nama berhasil diperbarui!");
+        toast.loading("Mensinkronisasikan data Sidebar...", { duration: 1500 });
+        
+        // AUTO-RELOAD UNTUK UPDATE SIDEBAR & USEAUTH MEMORY
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+
       } else {
-        toast.error(result.error || "Gagal");
+        toast.error(result.error || "Gagal memperbarui nama.");
         setFullName(profile?.full_name || ""); // Rollback UI
       }
     } catch (error: any) {
-      toast.error("Terjadi kesalahan sistem.");
+      toast.error("Terjadi kesalahan sistem saat menghubungi server.");
     } finally {
       setIsSavingName(false);
     }
@@ -76,20 +82,27 @@ export default function ProfilePage() {
     setIsSavingPassword(true);
 
     try {
-      const token = await getAccessToken(); // AMBIL TOKEN
-      const result = await updateProfilePassword(newPassword, token); // KIRIM TOKEN
+      const token = await getAccessToken(); 
+      const result = await updateProfilePassword(newPassword, token); 
 
       if (result.success) {
-        toast.success(result.message || "Berhasil");
+        toast.success(result.message || "Password berhasil diganti!");
         setNewPassword("");
         setConfirmPassword("");
         setShowNewPassword(false);
         setShowConfirmPassword(false);
+        
+        // OPSIONAL: Auto-reload setelah ganti password agar sesi auth benar-benar fresh
+        toast.loading("Menyegarkan sesi keamanan...", { duration: 1500 });
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+
       } else {
-        toast.error(result.error || "Gagal");
+        toast.error(result.error || "Gagal mengganti password.");
       }
     } catch (error: any) {
-      toast.error("Terjadi kesalahan sistem.");
+      toast.error("Terjadi kesalahan sistem saat menghubungi server.");
     } finally {
       setIsSavingPassword(false);
     }
@@ -161,7 +174,7 @@ export default function ProfilePage() {
               <button 
                 type="submit" 
                 disabled={isSavingName || fullName === profile?.full_name}
-                className="flex items-center justify-center gap-2 rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-500 disabled:opacity-50"
+                className="flex items-center justify-center gap-2 rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-500 disabled:opacity-50 w-full sm:w-auto"
               >
                 {isSavingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {isSavingName ? "Menyimpan..." : "Simpan Nama"}
@@ -226,7 +239,7 @@ export default function ProfilePage() {
               <button 
                 type="submit" 
                 disabled={isSavingPassword || !newPassword || !confirmPassword}
-                className="flex items-center justify-center gap-2 rounded-md bg-yellow-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-yellow-500 disabled:opacity-50"
+                className="flex items-center justify-center gap-2 rounded-md bg-yellow-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-yellow-500 disabled:opacity-50 w-full sm:w-auto"
               >
                 {isSavingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {isSavingPassword ? "Memperbarui..." : "Update Password"}

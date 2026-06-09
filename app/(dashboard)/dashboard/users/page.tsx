@@ -57,7 +57,7 @@ export default function UsersPage() {
   }, [currentUserRole]);
 
   // ===================================================================================
-  // FUNGSI EKSEKUSI TANPA PARAMETER TOKEN & TANPA FORM SUBMIT (ANTI BUG MOBILE/NEXT)
+  // FUNGSI EKSEKUSI (DENGAN TRY-CATCH TOAST YANG SEMPURNA UNTUK ANDROID/HP)
   // ===================================================================================
 
   const executeRoleChange = async () => {
@@ -73,8 +73,7 @@ export default function UsersPage() {
       await loadUsersData(); // SINKRONISASI DATA REAL-TIME
       setRoleChangeData(null); 
     } catch (error: any) {
-      console.error(error);
-      toast.error(error.message || "Gagal mengubah role.");
+      toast.error(error?.message || "Terjadi kesalahan sistem saat mengubah role.");
     } finally {
       setIsSubmitting(false);
     }
@@ -95,19 +94,19 @@ export default function UsersPage() {
         throw new Error(result.error);
       }
 
-      toast.success(result.message || "Berhasil");
+      toast.success(result.message || "Status berhasil diubah!");
       await loadUsersData(); // SINKRONISASI DATA REAL-TIME
       setUserToToggle(null);
 
     } catch (error: any) {
-      toast.error(error?.message || "Gagal memproses.");
+      toast.error(error?.message || "Terjadi kesalahan sistem saat memproses status.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const executeHardDelete = async (e: React.FormEvent) => {
-    e.preventDefault(); // Dipertahankan karena ini memakai <form> (ada input ketik email)
+    e.preventDefault(); 
     if (!userToDelete) return;
     if (deleteConfirmText !== userToDelete.email) {
       toast.error("Email konfirmasi tidak sesuai.");
@@ -125,8 +124,7 @@ export default function UsersPage() {
       setUserToDelete(null); 
       setDeleteConfirmText("");
     } catch (error: any) {
-      console.error(error);
-      toast.error(error.message || "Gagal menghapus pengguna.");
+      toast.error(error?.message || "Terjadi kesalahan sistem saat menghapus pengguna.");
     } finally {
       setIsSubmitting(false);
     }
@@ -145,8 +143,7 @@ export default function UsersPage() {
       await loadUsersData();
       setIsEditModalOpen(false); 
     } catch (error: any) {
-      console.error(error);
-      toast.error(error.message);
+      toast.error(error?.message || "Terjadi kesalahan sistem saat memperbarui profil.");
     } finally {
       setIsSubmitting(false);
     }
@@ -171,10 +168,10 @@ export default function UsersPage() {
         setShowAddPassword(false);
         await loadUsersData(); 
       } else {
-        toast.error(result.error || "Gagal menambahkan pengguna."); 
+        throw new Error(result.error || "Gagal menambahkan pengguna."); 
       }
-    } catch(err) {
-      console.error(err);
+    } catch (error: any) {
+      toast.error(error?.message || "Terjadi kesalahan sistem saat menambahkan pengguna.");
     } finally {
       setIsSubmitting(false);
     }
@@ -194,10 +191,10 @@ export default function UsersPage() {
         setResetPasswordValue("");
         setShowResetPassword(false);
       } else {
-        toast.error(result.error || "Gagal mereset password.");
+        throw new Error(result.error || "Gagal mereset password.");
       }
-    } catch(err) {
-      console.error(err);
+    } catch (error: any) {
+      toast.error(error?.message || "Terjadi kesalahan sistem saat mereset password.");
     } finally {
       setIsSubmitting(false);
     }
