@@ -63,7 +63,9 @@ export default function UsersPage() {
   const getAccessToken = async () => {
     const supabase = createClient();
     const { data } = await supabase.auth.getSession();
-    return data.session?.access_token;
+    
+    // BUG FIX NEXT.JS: Wajib return null jika tidak ada token, JANGAN undefined!
+    return data.session?.access_token || null; 
   };
 
   // ===================================================================================

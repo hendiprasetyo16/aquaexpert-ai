@@ -23,22 +23,21 @@ export type ActionResult = {
 };
 
 // =====================================================
-// CEK HAK AKSES (BUG MOBILE PWA COOKIE FIXED)
+// CEK HAK AKSES (BUG MOBILE PWA & NEXT.JS SERIALIZATION FIXED)
 // =====================================================
-async function verifyAdminAccess(token?: string) {
+async function verifyAdminAccess(token?: string | null) {
   let user;
 
   if (token) {
-    // BACKUP UNTUK HP/PWA: Verifikasi via JWT Token langsung
-    const supabaseAnon = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-    const { data, error } = await supabaseAnon.auth.getUser(token);
-    if (error || !data.user) throw new Error("Sesi token tidak valid dari perangkat ini.");
+    // BACKUP UNTUK HP/PWA: Menggunakan saran Anda (supabaseAdmin.auth.getUser)
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
+    
+    if (error || !data.user) {
+      throw new Error("Sesi token dari HP tidak valid atau kedaluwarsa.");
+    }
     user = data.user;
   } else {
-    // METODE STANDARD: Verifikasi via Cookies
+    // METODE STANDARD: Verifikasi via Cookies (Desktop)
     const cookieStore = await cookies();
     const supabaseUser = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -51,13 +50,14 @@ async function verifyAdminAccess(token?: string) {
       }
     );
     const { data, error } = await supabaseUser.auth.getUser();
+    
     if (error || !data.user) {
-      throw new Error("Sesi tidak terbaca oleh server. Coba relogin.");
+      throw new Error("Sesi tidak terbaca. Harap login ulang.");
     }
     user = data.user;
   }
 
-  // Bypass RLS untuk mengecek role asli menggunakan Admin Key
+  // Bypass RLS untuk mengecek role asli
   const { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("role")
@@ -75,12 +75,12 @@ async function verifyAdminAccess(token?: string) {
 }
 
 // =====================================================
-// UBAH ROLE (KINI 100% AMAN DI SERVER)
+// UBAH ROLE
 // =====================================================
 export async function updateUserRoleAction(
   userId: string,
   newRole: UserRole,
-  token?: string
+  token?: string | null
 ): Promise<ActionResult> {
   try {
     const currentUser = await verifyAdminAccess(token);
@@ -114,14 +114,29 @@ export async function toggleUserStatus(
   userId: string,
   currentStatus: boolean,
   targetRole: UserRole,
-  token?: string
+  token?: string | null
 ): Promise<ActionResult> {
-  console.log("=== SERVER ACTION CONNECTED DARI HP ===");
-  
-  return {
-    success: true,
-    message: "TEST BERHASIL: SERVER ACTION JALAN!"
-  };
+  try {
+    const currentUser = await verifyAdminAccess(token);
+
+    if (currentUser.role === "admin" && targetRole !== "user") {
+      throw new Error("Admin hanya dapat mengelola user biasa.");
+    }
+
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({ is_active: !currentStatus })
+      .eq("id", userId);
+
+    if (error) throw new Error(error.message);
+
+    return {
+      success: true,
+      message: currentStatus ? "Pengguna berhasil diblokir." : "Pengguna berhasil diaktifkan.",
+    };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Gagal mengubah status pengguna." };
+  }
 }
 
 // =====================================================
@@ -132,7 +147,7 @@ export async function createUser(data: {
   password: string;
   full_name: string;
   role: UserRole;
-}, token?: string): Promise<ActionResult> {
+}, token?: string | null): Promise<ActionResult> {
   try {
     const currentUser = await verifyAdminAccess(token);
 
@@ -175,7 +190,7 @@ export async function createUser(data: {
 export async function updateUserProfile(
   userId: string,
   newFullName: string,
-  token?: string
+  token?: string | null
 ): Promise<ActionResult> {
   try {
     const currentUser = await verifyAdminAccess(token);
@@ -201,7 +216,7 @@ export async function resetUserPassword(
   userId: string,
   newPassword: string,
   targetRole: UserRole,
-  token?: string
+  token?: string | null
 ): Promise<ActionResult> {
   try {
     const currentUser = await verifyAdminAccess(token);
@@ -226,7 +241,7 @@ export async function resetUserPassword(
 export async function hardDeleteUser(
   userId: string,
   targetRole: UserRole,
-  token?: string
+  token?: string | null
 ): Promise<ActionResult> {
   try {
     const currentUser = await verifyAdminAccess(token);
