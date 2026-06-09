@@ -4,9 +4,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { updateProfileName, updateProfilePassword } from "@/features/profile/actions/profile.actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Save, KeyRound, User as UserIcon, Mail, ShieldAlert, Eye, EyeOff } from "lucide-react";
+import { Loader2, Save, KeyRound, User as UserIcon, Mail, ShieldAlert } from "lucide-react";
 import toast from "react-hot-toast";
-import { createClient } from "@/lib/supabase/client"; // <-- IMPORT DITAMBAHKAN
 
 export default function ProfilePage() {
   const { user, profile, role, isLoading } = useAuth();
@@ -20,10 +19,6 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSavingPassword, setIsSavingPassword] = useState(false);
 
-  // States untuk Toggle Visibilitas Password
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   // Sinkronisasi data profile awal ke state form
   useEffect(() => {
     if (profile) {
@@ -31,40 +26,27 @@ export default function ProfilePage() {
     }
   }, [profile]);
 
-  // ===================================================================================
-  // FUNGSI INTI: MENGAMBIL TOKEN CLIENT UNTUK MEMBANTU SERVER ACTION DI HP/PWA
-  // ===================================================================================
-  const getAccessToken = async () => {
-    const supabase = createClient();
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token || null; 
-  };
-
-  // Handler: Ubah Nama Lengkap
+  // Handler: Ubah Nama Lengkap (Via Server Action)
   const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     setIsSavingName(true);
 
-    try {
-      const token = await getAccessToken(); // AMBIL TOKEN
-      const result = await updateProfileName(fullName, token); // KIRIM TOKEN
-      
-      if (result.success) {
-        toast.success(result.message || "Berhasil");
-        toast.success("Perubahan nama akan terlihat sepenuhnya setelah halaman di-refresh.", { icon: '🔄' });
-      } else {
-        toast.error(result.error || "Gagal");
-        setFullName(profile?.full_name || ""); // Rollback UI
-      }
-    } catch (error: any) {
-      toast.error("Terjadi kesalahan sistem.");
-    } finally {
-      setIsSavingName(false);
+    const result = await updateProfileName(fullName);
+    
+    if (result.success) {
+      toast.success(result.message || "Berhasil");
+      // Info UX: State global profile akan update setelah refresh atau login ulang
+      toast.success("Perubahan nama akan terlihat sepenuhnya setelah halaman di-refresh.", { icon: '🔄' });
+    } else {
+      toast.error(result.error || "Gagal");
+      setFullName(profile?.full_name || ""); // Rollback UI
     }
+    
+    setIsSavingName(false);
   };
 
-  // Handler: Ubah Password
+  // Handler: Ubah Password (Via Server Action)
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -75,24 +57,17 @@ export default function ProfilePage() {
     
     setIsSavingPassword(true);
 
-    try {
-      const token = await getAccessToken(); // AMBIL TOKEN
-      const result = await updateProfilePassword(newPassword, token); // KIRIM TOKEN
+    const result = await updateProfilePassword(newPassword);
 
-      if (result.success) {
-        toast.success(result.message || "Berhasil");
-        setNewPassword("");
-        setConfirmPassword("");
-        setShowNewPassword(false);
-        setShowConfirmPassword(false);
-      } else {
-        toast.error(result.error || "Gagal");
-      }
-    } catch (error: any) {
-      toast.error("Terjadi kesalahan sistem.");
-    } finally {
-      setIsSavingPassword(false);
+    if (result.success) {
+      toast.success(result.message || "Berhasil");
+      setNewPassword("");
+      setConfirmPassword("");
+    } else {
+      toast.error(result.error || "Gagal");
     }
+    
+    setIsSavingPassword(false);
   };
 
   if (isLoading) {
@@ -104,8 +79,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10 space-y-6">
+    <div className="max-w-4xl space-y-6 pb-10">
       <div>
+        {/* PERBAIKAN: text-gray-900 (Terang), dark:text-slate-100 (Gelap) */}
         <h2 className="text-3xl font-bold text-gray-900 dark:text-slate-100">Profil Saya</h2>
         <p className="mt-1 text-slate-600 dark:text-slate-400">Kelola informasi identitas dan keamanan akun Anda.</p>
       </div>
@@ -144,6 +120,7 @@ export default function ProfilePage() {
                     type="email" 
                     value={user?.email || ""} 
                     disabled 
+                    // Input Terkunci Adaptif
                     className="w-full rounded-md border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 py-2 pl-10 pr-4 text-slate-500 dark:text-slate-400 opacity-70 outline-none transition-colors" 
                   />
                 </div>
@@ -155,6 +132,7 @@ export default function ProfilePage() {
                   type="text" 
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  // Input Aktif Adaptif
                   className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors" 
                 />
               </div>
@@ -183,45 +161,27 @@ export default function ProfilePage() {
             <form onSubmit={handleUpdatePassword} className="space-y-4">
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Password Baru</label>
-                <div className="relative">
-                  <input 
-                    required
-                    minLength={6}
-                    type={showNewPassword ? "text" : "password"} 
-                    placeholder="Minimal 6 karakter"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 pr-10 text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors" 
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                  >
-                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
+                <input 
+                  required
+                  minLength={6}
+                  type="password" 
+                  placeholder="Minimal 6 karakter"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors" 
+                />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Konfirmasi Password Baru</label>
-                <div className="relative">
-                  <input 
-                    required
-                    minLength={6}
-                    type={showConfirmPassword ? "text" : "password"} 
-                    placeholder="Ketik ulang password baru"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 pr-10 text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors" 
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                  >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
+                <input 
+                  required
+                  minLength={6}
+                  type="password" 
+                  placeholder="Ketik ulang password baru"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors" 
+                />
               </div>
               <button 
                 type="submit" 
