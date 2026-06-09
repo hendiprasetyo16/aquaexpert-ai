@@ -10,7 +10,7 @@ import { UserProfile, UserRole } from "@/features/users/types/user.types";
 
 import { 
   Loader2, ShieldAlert, User as UserIcon, Mail, Users, 
-  Shield, ShieldCheck, UserPlus, X, KeyRound, Power, PowerOff, Search, Filter, Pencil, Trash2, CalendarDays, Activity, Eye, EyeOff
+  Shield, ShieldCheck, UserPlus, X, KeyRound, Power, PowerOff, Search, Filter, Pencil, Trash2, CalendarDays, Activity, Eye, EyeOff, AlertTriangle
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import toast from "react-hot-toast";
@@ -25,12 +25,21 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<"all" | UserRole>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all"); 
 
-  // States Kendali Modal
+  // States Kendali Modal Standar
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // =====================================================================
+  // FIX MOBILE BUG: STATES UNTUK MODAL KONFIRMASI KUSTOM
+  // =====================================================================
+  const [userToToggle, setUserToToggle] = useState<UserProfile | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [roleChangeData, setRoleChangeData] = useState<{user: UserProfile, newRole: UserRole} | null>(null);
+  // =====================================================================
   
   // States Toggle Ikon Mata
   const [showAddPassword, setShowAddPassword] = useState(false);
@@ -52,19 +61,21 @@ export default function UsersPage() {
     }
   }, [currentUserRole]);
 
-  const handleRoleChange = async (userId: string, newRole: UserRole) => {
-    const confirmChange = window.confirm(`Yakin ingin mengubah hak akses pengguna ini menjadi ${newRole.toUpperCase()}?`);
-    if (!confirmChange) return;
-
+  const executeRoleChange = async () => {
+    if (!roleChangeData) return;
+    setIsSubmitting(true);
     const previousUsers = [...users];
     try {
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-      const success = await updateUserRole(userId, newRole);
+      setUsers(prev => prev.map(u => u.id === roleChangeData.user.id ? { ...u, role: roleChangeData.newRole } : u));
+      const success = await updateUserRole(roleChangeData.user.id, roleChangeData.newRole);
       if (!success) throw new Error("Database menolak perubahan.");
       toast.success("Role berhasil diubah!");
     } catch (error) {
       setUsers(previousUsers);
       toast.error("Gagal mengubah role.");
+    } finally {
+      setIsSubmitting(false);
+      setRoleChangeData(null);
     }
   };
 
@@ -117,22 +128,22 @@ export default function UsersPage() {
     setIsSubmitting(false);
   };
 
-  const handleToggleStatus = async (user: UserProfile) => {
-    const actionText = user.is_active ? "memblokir/menonaktifkan" : "mengaktifkan";
-    const confirmAction = window.confirm(`Yakin ingin ${actionText} akses login untuk akun ${user.full_name}?`);
-    if (!confirmAction) return;
-
+  const executeToggleStatus = async () => {
+    if (!userToToggle) return;
+    setIsSubmitting(true);
     const previousUsers = [...users];
     try {
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: !user.is_active } : u));
-      const result = await toggleUserStatus(user.id, user.is_active, user.role);
+      setUsers(prev => prev.map(u => u.id === userToToggle.id ? { ...u, is_active: !userToToggle.is_active } : u));
+      const result = await toggleUserStatus(userToToggle.id, userToToggle.is_active, userToToggle.role);
       
       if (!result.success) throw new Error(result.error || "Error tidak dikenal.");
       toast.success(result.message || "Status izin akun berhasil diubah.");
-      
     } catch (error: any) {
       setUsers(previousUsers);
       toast.error(error.message || "Gagal memproses perubahan status.");
+    } finally {
+      setIsSubmitting(false);
+      setUserToToggle(null); // Tutup modal
     }
   };
 
@@ -155,27 +166,29 @@ export default function UsersPage() {
     setIsSubmitting(false);
   };
 
-  const handleHardDelete = async (user: UserProfile) => {
-    const confirmText = window.prompt(
-      `PERINGATAN KRITIS!\n\nKetik email pengguna "${user.email}" untuk menghapus permanen akun ini:`
-    );
-
-    if (confirmText !== user.email) {
-      toast.error("Email konfirmasi tidak sesuai. Penghapusan dibatalkan.");
+  const executeHardDelete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userToDelete) return;
+    if (deleteConfirmText !== userToDelete.email) {
+      toast.error("Email konfirmasi tidak sesuai.");
       return;
     }
 
+    setIsSubmitting(true);
     const previousUsers = [...users];
     try {
-      setUsers(prev => prev.filter(u => u.id !== user.id));
-      const result = await hardDeleteUser(user.id, user.role);
+      setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
+      const result = await hardDeleteUser(userToDelete.id, userToDelete.role);
       
       if (!result.success) throw new Error(result.error || "Error saat menghapus permanen.");
       toast.success(result.message || "Pengguna berhasil dihapus permanen.");
-      
     } catch (error: any) {
       setUsers(previousUsers); 
       toast.error(error.message || "Gagal menghapus pengguna.");
+    } finally {
+      setIsSubmitting(false);
+      setUserToDelete(null); // Tutup modal
+      setDeleteConfirmText("");
     }
   };
 
@@ -425,7 +438,10 @@ export default function UsersPage() {
                 <div className="mt-5 flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-4 transition-colors">
                   <select
                     value={user.role}
-                    onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
+                    onChange={(e) => {
+                      // Buka modal konfirmasi ubah role, bukan pakai window.confirm
+                      setRoleChangeData({ user, newRole: e.target.value as UserRole });
+                    }}
                     disabled={
                       currentUserRole !== "super_admin" || 
                       user.id === currentUserAuth?.id || 
@@ -437,7 +453,7 @@ export default function UsersPage() {
                         : user.role === "admin" 
                         ? "border-yellow-200 dark:border-yellow-900 bg-yellow-50 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400" 
                         : "border-teal-200 dark:border-teal-900 bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400"
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    } disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`}
                   >
                     <option value="user" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">User</option>
                     <option value="admin" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">Admin</option>
@@ -464,7 +480,7 @@ export default function UsersPage() {
                     </button>
                     
                     <button 
-                      onClick={() => handleToggleStatus(user)}
+                      onClick={() => setUserToToggle(user)} // Memicu Modal Custom
                       disabled={
                         user.id === currentUserAuth?.id || 
                         (currentUserRole === "admin" && user.role !== "user") ||
@@ -481,7 +497,7 @@ export default function UsersPage() {
                     </button>
 
                     <button 
-                      onClick={() => handleHardDelete(user)}
+                      onClick={() => { setUserToDelete(user); setDeleteConfirmText(""); }} // Memicu Modal Custom
                       disabled={
                         user.id === currentUserAuth?.id || 
                         (currentUserRole === "admin" && user.role !== "user") ||
@@ -499,6 +515,95 @@ export default function UsersPage() {
           ))}
         </div>
       )}
+
+      {/* ====================================================================== */}
+      {/* 🛑 MODAL-MODAL KUSTOM (DIJAMIN 100% BEKERJA DI MOBILE/PWA/WEBVIEW) 🛑 */}
+      {/* ====================================================================== */}
+
+      {/* 1. MODAL KONFIRMASI UBAH STATUS (AKTIF/BLOKIR) */}
+      {userToToggle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl transition-all scale-in-95">
+            <div className="mb-4 flex items-center gap-3">
+              <div className={`p-2 rounded-full ${userToToggle.is_active ? 'bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400' : 'bg-teal-100 text-teal-600 dark:bg-teal-900/50 dark:text-teal-400'}`}>
+                <Power className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Ubah Status Akun</h3>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+              Anda yakin ingin <strong>{userToToggle.is_active ? "memblokir" : "mengaktifkan"}</strong> akses login untuk akun atas nama <strong className="text-gray-900 dark:text-slate-200">{userToToggle.full_name}</strong>?
+            </p>
+            <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
+              <button disabled={isSubmitting} onClick={() => setUserToToggle(null)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Batal</button>
+              <button disabled={isSubmitting} onClick={executeToggleStatus} className={`rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 ${userToToggle.is_active ? 'bg-red-600 hover:bg-red-500' : 'bg-teal-600 hover:bg-teal-500'}`}>
+                {isSubmitting ? "Memproses..." : "Ya, Lanjutkan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. MODAL KONFIRMASI HAPUS PERMANEN */}
+      {userToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 p-6 shadow-2xl transition-all scale-in-95">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="p-2 rounded-full bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold text-red-600 dark:text-red-400">Hapus Permanen</h3>
+            </div>
+            
+            <form onSubmit={executeHardDelete}>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
+                Tindakan ini <strong>tidak dapat dibatalkan</strong>. Ketik email <strong className="text-gray-900 dark:text-slate-200 select-all">{userToDelete.email}</strong> untuk mengkonfirmasi penghapusan:
+              </p>
+              <input 
+                required 
+                type="text" 
+                value={deleteConfirmText} 
+                onChange={(e) => setDeleteConfirmText(e.target.value)} 
+                placeholder="Ketik email pengguna..."
+                className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-200 outline-none focus:border-red-500 transition-colors mb-6" 
+              />
+              <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
+                <button type="button" disabled={isSubmitting} onClick={() => {setUserToDelete(null); setDeleteConfirmText("");}} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Batal</button>
+                <button type="submit" disabled={isSubmitting || deleteConfirmText !== userToDelete.email} className="rounded-md px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                  {isSubmitting ? "Menghapus..." : "Hapus Akun"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3. MODAL KONFIRMASI UBAH ROLE */}
+      {roleChangeData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl transition-all scale-in-95">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="p-2 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
+                <Shield className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Ubah Hak Akses</h3>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+              Anda yakin ingin mengubah tingkat hak akses <strong className="text-gray-900 dark:text-slate-200">{roleChangeData.user.full_name}</strong> menjadi <strong className="text-teal-600 dark:text-teal-400 uppercase">{roleChangeData.newRole}</strong>?
+            </p>
+            <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
+              <button disabled={isSubmitting} onClick={() => setRoleChangeData(null)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Batal</button>
+              <button disabled={isSubmitting} onClick={executeRoleChange} className="rounded-md px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 transition-colors disabled:opacity-50">
+                {isSubmitting ? "Memproses..." : "Ya, Ubah Role"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* ====================================================================== */}
+      {/* MODAL BAWAAN YANG SUDAH ADA (TAMBAH, EDIT, RESET PASSWORD) */}
+      {/* ====================================================================== */}
 
       {/* MODAL: TAMBAH PENGGUNA */}
       {isAddModalOpen && (
