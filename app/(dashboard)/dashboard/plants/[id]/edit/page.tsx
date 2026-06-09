@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/useAuth"; // <-- Tambahkan proteksi Auth
+import { useAuth } from "@/hooks/useAuth"; 
 
 import PlantForm from "@/features/plants/components/PlantForm";
 import { getPlantById } from "@/features/plants/repositories/plant.repository";
@@ -12,7 +12,7 @@ import { Loader2 } from "lucide-react";
 export default function EditPlantPage() {
   const params = useParams();
   const router = useRouter();
-  const { role, isLoading: authLoading } = useAuth(); // <-- Ambil Role User
+  const { role, isLoading: authLoading } = useAuth(); 
 
   const [plant, setPlant] = useState<Plant | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
@@ -39,7 +39,6 @@ export default function EditPlantPage() {
     loadData();
   }, [params.id]);
 
-  // Tampilkan loading spinner saat mengecek auth ATAU memuat data dari Supabase
   if (authLoading || dataLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -48,10 +47,8 @@ export default function EditPlantPage() {
     );
   }
 
-  // Jika yang login adalah user biasa, jangan render form (karena sedang di-redirect keluar)
   if (role === "user") return null;
 
-  // Jika data ID tanaman tidak valid
   if (!plant) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center text-slate-600 dark:text-slate-400 transition-colors">
@@ -67,12 +64,12 @@ export default function EditPlantPage() {
   }
 
   return (
-    <div className="max-w-4xl space-y-6 pb-10 transition-colors duration-300">
+    // PERBAIKAN: Ditambahkan mx-auto (ke tengah), px-4 sm:px-6 lg:px-8 (padding kiri-kanan), dan pt-6 (padding atas)
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10 space-y-6 transition-colors duration-300">
       
       {/* HEADER HALAMAN */}
       <div>
-        {/* PERBAIKAN: text-gray-900 untuk mode terang, dark:text-slate-100 untuk gelap */}
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-slate-100">Edit Tanaman</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-slate-100">Edit Tanaman</h2>
         <p className="mt-1 text-slate-600 dark:text-slate-400">
           Perbarui informasi detail untuk <span className="font-semibold text-gray-900 dark:text-slate-200">{plant.name}</span>.
         </p>

@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation"; // <-- IMPORT ROUTER DITAMBAHKAN
 import { useAuth } from "@/hooks/useAuth";
 import { updateProfileName, updateProfilePassword } from "@/features/profile/actions/profile.actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Save, KeyRound, User as UserIcon, Mail, ShieldAlert, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
-import { createClient } from "@/lib/supabase/client"; 
+import { createClient } from "@/lib/supabase/client";
 
 export default function ProfilePage() {
+  const router = useRouter(); // <-- INISIALISASI ROUTER
   const { user, profile, role, isLoading } = useAuth();
   
   // States untuk Ubah Nama
@@ -52,13 +54,9 @@ export default function ProfilePage() {
       
       if (result.success) {
         toast.success(result.message || "Nama berhasil diperbarui!");
-        toast.loading("Mensinkronisasikan data Sidebar...", { duration: 1500 });
         
-        // AUTO-RELOAD UNTUK UPDATE SIDEBAR & USEAUTH MEMORY
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
-
+        // REFRESH HALUS (TanPA KEDIP) UNTUK MENGUPDATE SIDEBAR
+        router.refresh();
       } else {
         toast.error(result.error || "Gagal memperbarui nama.");
         setFullName(profile?.full_name || ""); // Rollback UI
@@ -92,12 +90,8 @@ export default function ProfilePage() {
         setShowNewPassword(false);
         setShowConfirmPassword(false);
         
-        // OPSIONAL: Auto-reload setelah ganti password agar sesi auth benar-benar fresh
-        toast.loading("Menyegarkan sesi keamanan...", { duration: 1500 });
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
-
+        // REFRESH HALUS UNTUK MENYEGARKAN SESI KEAMANAN
+        router.refresh();
       } else {
         toast.error(result.error || "Gagal mengganti password.");
       }
