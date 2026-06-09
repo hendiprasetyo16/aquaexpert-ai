@@ -59,10 +59,11 @@ export default function UsersPage() {
   }, [currentUserRole]);
 
   // ===================================================================================
-  // PERBAIKAN BUG MOBILE: SEMUA FUNGSI EKSEKUSI KINI MENGGUNAKAN SERVER-FIRST UPDATE
+  // PERBAIKAN BUG MOBILE: SEMUA FUNGSI EKSEKUSI KINI MENGGUNAKAN FORM EVENT NATIVE
   // ===================================================================================
 
-  const executeRoleChange = async () => {
+  const executeRoleChange = async (e: React.FormEvent) => {
+    e.preventDefault(); // Mencegah reload halaman bawaan form
     if (!roleChangeData) return;
     setIsSubmitting(true);
     
@@ -70,31 +71,31 @@ export default function UsersPage() {
       const success = await updateUserRole(roleChangeData.user.id, roleChangeData.newRole);
       if (!success) throw new Error("Database menolak perubahan.");
       
-      // Update UI HANYA setelah server merespon sukses
       setUsers(prev => prev.map(u => u.id === roleChangeData.user.id ? { ...u, role: roleChangeData.newRole } : u));
       toast.success("Role berhasil diubah!");
-      setRoleChangeData(null); // Tutup modal
-    } catch (error) {
+      setRoleChangeData(null); // Tutup modal otomatis jika sukses
+    } catch (error: any) {
+      console.error(error);
       toast.error("Gagal mengubah role.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const executeToggleStatus = async (e?: React.MouseEvent) => {
-    if (e) e.preventDefault();
+  const executeToggleStatus = async (e: React.FormEvent) => {
+    e.preventDefault(); // Wajib agar tombol submit di dalam form tidak me-refresh HP
     if (!userToToggle) return;
     setIsSubmitting(true);
     
     try {
       const result = await toggleUserStatus(userToToggle.id, userToToggle.is_active, userToToggle.role);
-      if (!result.success) throw new Error(result.error || "Error tidak dikenal.");
+      if (!result.success) throw new Error(result.error || "Gagal mengubah status dari database.");
       
-      // Update UI HANYA setelah server merespon sukses
       setUsers(prev => prev.map(u => u.id === userToToggle.id ? { ...u, is_active: !userToToggle.is_active } : u));
       toast.success(result.message || "Status izin akun berhasil diubah.");
-      setUserToToggle(null); // Tutup modal
+      setUserToToggle(null); // Tutup modal jika eksekusi benar-benar berhasil
     } catch (error: any) {
+      console.error(error);
       toast.error(error.message || "Gagal memproses perubahan status.");
     } finally {
       setIsSubmitting(false);
@@ -109,10 +110,9 @@ export default function UsersPage() {
     try {
       const result = await updateUserProfile(selectedUser.id, editNameValue);
       if (result.success) {
-        // Update UI HANYA setelah server merespon sukses
         setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, full_name: editNameValue } : u));
         toast.success(result.message || "Nama pengguna berhasil diperbarui!");
-        setIsEditModalOpen(false); // Tutup modal
+        setIsEditModalOpen(false); 
       } else {
         throw new Error(result.error || "Gagal memperbarui nama pengguna.");
       }
@@ -137,12 +137,12 @@ export default function UsersPage() {
       const result = await hardDeleteUser(userToDelete.id, userToDelete.role);
       if (!result.success) throw new Error(result.error || "Error saat menghapus permanen.");
       
-      // Update UI HANYA setelah server merespon sukses
       setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
       toast.success(result.message || "Pengguna berhasil dihapus permanen.");
-      setUserToDelete(null); // Tutup modal
+      setUserToDelete(null); 
       setDeleteConfirmText("");
     } catch (error: any) {
+      console.error(error);
       toast.error(error.message || "Gagal menghapus pengguna.");
     } finally {
       setIsSubmitting(false);
@@ -535,15 +535,19 @@ export default function UsersPage() {
               </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Ubah Status Akun</h3>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-              Anda yakin ingin <strong>{userToToggle.is_active ? "memblokir" : "mengaktifkan"}</strong> akses login untuk akun atas nama <strong className="text-gray-900 dark:text-slate-200">{userToToggle.full_name}</strong>?
-            </p>
-            <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
-              <button type="button" disabled={isSubmitting} onClick={() => setUserToToggle(null)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Batal</button>
-              <button type="button" disabled={isSubmitting} onClick={(e) => executeToggleStatus(e)} className={`rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 ${userToToggle.is_active ? 'bg-red-600 hover:bg-red-500' : 'bg-teal-600 hover:bg-teal-500'}`}>
-                {isSubmitting ? "Memproses..." : "Ya, Lanjutkan"}
-              </button>
-            </div>
+            
+            {/* KINI MEMAKAI FORM UNTUK MENCEGAH BUG MOBILE */}
+            <form onSubmit={executeToggleStatus}>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                Anda yakin ingin <strong>{userToToggle.is_active ? "memblokir" : "mengaktifkan"}</strong> akses login untuk akun atas nama <strong className="text-gray-900 dark:text-slate-200">{userToToggle.full_name}</strong>?
+              </p>
+              <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
+                <button type="button" disabled={isSubmitting} onClick={() => setUserToToggle(null)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Batal</button>
+                <button type="submit" disabled={isSubmitting} className={`rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 ${userToToggle.is_active ? 'bg-red-600 hover:bg-red-500' : 'bg-teal-600 hover:bg-teal-500'}`}>
+                  {isSubmitting ? "Memproses..." : "Ya, Lanjutkan"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -559,6 +563,7 @@ export default function UsersPage() {
               <h3 className="text-xl font-bold text-red-600 dark:text-red-400">Hapus Permanen</h3>
             </div>
             
+            {/* KINI MEMAKAI FORM UNTUK MENCEGAH BUG MOBILE */}
             <form onSubmit={executeHardDelete}>
               <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
                 Tindakan ini <strong>tidak dapat dibatalkan</strong>. Ketik email <strong className="text-gray-900 dark:text-slate-200 select-all">{userToDelete.email}</strong> untuk mengkonfirmasi penghapusan:
@@ -592,18 +597,23 @@ export default function UsersPage() {
               </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Ubah Hak Akses</h3>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-              Anda yakin ingin mengubah tingkat hak akses <strong className="text-gray-900 dark:text-slate-200">{roleChangeData.user.full_name}</strong> menjadi <strong className="text-teal-600 dark:text-teal-400 uppercase">{roleChangeData.newRole}</strong>?
-            </p>
-            <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
-              <button type="button" disabled={isSubmitting} onClick={() => setRoleChangeData(null)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Batal</button>
-              <button type="button" disabled={isSubmitting} onClick={executeRoleChange} className="rounded-md px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 transition-colors disabled:opacity-50">
-                {isSubmitting ? "Memproses..." : "Ya, Ubah Role"}
-              </button>
-            </div>
+            
+            {/* KINI MEMAKAI FORM UNTUK MENCEGAH BUG MOBILE */}
+            <form onSubmit={executeRoleChange}>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                Anda yakin ingin mengubah tingkat hak akses <strong className="text-gray-900 dark:text-slate-200">{roleChangeData.user.full_name}</strong> menjadi <strong className="text-teal-600 dark:text-teal-400 uppercase">{roleChangeData.newRole}</strong>?
+              </p>
+              <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
+                <button type="button" disabled={isSubmitting} onClick={() => setRoleChangeData(null)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Batal</button>
+                <button type="submit" disabled={isSubmitting} className="rounded-md px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 transition-colors disabled:opacity-50">
+                  {isSubmitting ? "Memproses..." : "Ya, Ubah Role"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
+
 
       {/* ====================================================================== */}
       {/* MODAL BAWAAN YANG SUDAH ADA (TAMBAH, EDIT, RESET PASSWORD) */}
