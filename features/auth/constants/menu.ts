@@ -8,11 +8,13 @@ import {
   Settings,
   Database // <-- Tambahan ikon baru
 } from "lucide-react";
+import { Cpu } from "lucide-react";
 
 export const MENU_BY_ROLE = {
   super_admin: [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { title: "Plant Expert", href: "/dashboard/plants", icon: Leaf },
+    { title: "Plant Expert AI", href: "/dashboard/plant-expert/engine", icon: Cpu, color: "text-green-500" }, // <-- Menu AI dengan ikon CPU
     { title: "Fish Expert", href: "/dashboard/fishes", icon: Fish },
     { title: "Algae Expert", href: "/dashboard/algae", icon: Bug },
     { title: "Disease Expert", href: "/dashboard/diseases", icon: Activity },
@@ -24,6 +26,7 @@ export const MENU_BY_ROLE = {
   admin: [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { title: "Plant Expert", href: "/dashboard/plants", icon: Leaf },
+    { title: "Plant Expert AI", href: "/dashboard/plant-expert/engine", icon: Cpu, color: "text-green-500" },
     { title: "Fish Expert", href: "/dashboard/fishes", icon: Fish },
     { title: "Algae Expert", href: "/dashboard/algae", icon: Bug },
     { title: "Disease Expert", href: "/dashboard/diseases", icon: Activity },
@@ -33,6 +36,7 @@ export const MENU_BY_ROLE = {
   user: [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { title: "Plant Expert", href: "/dashboard/plants", icon: Leaf },
+    { title: "Plant Expert AI", href: "/dashboard/plant-expert/engine", icon: Cpu, color: "text-green-500" },
     { title: "Fish Expert", href: "/dashboard/fishes", icon: Fish },
   ],
 } as const;
