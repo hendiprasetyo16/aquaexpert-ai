@@ -93,41 +93,34 @@ export default function UsersPage() {
 
 const executeToggleStatus = async () => {
     if (!userToToggle) return;
-
-    console.log("STEP 1: BUTTON CLICKED", userToToggle.email);
     setIsSubmitting(true);
     
     try {
-      console.log("STEP 2: GET TOKEN");
+      // 1. Cek apakah tombol merespon
+      alert("STEP 1: Tombol diklik. Mulai baca Token...");
+      
       const token = await getAccessToken();
-      console.log("TOKEN VALUE:", token ? "ADA (Disembunyikan)" : "TIDAK ADA/NULL/UNDEFINED");
-
-      console.log("STEP 3: CALL SERVER ACTION");
-      const result = await toggleUserStatus(
-        userToToggle.id, 
-        userToToggle.is_active, 
-        userToToggle.role, 
-        token
-      );
-
-      console.log("STEP 4: SERVER RESPONSE", result);
-
-      if (!result.success) {
-        throw new Error(result.error);
-      }
+      
+      // 2. Cek apakah HP berhasil membaca sesi/cookie
+      alert("STEP 2: Token = " + (token ? "ADA" : "KOSONG/GAGAL BACA"));
+      
+      // 3. Cek pengiriman ke server
+      alert("STEP 3: Mengirim perintah ke Server Action...");
+      const result = await toggleUserStatus(userToToggle.id, userToToggle.is_active, userToToggle.role, token);
+      
+      // 4. Cek balasan dari server
+      alert("STEP 4: Balasan Server = " + JSON.stringify(result));
+      
+      if (!result.success) throw new Error(result.error || "Gagal mengubah status dari database.");
       
       toast.success(result.message || "Status izin akun berhasil diubah.");
-      
-      console.log("STEP 5: RELOAD DATA");
-      await loadUsersData();
-      
-      console.log("STEP 6: CLOSE MODAL");
+      await loadUsersData(); 
       setUserToToggle(null); 
     } catch (error: any) {
-      console.error("CLIENT ERROR:", error);
-      toast.error(error.message || "Gagal memproses perubahan status.");
+      // 5. TANGKAP ERROR GAIB
+      alert("💥 ERROR DITANGKAP: " + error.message);
+      console.error(error);
     } finally {
-      console.log("STEP 7: FINISH");
       setIsSubmitting(false);
     }
   };
