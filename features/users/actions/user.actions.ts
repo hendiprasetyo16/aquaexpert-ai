@@ -23,42 +23,48 @@ export type ActionResult = {
 };
 
 // =====================================================
-// CEK HAK AKSES ADMIN / SUPER ADMIN (BUG MOBILE FIXED)
+// CEK HAK AKSES (BUG MOBILE PWA COOKIE FIXED)
 // =====================================================
-async function verifyAdminAccess() {
-  const cookieStore = await cookies();
+async function verifyAdminAccess(token?: string) {
+  let user;
 
-  const supabaseUser = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
+  if (token) {
+    // BACKUP UNTUK HP/PWA: Verifikasi via JWT Token langsung
+    const supabaseAnon = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    const { data, error } = await supabaseAnon.auth.getUser(token);
+    if (error || !data.user) throw new Error("Sesi token tidak valid dari perangkat ini.");
+    user = data.user;
+  } else {
+    // METODE STANDARD: Verifikasi via Cookies
+    const cookieStore = await cookies();
+    const supabaseUser = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll(); },
+          setAll() {},
         },
-        setAll() {},
-      },
+      }
+    );
+    const { data, error } = await supabaseUser.auth.getUser();
+    if (error || !data.user) {
+      throw new Error("Sesi tidak terbaca oleh server. Coba relogin.");
     }
-  );
-
-  const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
-
-  // Memaksa error muncul ke UI jika HP gagal membaca cookie
-  if (authError || !user) {
-    throw new Error("Sesi tidak valid atau telah kedaluwarsa. Silakan relogin dari perangkat ini.");
+    user = data.user;
   }
 
-  const { data: profile, error: profileError } = await supabaseUser
+  // Bypass RLS untuk mengecek role asli menggunakan Admin Key
+  const { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  if (profileError || !profile) {
-    throw new Error("Gagal memverifikasi profil pengguna di database.");
-  }
-
-  if (profile.role !== "super_admin" && profile.role !== "admin") {
+  if (!profile || (profile.role !== "super_admin" && profile.role !== "admin")) {
     throw new Error("Akses ditolak. Anda bukan Admin.");
   }
 
@@ -73,12 +79,12 @@ async function verifyAdminAccess() {
 // =====================================================
 export async function updateUserRoleAction(
   userId: string,
-  newRole: UserRole
+  newRole: UserRole,
+  token?: string
 ): Promise<ActionResult> {
   try {
-    const currentUser = await verifyAdminAccess();
+    const currentUser = await verifyAdminAccess(token);
     
-    // Hanya Super Admin yang boleh mengubah role
     if (currentUser.role !== "super_admin") {
       throw new Error("Hanya Super Admin yang berhak mengubah jabatan.");
     }
@@ -95,15 +101,9 @@ export async function updateUserRoleAction(
 
     if (error) throw new Error(error.message);
 
-    return {
-      success: true,
-      message: `Jabatan berhasil diubah menjadi ${newRole.toUpperCase()}.`,
-    };
+    return { success: true, message: `Jabatan diubah menjadi ${newRole.toUpperCase()}.` };
   } catch (error: any) {
-    return {
-      success: false,
-      error: error?.message || "Gagal mengubah role pengguna.",
-    };
+    return { success: false, error: error?.message || "Gagal mengubah role pengguna." };
   }
 }
 
@@ -113,10 +113,11 @@ export async function updateUserRoleAction(
 export async function toggleUserStatus(
   userId: string,
   currentStatus: boolean,
-  targetRole: UserRole
+  targetRole: UserRole,
+  token?: string
 ): Promise<ActionResult> {
   try {
-    const currentUser = await verifyAdminAccess();
+    const currentUser = await verifyAdminAccess(token);
 
     if (currentUser.role === "admin" && targetRole !== "user") {
       throw new Error("Admin hanya dapat mengelola user biasa.");
@@ -134,10 +135,7 @@ export async function toggleUserStatus(
       message: currentStatus ? "Pengguna berhasil diblokir." : "Pengguna berhasil diaktifkan.",
     };
   } catch (error: any) {
-    return {
-      success: false,
-      error: error?.message || "Gagal mengubah status pengguna.",
-    };
+    return { success: false, error: error?.message || "Gagal mengubah status pengguna." };
   }
 }
 
@@ -149,14 +147,11 @@ export async function createUser(data: {
   password: string;
   full_name: string;
   role: UserRole;
-}): Promise<ActionResult> {
+}, token?: string): Promise<ActionResult> {
   try {
-    const currentUser = await verifyAdminAccess();
+    const currentUser = await verifyAdminAccess(token);
 
-    if (!data.email.includes("@")) {
-      throw new Error("Format email tidak valid.");
-    }
-
+    if (!data.email.includes("@")) throw new Error("Format email tidak valid.");
     if (currentUser.role === "admin" && data.role !== "user") {
       throw new Error("Admin hanya dapat membuat user biasa.");
     }
@@ -170,73 +165,47 @@ export async function createUser(data: {
     if (authError) throw new Error(authError.message);
     if (!authData.user) throw new Error("Gagal membuat akun.");
 
-    const { error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .insert([
-        {
-          id: authData.user.id,
-          email: data.email,
-          full_name: data.full_name,
-          role: data.role,
-          is_active: true,
-        },
-      ]);
+    const { error: profileError } = await supabaseAdmin.from("profiles").insert([{
+      id: authData.user.id,
+      email: data.email,
+      full_name: data.full_name,
+      role: data.role,
+      is_active: true,
+    }]);
 
     if (profileError) {
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       throw new Error(profileError.message);
     }
 
-    return {
-      success: true,
-      message: "Pengguna berhasil ditambahkan.",
-    };
+    return { success: true, message: "Pengguna berhasil ditambahkan." };
   } catch (error: any) {
-    return {
-      success: false,
-      error: error?.message || "Terjadi kesalahan saat membuat user.",
-    };
+    return { success: false, error: error?.message || "Terjadi kesalahan saat membuat user." };
   }
 }
 
 // =====================================================
-// EDIT PROFILE (NAMA LENGKAP)
+// EDIT PROFILE
 // =====================================================
 export async function updateUserProfile(
   userId: string,
-  newFullName: string
+  newFullName: string,
+  token?: string
 ): Promise<ActionResult> {
   try {
-    const currentUser = await verifyAdminAccess();
+    const currentUser = await verifyAdminAccess(token);
 
     if (currentUser.role === "admin") {
-      const { data: targetUser } = await supabaseAdmin
-        .from("profiles")
-        .select("role")
-        .eq("id", userId)
-        .single();
-        
-      if (targetUser?.role !== "user") {
-        throw new Error("Admin hanya dapat mengubah data user biasa.");
-      }
+      const { data: targetUser } = await supabaseAdmin.from("profiles").select("role").eq("id", userId).single();
+      if (targetUser?.role !== "user") throw new Error("Admin hanya dapat mengubah data user biasa.");
     }
 
-    const { error } = await supabaseAdmin
-      .from("profiles")
-      .update({ full_name: newFullName })
-      .eq("id", userId);
-
+    const { error } = await supabaseAdmin.from("profiles").update({ full_name: newFullName }).eq("id", userId);
     if (error) throw new Error(error.message);
 
-    return {
-      success: true,
-      message: "Profil berhasil diperbarui.",
-    };
+    return { success: true, message: "Profil berhasil diperbarui." };
   } catch (error: any) {
-    return {
-      success: false,
-      error: error?.message || "Gagal memperbarui profil pengguna.",
-    };
+    return { success: false, error: error?.message || "Gagal memperbarui profil pengguna." };
   }
 }
 
@@ -246,34 +215,23 @@ export async function updateUserProfile(
 export async function resetUserPassword(
   userId: string,
   newPassword: string,
-  targetRole: UserRole
+  targetRole: UserRole,
+  token?: string
 ): Promise<ActionResult> {
   try {
-    const currentUser = await verifyAdminAccess();
+    const currentUser = await verifyAdminAccess(token);
 
-    if (newPassword.length < 6) {
-      throw new Error("Password minimal 6 karakter.");
-    }
-
+    if (newPassword.length < 6) throw new Error("Password minimal 6 karakter.");
     if (currentUser.role === "admin" && targetRole !== "user") {
       throw new Error("Admin hanya dapat mereset password user biasa.");
     }
 
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-      password: newPassword,
-    });
-
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: newPassword });
     if (error) throw new Error(error.message);
 
-    return {
-      success: true,
-      message: "Password berhasil di-reset.",
-    };
+    return { success: true, message: "Password berhasil di-reset." };
   } catch (error: any) {
-    return {
-      success: false,
-      error: error?.message || "Gagal mereset password.",
-    };
+    return { success: false, error: error?.message || "Gagal mereset password." };
   }
 }
 
@@ -282,27 +240,21 @@ export async function resetUserPassword(
 // =====================================================
 export async function hardDeleteUser(
   userId: string,
-  targetRole: UserRole
+  targetRole: UserRole,
+  token?: string
 ): Promise<ActionResult> {
   try {
-    const currentUser = await verifyAdminAccess();
+    const currentUser = await verifyAdminAccess(token);
 
     if (currentUser.role === "admin" && targetRole !== "user") {
       throw new Error("Admin hanya dapat menghapus permanen user biasa.");
     }
 
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
-
     if (error) throw new Error(error.message);
 
-    return {
-      success: true,
-      message: "Akun pengguna berhasil dihapus secara permanen.",
-    };
+    return { success: true, message: "Akun pengguna berhasil dihapus secara permanen." };
   } catch (error: any) {
-    return {
-      success: false,
-      error: error?.message || "Gagal menghapus pengguna secara permanen.",
-    };
+    return { success: false, error: error?.message || "Gagal menghapus pengguna secara permanen." };
   }
 }
