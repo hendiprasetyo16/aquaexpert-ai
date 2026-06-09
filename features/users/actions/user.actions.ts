@@ -23,7 +23,7 @@ export type ActionResult = {
 };
 
 // =====================================================
-// CEK HAK AKSES ADMIN / SUPER ADMIN
+// CEK HAK AKSES ADMIN / SUPER ADMIN (BUG MOBILE FIXED)
 // =====================================================
 async function verifyAdminAccess() {
   const cookieStore = await cookies();
@@ -41,26 +41,104 @@ async function verifyAdminAccess() {
     }
   );
 
-  const { data: { user } } = await supabaseUser.auth.getUser();
+  const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
 
-  if (!user) {
-    throw new Error("Tidak ada sesi yang aktif.");
+  // Memaksa error muncul ke UI jika HP gagal membaca cookie
+  if (authError || !user) {
+    throw new Error("Sesi tidak valid atau telah kedaluwarsa. Silakan relogin dari perangkat ini.");
   }
 
-  const { data: profile } = await supabaseUser
+  const { data: profile, error: profileError } = await supabaseUser
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  if (!profile || (profile.role !== "super_admin" && profile.role !== "admin")) {
-    throw new Error("Akses ditolak.");
+  if (profileError || !profile) {
+    throw new Error("Gagal memverifikasi profil pengguna di database.");
+  }
+
+  if (profile.role !== "super_admin" && profile.role !== "admin") {
+    throw new Error("Akses ditolak. Anda bukan Admin.");
   }
 
   return {
     userId: user.id,
     role: profile.role as UserRole,
   };
+}
+
+// =====================================================
+// UBAH ROLE (KINI 100% AMAN DI SERVER)
+// =====================================================
+export async function updateUserRoleAction(
+  userId: string,
+  newRole: UserRole
+): Promise<ActionResult> {
+  try {
+    const currentUser = await verifyAdminAccess();
+    
+    // Hanya Super Admin yang boleh mengubah role
+    if (currentUser.role !== "super_admin") {
+      throw new Error("Hanya Super Admin yang berhak mengubah jabatan.");
+    }
+
+    const allowedRoles: UserRole[] = ["super_admin", "admin", "user"];
+    if (!allowedRoles.includes(newRole)) {
+      throw new Error("Role tidak valid!");
+    }
+
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({ role: newRole })
+      .eq("id", userId);
+
+    if (error) throw new Error(error.message);
+
+    return {
+      success: true,
+      message: `Jabatan berhasil diubah menjadi ${newRole.toUpperCase()}.`,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error?.message || "Gagal mengubah role pengguna.",
+    };
+  }
+}
+
+// =====================================================
+// ENABLE / DISABLE USER
+// =====================================================
+export async function toggleUserStatus(
+  userId: string,
+  currentStatus: boolean,
+  targetRole: UserRole
+): Promise<ActionResult> {
+  try {
+    const currentUser = await verifyAdminAccess();
+
+    if (currentUser.role === "admin" && targetRole !== "user") {
+      throw new Error("Admin hanya dapat mengelola user biasa.");
+    }
+
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({ is_active: !currentStatus })
+      .eq("id", userId);
+
+    if (error) throw new Error(error.message);
+
+    return {
+      success: true,
+      message: currentStatus ? "Pengguna berhasil diblokir." : "Pengguna berhasil diaktifkan.",
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error?.message || "Gagal mengubah status pengguna.",
+    };
+  }
 }
 
 // =====================================================
@@ -163,40 +241,6 @@ export async function updateUserProfile(
 }
 
 // =====================================================
-// ENABLE / DISABLE USER
-// =====================================================
-export async function toggleUserStatus(
-  userId: string,
-  currentStatus: boolean,
-  targetRole: UserRole
-): Promise<ActionResult> {
-  try {
-    const currentUser = await verifyAdminAccess();
-
-    if (currentUser.role === "admin" && targetRole !== "user") {
-      throw new Error("Admin hanya dapat mengelola user biasa.");
-    }
-
-    const { error } = await supabaseAdmin
-      .from("profiles")
-      .update({ is_active: !currentStatus })
-      .eq("id", userId);
-
-    if (error) throw new Error(error.message);
-
-    return {
-      success: true,
-      message: currentStatus ? "Pengguna berhasil dinonaktifkan." : "Pengguna berhasil diaktifkan.",
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error?.message || "Gagal mengubah status pengguna.",
-    };
-  }
-}
-
-// =====================================================
 // RESET PASSWORD
 // =====================================================
 export async function resetUserPassword(
@@ -234,7 +278,7 @@ export async function resetUserPassword(
 }
 
 // =====================================================
-// HARD DELETE USER PERMANENTLY (TAMBAHAN BARU)
+// HARD DELETE USER PERMANENTLY
 // =====================================================
 export async function hardDeleteUser(
   userId: string,
@@ -243,13 +287,10 @@ export async function hardDeleteUser(
   try {
     const currentUser = await verifyAdminAccess();
 
-    // HIERARKI KETAT: Admin biasa tidak boleh menghapus siapa pun selain "user"
     if (currentUser.role === "admin" && targetRole !== "user") {
       throw new Error("Admin hanya dapat menghapus permanen user biasa.");
     }
 
-    // Menghapus user langsung dari Supabase Auth System
-    // Hal ini secara otomatis akan memutus akses login mereka selamanya.
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (error) throw new Error(error.message);
