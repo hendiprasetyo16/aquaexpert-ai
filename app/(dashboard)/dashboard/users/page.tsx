@@ -97,12 +97,14 @@ const executeToggleStatus = async () => {
 
     try {
       // 2. Kita tidak pakai window.confirm untuk menghindari blokir
+      const token = await getAccessToken();
+
       const result = await toggleUserStatus(
         userToToggle.id,
         userToToggle.is_active,
-        userToToggle.role
+        userToToggle.role,
+        token
       );
-
       console.log("Hasil dari Server:", result);
 
       if (!result.success) {
