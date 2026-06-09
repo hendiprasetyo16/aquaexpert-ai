@@ -59,11 +59,10 @@ export default function UsersPage() {
   }, [currentUserRole]);
 
   // ===================================================================================
-  // PERBAIKAN BUG MOBILE: SEMUA FUNGSI EKSEKUSI KINI MENGGUNAKAN FORM EVENT NATIVE
+  // PERBAIKAN BUG MOBILE: SEMUA FUNGSI EKSEKUSI TANPA EVENT FORM (PURE ASYNC)
   // ===================================================================================
 
-  const executeRoleChange = async (e: React.FormEvent) => {
-    e.preventDefault(); // Mencegah reload halaman bawaan form
+  const executeRoleChange = async () => {
     if (!roleChangeData) return;
     setIsSubmitting(true);
     
@@ -73,17 +72,15 @@ export default function UsersPage() {
       
       setUsers(prev => prev.map(u => u.id === roleChangeData.user.id ? { ...u, role: roleChangeData.newRole } : u));
       toast.success("Role berhasil diubah!");
-      setRoleChangeData(null); // Tutup modal otomatis jika sukses
-    } catch (error: any) {
-      console.error(error);
+      setRoleChangeData(null); 
+    } catch (error) {
       toast.error("Gagal mengubah role.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const executeToggleStatus = async (e: React.FormEvent) => {
-    e.preventDefault(); // Wajib agar tombol submit di dalam form tidak me-refresh HP
+  const executeToggleStatus = async () => {
     if (!userToToggle) return;
     setIsSubmitting(true);
     
@@ -93,7 +90,7 @@ export default function UsersPage() {
       
       setUsers(prev => prev.map(u => u.id === userToToggle.id ? { ...u, is_active: !userToToggle.is_active } : u));
       toast.success(result.message || "Status izin akun berhasil diubah.");
-      setUserToToggle(null); // Tutup modal jika eksekusi benar-benar berhasil
+      setUserToToggle(null); 
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || "Gagal memproses perubahan status.");
@@ -102,30 +99,7 @@ export default function UsersPage() {
     }
   };
 
-  const handleEditProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedUser) return;
-    setIsSubmitting(true);
-
-    try {
-      const result = await updateUserProfile(selectedUser.id, editNameValue);
-      if (result.success) {
-        setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, full_name: editNameValue } : u));
-        toast.success(result.message || "Nama pengguna berhasil diperbarui!");
-        setIsEditModalOpen(false); 
-      } else {
-        throw new Error(result.error || "Gagal memperbarui nama pengguna.");
-      }
-    } catch (error: any) {
-      console.error(error);
-      toast.error(error.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const executeHardDelete = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeHardDelete = async () => {
     if (!userToDelete) return;
     if (deleteConfirmText !== userToDelete.email) {
       toast.error("Email konfirmasi tidak sesuai.");
@@ -150,6 +124,28 @@ export default function UsersPage() {
   };
 
   // ===================================================================================
+
+  const handleEditProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+    setIsSubmitting(true);
+
+    try {
+      const result = await updateUserProfile(selectedUser.id, editNameValue);
+      if (result.success) {
+        setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, full_name: editNameValue } : u));
+        toast.success(result.message || "Nama pengguna berhasil diperbarui!");
+        setIsEditModalOpen(false); 
+      } else {
+        throw new Error(result.error || "Gagal memperbarui nama pengguna.");
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -484,7 +480,7 @@ export default function UsersPage() {
                     
                     <button 
                       type="button"
-                      onClick={() => setUserToToggle(user)} // Memicu Modal Custom
+                      onClick={() => setUserToToggle(user)} 
                       disabled={
                         user.id === currentUserAuth?.id || 
                         (currentUserRole === "admin" && user.role !== "user") ||
@@ -502,7 +498,7 @@ export default function UsersPage() {
 
                     <button 
                       type="button"
-                      onClick={() => { setUserToDelete(user); setDeleteConfirmText(""); }} // Memicu Modal Custom
+                      onClick={() => { setUserToDelete(user); setDeleteConfirmText(""); }} 
                       disabled={
                         user.id === currentUserAuth?.id || 
                         (currentUserRole === "admin" && user.role !== "user") ||
@@ -527,7 +523,7 @@ export default function UsersPage() {
 
       {/* 1. MODAL KONFIRMASI UBAH STATUS (AKTIF/BLOKIR) */}
       {userToToggle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
           <div className="w-full max-w-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl transition-all scale-in-95">
             <div className="mb-4 flex items-center gap-3">
               <div className={`p-2 rounded-full ${userToToggle.is_active ? 'bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400' : 'bg-teal-100 text-teal-600 dark:bg-teal-900/50 dark:text-teal-400'}`}>
@@ -536,25 +532,34 @@ export default function UsersPage() {
               <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Ubah Status Akun</h3>
             </div>
             
-            {/* KINI MEMAKAI FORM UNTUK MENCEGAH BUG MOBILE */}
-            <form onSubmit={executeToggleStatus}>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-                Anda yakin ingin <strong>{userToToggle.is_active ? "memblokir" : "mengaktifkan"}</strong> akses login untuk akun atas nama <strong className="text-gray-900 dark:text-slate-200">{userToToggle.full_name}</strong>?
-              </p>
-              <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
-                <button type="button" disabled={isSubmitting} onClick={() => setUserToToggle(null)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Batal</button>
-                <button type="submit" disabled={isSubmitting} className={`rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 ${userToToggle.is_active ? 'bg-red-600 hover:bg-red-500' : 'bg-teal-600 hover:bg-teal-500'}`}>
-                  {isSubmitting ? "Memproses..." : "Ya, Lanjutkan"}
-                </button>
-              </div>
-            </form>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+              Anda yakin ingin <strong>{userToToggle.is_active ? "memblokir" : "mengaktifkan"}</strong> akses login untuk akun atas nama <strong className="text-gray-900 dark:text-slate-200">{userToToggle.full_name}</strong>?
+            </p>
+            <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
+              <button 
+                type="button" 
+                disabled={isSubmitting} 
+                onClick={() => setUserToToggle(null)} 
+                className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                type="button" 
+                disabled={isSubmitting} 
+                onClick={executeToggleStatus} 
+                className={`rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 ${userToToggle.is_active ? 'bg-red-600 hover:bg-red-500' : 'bg-teal-600 hover:bg-teal-500'}`}
+              >
+                {isSubmitting ? "Memproses..." : "Ya, Lanjutkan"}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* 2. MODAL KONFIRMASI HAPUS PERMANEN */}
       {userToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
           <div className="w-full max-w-sm rounded-xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 p-6 shadow-2xl transition-all scale-in-95">
             <div className="mb-4 flex items-center gap-3">
               <div className="p-2 rounded-full bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400">
@@ -563,33 +568,42 @@ export default function UsersPage() {
               <h3 className="text-xl font-bold text-red-600 dark:text-red-400">Hapus Permanen</h3>
             </div>
             
-            {/* KINI MEMAKAI FORM UNTUK MENCEGAH BUG MOBILE */}
-            <form onSubmit={executeHardDelete}>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
-                Tindakan ini <strong>tidak dapat dibatalkan</strong>. Ketik email <strong className="text-gray-900 dark:text-slate-200 select-all">{userToDelete.email}</strong> untuk mengkonfirmasi penghapusan:
-              </p>
-              <input 
-                required 
-                type="text" 
-                value={deleteConfirmText} 
-                onChange={(e) => setDeleteConfirmText(e.target.value)} 
-                placeholder="Ketik email pengguna..."
-                className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-200 outline-none focus:border-red-500 transition-colors mb-6" 
-              />
-              <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
-                <button type="button" disabled={isSubmitting} onClick={() => {setUserToDelete(null); setDeleteConfirmText("");}} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Batal</button>
-                <button type="submit" disabled={isSubmitting || deleteConfirmText !== userToDelete.email} className="rounded-md px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                  {isSubmitting ? "Menghapus..." : "Hapus Akun"}
-                </button>
-              </div>
-            </form>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
+              Tindakan ini <strong>tidak dapat dibatalkan</strong>. Ketik email <strong className="text-gray-900 dark:text-slate-200 select-all">{userToDelete.email}</strong> untuk mengkonfirmasi penghapusan:
+            </p>
+            <input 
+              required 
+              type="text" 
+              value={deleteConfirmText} 
+              onChange={(e) => setDeleteConfirmText(e.target.value)} 
+              placeholder="Ketik email pengguna..."
+              className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-200 outline-none focus:border-red-500 transition-colors mb-6" 
+            />
+            <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
+              <button 
+                type="button" 
+                disabled={isSubmitting} 
+                onClick={() => {setUserToDelete(null); setDeleteConfirmText("");}} 
+                className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                type="button" 
+                disabled={isSubmitting || deleteConfirmText !== userToDelete.email} 
+                onClick={executeHardDelete}
+                className="rounded-md px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? "Menghapus..." : "Hapus Akun"}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* 3. MODAL KONFIRMASI UBAH ROLE */}
       {roleChangeData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
           <div className="w-full max-w-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl transition-all scale-in-95">
             <div className="mb-4 flex items-center gap-3">
               <div className="p-2 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
@@ -598,22 +612,30 @@ export default function UsersPage() {
               <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Ubah Hak Akses</h3>
             </div>
             
-            {/* KINI MEMAKAI FORM UNTUK MENCEGAH BUG MOBILE */}
-            <form onSubmit={executeRoleChange}>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-                Anda yakin ingin mengubah tingkat hak akses <strong className="text-gray-900 dark:text-slate-200">{roleChangeData.user.full_name}</strong> menjadi <strong className="text-teal-600 dark:text-teal-400 uppercase">{roleChangeData.newRole}</strong>?
-              </p>
-              <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
-                <button type="button" disabled={isSubmitting} onClick={() => setRoleChangeData(null)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Batal</button>
-                <button type="submit" disabled={isSubmitting} className="rounded-md px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 transition-colors disabled:opacity-50">
-                  {isSubmitting ? "Memproses..." : "Ya, Ubah Role"}
-                </button>
-              </div>
-            </form>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+              Anda yakin ingin mengubah tingkat hak akses <strong className="text-gray-900 dark:text-slate-200">{roleChangeData.user.full_name}</strong> menjadi <strong className="text-teal-600 dark:text-teal-400 uppercase">{roleChangeData.newRole}</strong>?
+            </p>
+            <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
+              <button 
+                type="button" 
+                disabled={isSubmitting} 
+                onClick={() => setRoleChangeData(null)} 
+                className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                type="button" 
+                disabled={isSubmitting} 
+                onClick={executeRoleChange} 
+                className="rounded-md px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 transition-colors disabled:opacity-50"
+              >
+                {isSubmitting ? "Memproses..." : "Ya, Ubah Role"}
+              </button>
+            </div>
           </div>
         </div>
       )}
-
 
       {/* ====================================================================== */}
       {/* MODAL BAWAAN YANG SUDAH ADA (TAMBAH, EDIT, RESET PASSWORD) */}
@@ -621,7 +643,7 @@ export default function UsersPage() {
 
       {/* MODAL: TAMBAH PENGGUNA */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-slate-950/80 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-slate-950/80 p-4 backdrop-blur-sm overflow-y-auto">
           <div className="w-full max-w-md rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl transition-all">
             <div className="mb-6 flex items-center justify-between">
               <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Tambah Pengguna Baru</h3>
@@ -680,7 +702,7 @@ export default function UsersPage() {
 
       {/* MODAL: UBAH PROFIL */}
       {isEditModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-slate-950/80 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-slate-950/80 p-4 backdrop-blur-sm overflow-y-auto">
           <div className="w-full max-w-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl transition-all">
             <div className="mb-6 flex items-center justify-between">
               <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Ubah Profil Pengguna</h3>
@@ -703,7 +725,7 @@ export default function UsersPage() {
 
       {/* MODAL: RESET PASSWORD */}
       {isResetModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-slate-950/80 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 dark:bg-slate-950/80 p-4 backdrop-blur-sm overflow-y-auto">
           <div className="w-full max-w-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl transition-all">
             <div className="mb-6 flex items-center justify-between">
               <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Reset Password</h3>
