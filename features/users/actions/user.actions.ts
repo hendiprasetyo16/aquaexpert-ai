@@ -116,44 +116,12 @@ export async function toggleUserStatus(
   targetRole: UserRole,
   token?: string
 ): Promise<ActionResult> {
-  try {
-    console.log("=== TOGGLE USER STATUS START ===");
-    console.log("userId:", userId);
-    console.log("currentStatus:", currentStatus);
-    console.log("targetRole:", targetRole);
-    console.log("token exists:", !!token);
-
-    const currentUser = await verifyAdminAccess(token);
-    console.log("currentUser Verified:", currentUser);
-
-    if (currentUser.role === "admin" && targetRole !== "user") {
-      throw new Error("Admin hanya dapat mengelola user biasa.");
-    }
-
-    console.log("UPDATE DATABASE START");
-    const { error } = await supabaseAdmin
-      .from("profiles")
-      .update({ is_active: !currentStatus })
-      .eq("id", userId);
-    console.log("UPDATE DATABASE FINISH");
-
-    if (error) {
-      console.error("SUPABASE ERROR:", error);
-      throw new Error(error.message);
-    }
-
-    console.log("=== SUCCESS ===");
-    return {
-      success: true,
-      message: currentStatus ? "Pengguna berhasil diblokir." : "Pengguna berhasil diaktifkan.",
-    };
-  } catch (error: any) {
-    console.error("TOGGLE SERVER ERROR:", error);
-    return {
-      success: false,
-      error: error?.message || "Gagal mengubah status pengguna.",
-    };
-  }
+  console.log("=== SERVER ACTION CONNECTED DARI HP ===");
+  
+  return {
+    success: true,
+    message: "TEST BERHASIL: SERVER ACTION JALAN!"
+  };
 }
 
 // =====================================================

@@ -93,33 +93,36 @@ export default function UsersPage() {
 
 const executeToggleStatus = async () => {
     if (!userToToggle) return;
+
+    alert("STEP 1: TOMBOL DIKLIK");
     setIsSubmitting(true);
-    
+
     try {
-      // 1. Cek apakah tombol merespon
-      alert("STEP 1: Tombol diklik. Mulai baca Token...");
-      
-      const token = await getAccessToken();
-      
-      // 2. Cek apakah HP berhasil membaca sesi/cookie
-      alert("STEP 2: Token = " + (token ? "ADA" : "KOSONG/GAGAL BACA"));
-      
-      // 3. Cek pengiriman ke server
-      alert("STEP 3: Mengirim perintah ke Server Action...");
-      const result = await toggleUserStatus(userToToggle.id, userToToggle.is_active, userToToggle.role, token);
-      
-      // 4. Cek balasan dari server
-      alert("STEP 4: Balasan Server = " + JSON.stringify(result));
-      
-      if (!result.success) throw new Error(result.error || "Gagal mengubah status dari database.");
-      
-      toast.success(result.message || "Status izin akun berhasil diubah.");
-      await loadUsersData(); 
-      setUserToToggle(null); 
-    } catch (error: any) {
-      // 5. TANGKAP ERROR GAIB
-      alert("💥 ERROR DITANGKAP: " + error.message);
-      console.error(error);
+      alert("STEP 2: MEMANGGIL SERVER ACTION...");
+
+      const result = await toggleUserStatus(
+        userToToggle.id,
+        userToToggle.is_active,
+        userToToggle.role
+      );
+
+      alert("STEP 3: SERVER MERESPON\n\n" + JSON.stringify(result));
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      toast.success(result.message || "Test Sukses");
+      setUserToToggle(null); // Tutup modal
+    } catch (error) {
+      console.error("CLIENT ERROR:", error);
+      alert(
+        "💥 ERROR DITANGKAP:\n" +
+        (error instanceof Error ? error.message : "Terjadi kesalahan")
+      );
+      toast.error(
+        error instanceof Error ? error.message : "Terjadi kesalahan"
+      );
     } finally {
       setIsSubmitting(false);
     }
