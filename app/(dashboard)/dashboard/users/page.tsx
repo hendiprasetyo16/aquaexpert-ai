@@ -91,23 +91,43 @@ export default function UsersPage() {
     }
   };
 
-  const executeToggleStatus = async () => {
+const executeToggleStatus = async () => {
     if (!userToToggle) return;
+
+    console.log("STEP 1: BUTTON CLICKED", userToToggle.email);
     setIsSubmitting(true);
     
     try {
+      console.log("STEP 2: GET TOKEN");
       const token = await getAccessToken();
-      const result = await toggleUserStatus(userToToggle.id, userToToggle.is_active, userToToggle.role, token);
-      
-      if (!result.success) throw new Error(result.error || "Gagal mengubah status dari database.");
+      console.log("TOKEN VALUE:", token ? "ADA (Disembunyikan)" : "TIDAK ADA/NULL/UNDEFINED");
+
+      console.log("STEP 3: CALL SERVER ACTION");
+      const result = await toggleUserStatus(
+        userToToggle.id, 
+        userToToggle.is_active, 
+        userToToggle.role, 
+        token
+      );
+
+      console.log("STEP 4: SERVER RESPONSE", result);
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
       
       toast.success(result.message || "Status izin akun berhasil diubah.");
-      await loadUsersData(); // MENCEGAH UI BOHONG
+      
+      console.log("STEP 5: RELOAD DATA");
+      await loadUsersData();
+      
+      console.log("STEP 6: CLOSE MODAL");
       setUserToToggle(null); 
     } catch (error: any) {
-      console.error(error);
+      console.error("CLIENT ERROR:", error);
       toast.error(error.message || "Gagal memproses perubahan status.");
     } finally {
+      console.log("STEP 7: FINISH");
       setIsSubmitting(false);
     }
   };
