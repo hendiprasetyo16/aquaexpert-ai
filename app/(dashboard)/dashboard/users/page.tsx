@@ -89,39 +89,65 @@ export default function UsersPage() {
   };
 
 const executeToggleStatus = async () => {
-    if (!userToToggle) return;
+  if (!userToToggle) return;
 
-    // 1. Log ini akan muncul di inspektor HP jika tombol diklik
-    console.log("Tombol diklik untuk user:", userToToggle.id);
-    setIsSubmitting(true);
+  console.log("STEP 1 - BUTTON CLICK");
+  alert("STEP 1 - BUTTON CLICK");
 
-    try {
-      // 2. Kita tidak pakai window.confirm untuk menghindari blokir
-      const token = await getAccessToken();
+  setIsSubmitting(true);
 
-      const result = await toggleUserStatus(
-        userToToggle.id,
-        userToToggle.is_active,
-        userToToggle.role,
-        token
-      );
-      console.log("Hasil dari Server:", result);
+  try {
+    console.log("STEP 2 - GET TOKEN");
+    alert("STEP 2 - GET TOKEN");
 
-      if (!result.success) {
-        throw new Error(result.error);
-      }
+    const token = await getAccessToken();
 
-      toast.success(result.message || "Berhasil");
-      await loadUsersData(); // UI sinkron dengan database
-      setUserToToggle(null); // Tutup modal
+    console.log("TOKEN:", token);
+    alert(token ? "TOKEN ADA" : "TOKEN NULL");
 
-    } catch (error: any) {
-      console.error("Error:", error);
-      toast.error(error.message || "Gagal memproses.");
-    } finally {
-      setIsSubmitting(false);
+    console.log("STEP 3 - CALL SERVER");
+    alert("STEP 3 - CALL SERVER");
+
+    const result = await toggleUserStatus(
+      userToToggle.id,
+      userToToggle.is_active,
+      userToToggle.role,
+      token
+    );
+
+    console.log("SERVER RESULT:", result);
+    alert(JSON.stringify(result));
+
+    if (!result.success) {
+      throw new Error(result.error);
     }
-  };
+
+    console.log("STEP 4 - RELOAD USERS");
+    alert("STEP 4 - RELOAD USERS");
+
+    toast.success(result.message || "Berhasil");
+
+    await loadUsersData();
+
+    console.log("STEP 5 - CLOSE MODAL");
+    alert("STEP 5 - CLOSE MODAL");
+
+    setUserToToggle(null);
+
+  } catch (error: any) {
+    console.error("ERROR:", error);
+
+    alert(
+      "ERROR: " +
+      (error?.message || "Unknown Error")
+    );
+
+    toast.error(error?.message || "Gagal memproses.");
+  } finally {
+    console.log("STEP 6 - FINISH");
+    setIsSubmitting(false);
+  }
+};
 
   const executeHardDelete = async () => {
     if (!userToDelete) return;
