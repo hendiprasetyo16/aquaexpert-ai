@@ -128,10 +128,14 @@ export async function toggleUserStatus(
   targetRole: UserRole
 ): Promise<ActionResult> {
 
-  console.log("SERVER ACTION MASUK");
-  
   try {
+
+    console.log("SERVER ACTION MASUK");
+    console.log("A");
+
     const currentUser = await verifyAdminAccess();
+
+    console.log("B");
 
     if (currentUser.userId === userId) {
       throw new Error("Anda tidak dapat mengubah status akun sendiri.");
