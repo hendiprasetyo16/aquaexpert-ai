@@ -9,7 +9,7 @@ export interface UserAnswers {
   style: string;
   shrimpTank: boolean; 
   wantCarpet: boolean; 
-  wantRedPlant: boolean; // PARAMETER BARU (V4)
+  wantRedPlant: boolean; 
 }
 
 export interface RecommendedPlant extends Plant {
@@ -18,7 +18,7 @@ export interface RecommendedPlant extends Plant {
   matchConfidence: "Excellent Match" | "Very Good Match" | "Good Match" | "Moderate Match";
 }
 
-// Fungsi bantu untuk persentase confidence
+// Fungsi bantu untuk persentase confidence (Standard V1.0)
 function getConfidenceLevel(score: number): RecommendedPlant["matchConfidence"] {
   if (score >= 90) return "Excellent Match";
   if (score >= 75) return "Very Good Match";
@@ -44,22 +44,20 @@ export function generateRecommendations(allPlants: Plant[], answers: UserAnswers
     // 2. Filter Light Requirement (Cahaya Rendah vs Tanaman High)
     if (answers.light === "Low" && plant.light_requirement === "High") isEligible = false;
     
-    // *Tank Size dipindah ke Soft Scoring sesuai arsitektur V4*
-
     if (!isEligible) continue;
 
     // ==========================================
-    // TAHAP B: SOFT SCORING (Pembobotan Peringkat V4)
+    // TAHAP B: SOFT SCORING (Pembobotan Peringkat V1.0 STABLE)
     // ==========================================
     
-    // 1. TANK SIZE (Kesesuaian Proporsi)
+    // 1. TANK SIZE (Kesesuaian Proporsi - Soft Filter)
     if (plant.tank_size_recommendation && plant.tank_size_recommendation.length > 0) {
       if (plant.tank_size_recommendation.includes(answers.tankSize)) {
         score += 20;
-        reasons.push(`Ukurannya sangat proporsional untuk tank ${answers.tankSize}.`);
+        reasons.push(`Proporsi sangat ideal untuk tank ${answers.tankSize}.`);
       } else {
-        score -= 20; // Penalti proporsi (bisa disesuaikan dengan trimming)
-        reasons.push("Kurang proporsional untuk tank Anda (butuh penyesuaian).");
+        score -= 20; // Penalti proporsi (bisa disesuaikan dengan trimming intensif)
+        reasons.push("Kurang proporsional untuk tank Anda (butuh pemangkasan ekstra).");
       }
     }
 
@@ -72,6 +70,20 @@ export function generateRecommendations(allPlants: Plant[], answers: UserAnswers
         reasons.push("Sangat ramah dan mudah untuk pemula.");
       } else if (plant.difficulty === "Hard") {
         score -= 25; 
+      }
+    } else if (answers.experience === "Menengah") {
+      // V1.0 FIX: Bobot untuk user menengah (Ingin naik level)
+      if (plant.beginner_score) score += plant.beginner_score * 1.5; // Moderasi poin
+      
+      if (plant.difficulty === "Easy") {
+        score += 10;
+        reasons.push("Sangat aman untuk setup Anda.");
+      } else if (plant.difficulty === "Medium") {
+        score += 20;
+        reasons.push("Tingkat kesulitan yang sangat pas untuk mengasah skill Anda.");
+      } else if (plant.difficulty === "Hard") {
+        score -= 10; // Penalti ringan, tidak mematikan kesempatan
+        reasons.push("Sedikit menantang, butuh konsistensi ekstra.");
       }
     } else if (answers.experience === "Mahir") {
       if (plant.difficulty === "Hard" || (plant.beginner_score && plant.beginner_score <= 4)) {
@@ -89,20 +101,30 @@ export function generateRecommendations(allPlants: Plant[], answers: UserAnswers
         score -= 25; 
       }
       
-      // Growth Rate penalty untuk low maintenance
       if (plant.growth_rate === "Fast") {
         score -= 15;
       } else if (plant.growth_rate === "Slow") {
         score += 10;
         reasons.push("Tumbuh lambat, tidak cepat merusak layout.");
-      } else if (plant.growth_rate === "Medium") {
-        // Eksplisit netral
-        score += 0; 
       }
+    } else if (answers.maintenance === "Medium") {
+      // V1.0 FIX: Bobot untuk user dengan waktu perawatan Sedang
+      if (plant.maintenance_level === "Medium") {
+        score += 15;
+        reasons.push("Waktu perawatan yang dibutuhkan sesuai dengan rutinitas Anda.");
+      } else if (plant.maintenance_level === "Low") {
+        score += 10;
+      } else if (plant.maintenance_level === "High") {
+        score -= 10;
+        reasons.push("Catatan: Mungkin butuh waktu ekstra untuk trimming.");
+      }
+      // Penyesuaian halus untuk growth rate
+      if (plant.growth_rate === "Fast") score -= 5;
+      if (plant.growth_rate === "Slow") score += 5;
     } else if (answers.maintenance === "High") {
       if (plant.maintenance_level === "High" || plant.growth_rate === "Fast") {
         score += 15;
-        reasons.push("Sangat cocok bagi Anda yang rutin merawat akuarium.");
+        reasons.push("Sangat cocok bagi Anda yang rutin merawat dan membentuk akuarium.");
       }
     }
 
@@ -111,10 +133,10 @@ export function generateRecommendations(allPlants: Plant[], answers: UserAnswers
       if (plant.shrimp_safe) {
         score += 15;
         if (plant.plant_type === "Moss" || plant.plant_type === "Epiphyte") {
-           reasons.push("Tempat bersembunyi ideal bagi anak udang.");
+           reasons.push("Habitat bermain dan sembunyi yang ideal bagi burayak udang.");
         }
       } else {
-        score -= 30; // V4: Penalti diturunkan dari -50 ke -30
+        score -= 30; // Penalti seimbang (-30)
       }
     }
 
@@ -128,19 +150,19 @@ export function generateRecommendations(allPlants: Plant[], answers: UserAnswers
       }
     }
 
-    // 6. WARNA MERAH (V4: Color Feature)
+    // 6. WARNA MERAH (Heuristik Terbatas - Menunggu Field color_category)
     if (answers.wantRedPlant) {
-      // Deteksi heuristik warna dari nama atau style
       const nameL = plant.name.toLowerCase();
+      // Heuristik dipertajam
       const isRed = nameL.includes("red") || nameL.includes("macrandra") || 
-                    nameL.includes("reineckii") || nameL.includes("ludwigia") || nameL.includes("colorata") ||
-                    (plant.aquascape_style && plant.aquascape_style.includes("Dutch"));
+                    nameL.includes("reineckii") || nameL.includes("colorata") || nameL.includes("aromatica") ||
+                    (plant.aquascape_style && plant.aquascape_style.includes("Dutch") && plant.difficulty !== "Easy");
       
       if (isRed) {
         score += 25;
         reasons.push("Membawa nuansa merah/warna-warni yang Anda cari.");
       } else {
-        score -= 15; // Turunkan sedikit tanaman hijau biasa
+        score -= 15; 
       }
     }
 
@@ -155,21 +177,19 @@ export function generateRecommendations(allPlants: Plant[], answers: UserAnswers
       }
     }
 
-    // 8. AQUASCAPE STYLE (V4: Bobot diturunkan jadi 15)
+    // 8. AQUASCAPE STYLE
     if (answers.style !== "Bebas") {
       if (plant.aquascape_style && plant.aquascape_style.includes(answers.style)) {
-        score += 15;
-        reasons.push(`Sesuai dengan tema ${answers.style}.`);
+        score += 15; // Bobot wajar (+15) agar tidak mengalahkan biologis
+        reasons.push(`Secara visual sesuai dengan tema ${answers.style}.`);
       }
     }
 
     // ==========================================
     // TAHAP C: FINALISASI & NORMALISASI
     // ==========================================
-    // Batasi skor maksimal 100
     const finalScore = Math.min(Math.max(score, 10), 100); 
 
-    // Filter sisa: Jangan tampilkan tanaman yang skornya terlalu rendah (< 20)
     if (finalScore >= 20) {
       results.push({ 
         ...plant, 
