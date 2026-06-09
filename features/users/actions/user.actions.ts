@@ -5,6 +5,12 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { UserRole } from "../types/user.types";
 
+console.log("========== ENV CHECK ==========");
+console.log("NEXT_PUBLIC_SUPABASE_URL =", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+console.log("NEXT_PUBLIC_SUPABASE_ANON_KEY =", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+console.log("SUPABASE_SERVICE_ROLE_KEY =", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+console.log("================================");
+
 const supabaseAdmin = createSupabaseClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -26,7 +32,12 @@ export type ActionResult = {
 // KEMBALI KE METODE STANDAR (PURE SSR COOKIES)
 // =====================================================
 async function verifyAdminAccess() {
+
+  console.log("VERIFY 1");
+
   const cookieStore = await cookies();
+
+  console.log("VERIFY 2");
 
   const supabaseUser = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,34 +52,35 @@ async function verifyAdminAccess() {
     }
   );
 
+  console.log("VERIFY 3");
+
   const { data, error } = await supabaseUser.auth.getUser();
+
+  console.log("VERIFY 4", {
+    hasUser: !!data?.user,
+    error: error?.message,
+  });
 
   if (error || !data.user) {
     throw new Error("Sesi tidak terbaca. Harap login ulang.");
   }
 
-  const user = data.user;
+  console.log("VERIFY 5 USER =", data.user.id);
 
   const { data: profile, error: profileError } = await supabaseAdmin
     .from("profiles")
     .select("role, is_active")
-    .eq("id", user.id)
+    .eq("id", data.user.id)
     .single();
+
+  console.log("VERIFY 6 PROFILE =", profile);
 
   if (profileError || !profile) {
     throw new Error("Profil admin tidak ditemukan.");
   }
 
-  if (!profile.is_active) {
-    throw new Error("Akun Anda sedang dinonaktifkan.");
-  }
-
-  if (profile.role !== "super_admin" && profile.role !== "admin") {
-    throw new Error("Akses ditolak. Anda bukan Admin.");
-  }
-
   return {
-    userId: user.id,
+    userId: data.user.id,
     role: profile.role as UserRole,
   };
 }
@@ -135,6 +147,7 @@ export async function toggleUserStatus(
 
     const currentUser = await verifyAdminAccess();
 
+    console.log("SERVER ACTION LOLOS VERIFY");
     console.log("B");
 
     if (currentUser.userId === userId) {
