@@ -29,6 +29,38 @@ export default function PlantExpertEngineV2() {
       try {
         const data = await getPlants();
         setPlants(data);
+
+        // =============================================================
+        // SMART UX: CEK MEMORI BROWSER UNTUK MENGEMBALIKAN HASIL AI
+        // =============================================================
+        const savedQuiz = sessionStorage.getItem("aquaexpert_saved_quiz");
+        
+        if (savedQuiz) {
+          const parsed = JSON.parse(savedQuiz);
+          
+          // Kembalikan pilihan dropdown user sebelumnya
+          setExperience(parsed.experience);
+          setTankSize(parsed.tankSize);
+          setCo2(parsed.co2);
+          setLight(parsed.light);
+          setMaintenance(parsed.maintenance);
+          setStyle(parsed.style);
+
+          // Auto-run AI tanpa animasi loading agar hasil instan muncul saat back
+          const answers: UserAnswers = {
+            experience: parsed.experience,
+            tankSize: parsed.tankSize,
+            hasCO2: parsed.co2 === "Tinggi (Injeksi)",
+            light: parsed.light,
+            maintenance: parsed.maintenance,
+            style: parsed.style
+          };
+          
+          const autoResults = generateRecommendations(data, answers);
+          setResults(autoResults);
+        }
+        // =============================================================
+
       } catch (error) {
         console.error("Gagal memuat Knowledge Base:", error);
       } finally {
@@ -50,6 +82,11 @@ export default function PlantExpertEngineV2() {
       style
     };
 
+    // SIMPAN JAWABAN KUIS KE DALAM SESSION STORAGE
+    sessionStorage.setItem("aquaexpert_saved_quiz", JSON.stringify({
+      experience, tankSize, co2, light, maintenance, style
+    }));
+
     const aiResults = generateRecommendations(plants, answers);
 
     setTimeout(() => {
@@ -59,7 +96,7 @@ export default function PlantExpertEngineV2() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10 space-y-8 text-slate-900 dark:text-slate-100">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10 space-y-8 text-slate-900 dark:text-slate-100 transition-colors duration-300">
       
       {/* Header */}
       <div>

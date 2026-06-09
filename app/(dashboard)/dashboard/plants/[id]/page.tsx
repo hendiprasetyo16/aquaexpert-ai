@@ -202,11 +202,23 @@ export default function PlantDetailPage() {
       {/* PENAMBAHAN CLASS px-4 sm:px-6 lg:px-8 mx-auto DI SINI */}
       <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-10 space-y-6 transition-colors duration-300">
         
-        {/* HEADER TOOLBAR */}
+{/* HEADER TOOLBAR */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Button variant="outline" onClick={() => router.push("/dashboard/plants")} className="border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white active:scale-95 transition-all">
+              
+              {/* TOMBOL KEMBALI YANG SUDAH DIPERBAIKI */}
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  if (window.history.length > 2) {
+                    router.back(); // Kembali ke halaman sebelumnya (misal: Plant Expert AI)
+                  } else {
+                    router.push("/dashboard/plants"); // Fallback jika buka dari link WhatsApp
+                  }
+                }} 
+                className="border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white active:scale-95 transition-all"
+              >
                 <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
               </Button>
               
