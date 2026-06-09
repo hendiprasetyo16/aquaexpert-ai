@@ -22,48 +22,32 @@ export type ActionResult = {
   error?: string;
 };
 
-async function verifyAdminAccess(token?: string | null) {
-  let user: { id: string } | null = null;
-  let tokenError: string | null = null;
+// =====================================================
+// KEMBALI KE METODE STANDAR (PURE SSR COOKIES)
+// =====================================================
+async function verifyAdminAccess() {
+  const cookieStore = await cookies();
 
-  if (token) {
-    const { data, error } = await supabaseAdmin.auth.getUser(token);
-
-    if (!error && data.user) {
-      user = data.user;
-    } else {
-      tokenError = error?.message || "Token tidak valid atau kedaluwarsa.";
-    }
-  }
-
-  if (!user) {
-    const cookieStore = await cookies();
-
-    const supabaseUser = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll() {},
+  const supabaseUser = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
         },
-      }
-    );
-
-    const { data, error } = await supabaseUser.auth.getUser();
-
-    if (error || !data.user) {
-      throw new Error(
-        token
-          ? `Sesi tidak valid. Detail: ${tokenError || "cookie fallback gagal"}`
-          : "Sesi tidak terbaca. Harap login ulang."
-      );
+        setAll() {},
+      },
     }
+  );
 
-    user = data.user;
+  const { data, error } = await supabaseUser.auth.getUser();
+
+  if (error || !data.user) {
+    throw new Error("Sesi tidak terbaca. Harap login ulang.");
   }
+
+  const user = data.user;
 
   const { data: profile, error: profileError } = await supabaseAdmin
     .from("profiles")
@@ -91,11 +75,10 @@ async function verifyAdminAccess(token?: string | null) {
 
 export async function updateUserRoleAction(
   userId: string,
-  newRole: UserRole,
-  token?: string | null
+  newRole: UserRole
 ): Promise<ActionResult> {
   try {
-    const currentUser = await verifyAdminAccess(token);
+    const currentUser = await verifyAdminAccess();
 
     if (currentUser.role !== "super_admin") {
       throw new Error("Hanya Super Admin yang berhak mengubah jabatan.");
@@ -142,11 +125,10 @@ export async function updateUserRoleAction(
 export async function toggleUserStatus(
   userId: string,
   currentStatus: boolean,
-  targetRole: UserRole,
-  token?: string | null
+  targetRole: UserRole
 ): Promise<ActionResult> {
   try {
-    const currentUser = await verifyAdminAccess(token);
+    const currentUser = await verifyAdminAccess();
 
     if (currentUser.userId === userId) {
       throw new Error("Anda tidak dapat mengubah status akun sendiri.");
@@ -195,11 +177,10 @@ export async function createUser(
     password: string;
     full_name: string;
     role: UserRole;
-  },
-  token?: string | null
+  }
 ): Promise<ActionResult> {
   try {
-    const currentUser = await verifyAdminAccess(token);
+    const currentUser = await verifyAdminAccess();
 
     const email = data.email.trim().toLowerCase();
     const fullName = data.full_name.trim();
@@ -251,11 +232,10 @@ export async function createUser(
 
 export async function updateUserProfile(
   userId: string,
-  newFullName: string,
-  token?: string | null
+  newFullName: string
 ): Promise<ActionResult> {
   try {
-    const currentUser = await verifyAdminAccess(token);
+    const currentUser = await verifyAdminAccess();
     const fullName = newFullName.trim();
 
     if (!fullName) {
@@ -298,11 +278,10 @@ export async function updateUserProfile(
 export async function resetUserPassword(
   userId: string,
   newPassword: string,
-  targetRole: UserRole,
-  token?: string | null
+  targetRole: UserRole
 ): Promise<ActionResult> {
   try {
-    const currentUser = await verifyAdminAccess(token);
+    const currentUser = await verifyAdminAccess();
 
     if (newPassword.length < 6) {
       throw new Error("Password minimal 6 karakter.");
@@ -332,11 +311,10 @@ export async function resetUserPassword(
 
 export async function hardDeleteUser(
   userId: string,
-  targetRole: UserRole,
-  token?: string | null
+  targetRole: UserRole
 ): Promise<ActionResult> {
   try {
-    const currentUser = await verifyAdminAccess(token);
+    const currentUser = await verifyAdminAccess();
 
     if (currentUser.userId === userId) {
       throw new Error("Anda tidak dapat menghapus akun sendiri.");
