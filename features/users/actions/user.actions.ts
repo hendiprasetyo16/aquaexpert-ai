@@ -127,6 +127,9 @@ export async function toggleUserStatus(
   currentStatus: boolean,
   targetRole: UserRole
 ): Promise<ActionResult> {
+
+  console.log("SERVER ACTION MASUK");
+  
   try {
     const currentUser = await verifyAdminAccess();
 
