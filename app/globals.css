@@ -128,3 +128,10 @@
     @apply font-sans;
   }
 }
+
+/* ========================================= */
+/* FIX CUSTOM UNTUK SCROLLING MODAL DI HP/iOS */
+/* ========================================= */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+}
