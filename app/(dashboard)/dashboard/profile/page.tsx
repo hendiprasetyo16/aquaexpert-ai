@@ -1,46 +1,30 @@
 "use client";
 
-import { useState, useEffect, startTransition } from "react"; // <-- IMPORT startTransition DITAMBAHKAN
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { updateProfileName, updateProfilePassword } from "@/features/profile/actions/profile.actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Save, KeyRound, User as UserIcon, Mail, ShieldAlert, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
-import { createClient } from "@/lib/supabase/client"; 
 
 export default function ProfilePage() {
-  const router = useRouter();
   const { user, profile, role, isLoading } = useAuth();
   
-  // States untuk Ubah Nama
   const [fullName, setFullName] = useState("");
   const [isSavingName, setIsSavingName] = useState(false);
 
-  // States untuk Ubah Password
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSavingPassword, setIsSavingPassword] = useState(false);
 
-  // States untuk Toggle Visibilitas Password
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Sinkronisasi data profile awal ke state form
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name);
     }
   }, [profile]);
-
-  // ===================================================================================
-  // FUNGSI INTI: MENGAMBIL TOKEN CLIENT UNTUK MEMBANTU SERVER ACTION DI HP/PWA
-  // ===================================================================================
-  const getAccessToken = async () => {
-    const supabase = createClient();
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token || null; 
-  };
 
   // Handler: Ubah Nama Lengkap
   const handleUpdateName = async (e: React.FormEvent) => {
@@ -49,21 +33,19 @@ export default function ProfilePage() {
     setIsSavingName(true);
 
     try {
-      const token = await getAccessToken(); 
-      const result = await updateProfileName(fullName, token); 
+      const result = await updateProfileName(fullName); 
       
       if (result.success) {
-        toast.success(result.message || "Nama berhasil diperbarui!");
+        toast.success("Nama berhasil diperbarui!");
         
-        // TRIK LEVEL PRODUCTION: Refresh data UI secara "Gaib" di latar belakang
-        // Sidebar akan otomatis berubah teksnya tanpa ada loading screen yang muncul!
-        startTransition(() => {
-          router.refresh();
-        });
-        
+        // INSTA-RELOAD: Reload halaman secara cepat agar Sidebar (useAuth) mengambil data baru
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+
       } else {
         toast.error(result.error || "Gagal memperbarui nama.");
-        setFullName(profile?.full_name || ""); // Rollback UI
+        setFullName(profile?.full_name || ""); 
       }
     } catch (error: any) {
       toast.error("Terjadi kesalahan sistem saat menghubungi server.");
@@ -84,21 +66,14 @@ export default function ProfilePage() {
     setIsSavingPassword(true);
 
     try {
-      const token = await getAccessToken(); 
-      const result = await updateProfilePassword(newPassword, token); 
+      const result = await updateProfilePassword(newPassword); 
 
       if (result.success) {
-        toast.success(result.message || "Password berhasil diganti!");
+        toast.success("Password berhasil diganti!");
         setNewPassword("");
         setConfirmPassword("");
         setShowNewPassword(false);
         setShowConfirmPassword(false);
-        
-        // TRIK LEVEL PRODUCTION: Refresh sesi keamanan secara "Gaib" di latar belakang
-        startTransition(() => {
-          router.refresh();
-        });
-        
       } else {
         toast.error(result.error || "Gagal mengganti password.");
       }
