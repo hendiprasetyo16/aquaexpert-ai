@@ -20,11 +20,9 @@ interface PlantFormProps {
   plant?: Plant;
 }
 
-// Opsi statis untuk Checkbox (NILAI BERSIH UNTUK DATABASE)
 const TANK_SIZES = ["Nano", "Small", "Medium", "Large", "Extra Large"];
 const AQUASCAPE_STYLES = ["Nature", "Dutch", "Iwagumi", "Jungle", "Biotope", "Taiwan"];
 
-// RECOMMENDATIONS BERSIH DENGAN "Beginner" & Tambahan "Pond"
 const RECOMMENDATIONS = [
   "Beginner", "Low Tech", "High Tech", "Shrimp Tank", "Nano Tank",
   "Dutch Style", "Nature Style", "Betta Tank", "Community Tank",
@@ -33,21 +31,14 @@ const RECOMMENDATIONS = [
   "CO2 Setup", "Pond"
 ];
 
-// Helper untuk Subteks di Checkbox Form (LAYER PRESENTASI UI)
 const getTankSizeLabel = (size: string) => {
   switch (size) {
-    case "Nano":
-      return "≤ 40 cm • 10–30 L";
-    case "Small":
-      return "45–60 cm • 30–60 L";
-    case "Medium":
-      return "60–90 cm • 60–150 L";
-    case "Large":
-      return "90–120 cm • 150–300 L";
-    case "Extra Large":
-      return "> 120 cm • > 300 L";
-    default:
-      return "";
+    case "Nano": return "≤ 40 cm • 10–30 L";
+    case "Small": return "45–60 cm • 30–60 L";
+    case "Medium": return "60–90 cm • 60–150 L";
+    case "Large": return "90–120 cm • 150–300 L";
+    case "Extra Large": return "> 120 cm • > 300 L";
+    default: return "";
   }
 };
 
@@ -58,26 +49,18 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // STATE COVER
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState("");
   
-  // STATE GALLERY (Dipecah agar bisa hapus satu-satu - MAKSIMAL 8)
   const [existingGallery, setExistingGallery] = useState<string[]>([]);
   const [newGallery, setNewGallery] = useState<{file: File, preview: string}[]>([]);
   
-  // TRACKING GAMBAR YANG HARUS DIHAPUS DARI STORAGE MENGGUNAKAN useRef
   const imagesToDeleteRef = useRef<string[]>([]);
 
-  // =====================================================================
-  // FIX MOBILE BUG: STATES UNTUK MODAL KONFIRMASI KUSTOM
-  // =====================================================================
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  // =====================================================================
 
-  // V2: FIELD EXPERT ENGINE
   const [formData, setFormData] = useState({
     name: "", scientific_name: "", placement: "Midground", difficulty: "Easy", 
     light_requirement: "Medium", co2_requirement: "Low", fertilizer_requirement: "Medium",
@@ -333,9 +316,6 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     }
   }
 
-  // =======================================================
-  // FUNGSI EKSEKUSI MODAL ARSIP & HAPUS
-  // =======================================================
   function triggerArchiveModal() {
     if (!plant || mode !== "edit") return;
     setIsArchiveModalOpen(true);
@@ -389,8 +369,8 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   const totalGalleryCount = existingGallery.length + newGallery.length;
 
   return (
-    // Penambahan Wrapper w-full max-w-5xl px-4 sm:px-6 lg:px-8 agar tidak mepet sidebar
-    <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-10 transition-colors duration-300">
+    // PERBAIKAN: Dibuat w-full murni, karena batasan lebar (max-w) sudah diatur oleh file page.tsx
+    <div className="w-full transition-colors duration-300">
       <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl w-full transition-colors duration-300">
         <CardContent className="p-4 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-8">
