@@ -5,6 +5,7 @@ import "./globals.css";
 // IMPORT PROVIDER
 import { AuthProvider } from "@/providers/AuthProvider";
 import { ThemeProvider } from "@/components/theme-provider"; // <-- Import Provider Tema
+import { LanguageProvider } from "@/providers/LanguageProvider"; // <-- Language provider for i18n
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,10 +45,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {/* AUTH PROVIDER TETAP AMAN DI DALAMNYA */}
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          <LanguageProvider>
+            {/* AUTH PROVIDER TETAP AMAN DI DALAMNYA */}
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </LanguageProvider>
         </ThemeProvider>
 
       </body>

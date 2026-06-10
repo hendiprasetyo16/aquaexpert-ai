@@ -1,0 +1,10 @@
+{
+  "common": {
+    "welcome": "Welcome",
+    "saveButton": "Save",
+    "dashboard": "Dashboard"
+  },
+  "plants": {
+    "saveButton": "Save Plant"
+  }
+}

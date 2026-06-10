@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle"; // <-- SUDAH DIPERBAIKI (Ditambahkan kurung kurawal {})
+import { useLanguage } from "@/providers/LanguageProvider";
 import NotificationBell from "@/components/layout/NotificationBell"; 
 import { Menu } from "lucide-react"; 
 import { useAuth } from "@/hooks/useAuth";
@@ -10,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { profile } = useAuth();
+  const { dict } = useLanguage();
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 overflow-hidden transition-colors duration-200">
@@ -50,7 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-2 ml-auto">
             {profile && (
               <span className="text-sm text-slate-500 dark:text-slate-400 hidden md:block mr-2">
-                Selamat datang, <span className="font-medium text-slate-800 dark:text-slate-200">{profile.full_name.split(" ")[0]}</span>
+                {dict.common.welcome}, <span className="font-medium text-slate-800 dark:text-slate-200">{profile.full_name.split(" ")[0]}</span>
               </span>
             )}
             

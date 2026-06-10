@@ -1,0 +1,10 @@
+{
+  "common": {
+    "welcome": "Selamat datang",
+    "saveButton": "Simpan",
+    "dashboard": "Dasbor"
+  },
+  "plants": {
+    "saveButton": "Simpan Tanaman"
+  }
+}
