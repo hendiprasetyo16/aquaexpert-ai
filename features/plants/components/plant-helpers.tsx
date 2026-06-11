@@ -1,3 +1,4 @@
+// features/plants/components/plant-helpers.tsx
 import React from "react";
 
 export const getDifficultyDesc = (level: string | null | undefined, lang: "id" | "en" = "id") => {
@@ -7,6 +8,10 @@ export const getDifficultyDesc = (level: string | null | undefined, lang: "id" |
     if (l === "easy") return "Easy (Mudah)";
     if (l === "medium") return "Medium (Sedang)";
     if (l === "hard") return "Hard (Sulit)";
+  } else {
+    if (l === "easy") return "Easy (Beginner)";
+    if (l === "medium") return "Medium (Intermediate)";
+    if (l === "hard") return "Hard (Advanced)";
   }
   return level.charAt(0).toUpperCase() + level.slice(1);
 };
@@ -14,13 +19,18 @@ export const getDifficultyDesc = (level: string | null | undefined, lang: "id" |
 export const getIndoLevelCore = (level: string | null | undefined, lang: "id" | "en" = "id") => {
   if (!level) return lang === "id" ? "Tidak diketahui" : "Unknown";
   const l = level.toLowerCase();
-  
   if (lang === "id") {
-    if (l === "low" || l === "easy") return "Low (Rendah)";
-    if (l === "medium" || l === "moderate") return "Medium (Sedang)";
-    if (l === "high" || l === "hard" || l === "aggressive") return "High (Tinggi)";
-    if (l === "slow") return "Slow (Lambat)";
-    if (l === "fast") return "Fast (Cepat)";
+    if (l === "low" || l === "easy") return "Rendah";
+    if (l === "medium" || l === "moderate") return "Sedang";
+    if (l === "high" || l === "hard" || l === "aggressive") return "Tinggi";
+    if (l === "slow") return "Lambat";
+    if (l === "fast") return "Cepat";
+  } else {
+    if (l === "low" || l === "easy") return "Low";
+    if (l === "medium" || l === "moderate") return "Medium";
+    if (l === "high" || l === "hard" || l === "aggressive") return "High";
+    if (l === "slow") return "Slow";
+    if (l === "fast") return "Fast";
   }
   return level.charAt(0).toUpperCase() + level.slice(1);
 };
@@ -98,12 +108,17 @@ export const getGrowthControlDesc = (level: string | null | undefined, lang: "id
     if (l === "moderate") return "Moderate (Wajar)";
     if (l === "fast") return "Fast (Cepat)";
     if (l === "aggressive") return "Aggressive (Menyebar Liar)";
+  } else {
+    if (l === "slow") return "Slow (Compact Spread)";
+    if (l === "moderate") return "Moderate (Standard Spread)";
+    if (l === "fast") return "Fast (Quick Spread)";
+    if (l === "aggressive") return "Aggressive (Wild Spread)";
   }
   return level.charAt(0).toUpperCase() + level.slice(1);
 };
 
 export const getPlacementDesc = (placement: string | null | undefined, lang: "id" | "en" = "id") => {
-  if (!placement) return lang === "id" ? "Tidak diketahui" : "Unknown";
+  if (!placement) return lang === "id" ? "Unknown (Tidak diketahui)" : "Unknown (Not specified)";
   const p = placement.toLowerCase();
   if (lang === "id") {
     if (p === "foreground") return "Foreground (Posisi Depan)";
@@ -111,8 +126,14 @@ export const getPlacementDesc = (placement: string | null | undefined, lang: "id
     if (p === "background") return "Background (Posisi Belakang)";
     if (p === "epiphyte") return "Epiphyte (Menempel Kayu/Batu)";
     if (p === "floating") return "Floating (Apung di Atas)";
+  } else {
+    if (p === "foreground") return "Foreground (Front Area)";
+    if (p === "midground") return "Midground (Middle Area)";
+    if (p === "background") return "Background (Back Area)";
+    if (p === "epiphyte") return "Epiphyte (Attached to hardscape)";
+    if (p === "floating") return "Floating (Water Surface)";
   }
-  return placement.charAt(0).toUpperCase() + placement.slice(1);
+  return `${placement.charAt(0).toUpperCase() + placement.slice(1)}`;
 };
 
 export const getPlacementBadgeStyle = (placement: string | null | undefined) => {
@@ -133,7 +154,6 @@ export const getCO2DisplayStatus = (requirement: string | null | undefined, isMa
   return { label: lang === "id" ? "Tidak Perlu CO2" : "No CO2 Needed", variant: "success" };
 };
 
-// UNTUK DROPDOWN FORM
 export const getPlantTypeDesc = (type: string | null | undefined, lang: "id" | "en" = "id") => {
   const t = (type || "").toLowerCase();
   if (lang === "id") {
@@ -147,11 +167,21 @@ export const getPlantTypeDesc = (type: string | null | undefined, lang: "id" | "
     if (t === "runner") return "Runner (Menjalar)";
     if (t === "crypt") return "Crypt (Cryptocoryne)";
     if (t === "epiphyte") return "Epiphyte (Menempel)";
+  } else {
+    if (t === "stem") return "Stem (Stalk)";
+    if (t === "rhizome") return "Rhizome (Creeping Root)";
+    if (t === "rosette") return "Rosette (Crown)";
+    if (t === "carpet") return "Carpet (Ground Cover)";
+    if (t === "moss") return "Moss (Bryophyte)";
+    if (t === "floating") return "Floating (Surface)";
+    if (t === "bulb") return "Bulb (Tuber)";
+    if (t === "runner") return "Runner (Stolon)";
+    if (t === "crypt") return "Crypt (Water Trumpet)";
+    if (t === "epiphyte") return "Epiphyte (Attached)";
   }
   return type ? type.charAt(0).toUpperCase() + type.slice(1) : "";
 };
 
-// UNTUK HALAMAN DETAIL (PARAGRAF PANJANG)
 export const getPlantTypeLongDesc = (type: string | null | undefined, lang: "id" | "en" = "id") => {
   const t = (type || "").toLowerCase();
   if (lang === "id") {
@@ -184,12 +214,19 @@ export const getPlantTypeLongDesc = (type: string | null | undefined, lang: "id"
 export const getStyleDesc = (style: string, lang: "id" | "en" = "id") => {
   const s = style.toLowerCase();
   if (lang === "id") {
-    if (s.includes("nature")) return "Nature (Alami)";
-    if (s.includes("dutch")) return "Dutch (Padat & Berwarna)";
-    if (s.includes("iwagumi")) return "Iwagumi (Padang Batu)";
-    if (s.includes("jungle")) return "Jungle (Tumbuh Liar)";
-    if (s.includes("biotope")) return "Biotope (Spesifik Wilayah)";
-    if (s.includes("taiwan")) return "Taiwan (Terasering)";
+    if (s.includes("nature")) return "Alami / Nature";
+    if (s.includes("dutch")) return "Padat & Berwarna";
+    if (s.includes("iwagumi")) return "Padang Batu";
+    if (s.includes("jungle")) return "Tumbuh Liar";
+    if (s.includes("biotope")) return "Spesifik Wilayah";
+    if (s.includes("taiwan")) return "Terasering";
+  } else {
+    if (s.includes("nature")) return "Natural Look";
+    if (s.includes("dutch")) return "Dense & Colorful";
+    if (s.includes("iwagumi")) return "Rock Formation";
+    if (s.includes("jungle")) return "Wild Growth";
+    if (s.includes("biotope")) return "Specific Habitat";
+    if (s.includes("taiwan")) return "Terraced Layout";
   }
   return style;
 };
@@ -205,28 +242,48 @@ export const getTankSizeDetails = (size: string, lang: "id" | "en" = "id") => {
   return { size_cm: lang === "id" ? "Bervariasi" : "Varies", liter: lang === "id" ? "Sesuai kebutuhan" : "As needed" };
 };
 
+// PERBAIKAN: Fungsi ini telah dirombak untuk TIDAK mengembalikan teks mentahnya jika tidak perlu.
+// Karena kita memakai ini sebagai Subteks (Deskripsi), maka cukup cetak penjelasan pendeknya saja.
 export const getRecommendedDesc = (tag: string, lang: "id" | "en" = "id") => {
   const t = tag.toLowerCase();
   if (lang === "id") {
-    if (t === "pemula" || t === "beginner") return "Beginner (Mudah)";
-    if (t.includes("low tech")) return "Low Tech (Tanpa CO2)";
-    if (t.includes("low light")) return "Low Light (Cahaya Minim)";
-    if (t.includes("high tech") || t.includes("co2 setup")) return "High Tech (Wajib CO2)";
-    if (t.includes("shrimp tank")) return "Shrimp Tank (Aman untuk Udang)";
-    if (t.includes("betta tank")) return "Betta Tank (Aman untuk Cupang)";
-    if (t.includes("community tank")) return "Community Tank (Ragam Ikan)";
-    if (t.includes("discus tank")) return "Discus Tank (Toleran Hangat)";
-    if (t.includes("cichlid")) return "Cichlid Tank (Tahan Gigitan)";
-    if (t.includes("nano tank")) return "Nano Tank (Akuarium Kecil)";
-    if (t.includes("large tank") || t.includes("pond")) return "Pond / Large Tank (Kolam/Besar)";
-    if (t.includes("dutch style")) return "Dutch Style (Rapat & Berwarna)";
-    if (t.includes("nature style")) return "Nature Style (Alami)";
-    if (t.includes("paludarium")) return "Paludarium (Darat & Air)";
-    if (t.includes("blackwater")) return "Blackwater (Air Gelap / Tannin)";
-    if (t.includes("aquascape contest")) return "Contest (Seni Tinggi)";
-    if (t.includes("breeding tank")) return "Breeding Tank (Burayak)";
+    if (t === "pemula" || t === "beginner") return "Sangat Mudah";
+    if (t.includes("low tech")) return "Bisa Tanpa CO2";
+    if (t.includes("low light")) return "Cahaya Minim";
+    if (t.includes("high tech") || t.includes("co2 setup")) return "Wajib Injeksi CO2";
+    if (t.includes("shrimp tank")) return "Aman bagi Udang";
+    if (t.includes("betta tank")) return "Aman bagi Cupang";
+    if (t.includes("community tank")) return "Untuk Beragam Ikan";
+    if (t.includes("discus tank")) return "Toleran Air Hangat";
+    if (t.includes("cichlid")) return "Tahan Gigitan";
+    if (t.includes("nano tank")) return "Untuk Tank Kecil";
+    if (t.includes("large tank") || t.includes("pond")) return "Untuk Kolam/Besar";
+    if (t.includes("dutch style")) return "Rapat & Berwarna";
+    if (t.includes("nature style")) return "Tampilan Alami";
+    if (t.includes("paludarium")) return "Tumbuh Darat-Air";
+    if (t.includes("blackwater")) return "Air Gelap / Tannin";
+    if (t.includes("aquascape contest")) return "Untuk Seni Tinggi";
+    if (t.includes("breeding tank")) return "Habitat Burayak";
+  } else {
+    if (t === "pemula" || t === "beginner") return "Very Easy";
+    if (t.includes("low tech")) return "No CO2 Needed";
+    if (t.includes("low light")) return "Low Light Demand";
+    if (t.includes("high tech") || t.includes("co2 setup")) return "CO2 Required";
+    if (t.includes("shrimp tank")) return "Safe for Shrimp";
+    if (t.includes("betta tank")) return "Safe for Bettas";
+    if (t.includes("community tank")) return "For Community Fish";
+    if (t.includes("discus tank")) return "Warm Water Tolerant";
+    if (t.includes("cichlid")) return "Resists Nipping";
+    if (t.includes("nano tank")) return "For Small Tanks";
+    if (t.includes("large tank") || t.includes("pond")) return "For Ponds/Large Tanks";
+    if (t.includes("dutch style")) return "Dense & Colorful";
+    if (t.includes("nature style")) return "Natural Look";
+    if (t.includes("paludarium")) return "Emersed/Submersed";
+    if (t.includes("blackwater")) return "Dark Water / Tannins";
+    if (t.includes("aquascape contest")) return "High Aesthetic Value";
+    if (t.includes("breeding tank")) return "Fry Habitat";
   }
-  return tag;
+  return "";
 };
 
 export const getRecommendationBadgeColor = (tag: string) => {
@@ -289,4 +346,64 @@ export const renderStars = (score: number | null, lang: "id" | "en" = "id") => {
       </span>
     </div>
   );
+};
+
+export const getDifficultySubtitle = (level: string | null | undefined, lang: "id" | "en") => {
+  const l = (level || "").toLowerCase();
+  if (lang === "id") {
+    if (l === "easy") return "Sangat Mudah";
+    if (l === "medium") return "Perawatan Menengah";
+    if (l === "hard") return "Butuh Pengalaman";
+  } else {
+    if (l === "easy") return "Beginner Friendly";
+    if (l === "medium") return "Intermediate Care";
+    if (l === "hard") return "Advanced Skills Needed";
+  }
+  return lang === "id" ? "Tidak Diketahui" : "Unknown";
+};
+
+export const getMaintenanceSubtitle = (level: string | null | undefined, lang: "id" | "en") => {
+  const l = (level || "").toLowerCase();
+  if (lang === "id") {
+    if (l === "low") return "Jarang Trimming";
+    if (l === "medium") return "Perawatan Rutin";
+    if (l === "high") return "Sering Trimming";
+  } else {
+    if (l === "low") return "Rare Trimming";
+    if (l === "medium") return "Routine Maintenance";
+    if (l === "high") return "Frequent Trimming";
+  }
+  return lang === "id" ? "Standar" : "Standard";
+};
+
+export const getParamSubtitle = (level: string | null | undefined, lang: "id" | "en") => {
+  const l = (level || "").toLowerCase();
+  if (lang === "id") {
+    if (l === "low") return "Intensitas Rendah";
+    if (l === "medium") return "Intensitas Sedang";
+    if (l === "high") return "Intensitas Tinggi";
+  } else {
+    if (l === "low") return "Low Intensity";
+    if (l === "medium") return "Moderate Intensity";
+    if (l === "high") return "High Intensity";
+  }
+  return "";
+};
+
+export const getPlacementSubtitle = (placement: string | null | undefined, lang: "id" | "en") => {
+  const p = (placement || "").toLowerCase();
+  if (lang === "id") {
+    if (p === "foreground") return "Posisi Depan";
+    if (p === "midground") return "Posisi Tengah";
+    if (p === "background") return "Posisi Belakang";
+    if (p === "epiphyte") return "Menempel di Kayu/Batu";
+    if (p === "floating") return "Apung di Permukaan";
+  } else {
+    if (p === "foreground") return "Front Area";
+    if (p === "midground") return "Middle Area";
+    if (p === "background") return "Back Area";
+    if (p === "epiphyte") return "Attached to Hardscape";
+    if (p === "floating") return "Water Surface";
+  }
+  return "Standard Placement";
 };

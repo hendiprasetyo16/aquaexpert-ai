@@ -21,9 +21,11 @@ import { Button } from "@/components/ui/button";
 
 import { 
   getCO2DisplayStatus, renderStars, getIndoLevelDetail, getPlacementBadgeStyle, 
-  getPlacementDesc, getTankSizeDetails, getStyleDesc, getPlantTypeDesc, 
-  getRecommendedDesc, getRecommendationBadgeColor, getIndoLevelCore,
-  getPlantTypeLongDesc
+  getTankSizeDetails, getStyleDesc, getPlantTypeDesc, 
+  getRecommendedDesc, getRecommendationBadgeColor,
+  getPlantTypeLongDesc,
+  // IMPORT FUNGSI SUBTITLE BARU
+  getDifficultySubtitle, getMaintenanceSubtitle, getParamSubtitle, getPlacementSubtitle
 } from "@/features/plants/components/plant-helpers";
 
 export default function PlantDetailPage() {
@@ -304,35 +306,35 @@ export default function PlantDetailPage() {
                     {dict.plantDetail.typeLabel} {getPlantTypeDesc(plant.plant_type, language).split(" ")[0]}
                   </span>
                   
-                  <div className="flex flex-row gap-3 w-full sm:w-auto justify-center">
-                    <div className={`flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg border shadow-sm transition-colors ${
+                  {/* BADGES HEADER: DIFFICULTY & PLACEMENT */}
+                  <div className="flex flex-row gap-3 w-full justify-center">
+                    <div className={`flex flex-col items-center justify-center flex-1 max-w-[150px] px-2 py-2 rounded-lg border shadow-sm transition-colors ${
                       plant.difficulty?.toLowerCase() === 'easy' ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900/50' :
                       plant.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-900/50' :
                       plant.difficulty?.toLowerCase() === 'hard' ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50' :
                       'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
                     }`}>
-                      <span className={`text-sm font-black uppercase tracking-widest transition-colors ${
+                      <span className={`text-base font-black uppercase tracking-widest transition-colors ${
                         plant.difficulty?.toLowerCase() === 'easy' ? 'text-green-700 dark:text-green-400' :
                         plant.difficulty?.toLowerCase() === 'medium' ? 'text-yellow-700 dark:text-yellow-400' :
                         plant.difficulty?.toLowerCase() === 'hard' ? 'text-red-700 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'
                       }`}>
                         {plant.difficulty || "Unknown"}
                       </span>
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 text-center px-1">
-                        {getIndoLevelCore(plant.difficulty, language)}
+                      {/* PERBAIKAN: SUBTITLE YANG INFORMATIF (Bukan terjemahan kasar) */}
+                      <span className="text-[11px] opacity-80 font-medium text-center mt-0.5 px-1 whitespace-nowrap overflow-hidden text-ellipsis w-full">
+                        {getDifficultySubtitle(plant.difficulty, language)}
                       </span>
                     </div>
                     
-                    {/* PERBAIKAN: Memangkas teks terjemahan dan mengatur ukuran font agar muat rapi */}
-                    <div className={`flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg border shadow-sm transition-colors ${getPlacementBadgeStyle(plant.placement)}`}>
-                      <span className="text-sm font-black tracking-widest uppercase">
-                        {getPlacementDesc(plant.placement, language).split(" (")[0]}
+                    <div className={`flex flex-col items-center justify-center flex-1 max-w-[150px] px-2 py-2 rounded-lg border shadow-sm transition-colors ${getPlacementBadgeStyle(plant.placement)}`}>
+                      <span className="text-base font-black tracking-widest uppercase">
+                        {plant.placement || "Unknown"}
                       </span>
-                      {getPlacementDesc(plant.placement, language).includes(" (") && (
-                        <span className="text-[11px] opacity-80 mt-0.5 font-medium text-center px-1">
-                           {getPlacementDesc(plant.placement, language).split(" (")[1].replace(")", "")}
-                        </span>
-                      )}
+                      {/* PERBAIKAN: SUBTITLE YANG INFORMATIF */}
+                      <span className="text-[11px] opacity-80 font-medium text-center mt-0.5 px-1 whitespace-nowrap overflow-hidden text-ellipsis w-full">
+                         {getPlacementSubtitle(plant.placement, language)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -461,7 +463,7 @@ export default function PlantDetailPage() {
                             <p className="font-bold text-gray-900 dark:text-slate-200 text-sm truncate">{relatedName}</p>
                             <div className="flex flex-wrap gap-1.5 mt-1.5">
                                <span className="text-[9px] bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 px-1.5 py-0.5 rounded border border-teal-200 dark:border-teal-900/50 uppercase font-semibold">{getPlantTypeDesc(related.plant_type, language).split(" ")[0]}</span>
-                               <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 uppercase font-semibold">{getPlacementDesc(related.placement, language).split(" (")[0]}</span>
+                               <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 uppercase font-semibold">{getPlacementSubtitle(related.placement, language)}</span>
                             </div>
                           </div>
                         </div>
@@ -511,9 +513,10 @@ export default function PlantDetailPage() {
               </div>
               <div className="bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col items-center justify-center shadow-sm transition-colors">
                 <p className="text-[11px] uppercase text-slate-500 font-bold mb-2 text-center">{dict.plantDetail.maintTitle}</p>
-                <div className="flex flex-col items-center justify-center mt-1">
-                  <span className="text-lg font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5 transition-colors"><Scissors className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />{plant.maintenance_level || "Medium"}</span>
-                  <span className="text-[12px] text-slate-600 dark:text-slate-400 font-medium mt-1 transition-colors">{getIndoLevelCore(plant.maintenance_level, language)}</span>
+                <div className="flex flex-col items-center justify-center mt-1 w-full">
+                  <span className="text-lg font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors w-full"><Scissors className="h-4 w-4 text-yellow-600 dark:text-yellow-500 shrink-0" /><span className="truncate">{plant.maintenance_level || "Medium"}</span></span>
+                  {/* PERBAIKAN: SUBTITLE YANG INFORMATIF */}
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 transition-colors leading-tight text-center px-1 break-words line-clamp-2">{getMaintenanceSubtitle(plant.maintenance_level, language)}</span>
                 </div>
               </div>
               <div className={`p-4 rounded-xl border text-center flex flex-col items-center justify-center shadow-sm transition-colors ${plant.shrimp_safe ? "bg-rose-50 dark:bg-rose-950/10 border-rose-200 dark:border-rose-900/30" : "bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800"}`}>
@@ -521,7 +524,7 @@ export default function PlantDetailPage() {
                 <div className="flex flex-col items-center justify-center mt-1">
                   <span className={`text-lg font-black uppercase tracking-widest flex items-center gap-1.5 transition-colors ${plant.shrimp_safe ? "text-rose-600 dark:text-rose-400" : "text-gray-900 dark:text-slate-200"}`}>
                     {plant.shrimp_safe ? <ShieldCheck className="h-5 w-5" /> : <X className="h-5 w-5 text-slate-400" />}
-                    {plant.shrimp_safe ? dict.plantDetail.safe : dict.plantDetail.no}
+                    {plant.shrimp_safe ? dict.plantDetail.yes : dict.plantDetail.no}
                   </span>
                 </div>
               </div>
@@ -544,7 +547,7 @@ export default function PlantDetailPage() {
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col flex-1 justify-center items-center shadow-inner text-center transition-colors min-h-[70px]">
                   <span className="text-base font-black text-gray-900 dark:text-slate-100 uppercase tracking-wider mb-1.5">{plant.growth_control || "N/A"}</span>
-                  <span className="text-[12px] text-slate-500 dark:text-slate-400 leading-snug">{getIndoLevelDetail(plant.growth_control, "growth", language)}</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug px-1">{getIndoLevelDetail(plant.growth_control, "growth", language)}</span>
                 </div>
               </div>
 
@@ -558,7 +561,7 @@ export default function PlantDetailPage() {
                     plant.aquascape_style.map(style => (
                       <div key={style} className="bg-slate-50 dark:bg-slate-950 px-3 py-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col flex-1 shadow-inner items-center justify-center text-center transition-colors min-h-[70px]">
                         <span className="text-[14px] font-black text-gray-900 dark:text-slate-200 uppercase tracking-wider mb-1">{style}</span>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">{getStyleDesc(style, language)}</span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug px-1">{getStyleDesc(style, language)}</span>
                       </div>
                     ))
                   ) : (
@@ -632,9 +635,10 @@ export default function PlantDetailPage() {
                         <Sun className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{dict.plantDetail.lightLabel}</span>
                       </div>
-                      <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors">
-                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest">{plant.light_requirement || "N/A"}</span>
-                        <span className="text-[12px] text-yellow-600 dark:text-yellow-500/80 font-medium mt-0.5">({getIndoLevelCore(plant.light_requirement, language)})</span>
+                      <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors w-full">
+                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest truncate">{plant.light_requirement || "N/A"}</span>
+                        {/* PERBAIKAN: SUBTITLE YANG INFORMATIF */}
+                        <span className="text-[11px] text-yellow-600 dark:text-yellow-500/80 mt-1 leading-tight break-words px-1">{getParamSubtitle(plant.light_requirement, language)}</span>
                       </div>
                       <div className="bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-600 dark:text-slate-400 leading-tight flex items-center justify-center h-full transition-colors">
                         {dict.plantDetail.lightDesc} {getIndoLevelDetail(plant.light_requirement, "light", language)}
@@ -646,11 +650,12 @@ export default function PlantDetailPage() {
                         <Wind className={`h-4 w-4 ${co2Status.variant === "danger" ? "text-red-500 dark:text-red-400" : co2Status.variant === "warning" ? "text-amber-500 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`} />
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{dict.plantDetail.co2Label}</span>
                       </div>
-                      <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors">
-                        <span className={`text-sm font-black uppercase tracking-widest ${co2Status.variant === "danger" ? "text-red-600 dark:text-red-400" : co2Status.variant === "warning" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                      <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors w-full">
+                        <span className={`text-sm font-black uppercase tracking-widest truncate ${co2Status.variant === "danger" ? "text-red-600 dark:text-red-400" : co2Status.variant === "warning" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                           {co2Status.label}
                         </span>
-                        <span className="text-[12px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">({dict.plantDetail.co2LevelReq} {plant.co2_requirement || "Low"})</span>
+                        {/* PERBAIKAN: SUBTITLE YANG LEBIH RAPI */}
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-tight break-words px-1">{dict.plantDetail.co2LevelReq} {plant.co2_requirement || "Low"}</span>
                       </div>
                       <div className="bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-600 dark:text-slate-400 leading-tight flex items-center justify-center h-full transition-colors">
                          {dict.plantDetail.co2Desc} {getIndoLevelDetail(plant.co2_requirement, "co2", language)}
@@ -662,11 +667,11 @@ export default function PlantDetailPage() {
                         <Thermometer className="h-4 w-4 text-orange-600 dark:text-orange-500" />
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{dict.plantDetail.tempLabel}</span>
                       </div>
-                      <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors">
-                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 tracking-wider">
+                      <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors w-full">
+                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 tracking-wider truncate">
                           {plant.temperature_min && plant.temperature_max ? `${plant.temperature_min}–${plant.temperature_max}` : "N/A"}
                         </span>
-                        <span className="text-[12px] text-orange-600 dark:text-orange-400/80 font-medium mt-0.5">{dict.plantDetail.tempUnit}</span>
+                        <span className="text-[11px] text-orange-600 dark:text-orange-400/80 mt-1 leading-tight break-words px-1">{dict.plantDetail.tempUnit}</span>
                       </div>
                       <div className="bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-600 dark:text-slate-400 leading-tight flex items-center justify-center h-full transition-colors">
                         {dict.plantDetail.tempDesc}
@@ -678,11 +683,11 @@ export default function PlantDetailPage() {
                         <FlaskConical className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{dict.plantDetail.phLabel}</span>
                       </div>
-                      <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors">
-                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 tracking-wider">
+                      <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors w-full">
+                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 tracking-wider truncate">
                           {plant.ph_min && plant.ph_max ? `${plant.ph_min}–${plant.ph_max}` : "N/A"}
                         </span>
-                        <span className="text-[12px] text-purple-600 dark:text-purple-400/80 font-medium mt-0.5">{dict.plantDetail.phUnit}</span>
+                        <span className="text-[11px] text-purple-600 dark:text-purple-400/80 mt-1 leading-tight break-words px-1">{dict.plantDetail.phUnit}</span>
                       </div>
                       <div className="bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-600 dark:text-slate-400 leading-tight flex items-center justify-center h-full transition-colors">
                         {dict.plantDetail.phDesc}
@@ -701,9 +706,10 @@ export default function PlantDetailPage() {
                         <Droplets className="h-4 w-4 text-teal-600 dark:text-teal-400 mb-1"/>
                         <span className="text-[10px] text-slate-500 dark:text-slate-500 uppercase font-bold tracking-wider">{dict.plantDetail.fertLabel}</span>
                       </div>
-                      <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col transition-colors">
-                        <span className="text-base font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest">{plant.fertilizer_requirement || "Unknown"}</span>
-                        <span className="text-[11px] text-slate-600 dark:text-slate-400 mt-1">{getIndoLevelDetail(plant.fertilizer_requirement, "fert", language)}</span>
+                      <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col transition-colors w-full">
+                        <span className="text-base font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest truncate">{plant.fertilizer_requirement || "Unknown"}</span>
+                        {/* PERBAIKAN: SUBTITLE YANG INFORMATIF */}
+                        <span className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-tight break-words px-1">{getParamSubtitle(plant.fertilizer_requirement, language)}</span>
                       </div>
                     </div>
                     
@@ -712,9 +718,10 @@ export default function PlantDetailPage() {
                         <Leaf className="h-4 w-4 text-green-600 dark:text-green-400 mb-1"/>
                         <span className="text-[10px] text-slate-500 dark:text-slate-500 uppercase font-bold tracking-wider">{dict.plantDetail.growthLabel}</span>
                       </div>
-                      <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col transition-colors">
-                        <span className="text-base font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest">{plant.growth_rate || "Unknown"}</span>
-                        <span className="text-[11px] text-slate-600 dark:text-slate-400 mt-1">{getIndoLevelDetail(plant.growth_rate, "growth", language)}</span>
+                      <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col transition-colors w-full">
+                        <span className="text-base font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest truncate">{plant.growth_rate || "Unknown"}</span>
+                        {/* PERBAIKAN: SUBTITLE YANG INFORMATIF (Laju Tumbuh) */}
+                        <span className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-tight break-words px-1">{getIndoLevelDetail(plant.growth_rate, "growth", language).split(",")[0]}</span>
                       </div>
                     </div>
                     
@@ -723,8 +730,8 @@ export default function PlantDetailPage() {
                         <Ruler className="h-4 w-4 text-blue-600 dark:text-blue-400 mb-1"/>
                         <span className="text-[10px] text-slate-500 dark:text-slate-500 uppercase font-bold tracking-wider">{dict.plantDetail.heightLabel}</span>
                       </div>
-                      <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col items-center justify-center h-full transition-colors">
-                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 block mt-1">{plant.max_height_cm ? `${plant.max_height_cm} cm` : "N/A"}</span>
+                      <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col items-center justify-center h-full transition-colors w-full">
+                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 block mt-1 truncate">{plant.max_height_cm ? `${plant.max_height_cm} cm` : "N/A"}</span>
                       </div>
                     </div>
                     
@@ -733,8 +740,8 @@ export default function PlantDetailPage() {
                         <MapPin className="h-4 w-4 text-orange-600 dark:text-orange-400 mb-1"/>
                         <span className="text-[10px] text-slate-500 dark:text-slate-500 uppercase font-bold tracking-wider">{dict.plantDetail.originLabel}</span>
                       </div>
-                      <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col items-center justify-center h-full transition-colors">
-                        <span className="text-[14px] font-bold text-gray-900 dark:text-slate-200 block mt-1 leading-snug">{plant.origin_country || "Unknown"}</span>
+                      <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col items-center justify-center h-full transition-colors w-full">
+                        <span className="text-[14px] font-bold text-gray-900 dark:text-slate-200 block mt-1 leading-snug truncate px-1">{plant.origin_country || "Unknown"}</span>
                       </div>
                     </div>
 
