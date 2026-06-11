@@ -1,7 +1,15 @@
 export interface Plant {
   id: string;
 
-  name: string;
+  // -- BILINGUAL FIELDS --
+  name_id: string;
+  name_en?: string | null;
+  description_id?: string | null;
+  description_en?: string | null;
+  expert_notes_id?: string | null;
+  expert_notes_en?: string | null;
+  // ----------------------
+
   slug?: string;
   scientific_name?: string | null;
 
@@ -25,7 +33,6 @@ export interface Plant {
   source_name?: string | null; 
   source_url?: string | null;
 
-  description?: string | null;
   image_url?: string | null;
   gallery_urls?: string[] | null;
 
@@ -38,11 +45,10 @@ export interface Plant {
   maintenance_level?: string | null;
   carpet_potential?: boolean | null;
   shrimp_safe?: boolean | null;
-  co2_mandatory?: boolean | null; // <--- FIELD BARU DITAMBAHKAN DI SINI
-  emersed_capable?: boolean | null; // <--- FIELD BARU UNTUK MENANDAI JIKA TANAMAN BISA TUMBUH EMERSED (DI DARAT)
+  co2_mandatory?: boolean | null; 
+  emersed_capable?: boolean | null; 
   growth_control?: string | null;
   tank_size_recommendation?: string[] | null;
-  expert_notes?: string | null;
 
   created_at: string;
   updated_at?: string | null;

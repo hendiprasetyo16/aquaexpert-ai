@@ -3,7 +3,8 @@ import { Plant } from "../types/plant.types";
 
 const PLANT_COLUMNS = `
   id,
-  name,
+  name_id,
+  name_en,
   slug,
   scientific_name,
   light_requirement,
@@ -16,7 +17,8 @@ const PLANT_COLUMNS = `
   ph_max,
   temperature_min,
   temperature_max,
-  description,
+  description_id,
+  description_en,
   origin_country,
   max_height_cm,
   recommended_for,
@@ -34,7 +36,8 @@ const PLANT_COLUMNS = `
   emersed_capable,
   growth_control,
   tank_size_recommendation,
-  expert_notes,
+  expert_notes_id,
+  expert_notes_en,
   created_at,
   updated_at,
   is_active,
@@ -48,7 +51,7 @@ export async function getPlants(): Promise<Plant[]> {
     .from("plants")
     .select(PLANT_COLUMNS)
     .eq("is_active", true) 
-    .order("name");
+    .order("name_id"); // <-- DIUBAH KE name_id
 
   if (error) {
     console.error(error);
@@ -109,7 +112,7 @@ export async function getArchivedPlants(): Promise<Plant[]> {
     .from("plants")
     .select(PLANT_COLUMNS)
     .eq("is_active", false)
-    .order("name");
+    .order("name_id"); // <-- DIUBAH KE name_id
 
   if (error) {
     console.error("Gagal mengambil data tanaman yang diarsipkan:", error);

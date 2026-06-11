@@ -38,20 +38,21 @@ export async function createPlantAction(plantData: Partial<Plant>) {
       { cookies: { getAll() { return cookieStore.getAll(); }, setAll() {} } }
     );
 
+    // CEK DUPLIKAT MENGGUNAKAN name_id
     const { data: existingPlant } = await supabase
       .from("plants")
       .select("id")
-      .ilike("name", plantData.name!)
+      .ilike("name_id", plantData.name_id!)
       .eq("is_active", true)
       .maybeSingle();
 
     if (existingPlant) {
-      throw new Error(`Tanaman "${plantData.name}" sudah ada di database.`);
+      throw new Error(`Tanaman "${plantData.name_id}" sudah ada di database.`);
     }
     
     const payload = {
       ...plantData,
-      slug: generateSlug(plantData.name!),
+      slug: generateSlug(plantData.name_id!),
       created_by: userId,
       updated_by: userId,
       is_active: true,
@@ -60,16 +61,13 @@ export async function createPlantAction(plantData: Partial<Plant>) {
     const { data, error } = await supabase.from("plants").insert(payload).select().maybeSingle();
     if (error) throw new Error(error.message);
     
-    // === TAMBAHAN KODE: CATAT LOG AKTIVITAS ===
     await supabase.from("system_activities").insert({
       title: "Tanaman Baru Ditambahkan",
-      message: `Tanaman "${plantData.name}" berhasil ditambahkan ke database oleh admin.`,
+      message: `Tanaman "${plantData.name_id}" berhasil ditambahkan ke database oleh admin.`,
       category: "data_crud",
       created_by: userName
     });
-    // ==========================================
 
-    // BERSIHKAN CACHE HALAMAN AGAR LANGSUNG UPDATE
     revalidatePath("/dashboard/plants"); 
     
     return { success: true, data };
@@ -94,37 +92,35 @@ export async function updatePlantAction(id: string, plantData: Partial<Plant>) {
       { cookies: { getAll() { return cookieStore.getAll(); }, setAll() {} } }
     );
 
+    // CEK DUPLIKAT MENGGUNAKAN name_id
     const { data: duplicatePlant } = await supabase
       .from("plants")
       .select("id")
-      .ilike("name", plantData.name!)
+      .ilike("name_id", plantData.name_id!)
       .eq("is_active", true)
       .neq("id", id)
       .maybeSingle();
 
     if (duplicatePlant) {
-      throw new Error(`Tanaman "${plantData.name}" sudah ada di database.`);
+      throw new Error(`Tanaman "${plantData.name_id}" sudah ada di database.`);
     }
 
     const payload = {
       ...plantData,
-      slug: plantData.name ? generateSlug(plantData.name) : undefined,
+      slug: plantData.name_id ? generateSlug(plantData.name_id) : undefined,
       updated_by: userId,
     };
 
     const { data, error } = await supabase.from("plants").update(payload).eq("id", id).select().maybeSingle();
     if (error) throw new Error(error.message);
 
-    // === TAMBAHAN KODE: CATAT LOG AKTIVITAS ===
     await supabase.from("system_activities").insert({
       title: "Tanaman Diperbarui",
-      message: `Data tanaman "${plantData.name || data?.name || 'Tanaman'}" berhasil diperbarui.`,
+      message: `Data tanaman "${plantData.name_id || data?.name_id || 'Tanaman'}" berhasil diperbarui.`,
       category: "data_crud",
       created_by: userName
     });
-    // ==========================================
 
-    // BERSIHKAN CACHE HALAMAN AGAR LANGSUNG UPDATE
     revalidatePath("/dashboard/plants");
     revalidatePath(`/dashboard/plants/${id}`); 
 
@@ -155,10 +151,10 @@ export async function hardDeletePlantAction(id: string) {
       throw new Error("Hanya Super Admin yang boleh menghapus permanen.");
     }
 
-    // 1. CARI TANAMAN UNTUK MENDAPATKAN NAMA, IMAGE_URL DAN GALLERY_URLS
+    // CARI TANAMAN UNTUK MENDAPATKAN NAMA (name_id), IMAGE_URL DAN GALLERY_URLS
     const { data: plant, error: fetchError } = await supabase
       .from("plants")
-      .select("name, image_url, gallery_urls") // <-- Ditambahkan 'name' agar bisa dicatat di log
+      .select("name_id, image_url, gallery_urls") 
       .eq("id", id)
       .single();
 
@@ -166,7 +162,6 @@ export async function hardDeletePlantAction(id: string) {
 
     const filesToDelete: string[] = [];
 
-    // 2. AMBIL PATH DARI IMAGE_URL (COVER)
     if (plant?.image_url) {
       const pathParts = plant.image_url.split("plant-images/");
       if (pathParts.length === 2) {
@@ -174,7 +169,6 @@ export async function hardDeletePlantAction(id: string) {
       }
     }
 
-    // 3. AMBIL PATH DARI SEMUA GAMBAR DI GALLERY_URLS
     if (plant?.gallery_urls && Array.isArray(plant.gallery_urls)) {
       for (const url of plant.gallery_urls) {
         const pathParts = url.split("plant-images/");
@@ -184,25 +178,20 @@ export async function hardDeletePlantAction(id: string) {
       }
     }
 
-    // 4. HAPUS SEMUA FILE SEKALIGUS DI STORAGE JIKA ADA
     if (filesToDelete.length > 0) {
       await supabase.storage.from("plant-images").remove(filesToDelete);
     }
 
-    // 5. EKSEKUSI HARD DELETE DARI DATABASE
     const { error } = await supabase.from("plants").delete().eq("id", id);
     if (error) throw error;
 
-    // === TAMBAHAN KODE: CATAT LOG AKTIVITAS ===
     await supabase.from("system_activities").insert({
       title: "Tanaman Dihapus Permanen",
-      message: `Tanaman "${plant?.name || 'Tanaman'}" berhasil dihapus permanen dari sistem beserta file gambarnya.`,
+      message: `Tanaman "${plant?.name_id || 'Tanaman'}" berhasil dihapus permanen dari sistem beserta file gambarnya.`,
       category: "data_crud",
       created_by: userName
     });
-    // ==========================================
 
-    // BERSIHKAN CACHE HALAMAN AGAR LANGSUNG UPDATE
     revalidatePath("/dashboard/plants");
     revalidatePath("/dashboard/plants/archive");
 
@@ -228,33 +217,32 @@ export async function restorePlantAction(id: string) {
       { cookies: { getAll() { return cookieStore.getAll(); }, setAll() {} } }
     );
 
-    const { data: archivedPlant, error: fetchError } = await supabase.from("plants").select("name").eq("id", id).single();
+    // AMBIL name_id SAAT RESTORE
+    const { data: archivedPlant, error: fetchError } = await supabase.from("plants").select("name_id").eq("id", id).single();
     if (fetchError || !archivedPlant) throw new Error("Data tanaman tidak ditemukan.");
 
+    // CEK DUPLIKAT SAAT RESTORE
     const { data: duplicatePlant } = await supabase
       .from("plants")
       .select("id")
-      .ilike("name", archivedPlant.name)
+      .ilike("name_id", archivedPlant.name_id)
       .eq("is_active", true)
       .maybeSingle();
 
     if (duplicatePlant) {
-      throw new Error(`Tanaman "${archivedPlant.name}" sudah ada dalam database aktif. Harap hapus atau ubah nama tanaman yang aktif terlebih dahulu.`);
+      throw new Error(`Tanaman "${archivedPlant.name_id}" sudah ada dalam database aktif. Harap hapus atau ubah nama tanaman yang aktif terlebih dahulu.`);
     }
 
     const { error } = await supabase.from("plants").update({ is_active: true, updated_by: userId }).eq("id", id);
     if (error) throw new Error(error.message);
 
-    // === TAMBAHAN KODE: CATAT LOG AKTIVITAS ===
     await supabase.from("system_activities").insert({
       title: "Tanaman Dipulihkan",
-      message: `Tanaman "${archivedPlant.name}" berhasil dipulihkan dari arsip kembali ke database aktif.`,
+      message: `Tanaman "${archivedPlant.name_id}" berhasil dipulihkan dari arsip kembali ke database aktif.`,
       category: "data_crud",
       created_by: userName
     });
-    // ==========================================
 
-    // BERSIHKAN CACHE HALAMAN AGAR LANGSUNG UPDATE
     revalidatePath("/dashboard/plants");
     revalidatePath("/dashboard/plants/archive");
 

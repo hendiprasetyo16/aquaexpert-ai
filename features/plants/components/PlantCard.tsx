@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Leaf, Sun, Wind, Droplets, Edit } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/providers/LanguageProvider"; // <-- PANGGIL KAMUS
 
 interface PlantCardProps {
   plant: Plant;
@@ -12,89 +13,78 @@ interface PlantCardProps {
 
 export default function PlantCard({ plant }: PlantCardProps) {
   const { role } = useAuth(); 
+  const { dict, language } = useLanguage(); 
+
+  // PENDETEKSI BAHASA UNTUK NAMA TANAMAN
+  const displayName = language === 'en' && plant.name_en ? plant.name_en : plant.name_id;
 
   return (
-    // PERBAIKAN: Card menggunakan bg-white di mode terang dan hover border/shadow menyesuaikan
     <Card className="group relative overflow-hidden border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 transition-all duration-300 hover:border-teal-500 dark:hover:border-teal-700 hover:shadow-lg hover:shadow-teal-600/10 dark:hover:shadow-teal-900/20">
 
-      {/* TOMBOL EDIT KECIL DI POJOK KANAN ATAS (Hanya untuk Admin/Super Admin) */}
       {role !== "user" && (
         <Link
           href={`/dashboard/plants/${plant.id}/edit`}
           className="absolute right-3 top-3 z-20 rounded-lg bg-teal-600 p-2 text-white opacity-0 transition-all hover:bg-teal-500 group-hover:opacity-100 shadow-md"
-          title="Edit Tanaman"
+          title={dict.plantCard.editTooltip}
         >
           <Edit className="h-4 w-4" />
         </Link>
       )}
 
-      {/* BUNGKUS GAMBAR & JUDUL DENGAN LINK MENUJU HALAMAN DETAIL */}
       <Link href={`/dashboard/plants/${plant.id}`} className="block cursor-pointer">
-        {/* PERBAIKAN: Ruang kosong gambar menggunakan bg-slate-100 di mode terang */}
         <div className="h-52 w-full overflow-hidden bg-slate-100 dark:bg-slate-800 relative transition-colors duration-300">
           {plant.image_url ? (
-            <img
-              src={plant.image_url}
-              alt={plant.name || "Gambar Tanaman"}
-              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-            />
+            <img src={plant.image_url} alt={displayName} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
           ) : (
             <div className="flex h-full items-center justify-center">
               <Leaf className="h-12 w-12 text-slate-300 dark:text-slate-600" />
             </div>
           )}
-          {/* Efek overlay gelap tipis saat di-hover agar terasa bisa diklik */}
           <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10 dark:group-hover:bg-black/20" />
         </div>
 
         <CardHeader>
-          {/* PERBAIKAN: Judul menjadi teal-700 di mode terang, teal-400 di mode gelap */}
-          <CardTitle className="text-xl text-teal-700 dark:text-teal-400 transition-colors group-hover:text-teal-600 dark:group-hover:text-teal-300 truncate" title={plant.name || ""}>
-            {plant.name}
+          <CardTitle className="text-xl text-teal-700 dark:text-teal-400 transition-colors group-hover:text-teal-600 dark:group-hover:text-teal-300 truncate" title={displayName}>
+            {displayName}
           </CardTitle>
           <p className="italic text-slate-500 dark:text-slate-400 truncate" title={plant.scientific_name || ""}>
-            {plant.scientific_name || "-"}
+            {plant.scientific_name || dict.plantCard.noScientificName}
           </p>
         </CardHeader>
       </Link>
 
       <CardContent>
-        {/* PERBAIKAN: Teks info menggunakan text-slate-700 di mode terang */}
         <div className="space-y-3 text-sm text-slate-700 dark:text-slate-300">
           <div className="flex items-center gap-2">
             <Leaf className="h-4 w-4 text-teal-600 dark:text-teal-500 shrink-0" />
-            <span className="font-medium shrink-0">Posisi:</span>
-            <span className="truncate">{plant.placement || "Unknown"}</span>
+            <span className="font-medium shrink-0">{dict.plantCard.placement}</span>
+            <span className="truncate">{plant.placement || dict.plantCard.unknown}</span>
           </div>
 
           <div className="flex items-center gap-2">
             <Sun className="h-4 w-4 text-yellow-600 dark:text-yellow-500 shrink-0" />
-            <span className="font-medium shrink-0">Cahaya:</span>
-            <span className="truncate">{plant.light_requirement || "Unknown"}</span>
+            <span className="font-medium shrink-0">{dict.plantCard.light}</span>
+            <span className="truncate">{plant.light_requirement || dict.plantCard.unknown}</span>
           </div>
 
           <div className="flex items-center gap-2">
             <Wind className="h-4 w-4 text-blue-500 dark:text-blue-400 shrink-0" />
-            <span className="font-medium shrink-0">CO₂:</span>
-            <span className="truncate">{plant.co2_requirement || "Unknown"}</span>
+            <span className="font-medium shrink-0">{dict.plantCard.co2}</span>
+            <span className="truncate">{plant.co2_requirement || dict.plantCard.unknown}</span>
           </div>
 
-          {/* PERBAIKAN: Garis pembatas dan Lencana Tingkat Kesulitan adaptif */}
           <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-800/60 mt-3 transition-colors duration-300">
             <Droplets className="h-4 w-4 text-cyan-600 dark:text-cyan-500 shrink-0" />
-            <span className="font-medium shrink-0">Tingkat Kesulitan:</span>
+            <span className="font-medium shrink-0">{dict.plantCard.difficulty}</span>
             <span
               className={`rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide border transition-colors ${
-                plant.difficulty?.toLowerCase() === 'easy' 
-                  ? 'bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/50' 
-                  : plant.difficulty?.toLowerCase() === 'medium' 
-                  ? 'bg-yellow-50 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900/50' 
-                  : plant.difficulty?.toLowerCase() === 'hard' 
-                  ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50' 
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                plant.difficulty?.toLowerCase() === 'easy' ? 'bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/50' 
+                : plant.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-50 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900/50' 
+                : plant.difficulty?.toLowerCase() === 'hard' ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50' 
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
               }`}
             >
-              {plant.difficulty || "Unknown"}
+              {plant.difficulty || dict.plantCard.unknown}
             </span>
           </div>
         </div>

@@ -10,31 +10,28 @@ import PlantCard from "./PlantCard";
 import { Loader2, Plus, Archive, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Leaf, Filter, ArrowDownAZ, ArrowUpZA } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useLanguage } from "@/providers/LanguageProvider"; // <-- IMPORT KAMUS
 
 const ITEMS_PER_PAGE = 12;
 
 export default function PlantList() {
   const { role } = useAuth();
+  const { dict, language } = useLanguage(); // <-- PANGGIL KAMUS & SETTER BAHASA
   
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // STATES: Pencarian, Filter, Sorting, Pagination
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
   const [placementFilter, setPlacementFilter] = useState("all");
   
-  // V2: STATES TAMBAHAN UNTUK QUICK FILTER KARTU STATISTIK
   const [carpetFilter, setCarpetFilter] = useState<"all" | "true">("all");
   const [shrimpFilter, setShrimpFilter] = useState<"all" | "true">("all");
   
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
-
-  // FLAG GEMBOK MEMORI
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // 1. MENGAMBIL DATA DARI DATABASE
   useEffect(() => {
     async function loadData() {
       try {
@@ -49,36 +46,27 @@ export default function PlantList() {
     loadData();
   }, []);
 
-  // 2. MENGAMBIL "INGATAN" HALAMAN (SESSION STORAGE)
   useEffect(() => {
     const savedPage = sessionStorage.getItem("plantPage");
     if (savedPage) setCurrentPage(Number(savedPage));
-
     const savedSearch = sessionStorage.getItem("plantSearch");
     if (savedSearch) setSearchQuery(savedSearch);
-
     const savedDiff = sessionStorage.getItem("plantDiff");
     if (savedDiff) setDifficultyFilter(savedDiff);
-
     const savedPlace = sessionStorage.getItem("plantPlace");
     if (savedPlace) setPlacementFilter(savedPlace);
-
     const savedCarpet = sessionStorage.getItem("plantCarpet");
     if (savedCarpet) setCarpetFilter(savedCarpet as "all" | "true");
-
     const savedShrimp = sessionStorage.getItem("plantShrimp");
     if (savedShrimp) setShrimpFilter(savedShrimp as "all" | "true");
-
     const savedSort = sessionStorage.getItem("plantSort");
     if (savedSort) setSortOrder(savedSort as "asc" | "desc");
 
     setIsHydrated(true);
   }, []);
 
-  // 3. MENYIMPAN "INGATAN"
   useEffect(() => {
     if (!isHydrated) return;
-
     sessionStorage.setItem("plantPage", currentPage.toString());
     sessionStorage.setItem("plantSearch", searchQuery);
     sessionStorage.setItem("plantDiff", difficultyFilter);
@@ -93,47 +81,24 @@ export default function PlantList() {
   const handlePlaceFilter = (val: string) => { setPlacementFilter(val); setCurrentPage(1); };
   const handleSort = (val: "asc" | "desc") => { setSortOrder(val); setCurrentPage(1); };
 
-  // HANDLER: QUICK FILTER UNTUK KARTU STATISTIK
   const handleQuickFilter = (type: "total" | "beginner" | "midground" | "carpet" | "shrimp") => {
     setCurrentPage(1);
-    
-    // Reset pencarian jika menggunakan quick filter
     setSearchQuery("");
-
-    if (type === "total") {
-      setDifficultyFilter("all");
-      setPlacementFilter("all");
-      setCarpetFilter("all");
-      setShrimpFilter("all");
-    } else if (type === "beginner") {
-      setDifficultyFilter("easy");
-      setPlacementFilter("all");
-      setCarpetFilter("all");
-      setShrimpFilter("all");
-    } else if (type === "midground") {
-      setDifficultyFilter("all");
-      setPlacementFilter("midground");
-      setCarpetFilter("all");
-      setShrimpFilter("all");
-    } else if (type === "carpet") {
-      setDifficultyFilter("all");
-      setPlacementFilter("all");
-      setCarpetFilter("true");
-      setShrimpFilter("all");
-    } else if (type === "shrimp") {
-      setDifficultyFilter("all");
-      setPlacementFilter("all");
-      setCarpetFilter("all");
-      setShrimpFilter("true");
-    }
+    if (type === "total") { setDifficultyFilter("all"); setPlacementFilter("all"); setCarpetFilter("all"); setShrimpFilter("all"); } 
+    else if (type === "beginner") { setDifficultyFilter("easy"); setPlacementFilter("all"); setCarpetFilter("all"); setShrimpFilter("all"); } 
+    else if (type === "midground") { setDifficultyFilter("all"); setPlacementFilter("midground"); setCarpetFilter("all"); setShrimpFilter("all"); } 
+    else if (type === "carpet") { setDifficultyFilter("all"); setPlacementFilter("all"); setCarpetFilter("true"); setShrimpFilter("all"); } 
+    else if (type === "shrimp") { setDifficultyFilter("all"); setPlacementFilter("all"); setCarpetFilter("all"); setShrimpFilter("true"); }
   };
 
-  // 4. LOGIKA FILTERING & SORTING GABUNGAN
+  // LOGIKA PENCARIAN & PENGURUTAN BILINGUAL
   const processedPlants = plants
     .filter((plant) => {
       const searchLower = searchQuery.toLowerCase();
+      // Cari teks di name_id ATAU name_en ATAU scientific_name
       const matchesSearch = 
-        plant.name.toLowerCase().includes(searchLower) ||
+        plant.name_id.toLowerCase().includes(searchLower) ||
+        (plant.name_en && plant.name_en.toLowerCase().includes(searchLower)) ||
         (plant.scientific_name && plant.scientific_name.toLowerCase().includes(searchLower));
 
       const matchesDiff = difficultyFilter === "all" ? true : plant.difficulty?.toLowerCase() === difficultyFilter;
@@ -144,37 +109,26 @@ export default function PlantList() {
       return matchesSearch && matchesDiff && matchesPlace && matchesCarpet && matchesShrimp;
     })
     .sort((a, b) => {
-      if (sortOrder === "asc") {
-        return a.name.localeCompare(b.name); // A ke Z
-      } else {
-        return b.name.localeCompare(a.name); // Z ke A
-      }
+      // Urutkan berdasarkan bahasa yang sedang dipilih
+      const nameA = language === 'en' && a.name_en ? a.name_en : a.name_id;
+      const nameB = language === 'en' && b.name_en ? b.name_en : b.name_id;
+      
+      if (sortOrder === "asc") return nameA.localeCompare(nameB);
+      else return nameB.localeCompare(nameA);
     });
 
-  // 5. LOGIKA PAGINATION
   const totalPages = Math.max(1, Math.ceil(processedPlants.length / ITEMS_PER_PAGE));
-  const displayedPlants = processedPlants.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  const displayedPlants = processedPlants.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const maxVisiblePages = 4;
   let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
   let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-  if (endPage - startPage + 1 < maxVisiblePages) {
-    endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-  }
-  if (endPage === totalPages) {
-    startPage = Math.max(1, totalPages - maxVisiblePages + 1);
-  }
+  if (endPage - startPage + 1 < maxVisiblePages) endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+  if (endPage === totalPages) startPage = Math.max(1, totalPages - maxVisiblePages + 1);
 
   const pageNumbers = [];
-  for (let i = startPage; i <= endPage; i++) {
-    pageNumbers.push(i);
-  }
+  for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
-  // --- STATISTIK KNOWLEDGE BASE ---
   const stats = {
     total: plants.length,
     beginner: plants.filter(p => p.difficulty?.toLowerCase() === 'easy').length,
@@ -183,150 +137,70 @@ export default function PlantList() {
     shrimpSafe: plants.filter(p => p.shrimp_safe === true).length,
   };
 
-  // KONDISI AKTIF KARTU
   const isTotalActive = difficultyFilter === "all" && placementFilter === "all" && carpetFilter === "all" && shrimpFilter === "all";
 
   if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600 dark:text-teal-500" />
-      </div>
-    );
+    return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-600 dark:text-teal-500" /></div>;
   }
 
   return (
     <div className="space-y-8 transition-colors duration-300">
-      
-      {/* HEADER TITLE & STATS */}
       <div className="space-y-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-slate-100">Database Tanaman</h2>
-          <p className="mt-1 text-slate-600 dark:text-slate-400 text-sm">
-            Knowledge Base tersinkronisasi untuk AquaExpert Inference Engine.
-          </p>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-slate-100">{dict.plantList.title}</h2>
+          <p className="mt-1 text-slate-600 dark:text-slate-400 text-sm">{dict.plantList.subtitle}</p>
         </div>
 
-        {/* KARTU STATISTIK (ADAPTIF TERANG/GELAP) */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          
-          {/* TOTAL PLANT */}
-          <div 
-            onClick={() => handleQuickFilter("total")}
-            className={`p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 ${
-              isTotalActive 
-                ? "bg-slate-100 dark:bg-slate-800 ring-2 ring-slate-400 border-transparent" 
-                : "bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
-            }`}
-          >
+          <div onClick={() => handleQuickFilter("total")} className={`p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 ${isTotalActive ? "bg-slate-100 dark:bg-slate-800 ring-2 ring-slate-400 border-transparent" : "bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"}`}>
             <span className="text-2xl font-black text-gray-900 dark:text-white">{stats.total}</span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold mt-1">Total Plant</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold mt-1">{dict.plantList.statTotal}</span>
           </div>
-
-          {/* BEGINNER */}
-          <div 
-            onClick={() => handleQuickFilter("beginner")}
-            className={`p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 ${
-              difficultyFilter === "easy" 
-                ? "bg-teal-50 dark:bg-teal-950/60 ring-2 ring-teal-500 border-transparent" 
-                : "bg-white dark:bg-slate-900/80 border border-teal-200 dark:border-teal-900/50 hover:bg-teal-50/50 dark:hover:bg-teal-950/30"
-            }`}
-          >
+          <div onClick={() => handleQuickFilter("beginner")} className={`p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 ${difficultyFilter === "easy" ? "bg-teal-50 dark:bg-teal-950/60 ring-2 ring-teal-500 border-transparent" : "bg-white dark:bg-slate-900/80 border border-teal-200 dark:border-teal-900/50 hover:bg-teal-50/50 dark:hover:bg-teal-950/30"}`}>
             <span className="text-2xl font-black text-teal-600 dark:text-teal-400">{stats.beginner}</span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold mt-1">Beginner</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold mt-1">{dict.plantList.statBeginner}</span>
           </div>
-
-          {/* MIDGROUND */}
-          <div 
-            onClick={() => handleQuickFilter("midground")}
-            className={`p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 ${
-              placementFilter === "midground" 
-                ? "bg-blue-50 dark:bg-blue-950/60 ring-2 ring-blue-500 border-transparent" 
-                : "bg-white dark:bg-slate-900/80 border border-blue-200 dark:border-blue-900/50 hover:bg-blue-50/50 dark:hover:bg-blue-950/30"
-            }`}
-          >
+          <div onClick={() => handleQuickFilter("midground")} className={`p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 ${placementFilter === "midground" ? "bg-blue-50 dark:bg-blue-950/60 ring-2 ring-blue-500 border-transparent" : "bg-white dark:bg-slate-900/80 border border-blue-200 dark:border-blue-900/50 hover:bg-blue-50/50 dark:hover:bg-blue-950/30"}`}>
             <span className="text-2xl font-black text-blue-600 dark:text-blue-400">{stats.midground}</span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold mt-1">Midground</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold mt-1">{dict.plantList.statMidground}</span>
           </div>
-
-          {/* CARPET */}
-          <div 
-            onClick={() => handleQuickFilter("carpet")}
-            className={`p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 ${
-              carpetFilter === "true" 
-                ? "bg-green-50 dark:bg-green-950/60 ring-2 ring-green-500 border-transparent" 
-                : "bg-white dark:bg-slate-900/80 border border-green-200 dark:border-green-900/50 hover:bg-green-50/50 dark:hover:bg-green-950/30"
-            }`}
-          >
+          <div onClick={() => handleQuickFilter("carpet")} className={`p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 ${carpetFilter === "true" ? "bg-green-50 dark:bg-green-950/60 ring-2 ring-green-500 border-transparent" : "bg-white dark:bg-slate-900/80 border border-green-200 dark:border-green-900/50 hover:bg-green-50/50 dark:hover:bg-green-950/30"}`}>
             <span className="text-2xl font-black text-green-600 dark:text-green-400">{stats.carpet}</span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold mt-1">Carpet</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold mt-1">{dict.plantList.statCarpet}</span>
           </div>
-
-          {/* SHRIMP SAFE */}
-          <div 
-            onClick={() => handleQuickFilter("shrimp")}
-            className={`p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 ${
-              shrimpFilter === "true" 
-                ? "bg-orange-50 dark:bg-orange-950/60 ring-2 ring-orange-500 border-transparent" 
-                : "bg-white dark:bg-slate-900/80 border border-orange-200 dark:border-orange-900/50 hover:bg-orange-50/50 dark:hover:bg-orange-950/30"
-            }`}
-          >
+          <div onClick={() => handleQuickFilter("shrimp")} className={`p-4 rounded-xl flex flex-col items-center justify-center text-center shadow-md cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 ${shrimpFilter === "true" ? "bg-orange-50 dark:bg-orange-950/60 ring-2 ring-orange-500 border-transparent" : "bg-white dark:bg-slate-900/80 border border-orange-200 dark:border-orange-900/50 hover:bg-orange-50/50 dark:hover:bg-orange-950/30"}`}>
             <span className="text-2xl font-black text-orange-600 dark:text-orange-400">{stats.shrimpSafe}</span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold mt-1">Shrimp Safe</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold mt-1">{dict.plantList.statShrimp}</span>
           </div>
         </div>
       </div>
 
-      {/* BILAH KONTROL TERPADU (SEMUA KUMPUL DI SINI) */}
       <div className="flex flex-col gap-3 border-b border-slate-200 dark:border-slate-800 pb-6 xl:flex-row xl:items-center xl:justify-between transition-colors">
-        
-        {/* Search Bar (Kiri) */}
         <div className="relative w-full xl:max-w-sm shrink-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
-          <Input 
-            placeholder="Cari nama, ilmiah..." 
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-9 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200 focus:border-teal-500 w-full transition-colors"
-          />
+          <Input placeholder={dict.plantList.searchPlaceholder} value={searchQuery} onChange={(e) => handleSearch(e.target.value)} className="pl-9 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200 focus:border-teal-500 w-full transition-colors" />
         </div>
 
-        {/* Filters, Sort, Archive, Add (Kanan) */}
         <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
-          {/* Sorting Abjad */}
-          <Button 
-            variant="outline"
-            onClick={() => handleSort(sortOrder === "asc" ? "desc" : "asc")}
-            className="flex-1 sm:flex-none border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white transition-colors"
-            title="Urutkan Abjad"
-          >
+          <Button variant="outline" onClick={() => handleSort(sortOrder === "asc" ? "desc" : "asc")} className="flex-1 sm:flex-none border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white transition-colors" title={sortOrder === "asc" ? dict.plantList.sortAsc : dict.plantList.sortDesc}>
             {sortOrder === "asc" ? <ArrowDownAZ className="mr-2 h-4 w-4 text-teal-600 dark:text-teal-500" /> : <ArrowUpZA className="mr-2 h-4 w-4 text-teal-600 dark:text-teal-500" />}
-            {sortOrder === "asc" ? "A - Z" : "Z - A"}
+            {sortOrder === "asc" ? dict.plantList.sortAsc : dict.plantList.sortDesc}
           </Button>
 
-          {/* Filter Difficulty */}
           <div className="relative flex-1 sm:flex-none sm:w-36">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
-            <select
-              value={difficultyFilter}
-              onChange={(e) => handleDiffFilter(e.target.value)}
-              className="w-full h-10 appearance-none rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 py-2 pl-9 pr-4 text-sm text-slate-900 dark:text-slate-300 outline-none focus:border-teal-500 transition-colors"
-            >
-              <option value="all">Semua Level</option>
-              <option value="easy">Easy (Mudah)</option>
-              <option value="medium">Medium (Sedang)</option>
-              <option value="hard">Hard (Sulit)</option>
+            <select value={difficultyFilter} onChange={(e) => handleDiffFilter(e.target.value)} className="w-full h-10 appearance-none rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 py-2 pl-9 pr-4 text-sm text-slate-900 dark:text-slate-300 outline-none focus:border-teal-500 transition-colors">
+              <option value="all">{dict.plantList.allLevels}</option>
+              <option value="easy">{dict.plantList.easy}</option>
+              <option value="medium">{dict.plantList.medium}</option>
+              <option value="hard">{dict.plantList.hard}</option>
             </select>
           </div>
 
-          {/* Filter Placement */}
           <div className="relative flex-1 sm:flex-none sm:w-36">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
-            <select
-              value={placementFilter}
-              onChange={(e) => handlePlaceFilter(e.target.value)}
-              className="w-full h-10 appearance-none rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 py-2 pl-9 pr-4 text-sm text-slate-900 dark:text-slate-300 outline-none focus:border-teal-500 transition-colors"
-            >
-              <option value="all">Semua Posisi</option>
+            <select value={placementFilter} onChange={(e) => handlePlaceFilter(e.target.value)} className="w-full h-10 appearance-none rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 py-2 pl-9 pr-4 text-sm text-slate-900 dark:text-slate-300 outline-none focus:border-teal-500 transition-colors">
+              <option value="all">{dict.plantList.allPlacement}</option>
               <option value="foreground">Foreground</option>
               <option value="midground">Midground</option>
               <option value="background">Background</option>
@@ -335,17 +209,16 @@ export default function PlantList() {
             </select>
           </div>
 
-          {/* Tombol Admin */}
           {role !== "user" && (
             <>
               <Link href="/dashboard/plants/archive" className="flex-1 sm:flex-none">
                 <Button variant="outline" className="w-full border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white transition-all active:scale-95">
-                  <Archive className="mr-2 h-4 w-4" /> Arsip
+                  <Archive className="mr-2 h-4 w-4" /> {dict.plantList.btnArchive}
                 </Button>
               </Link>
               <Link href="/dashboard/plants/create" className="flex-1 sm:flex-none">
                 <Button className="w-full bg-teal-600 text-white hover:bg-teal-500 transition-all active:scale-95 shadow-lg shadow-teal-600/10 dark:shadow-teal-900/20">
-                  <Plus className="mr-2 h-4 w-4" /> Tambah
+                  <Plus className="mr-2 h-4 w-4" /> {dict.plantList.btnAdd}
                 </Button>
               </Link>
             </>
@@ -356,17 +229,9 @@ export default function PlantList() {
       {processedPlants.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30 py-20 text-center transition-colors">
           <Leaf className="mb-4 h-12 w-12 text-slate-400 dark:text-slate-600" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-200">Tidak Ditemukan</h3>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Tidak ada tanaman yang cocok dengan kriteria pencarian & filter Anda.
-          </p>
-          <Button 
-            variant="link" 
-            onClick={() => handleQuickFilter("total")}
-            className="mt-4 text-teal-600 dark:text-teal-400"
-          >
-            Reset Filter
-          </Button>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-200">{dict.plantList.notFoundTitle}</h3>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{dict.plantList.notFoundDesc}</p>
+          <Button variant="link" onClick={() => handleQuickFilter("total")} className="mt-4 text-teal-600 dark:text-teal-400">{dict.plantList.btnReset}</Button>
         </div>
       ) : (
         <>
@@ -384,18 +249,17 @@ export default function PlantList() {
             })}
           </div>
 
-          {/* KONTROL PAGINATION */}
           {totalPages > 1 && (
             <div className="flex flex-col xl:flex-row items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-6 mt-6 gap-4 transition-colors">
               <p className="text-sm text-slate-600 dark:text-slate-400 text-center xl:text-left w-full xl:w-auto">
-                Menampilkan <span className="font-medium text-gray-900 dark:text-slate-200">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> hingga <span className="font-medium text-gray-900 dark:text-slate-200">{Math.min(currentPage * ITEMS_PER_PAGE, processedPlants.length)}</span> dari <span className="font-medium text-gray-900 dark:text-slate-200">{processedPlants.length}</span> data
+                {dict.plantList.showing} <span className="font-medium text-gray-900 dark:text-slate-200">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> {dict.plantList.to} <span className="font-medium text-gray-900 dark:text-slate-200">{Math.min(currentPage * ITEMS_PER_PAGE, processedPlants.length)}</span> {dict.plantList.of} <span className="font-medium text-gray-900 dark:text-slate-200">{processedPlants.length}</span> {dict.plantList.data}
               </p>
               
               <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
-                <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors" title="Halaman Awal">
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors" title={dict.plantList.tooltipFirst}>
                   <ChevronsLeft className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors" title="Sebelumnya">
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors" title={dict.plantList.tooltipPrev}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 
@@ -414,15 +278,15 @@ export default function PlantList() {
                   </Button>
                 ))}
 
-                <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors" title="Selanjutnya">
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors" title={dict.plantList.tooltipNext}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors" title="Halaman Akhir">
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors" title={dict.plantList.tooltipLast}>
                   <ChevronsRight className="h-4 w-4" />
                 </Button>
 
                 <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 ml-2 sm:ml-4 border-l border-slate-300 dark:border-slate-700 pl-2 sm:pl-4 transition-colors">
-                  <span className="hidden sm:inline">Hal</span>
+                  <span className="hidden sm:inline">{dict.plantList.page}</span>
                   <Input 
                     type="number" min={1} max={totalPages} value={currentPage}
                     onChange={(e) => {
@@ -430,7 +294,6 @@ export default function PlantList() {
                       if (val >= 1 && val <= totalPages) setCurrentPage(val);
                     }}
                     className="w-14 h-8 text-center bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-gray-900 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:border-teal-500 transition-colors"
-                    title="Ketik angka halaman"
                   />
                   <span className="hidden sm:inline">/ {totalPages}</span>
                 </div>
