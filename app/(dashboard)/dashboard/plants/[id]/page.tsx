@@ -1,3 +1,4 @@
+// app/(dashboard)/dashboard/plants/[id]/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -22,7 +23,7 @@ import {
   getCO2DisplayStatus, renderStars, getIndoLevelDetail, getPlacementBadgeStyle, 
   getPlacementDesc, getTankSizeDetails, getStyleDesc, getPlantTypeDesc, 
   getRecommendedDesc, getRecommendationBadgeColor, getIndoLevelCore,
-  getPlantTypeLongDesc // <-- IMPORT FUNGSI BARU DI SINI
+  getPlantTypeLongDesc
 } from "@/features/plants/components/plant-helpers";
 
 export default function PlantDetailPage() {
@@ -317,14 +318,21 @@ export default function PlantDetailPage() {
                       }`}>
                         {plant.difficulty || "Unknown"}
                       </span>
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{getIndoLevelCore(plant.difficulty, language)}</span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 text-center px-1">
+                        {getIndoLevelCore(plant.difficulty, language)}
+                      </span>
                     </div>
                     
+                    {/* PERBAIKAN: Memangkas teks terjemahan dan mengatur ukuran font agar muat rapi */}
                     <div className={`flex flex-col items-center justify-center w-[120px] px-2 py-2 rounded-lg border shadow-sm transition-colors ${getPlacementBadgeStyle(plant.placement)}`}>
-                      <span className="text-base font-black uppercase tracking-widest">
-                        {plant.placement || "Unknown"}
+                      <span className="text-sm font-black tracking-widest uppercase">
+                        {getPlacementDesc(plant.placement, language).split(" (")[0]}
                       </span>
-                      <span className="text-[11px] opacity-80 mt-0.5 font-medium text-center">{getPlacementDesc(plant.placement, language).split(" (")[0]}</span>
+                      {getPlacementDesc(plant.placement, language).includes(" (") && (
+                        <span className="text-[11px] opacity-80 mt-0.5 font-medium text-center px-1">
+                           {getPlacementDesc(plant.placement, language).split(" (")[1].replace(")", "")}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -453,7 +461,7 @@ export default function PlantDetailPage() {
                             <p className="font-bold text-gray-900 dark:text-slate-200 text-sm truncate">{relatedName}</p>
                             <div className="flex flex-wrap gap-1.5 mt-1.5">
                                <span className="text-[9px] bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 px-1.5 py-0.5 rounded border border-teal-200 dark:border-teal-900/50 uppercase font-semibold">{getPlantTypeDesc(related.plant_type, language).split(" ")[0]}</span>
-                               <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 uppercase font-semibold">{getPlacementDesc(related.placement, language).split(" ")[0]}</span>
+                               <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 uppercase font-semibold">{getPlacementDesc(related.placement, language).split(" (")[0]}</span>
                             </div>
                           </div>
                         </div>
@@ -482,7 +490,6 @@ export default function PlantDetailPage() {
               </div>
             )}
 
-            {/* PERBAIKAN DI SINI: MENGGUNAKAN getPlantTypeLongDesc */}
             <div className="bg-white dark:bg-slate-900/80 p-5 rounded-xl border border-slate-200 dark:border-slate-800 flex items-start gap-4 shadow-sm transition-colors">
                <div className="bg-teal-50 dark:bg-teal-950/40 p-2.5 rounded-md border border-teal-200 dark:border-teal-900/50 shrink-0 mt-0.5 transition-colors">
                   <Leaf className="h-6 w-6 text-teal-600 dark:text-teal-400" />
