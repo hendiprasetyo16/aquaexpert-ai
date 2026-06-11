@@ -1,10 +1,22 @@
+// providers/LanguageProvider.tsx
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import id from '@/dictionaries/id.json';
-import en from '@/dictionaries/en.json';
+
+// IMPORT MODULAR DICTIONARIES
+import idCommon from '@/dictionaries/id/common.json';
+import idPlants from '@/dictionaries/id/plants.json';
+import enCommon from '@/dictionaries/en/common.json';
+import enPlants from '@/dictionaries/en/plants.json';
+
+// GABUNGKAN SECARA OTOMATIS
+// Menggabungkan object dari berbagai file ke dalam 1 object raksasa secara "On the Fly"
+// Dengan cara ini, UI lama Bapak (seperti dict.plantForm, dict.dashboard) tetap bekerja tanpa perlu refactoring komponen sama sekali!
+const id = { ...idCommon, ...idPlants };
+const en = { ...enCommon, ...enPlants };
 
 type Language = 'id' | 'en';
+// Mengambil struktur data dari penggabungan objek agar TypeScript (IntelliSense) mendeteksi otomatis
 type Dictionary = typeof id;
 
 interface LanguageContextType {
@@ -22,35 +34,45 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Baca memori browser saat aplikasi pertama dibuka
     const savedLang = localStorage.getItem('aquaexpert_lang') as Language;
-    if (savedLang && (savedLang === 'id' || savedLang === 'en')) {
+    
+    // Validasi agar terhindar dari manipulasi local storage yang tidak valid
+    if (savedLang === 'id' || savedLang === 'en') {
       setLanguage(savedLang);
+    } else {
+      setLanguage('id'); 
     }
+    
     setMounted(true);
   }, []);
 
   const handleSetLanguage = (lang: Language) => {
     setLanguage(lang);
-    localStorage.setItem('aquaexpert_lang', lang); // Simpan ke memori
+    localStorage.setItem('aquaexpert_lang', lang); 
   };
 
-  // Mencegah error "Hydration Mismatch" di Next.js saat memuat dari memori
-  if (!mounted) return <div className="hidden">Memuat Bahasa...</div>;
+  // Mencegah error "Hydration Mismatch" (ketidaksesuaian HTML server dan client di Next.js)
+  if (!mounted) return (
+    <div className="fixed inset-0 bg-slate-50 dark:bg-slate-950 z-50 flex items-center justify-center">
+       <span className="text-sm font-medium text-slate-500 animate-pulse">Menyiapkan Preferensi Bahasa...</span>
+    </div>
+  );
+
+  const currentDict = language === 'id' ? id : en;
 
   return (
-    <LanguageContext.Provider value={{ 
-      language, 
-      setLanguage: handleSetLanguage, 
-      dict: language === 'id' ? id : en 
-    }}>
+    <LanguageContext.Provider value={{ language, setLanguage: handleSetLanguage, dict: currentDict }}>
       {children}
     </LanguageContext.Provider>
   );
 }
 
+// Hook kustom untuk dipanggil di semua komponen
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
+  
   if (context === undefined) {
-    throw new Error('useLanguage harus digunakan di dalam LanguageProvider');
+    throw new Error('🔥 FATAL ERROR: useLanguage harus digunakan di dalam <LanguageProvider>');
   }
+  
   return context;
 };

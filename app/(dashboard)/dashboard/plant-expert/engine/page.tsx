@@ -77,7 +77,7 @@ export default function PlantExpertEngineV4() {
     }
   }, []);
 
-  // EFEK MAGIS ENTERPRISE: Jika user ganti bahasa dan hasil sudah ada, hitung ulang mesin AI secara instan!
+  // HITUNG ULANG JIKA BAHASA BERUBAH
   useEffect(() => {
     if (results !== null && plants.length > 0) {
       const answers: UserAnswers = { experience, tankSize, hasCO2: co2 === "Tinggi (Injeksi)", light, maintenance, style, shrimpTank, wantCarpet, wantRedPlant };
@@ -95,7 +95,6 @@ export default function PlantExpertEngineV4() {
       experience, tankSize, hasCO2: co2 === "Tinggi (Injeksi)", light, maintenance, style, shrimpTank, wantCarpet, wantRedPlant
     };
 
-    // Panggil mesin dengan kamus saat ini
     const aiResults = generateRecommendations(plants, answers, dict.expertEngine);
 
     sessionStorage.setItem(SESSION_KEY, JSON.stringify({ answers }));
@@ -124,7 +123,7 @@ export default function PlantExpertEngineV4() {
     }
   };
 
-  // LOGIKA PAGINATION DINAMIS (ANTI BOLONG)
+  // LOGIKA PAGINATION
   let totalPages = 0;
   let displayedResults: RecommendedPlant[] = [];
   let startIndex = 0;
@@ -164,7 +163,6 @@ export default function PlantExpertEngineV4() {
     <div className="w-full h-full min-h-screen p-6 md:p-8 lg:p-10">
       <div className="max-w-[1400px] mx-auto space-y-8 pb-10 text-slate-900 dark:text-slate-100">
         
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-extrabold text-teal-600 dark:text-teal-400 flex items-center gap-3">
             <Cpu className="h-8 w-8 md:h-10 md:w-10" /> {dict.expertEngine.title}
@@ -176,7 +174,6 @@ export default function PlantExpertEngineV4() {
 
         <div className="grid gap-8 xl:grid-cols-12">
           
-          {/* KOLOM KIRI: FORM KONSULTASI */}
           <Card className="border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/80 xl:col-span-4 h-fit shadow-xl shadow-slate-200/50 dark:shadow-none transition-colors duration-300">
             <CardContent className="p-6 md:p-8 space-y-6">
               <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center gap-2 text-gray-900 dark:text-slate-100">
@@ -186,7 +183,7 @@ export default function PlantExpertEngineV4() {
               <div className="space-y-5">
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.expertEngine.q1}</Label>
-                  <select value={experience} onChange={(e) => setExperience(e.target.value as any)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none transition-all">
+                  <select value={experience} onChange={(e) => setExperience(e.target.value as any)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
                     <option value="Pemula">{dict.expertEngine.q1Opt1}</option>
                     <option value="Menengah">{dict.expertEngine.q1Opt2}</option>
                     <option value="Mahir">{dict.expertEngine.q1Opt3}</option>
@@ -195,7 +192,7 @@ export default function PlantExpertEngineV4() {
 
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.expertEngine.q2}</Label>
-                  <select value={tankSize} onChange={(e) => setTankSize(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none transition-all">
+                  <select value={tankSize} onChange={(e) => setTankSize(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
                     <option value="Nano">Nano (≤ 40cm)</option>
                     <option value="Small">Small (45-60cm)</option>
                     <option value="Medium">Medium (60-90cm)</option>
@@ -207,7 +204,7 @@ export default function PlantExpertEngineV4() {
 
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.expertEngine.q3}</Label>
-                  <select value={co2} onChange={(e) => setCo2(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none transition-all">
+                  <select value={co2} onChange={(e) => setCo2(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
                     <option value="Tanpa CO2">{dict.expertEngine.q3Opt1}</option>
                     <option value="Tinggi (Injeksi)">{dict.expertEngine.q3Opt2}</option>
                   </select>
@@ -215,7 +212,7 @@ export default function PlantExpertEngineV4() {
 
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.expertEngine.q4}</Label>
-                  <select value={light} onChange={(e) => setLight(e.target.value as any)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none transition-all">
+                  <select value={light} onChange={(e) => setLight(e.target.value as any)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
                     <option value="Low">{dict.expertEngine.q4Opt1}</option>
                     <option value="Medium">{dict.expertEngine.q4Opt2}</option>
                     <option value="High">{dict.expertEngine.q4Opt3}</option>
@@ -224,7 +221,7 @@ export default function PlantExpertEngineV4() {
 
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.expertEngine.q5}</Label>
-                  <select value={maintenance} onChange={(e) => setMaintenance(e.target.value as any)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none transition-all">
+                  <select value={maintenance} onChange={(e) => setMaintenance(e.target.value as any)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
                     <option value="Low">{dict.expertEngine.q5Opt1}</option>
                     <option value="Medium">{dict.expertEngine.q5Opt2}</option>
                     <option value="High">{dict.expertEngine.q5Opt3}</option>
@@ -233,7 +230,7 @@ export default function PlantExpertEngineV4() {
 
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.expertEngine.q6}</Label>
-                  <select value={style} onChange={(e) => setStyle(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none transition-all">
+                  <select value={style} onChange={(e) => setStyle(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
                     <option value="Bebas">{dict.expertEngine.q6Opt1}</option>
                     <option value="Nature">{dict.expertEngine.q6Opt2}</option>
                     <option value="Dutch">{dict.expertEngine.q6Opt3}</option>
@@ -242,7 +239,6 @@ export default function PlantExpertEngineV4() {
                   </select>
                 </div>
 
-                {/* FITUR TAMBAHAN (KONDISI SPESIFIK) */}
                 <div className="pt-5 mt-2 border-t border-slate-200 dark:border-slate-800 space-y-4">
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <input type="checkbox" checked={wantCarpet} onChange={(e) => setWantCarpet(e.target.checked)} className="h-5 w-5 accent-teal-600 rounded cursor-pointer" />
@@ -347,7 +343,6 @@ export default function PlantExpertEngineV4() {
                   })}
                 </div>
                 
-                {/* KONTROL PAGINATION (Layout Rata) */}
                 {totalPages > 1 && (
                   <div className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-6 mt-8 gap-4 transition-colors">
                     <p className="text-sm text-slate-600 dark:text-slate-400 text-center sm:text-left">
