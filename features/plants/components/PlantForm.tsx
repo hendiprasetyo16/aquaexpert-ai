@@ -593,30 +593,33 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
             {error && <div className="rounded-md bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 p-4 text-sm text-red-600 dark:text-red-400">{error}</div>}
 
-            {/* ACTION BUTTONS */}
+            {/* ACTION BUTTONS UTAMA (BAWAH FORM) */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200 dark:border-slate-800">
+              
+              {/* TOMBOL KIRI (ARSIP & HAPUS) */}
               <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
                 {mode === "edit" && plant && (
                   <>
-                    <Button type="button" variant="outline" onClick={triggerArchiveModal} disabled={loading} className="w-full sm:w-auto">
+                    <button type="button" onClick={triggerArchiveModal} disabled={loading} className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-semibold transition-colors bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 disabled:opacity-50 flex items-center justify-center">
                       <Archive className="mr-2 h-4 w-4" /> {dict.plantForm.btnArchive}
-                    </Button>
+                    </button>
                     {role === "super_admin" && (
-                      <Button type="button" variant="destructive" onClick={triggerHardDeleteModal} disabled={loading} className="w-full sm:w-auto">
+                      <button type="button" onClick={triggerHardDeleteModal} disabled={loading} className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-semibold transition-colors bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-900 text-red-700 dark:text-red-400 disabled:opacity-50 flex items-center justify-center">
                         <Trash2 className="mr-2 h-4 w-4" /> {dict.plantForm.btnHardDelete}
-                      </Button>
+                      </button>
                     )}
                   </>
                 )}
               </div>
 
+              {/* TOMBOL KANAN (BATAL & SIMPAN) */}
               <div className="flex flex-col-reverse sm:flex-row gap-3 w-full sm:w-auto">
-                <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading} className="w-full sm:w-auto">
+                <button type="button" onClick={() => router.back()} disabled={loading} className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-semibold transition-colors bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 disabled:opacity-50 flex items-center justify-center">
                   {dict.plantForm.btnCancel}
-                </Button>
-                <Button type="submit" disabled={loading} className="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 text-white font-semibold">
+                </button>
+                <button type="submit" disabled={loading} className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-semibold transition-colors bg-teal-600 hover:bg-teal-500 text-white disabled:opacity-50 flex items-center justify-center">
                   {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : mode === "create" ? dict.plantForm.btnSave : dict.plantForm.btnUpdate}
-                </Button>
+                </button>
               </div>
             </div>
           </form>
@@ -635,12 +638,12 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               {dict.plantForm.modalArchiveDesc1} <strong className="text-gray-900 dark:text-slate-200">{language === 'en' && plant.name_en ? plant.name_en : plant.name_id}</strong>{dict.plantForm.modalArchiveDesc2}
             </p>
             <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
-              <Button type="button" variant="outline" disabled={loading} onClick={() => setIsArchiveModalOpen(false)} className="w-full sm:w-auto">
+              <button type="button" disabled={loading} onClick={() => setIsArchiveModalOpen(false)} className="rounded-md px-4 py-2 text-sm font-semibold transition-colors bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 disabled:opacity-50 flex items-center justify-center">
                 {dict.plantForm.btnCancel}
-              </Button>
-              <Button type="button" disabled={loading} onClick={executeArchive} className="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white">
+              </button>
+              <button type="button" disabled={loading} onClick={executeArchive} className="rounded-md px-4 py-2 text-sm font-semibold transition-colors bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white disabled:opacity-50 flex items-center justify-center">
                 {loading ? dict.plantForm.processing : dict.plantForm.btnConfirmArchive}
-              </Button>
+              </button>
             </div>
           </div>
         </div>
@@ -660,12 +663,12 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               </p>
               <Input required type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder={dict.plantForm.typePlantName} className="mb-6 bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-red-500" />
               <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
-                <Button type="button" variant="outline" disabled={loading} onClick={() => {setIsDeleteModalOpen(false); setDeleteConfirmText("");}} className="w-full sm:w-auto">
+                <button type="button" disabled={loading} onClick={() => {setIsDeleteModalOpen(false); setDeleteConfirmText("");}} className="rounded-md px-4 py-2 text-sm font-semibold transition-colors bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 disabled:opacity-50 flex items-center justify-center">
                   {dict.plantForm.btnCancel}
-                </Button>
-                <Button type="submit" disabled={loading || deleteConfirmText !== (language === 'en' && plant.name_en ? plant.name_en : plant.name_id)} className="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white disabled:opacity-50">
+                </button>
+                <button type="submit" disabled={loading || deleteConfirmText !== (language === 'en' && plant.name_en ? plant.name_en : plant.name_id)} className="rounded-md px-4 py-2 text-sm font-semibold transition-colors bg-red-600 hover:bg-red-500 text-white disabled:opacity-50 flex items-center justify-center">
                   {loading ? dict.plantForm.processing : dict.plantForm.btnConfirmDelete}
-                </Button>
+                </button>
               </div>
             </form>
           </div>

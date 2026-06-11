@@ -6,7 +6,7 @@ import { getPlantById, getPlants } from "@/features/plants/repositories/plant.re
 import { Plant } from "@/features/plants/types/plant.types";
 import { useAuth } from "@/hooks/useAuth";
 import Image from "next/image";
-import { useLanguage } from "@/providers/LanguageProvider"; // <-- PANGGIL KAMUS
+import { useLanguage } from "@/providers/LanguageProvider";
 
 import { 
   Loader2, ArrowLeft, ArrowRight, Leaf, Edit, Droplets, Wind, Sun, 
@@ -21,14 +21,15 @@ import { Button } from "@/components/ui/button";
 import { 
   getCO2DisplayStatus, renderStars, getIndoLevelDetail, getPlacementBadgeStyle, 
   getPlacementDesc, getTankSizeDetails, getStyleDesc, getPlantTypeDesc, 
-  getRecommendedDesc, getRecommendationBadgeColor, getIndoLevelCore 
+  getRecommendedDesc, getRecommendationBadgeColor, getIndoLevelCore,
+  getPlantTypeLongDesc // <-- IMPORT FUNGSI BARU DI SINI
 } from "@/features/plants/components/plant-helpers";
 
 export default function PlantDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { role } = useAuth();
-  const { dict, language } = useLanguage(); // <-- INISIALISASI KAMUS
+  const { dict, language } = useLanguage(); 
   
   const [plant, setPlant] = useState<Plant | null>(null);
   const [allPlantsList, setAllPlantsList] = useState<Plant[]>([]);
@@ -167,7 +168,6 @@ export default function PlantDetailPage() {
   if (loading) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-600 dark:text-teal-500" /></div>;
   if (!plant) return <div className="text-center mt-20 text-slate-500 dark:text-slate-400">Data tanaman tidak ditemukan atau telah dinonaktifkan.</div>;
 
-  // VARIABEL BILINGUAL
   const displayName = language === 'en' && plant.name_en ? plant.name_en : plant.name_id;
   const displayDesc = language === 'en' && plant.description_en ? plant.description_en : plant.description_id;
   const displayExpertNotes = language === 'en' && plant.expert_notes_en ? plant.expert_notes_en : plant.expert_notes_id;
@@ -482,6 +482,7 @@ export default function PlantDetailPage() {
               </div>
             )}
 
+            {/* PERBAIKAN DI SINI: MENGGUNAKAN getPlantTypeLongDesc */}
             <div className="bg-white dark:bg-slate-900/80 p-5 rounded-xl border border-slate-200 dark:border-slate-800 flex items-start gap-4 shadow-sm transition-colors">
                <div className="bg-teal-50 dark:bg-teal-950/40 p-2.5 rounded-md border border-teal-200 dark:border-teal-900/50 shrink-0 mt-0.5 transition-colors">
                   <Leaf className="h-6 w-6 text-teal-600 dark:text-teal-400" />
@@ -491,7 +492,7 @@ export default function PlantDetailPage() {
                      {dict.plantDetail.growthCharTitle} <span className="text-teal-700 dark:text-teal-400 uppercase tracking-widest">{plant.plant_type || "N/A"}</span>
                   </h4>
                   <p className="text-[14px] text-slate-600 dark:text-slate-400 leading-relaxed transition-colors">
-                     {getPlantTypeDesc(plant.plant_type || "", language)}
+                     {getPlantTypeLongDesc(plant.plant_type || "", language)} 
                   </p>
                </div>
             </div>

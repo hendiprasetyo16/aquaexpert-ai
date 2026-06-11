@@ -133,6 +133,7 @@ export const getCO2DisplayStatus = (requirement: string | null | undefined, isMa
   return { label: lang === "id" ? "Tidak Perlu CO2" : "No CO2 Needed", variant: "success" };
 };
 
+// UNTUK DROPDOWN FORM
 export const getPlantTypeDesc = (type: string | null | undefined, lang: "id" | "en" = "id") => {
   const t = (type || "").toLowerCase();
   if (lang === "id") {
@@ -150,11 +151,40 @@ export const getPlantTypeDesc = (type: string | null | undefined, lang: "id" | "
   return type ? type.charAt(0).toUpperCase() + type.slice(1) : "";
 };
 
+// UNTUK HALAMAN DETAIL (PARAGRAF PANJANG)
+export const getPlantTypeLongDesc = (type: string | null | undefined, lang: "id" | "en" = "id") => {
+  const t = (type || "").toLowerCase();
+  if (lang === "id") {
+    if (t === "stem") return "Tanaman Batang. Tumbuh menjulang ke atas, perlu dipotong dan ditancap ulang.";
+    if (t === "rhizome") return "Tanaman Rimpang. Jangan dikubur di pasir, harus diikat pada batu atau kayu.";
+    if (t === "rosette") return "Tumbuh berpusat dari satu pangkal akar bawah. Sangat butuh pupuk tancap.";
+    if (t === "carpet") return "Tanaman Karpet. Menjalar menutupi dasar aquarium layaknya padang rumput.";
+    if (t === "moss") return "Lumut Air. Diikat pada batu/kayu. Surganya udang hias untuk bersembunyi.";
+    if (t === "floating") return "Tanaman Apung. Berada di permukaan. Penyerap racun nitrat paling ampuh.";
+    if (t === "bulb") return "Tumbuh dari umbi. Umbinya jangan dikubur total ke dalam pasir agar tidak busuk.";
+    if (t === "runner") return "Tanaman Menjalar. Berkembang menyebar cepat lewat tunas di bawah pasir.";
+    if (t === "crypt") return "Cryptocoryne. Berakar kuat, rentan terhadap daun meleleh (crypt melt) jika parameter air berubah drastis.";
+    if (t === "epiphyte") return "Epiphyte. Tumbuh menempel pada hardscape (kayu/batu), tidak ditanam di substrat tanah.";
+    return "Tipe tanaman akuatik standar.";
+  } else {
+    if (t === "stem") return "Stem plant. Grows upwards, needs to be trimmed and replanted frequently.";
+    if (t === "rhizome") return "Rhizome plant. Do not bury the rhizome in sand, must be tied/glued to hardscape.";
+    if (t === "rosette") return "Rosette plant. Grows from a single central base. Highly dependent on root tabs.";
+    if (t === "carpet") return "Carpet plant. Spreads horizontally covering the aquarium floor like a lawn.";
+    if (t === "moss") return "Aquatic moss. Attached to hardscape. A perfect hiding spot for ornamental shrimp.";
+    if (t === "floating") return "Floating plant. Stays on the surface. Very effective at absorbing excess nitrates.";
+    if (t === "bulb") return "Bulb plant. Do not fully bury the bulb in the substrate to prevent rotting.";
+    if (t === "runner") return "Runner plant. Spreads quickly through horizontal shoots beneath the sand.";
+    if (t === "crypt") return "Cryptocoryne. Strong roots, prone to 'crypt melt' if water parameters fluctuate.";
+    if (t === "epiphyte") return "Epiphyte. Grows attached to hardscape (wood/rocks), not planted in the substrate.";
+    return "Standard aquatic plant type.";
+  }
+};
+
 export const getStyleDesc = (style: string, lang: "id" | "en" = "id") => {
   const s = style.toLowerCase();
   if (lang === "id") {
     if (s.includes("nature")) return "Nature (Alami)";
-    // PERBAIKAN: Dutch (Padat & Berwarna)
     if (s.includes("dutch")) return "Dutch (Padat & Berwarna)";
     if (s.includes("iwagumi")) return "Iwagumi (Padang Batu)";
     if (s.includes("jungle")) return "Jungle (Tumbuh Liar)";
@@ -179,7 +209,6 @@ export const getRecommendedDesc = (tag: string, lang: "id" | "en" = "id") => {
   const t = tag.toLowerCase();
   if (lang === "id") {
     if (t === "pemula" || t === "beginner") return "Beginner (Mudah)";
-    // PERBAIKAN: Pemisahan Low Tech dan Low Light secara eksplisit
     if (t.includes("low tech")) return "Low Tech (Tanpa CO2)";
     if (t.includes("low light")) return "Low Light (Cahaya Minim)";
     if (t.includes("high tech") || t.includes("co2 setup")) return "High Tech (Wajib CO2)";
@@ -193,7 +222,6 @@ export const getRecommendedDesc = (tag: string, lang: "id" | "en" = "id") => {
     if (t.includes("dutch style")) return "Dutch Style (Rapat & Berwarna)";
     if (t.includes("nature style")) return "Nature Style (Alami)";
     if (t.includes("paludarium")) return "Paludarium (Darat & Air)";
-    // PERBAIKAN: Blackwater menjadi Air Gelap/Tannin
     if (t.includes("blackwater")) return "Blackwater (Air Gelap / Tannin)";
     if (t.includes("aquascape contest")) return "Contest (Seni Tinggi)";
     if (t.includes("breeding tank")) return "Breeding Tank (Burayak)";
