@@ -18,10 +18,8 @@ import { generateRecommendations, UserAnswers, RecommendedPlant } from "@/featur
 import { useLanguage } from "@/providers/LanguageProvider";
 
 const SESSION_KEY = "aquaexpert_plant_inference_v4";
-
-// KONFIGURASI DINAMIS UNTUK PAGINATION
-const ITEMS_PAGE_1 = 11; // 1 Hero + 10 Regular (Rata Kanan-Kiri)
-const ITEMS_PAGE_N = 10; // Harus Genap (Rata Kanan-Kiri)
+const ITEMS_PAGE_1 = 11; 
+const ITEMS_PAGE_N = 10; 
 
 export default function PlantExpertEngineV4() {
   const { dict, language } = useLanguage(); 
@@ -73,37 +71,34 @@ export default function PlantExpertEngineV4() {
           setWantCarpet(parsed.answers.wantCarpet);
           setWantRedPlant(parsed.answers.wantRedPlant || false);
         }
-        if (parsed.results) {
-          setResults(parsed.results);
-        }
       } catch (e) {
         console.error("Gagal membaca session data", e);
       }
     }
   }, []);
 
+  // EFEK MAGIS ENTERPRISE: Jika user ganti bahasa dan hasil sudah ada, hitung ulang mesin AI secara instan!
+  useEffect(() => {
+    if (results !== null && plants.length > 0) {
+      const answers: UserAnswers = { experience, tankSize, hasCO2: co2 === "Tinggi (Injeksi)", light, maintenance, style, shrimpTank, wantCarpet, wantRedPlant };
+      const aiResults = generateRecommendations(plants, answers, dict.expertEngine);
+      setResults(aiResults);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, dict.expertEngine]); 
+
   const runInferenceEngine = () => {
     setLoading(true);
     setCurrentPage(1); 
     
     const answers: UserAnswers = {
-      experience,
-      tankSize,
-      hasCO2: co2 === "Tinggi (Injeksi)",
-      light,
-      maintenance,
-      style,
-      shrimpTank,
-      wantCarpet,
-      wantRedPlant
+      experience, tankSize, hasCO2: co2 === "Tinggi (Injeksi)", light, maintenance, style, shrimpTank, wantCarpet, wantRedPlant
     };
 
-    const aiResults = generateRecommendations(plants, answers);
+    // Panggil mesin dengan kamus saat ini
+    const aiResults = generateRecommendations(plants, answers, dict.expertEngine);
 
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-      answers,
-      results: aiResults
-    }));
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ answers }));
 
     setTimeout(() => {
       setResults(aiResults);
@@ -111,18 +106,25 @@ export default function PlantExpertEngineV4() {
     }, 800); 
   };
 
-  const getConfidenceColor = (confidence: string) => {
-    switch (confidence) {
-      case "Excellent Match": return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800";
-      case "Very Good Match": return "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 border-teal-200 dark:border-teal-800";
-      case "Good Match": return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800";
+  const getConfidenceColor = (key: string) => {
+    switch (key) {
+      case "Excellent": return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800";
+      case "VeryGood": return "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 border-teal-200 dark:border-teal-800";
+      case "Good": return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800";
       default: return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700";
     }
   };
 
-  // =====================================
+  const getConfidenceLabel = (key: string) => {
+    switch (key) {
+      case "Excellent": return dict.expertEngine.confExcellent;
+      case "VeryGood": return dict.expertEngine.confVeryGood;
+      case "Good": return dict.expertEngine.confGood;
+      default: return dict.expertEngine.confModerate;
+    }
+  };
+
   // LOGIKA PAGINATION DINAMIS (ANTI BOLONG)
-  // =====================================
   let totalPages = 0;
   let displayedResults: RecommendedPlant[] = [];
   let startIndex = 0;
@@ -130,13 +132,11 @@ export default function PlantExpertEngineV4() {
 
   if (results && results.length > 0) {
     const totalItems = results.length;
-    // Hitung sisa item setelah dikurangi 11 item pertama
     const remainingItems = Math.max(0, totalItems - ITEMS_PAGE_1);
     
     if (totalItems <= ITEMS_PAGE_1) {
       totalPages = 1;
     } else {
-      // 1 halaman pertama + (sisa item / 10)
       totalPages = 1 + Math.ceil(remainingItems / ITEMS_PAGE_N);
     }
 
@@ -144,7 +144,6 @@ export default function PlantExpertEngineV4() {
       startIndex = 0;
       endIndex = ITEMS_PAGE_1;
     } else {
-      // Index mulai: 11 + ((Page - 2) * 10)
       startIndex = ITEMS_PAGE_1 + ((currentPage - 2) * ITEMS_PAGE_N);
       endIndex = startIndex + ITEMS_PAGE_N;
     }
@@ -152,7 +151,6 @@ export default function PlantExpertEngineV4() {
     displayedResults = results.slice(startIndex, endIndex);
   }
 
-  // Tampilan Nomor Halaman
   const maxVisiblePages = 4;
   let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
   let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
@@ -299,7 +297,6 @@ export default function PlantExpertEngineV4() {
                 
                 <div className="grid gap-6 md:grid-cols-2">
                   {displayedResults.map((plant, index) => {
-                    // Gunakan global index untuk menjaga ranking nomor tetap valid meski pindah halaman
                     const globalIndex = startIndex + index;
                     const isTopMatch = globalIndex === 0;
 
@@ -308,12 +305,10 @@ export default function PlantExpertEngineV4() {
                         key={plant.id} 
                         className={`relative group rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 ${isTopMatch ? 'md:col-span-2 ring-2 ring-teal-500 shadow-teal-500/20 shadow-2xl scale-[1.01] transition-transform' : 'shadow-md hover:shadow-lg transition-shadow'}`}
                       >
-                        {/* Lencana Ranking */}
                         <div className={`absolute -top-1 -left-1 z-20 w-12 h-12 rounded-br-2xl flex items-center justify-center font-black shadow-md text-lg ${isTopMatch ? 'bg-amber-400 text-amber-950' : 'bg-slate-800 text-white dark:bg-slate-800 dark:text-white'}`}>
                           {isTopMatch ? <Trophy className="h-6 w-6" /> : globalIndex + 1}
                         </div>
 
-                        {/* Header Khusus untuk #1 AI Best Match */}
                         {isTopMatch && (
                           <div className="bg-gradient-to-r from-teal-600 to-emerald-600 px-14 py-2.5 text-white font-bold flex items-center gap-2 text-sm tracking-widest uppercase shadow-sm">
                             <Sparkles className="h-4 w-4" /> {dict.expertEngine.bestMatch}
@@ -327,12 +322,11 @@ export default function PlantExpertEngineV4() {
                             </div>
                           </div>
                           
-                          {/* Explainable AI */}
                           <div className={`p-5 ${isTopMatch ? "bg-slate-50 dark:bg-slate-900/50 flex flex-col justify-center border-l border-slate-100 dark:border-slate-800" : "pt-0 border-t border-slate-100 dark:border-slate-800"}`}>
                             <div className="flex items-center justify-between mb-4">
                               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{dict.expertEngine.confidence}</span>
-                              <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${getConfidenceColor(plant.matchConfidence)} shadow-sm`}>
-                                {plant.matchScore} {dict.expertEngine.points} • {plant.matchConfidence}
+                              <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${getConfidenceColor(plant.matchConfidenceKey)} shadow-sm`}>
+                                {plant.matchScore} {dict.expertEngine.points} • {getConfidenceLabel(plant.matchConfidenceKey)}
                               </span>
                             </div>
                             {plant.matchReasons.length > 0 ? (
@@ -390,7 +384,6 @@ export default function PlantExpertEngineV4() {
                         <ChevronsRight className="h-4 w-4" />
                       </Button>
 
-                      {/* Input "Hal" / "Page" dengan flex-shrink-0 agar tidak turun ke bawah */}
                       <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 border-l border-slate-300 dark:border-slate-700 pl-4 ml-2 shrink-0 transition-colors">
                         <Input 
                           type="number" min={1} max={totalPages} value={currentPage}

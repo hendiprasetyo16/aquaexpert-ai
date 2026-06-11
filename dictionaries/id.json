@@ -458,6 +458,27 @@
     "paginationShowing": "Menampilkan peringkat",
     "paginationTo": "hingga",
     "paginationOf": "dari",
-    "paginationData": "rekomendasi terbaik."
+    "paginationData": "rekomendasi terbaik.",
+    "confExcellent": "Sangat Cocok (Excellent)",
+    "confVeryGood": "Sangat Baik (Very Good)",
+    "confGood": "Cocok (Good)",
+    "confModerate": "Cukup (Moderate)",
+    "reasonPropIdeal": "Proporsi sangat ideal untuk tank",
+    "reasonPropBad": "Kurang proporsional untuk tank Anda (butuh pemangkasan ekstra).",
+    "reasonBeginner": "Sangat ramah dan mudah untuk pemula.",
+    "reasonSafe": "Sangat aman untuk setup Anda.",
+    "reasonSkill": "Tingkat kesulitan yang pas untuk mengasah skill Anda.",
+    "reasonChallenging": "Sedikit menantang, butuh konsistensi ekstra.",
+    "reasonExpert": "Tingkat kesulitan menantang untuk level ahli.",
+    "reasonMinMaint": "Perawatan sangat minim (jarang trimming).",
+    "reasonSlowGrow": "Tumbuh lambat, tidak cepat merusak layout.",
+    "reasonMaintMatch": "Waktu perawatan yang dibutuhkan sesuai dengan rutinitas Anda.",
+    "reasonHighMaintWarn": "Catatan: Mungkin butuh waktu ekstra untuk trimming.",
+    "reasonHighMaintIdeal": "Sangat cocok bagi Anda yang rutin merawat akuarium.",
+    "reasonShrimp": "Habitat bermain dan sembunyi yang ideal bagi burayak udang.",
+    "reasonCarpet": "Kandidat utama untuk membentuk karpet dasar.",
+    "reasonRed": "Membawa nuansa merah/warna-warni yang Anda cari.",
+    "reasonLowTech": "Teruji juara di setup Low-Tech (Tanpa CO2).",
+    "reasonStyle": "Secara visual sesuai dengan tema"
   }
 }

@@ -458,6 +458,27 @@
     "paginationShowing": "Showing rank",
     "paginationTo": "to",
     "paginationOf": "of",
-    "paginationData": "best recommendations."
+    "paginationData": "best recommendations.",
+    "confExcellent": "Excellent Match",
+    "confVeryGood": "Very Good Match",
+    "confGood": "Good Match",
+    "confModerate": "Moderate Match",
+    "reasonPropIdeal": "Ideal proportions for a tank size of",
+    "reasonPropBad": "Less proportional for your tank (requires extra trimming).",
+    "reasonBeginner": "Very beginner-friendly and easy to grow.",
+    "reasonSafe": "Very safe choice for your setup.",
+    "reasonSkill": "Perfect difficulty level to sharpen your aquascaping skills.",
+    "reasonChallenging": "Slightly challenging, requires extra consistency.",
+    "reasonExpert": "Challenging difficulty level for experts.",
+    "reasonMinMaint": "Very minimal maintenance (rare trimming).",
+    "reasonSlowGrow": "Grows slowly, won't ruin your layout quickly.",
+    "reasonMaintMatch": "Required maintenance matches your routine.",
+    "reasonHighMaintWarn": "Note: May require extra time for trimming.",
+    "reasonHighMaintIdeal": "Perfect for those who regularly maintain their aquarium.",
+    "reasonShrimp": "Ideal hiding and breeding habitat for baby shrimp.",
+    "reasonCarpet": "Prime candidate for forming a foreground carpet.",
+    "reasonRed": "Brings the red/colorful hues you are looking for.",
+    "reasonLowTech": "Proven champion in Low-Tech (No CO2) setups.",
+    "reasonStyle": "Visually matches the theme:"
   }
 }
