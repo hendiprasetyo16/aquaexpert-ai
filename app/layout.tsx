@@ -4,7 +4,8 @@ import "./globals.css";
 
 // IMPORT PROVIDER
 import { AuthProvider } from "@/providers/AuthProvider";
-import { ThemeProvider } from "@/components/theme-provider"; // <-- Import Provider Tema
+import { ThemeProvider } from "@/components/theme-provider"; 
+import { LanguageProvider } from "@/providers/LanguageProvider"; // <-- IMPORT PROVIDER BAHASA BARU
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,26 +31,22 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      suppressHydrationWarning /* <-- WAJIB DITAMBAHKAN agar next-themes tidak error saat me-load halaman */
+      suppressHydrationWarning 
     >
-      {/* Class bg-slate-950 dan text-slate-50 diganti menjadi bg-background dan text-foreground.
-        Ini akan otomatis membaca warna dari global.css milikmu (Terang = putih, Gelap = slate gelap).
-      */}
       <body className="flex min-h-full flex-col bg-background text-foreground">
-        
-        {/* BUNGKUS APLIKASI DENGAN THEME PROVIDER */}
         <ThemeProvider
           attribute="class"
-          defaultTheme="system" // Default mengikuti settingan sistem OS/HP pengguna
+          defaultTheme="system" 
           enableSystem
           disableTransitionOnChange
         >
-          {/* AUTH PROVIDER TETAP AMAN DI DALAMNYA */}
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          {/* BUNGKUS DENGAN BAHASA PROVIDER */}
+          <LanguageProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </LanguageProvider>
         </ThemeProvider>
-
       </body>
     </html>
   );

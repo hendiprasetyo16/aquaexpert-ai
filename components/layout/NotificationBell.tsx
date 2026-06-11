@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Bell, ShieldAlert, Database } from "lucide-react";
+import { useLanguage } from "@/providers/LanguageProvider"; // <-- PANGGIL KAMUS
 
 interface Activity {
   id: string;
@@ -18,23 +19,15 @@ export default function NotificationBell({ role }: { role: string }) {
   const [unread, setUnread] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const supabase = createClient();
+  const { dict } = useLanguage(); // <-- INISIALISASI KAMUS
 
   useEffect(() => {
     if (!role) return;
 
-    // 1. Ambil data notifikasi awal dari database
     const fetchInitialNotifications = async () => {
       let query = supabase.from("system_activities").select("*").order("created_at", { ascending: false }).limit(10);
-      
-      // Aturan Filter Hak Akses Role:
-      // Jika admin, HANYA ambil data aktivitas user (login/aktif)
-      if (role === "admin") {
-        query = query.eq("category", "user_activity");
-      }
-      // Jika user biasa, mungkin tidak mendapat notifikasi sistem sama sekali
-      if (role === "user") {
-        return; 
-      }
+      if (role === "admin") query = query.eq("category", "user_activity");
+      if (role === "user") return; 
 
       const { data } = await query;
       if (data) setActivities(data);
@@ -42,7 +35,6 @@ export default function NotificationBell({ role }: { role: string }) {
 
     fetchInitialNotifications();
 
-    // 2. Langganan Real-time channel Supabase
     const channel = supabase
       .channel("realtime-activities")
       .on(
@@ -50,14 +42,7 @@ export default function NotificationBell({ role }: { role: string }) {
         { event: "INSERT", schema: "public", table: "system_activities" },
         (payload: any) => {
           const newActivity = payload.new as Activity;
-
-          // Validasi Role secara Real-time saat ada data masuk:
-          if (role === "super_admin") {
-            // Super Admin menerima semua jenis kategori
-            setActivities((prev) => [newActivity, ...prev.slice(0, 9)]);
-            setUnread(true);
-          } else if (role === "admin" && newActivity.category === "user_activity") {
-            // Admin hanya menerima notifikasi login/user aktif
+          if (role === "super_admin" || (role === "admin" && newActivity.category === "user_activity")) {
             setActivities((prev) => [newActivity, ...prev.slice(0, 9)]);
             setUnread(true);
           }
@@ -65,16 +50,13 @@ export default function NotificationBell({ role }: { role: string }) {
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [role]);
+    return () => { supabase.removeChannel(channel); };
+  }, [role, supabase]);
 
-  if (role === "user") return null; // Sembunyikan bell dari pengguna biasa jika diinginkan
+  if (role === "user") return null;
 
   return (
     <div className="relative">
-      {/* Tombol Bell */}
       <button 
         onClick={() => { setIsOpen(!isOpen); setUnread(false); }} 
         className="relative p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
@@ -88,14 +70,13 @@ export default function NotificationBell({ role }: { role: string }) {
         )}
       </button>
 
-      {/* Dropdown Menu List Notifikasi */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 shadow-xl z-50 max-h-96 overflow-y-auto">
           <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-400 uppercase tracking-wider">
-            Aktivitas Sistem ({role === 'super_admin' ? 'Semua Log' : 'Log User'})
+            {role === 'super_admin' ? dict.notification.titleSuperAdmin : dict.notification.titleAdmin}
           </div>
           {activities.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-6">Belum ada aktivitas masuk.</p>
+            <p className="text-sm text-slate-400 text-center py-6">{dict.notification.empty}</p>
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {activities.map((act) => (

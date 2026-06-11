@@ -2,14 +2,16 @@
 
 import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
-import { ThemeToggle } from "@/components/layout/ThemeToggle"; // <-- SUDAH DIPERBAIKI (Ditambahkan kurung kurawal {})
+import { ThemeToggle } from "@/components/layout/ThemeToggle"; 
 import NotificationBell from "@/components/layout/NotificationBell"; 
-import { Menu } from "lucide-react"; 
+import { Menu, Globe } from "lucide-react"; // <-- IMPORT IKON GLOBE DITAMBAHKAN
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/providers/LanguageProvider"; // <-- IMPORT KAMUS
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { profile } = useAuth();
+  const { language, setLanguage, dict } = useLanguage(); // <-- PANGGIL KAMUS & SETTER BAHASA
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 overflow-hidden transition-colors duration-200">
@@ -46,13 +48,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
           </div>
           
-          {/* BAGIAN KANAN: Info Sapaan, Theme Toggle & Notifikasi */}
+          {/* BAGIAN KANAN: Info Sapaan, Theme, Language & Notifikasi */}
           <div className="flex items-center gap-2 ml-auto">
             {profile && (
               <span className="text-sm text-slate-500 dark:text-slate-400 hidden md:block mr-2">
-                Selamat datang, <span className="font-medium text-slate-800 dark:text-slate-200">{profile.full_name.split(" ")[0]}</span>
+                {dict.dashboard.welcome} <span className="font-medium text-slate-800 dark:text-slate-200">{profile.full_name.split(" ")[0]}</span>
               </span>
             )}
+            
+            {/* TOMBOL GANTI BAHASA */}
+            <button
+              onClick={() => setLanguage(language === "id" ? "en" : "id")}
+              className="flex items-center gap-1 rounded-md p-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              title={language === "id" ? "Switch to English" : "Ganti Bahasa Indonesia"}
+            >
+              <Globe className="h-5 w-5" />
+              <span className="uppercase font-bold">{language}</span>
+            </button>
             
             {/* TOMBOL TOGGLE TEMA (Gelap/Terang) */}
             <ThemeToggle />
