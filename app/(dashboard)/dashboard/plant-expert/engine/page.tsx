@@ -1,3 +1,4 @@
+// app/(dashboard)/dashboard/plant-expert/engine/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,13 +8,23 @@ import PlantCard from "@/features/plants/components/PlantCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, Cpu, Filter, Info, CheckCircle2, Trophy, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { 
+  Loader2, Cpu, Filter, Info, CheckCircle2, Trophy, Sparkles, 
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight 
+} from "lucide-react";
 
 import { generateRecommendations, UserAnswers, RecommendedPlant } from "@/features/plants/services/expert.service";
+import { useLanguage } from "@/providers/LanguageProvider";
 
 const SESSION_KEY = "aquaexpert_plant_inference_v4";
 
+// KONFIGURASI DINAMIS UNTUK PAGINATION
+const ITEMS_PAGE_1 = 11; // 1 Hero + 10 Regular (Rata Kanan-Kiri)
+const ITEMS_PAGE_N = 10; // Harus Genap (Rata Kanan-Kiri)
+
 export default function PlantExpertEngineV4() {
+  const { dict, language } = useLanguage(); 
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<RecommendedPlant[] | null>(null);
@@ -27,7 +38,10 @@ export default function PlantExpertEngineV4() {
   const [style, setStyle] = useState("Bebas");
   const [shrimpTank, setShrimpTank] = useState(false);
   const [wantCarpet, setWantCarpet] = useState(false);
-  const [wantRedPlant, setWantRedPlant] = useState(false); // PARAMETER BARU
+  const [wantRedPlant, setWantRedPlant] = useState(false);
+
+  // PAGINATION STATE
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     async function loadKnowledgeBase() {
@@ -70,6 +84,7 @@ export default function PlantExpertEngineV4() {
 
   const runInferenceEngine = () => {
     setLoading(true);
+    setCurrentPage(1); 
     
     const answers: UserAnswers = {
       experience,
@@ -105,18 +120,59 @@ export default function PlantExpertEngineV4() {
     }
   };
 
+  // =====================================
+  // LOGIKA PAGINATION DINAMIS (ANTI BOLONG)
+  // =====================================
+  let totalPages = 0;
+  let displayedResults: RecommendedPlant[] = [];
+  let startIndex = 0;
+  let endIndex = 0;
+
+  if (results && results.length > 0) {
+    const totalItems = results.length;
+    // Hitung sisa item setelah dikurangi 11 item pertama
+    const remainingItems = Math.max(0, totalItems - ITEMS_PAGE_1);
+    
+    if (totalItems <= ITEMS_PAGE_1) {
+      totalPages = 1;
+    } else {
+      // 1 halaman pertama + (sisa item / 10)
+      totalPages = 1 + Math.ceil(remainingItems / ITEMS_PAGE_N);
+    }
+
+    if (currentPage === 1) {
+      startIndex = 0;
+      endIndex = ITEMS_PAGE_1;
+    } else {
+      // Index mulai: 11 + ((Page - 2) * 10)
+      startIndex = ITEMS_PAGE_1 + ((currentPage - 2) * ITEMS_PAGE_N);
+      endIndex = startIndex + ITEMS_PAGE_N;
+    }
+    
+    displayedResults = results.slice(startIndex, endIndex);
+  }
+
+  // Tampilan Nomor Halaman
+  const maxVisiblePages = 4;
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+  if (endPage - startPage + 1 < maxVisiblePages) endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+  if (endPage === totalPages) startPage = Math.max(1, totalPages - maxVisiblePages + 1);
+
+  const pageNumbers = [];
+  for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
+
   return (
-    // PERBAIKAN UI: Memberikan PADDING LEGA agar tidak memepet sidebar (p-6 md:p-8 lg:p-10)
     <div className="w-full h-full min-h-screen p-6 md:p-8 lg:p-10">
       <div className="max-w-[1400px] mx-auto space-y-8 pb-10 text-slate-900 dark:text-slate-100">
         
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-extrabold text-teal-600 dark:text-teal-400 flex items-center gap-3">
-            <Cpu className="h-8 w-8 md:h-10 md:w-10" /> Plant Expert AI
+            <Cpu className="h-8 w-8 md:h-10 md:w-10" /> {dict.expertEngine.title}
           </h1>
           <p className="mt-3 text-slate-600 dark:text-slate-400 max-w-3xl text-sm md:text-base leading-relaxed">
-            Jawab kuis ini dan AI AquaExpert akan mengevaluasi ratusan parameter biologi untuk memberikan rekomendasi tanaman yang paling sempurna (Excellent Match) untuk ekosistem akuarium Anda.
+            {dict.expertEngine.subtitle}
           </p>
         </div>
 
@@ -126,65 +182,65 @@ export default function PlantExpertEngineV4() {
           <Card className="border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/80 xl:col-span-4 h-fit shadow-xl shadow-slate-200/50 dark:shadow-none transition-colors duration-300">
             <CardContent className="p-6 md:p-8 space-y-6">
               <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center gap-2 text-gray-900 dark:text-slate-100">
-                <Filter className="h-5 w-5 text-teal-600 dark:text-teal-500" /> Kuesioner Tank
+                <Filter className="h-5 w-5 text-teal-600 dark:text-teal-500" /> {dict.expertEngine.formTitle}
               </h3>
 
               <div className="space-y-5">
                 <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">1. Pengalaman Anda</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.expertEngine.q1}</Label>
                   <select value={experience} onChange={(e) => setExperience(e.target.value as any)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none transition-all">
-                    <option value="Pemula">Baru Mulai (Pemula)</option>
-                    <option value="Menengah">Pernah Punya (Menengah)</option>
-                    <option value="Mahir">Sangat Paham (Mahir)</option>
+                    <option value="Pemula">{dict.expertEngine.q1Opt1}</option>
+                    <option value="Menengah">{dict.expertEngine.q1Opt2}</option>
+                    <option value="Mahir">{dict.expertEngine.q1Opt3}</option>
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">2. Ukuran Akuarium</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.expertEngine.q2}</Label>
                   <select value={tankSize} onChange={(e) => setTankSize(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none transition-all">
                     <option value="Nano">Nano (≤ 40cm)</option>
                     <option value="Small">Small (45-60cm)</option>
                     <option value="Medium">Medium (60-90cm)</option>
                     <option value="Large">Large (90-120cm)</option>
                     <option value="Extra Large">Extra Large (&gt;120cm)</option>
-                    <option value="Pond">Kolam / Pond</option>
+                    <option value="Pond">{dict.expertEngine.q2OptPond}</option>
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">3. Injeksi CO2 Tabung</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.expertEngine.q3}</Label>
                   <select value={co2} onChange={(e) => setCo2(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none transition-all">
-                    <option value="Tanpa CO2">Tidak Pakai CO2</option>
-                    <option value="Tinggi (Injeksi)">Ya, Pakai Tabung CO2</option>
+                    <option value="Tanpa CO2">{dict.expertEngine.q3Opt1}</option>
+                    <option value="Tinggi (Injeksi)">{dict.expertEngine.q3Opt2}</option>
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">4. Intensitas Lampu</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.expertEngine.q4}</Label>
                   <select value={light} onChange={(e) => setLight(e.target.value as any)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none transition-all">
-                    <option value="Low">Redup (Low)</option>
-                    <option value="Medium">Sedang (Medium)</option>
-                    <option value="High">Terang Banderang (High)</option>
+                    <option value="Low">{dict.expertEngine.q4Opt1}</option>
+                    <option value="Medium">{dict.expertEngine.q4Opt2}</option>
+                    <option value="High">{dict.expertEngine.q4Opt3}</option>
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">5. Waktu Luang Merawat</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.expertEngine.q5}</Label>
                   <select value={maintenance} onChange={(e) => setMaintenance(e.target.value as any)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none transition-all">
-                    <option value="Low">Sedikit (Mau yg dibiarkan hidup)</option>
-                    <option value="Medium">Cukup (Bisa potong sebulan sekali)</option>
-                    <option value="High">Banyak (Siap rawat tiap minggu)</option>
+                    <option value="Low">{dict.expertEngine.q5Opt1}</option>
+                    <option value="Medium">{dict.expertEngine.q5Opt2}</option>
+                    <option value="High">{dict.expertEngine.q5Opt3}</option>
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">6. Tema Aquascape</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.expertEngine.q6}</Label>
                   <select value={style} onChange={(e) => setStyle(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none transition-all">
-                    <option value="Bebas">Bebas (Belum Tahu)</option>
-                    <option value="Nature">Nature Style</option>
-                    <option value="Dutch">Dutch Style (Warna-warni)</option>
-                    <option value="Iwagumi">Iwagumi (Padang Rumput)</option>
-                    <option value="Jungle">Jungle / Biotope</option>
+                    <option value="Bebas">{dict.expertEngine.q6Opt1}</option>
+                    <option value="Nature">{dict.expertEngine.q6Opt2}</option>
+                    <option value="Dutch">{dict.expertEngine.q6Opt3}</option>
+                    <option value="Iwagumi">{dict.expertEngine.q6Opt4}</option>
+                    <option value="Jungle">{dict.expertEngine.q6Opt5}</option>
                   </select>
                 </div>
 
@@ -192,21 +248,21 @@ export default function PlantExpertEngineV4() {
                 <div className="pt-5 mt-2 border-t border-slate-200 dark:border-slate-800 space-y-4">
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <input type="checkbox" checked={wantCarpet} onChange={(e) => setWantCarpet(e.target.checked)} className="h-5 w-5 accent-teal-600 rounded cursor-pointer" />
-                    <span className="text-sm md:text-base font-bold text-slate-700 dark:text-slate-300 group-hover:text-teal-600 transition-colors">Saya butuh Tanaman Karpet</span>
+                    <span className="text-sm md:text-base font-bold text-slate-700 dark:text-slate-300 group-hover:text-teal-600 transition-colors">{dict.expertEngine.needCarpet}</span>
                   </label>
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <input type="checkbox" checked={wantRedPlant} onChange={(e) => setWantRedPlant(e.target.checked)} className="h-5 w-5 accent-rose-600 rounded cursor-pointer" />
-                    <span className="text-sm md:text-base font-bold text-rose-700 dark:text-rose-400 group-hover:text-rose-600 transition-colors">Ingin Nuansa Merah/Warna-Warni</span>
+                    <span className="text-sm md:text-base font-bold text-rose-700 dark:text-rose-400 group-hover:text-rose-600 transition-colors">{dict.expertEngine.needRed}</span>
                   </label>
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <input type="checkbox" checked={shrimpTank} onChange={(e) => setShrimpTank(e.target.checked)} className="h-5 w-5 accent-teal-600 rounded cursor-pointer" />
-                    <span className="text-sm md:text-base font-bold text-slate-700 dark:text-slate-300 group-hover:text-teal-600 transition-colors">Habitat Udang Hias (Shrimp Safe)</span>
+                    <span className="text-sm md:text-base font-bold text-slate-700 dark:text-slate-300 group-hover:text-teal-600 transition-colors">{dict.expertEngine.needShrimp}</span>
                   </label>
                 </div>
               </div>
 
               <Button onClick={runInferenceEngine} disabled={loading} className="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold h-14 mt-4 text-base shadow-lg shadow-teal-600/20 dark:shadow-teal-900/30 transition-all active:scale-[0.98]">
-                {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : "Mulai Analisis Pakar"}
+                {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : dict.expertEngine.btnStart}
               </Button>
             </CardContent>
           </Card>
@@ -216,34 +272,36 @@ export default function PlantExpertEngineV4() {
             {!results ? (
               <div className="flex flex-col items-center justify-center h-full min-h-[500px] border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-900/20 transition-colors p-8 text-center">
                 <Cpu className="h-20 w-20 text-slate-300 dark:text-slate-700 mb-6 animate-pulse" />
-                <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-3">Otak AI Siap Beraksi</h3>
+                <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-3">{dict.expertEngine.idleTitle}</h3>
                 <p className="text-slate-500 dark:text-slate-400 max-w-lg text-lg">
-                  Kirimkan parameter akuarium Anda di sebelah kiri. Saya akan menyeleksi dan memberikan peringkat pada 120 tanaman terbaik untuk Anda.
+                  {dict.expertEngine.idleDesc}
                 </p>
               </div>
             ) : results.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[500px] border-2 border-red-200 dark:border-red-900/30 rounded-2xl bg-red-50 dark:bg-red-950/10 p-8 text-center transition-colors">
                 <Info className="h-16 w-16 text-red-500 mb-6" />
-                <h3 className="text-2xl font-bold text-red-900 dark:text-red-200 mb-3">Gagal Menemukan Kecocokan</h3>
+                <h3 className="text-2xl font-bold text-red-900 dark:text-red-200 mb-3">{dict.expertEngine.failTitle}</h3>
                 <p className="text-base text-slate-600 dark:text-red-400/80 max-w-lg leading-relaxed">
-                  Secara biologis, kondisi akuarium Anda tidak memungkinkan untuk tuntutan tersebut. Misalnya, tanaman karpet atau tanaman merah butuh cahaya & CO2 memadai. Mohon sesuaikan kembali ekspektasi atau fasilitas tank Anda.
+                  {dict.expertEngine.failDesc}
                 </p>
               </div>
             ) : (
               <div className="animate-in fade-in duration-500 slide-in-from-bottom-4">
                 <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between border-b border-slate-200 dark:border-slate-800 pb-5">
                   <div>
-                    <h3 className="text-2xl md:text-3xl font-bold text-teal-600 dark:text-teal-400">Hasil Analisis</h3>
-                    <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-2">Daftar tanaman yang lolos filter seleksi biologis AI.</p>
+                    <h3 className="text-2xl md:text-3xl font-bold text-teal-600 dark:text-teal-400">{dict.expertEngine.successTitle}</h3>
+                    <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-2">{dict.expertEngine.successDesc}</p>
                   </div>
                   <span className="mt-4 sm:mt-0 inline-flex items-center gap-2 bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-400 text-sm md:text-base px-5 py-2 rounded-full border border-teal-200 dark:border-teal-900 font-bold whitespace-nowrap shadow-sm">
-                    <CheckCircle2 className="h-5 w-5" /> {results.length} Tanaman Lolos
+                    <CheckCircle2 className="h-5 w-5" /> {results.length} {dict.expertEngine.matchCount}
                   </span>
                 </div>
                 
                 <div className="grid gap-6 md:grid-cols-2">
-                  {results.slice(0, 10).map((plant, index) => {
-                    const isTopMatch = index === 0;
+                  {displayedResults.map((plant, index) => {
+                    // Gunakan global index untuk menjaga ranking nomor tetap valid meski pindah halaman
+                    const globalIndex = startIndex + index;
+                    const isTopMatch = globalIndex === 0;
 
                     return (
                       <div 
@@ -252,19 +310,18 @@ export default function PlantExpertEngineV4() {
                       >
                         {/* Lencana Ranking */}
                         <div className={`absolute -top-1 -left-1 z-20 w-12 h-12 rounded-br-2xl flex items-center justify-center font-black shadow-md text-lg ${isTopMatch ? 'bg-amber-400 text-amber-950' : 'bg-slate-800 text-white dark:bg-slate-800 dark:text-white'}`}>
-                          {isTopMatch ? <Trophy className="h-6 w-6" /> : index + 1}
+                          {isTopMatch ? <Trophy className="h-6 w-6" /> : globalIndex + 1}
                         </div>
 
                         {/* Header Khusus untuk #1 AI Best Match */}
                         {isTopMatch && (
                           <div className="bg-gradient-to-r from-teal-600 to-emerald-600 px-14 py-2.5 text-white font-bold flex items-center gap-2 text-sm tracking-widest uppercase shadow-sm">
-                            <Sparkles className="h-4 w-4" /> The Best Match
+                            <Sparkles className="h-4 w-4" /> {dict.expertEngine.bestMatch}
                           </div>
                         )}
                         
                         <div className={isTopMatch ? "md:grid md:grid-cols-2" : ""}>
                           <div className={isTopMatch ? "p-5" : "p-2"}>
-                            {/* Membungkus PlantCard agar desainnya tetap rapi */}
                             <div className="transform scale-95 origin-top">
                                <PlantCard plant={plant} />
                             </div>
@@ -273,9 +330,9 @@ export default function PlantExpertEngineV4() {
                           {/* Explainable AI */}
                           <div className={`p-5 ${isTopMatch ? "bg-slate-50 dark:bg-slate-900/50 flex flex-col justify-center border-l border-slate-100 dark:border-slate-800" : "pt-0 border-t border-slate-100 dark:border-slate-800"}`}>
                             <div className="flex items-center justify-between mb-4">
-                              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">AI Confidence</span>
+                              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{dict.expertEngine.confidence}</span>
                               <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${getConfidenceColor(plant.matchConfidence)} shadow-sm`}>
-                                {plant.matchScore} Poin • {plant.matchConfidence}
+                                {plant.matchScore} {dict.expertEngine.points} • {plant.matchConfidence}
                               </span>
                             </div>
                             {plant.matchReasons.length > 0 ? (
@@ -287,7 +344,7 @@ export default function PlantExpertEngineV4() {
                                 ))}
                               </ul>
                             ) : (
-                              <p className="text-sm text-slate-500 italic pl-4 border-l-2 border-slate-200 dark:border-slate-800 py-2">Sesuai dengan parameter biologi dasar Anda.</p>
+                              <p className="text-sm text-slate-500 italic pl-4 border-l-2 border-slate-200 dark:border-slate-800 py-2">{dict.expertEngine.defaultReason}</p>
                             )}
                           </div>
                         </div>
@@ -296,11 +353,56 @@ export default function PlantExpertEngineV4() {
                   })}
                 </div>
                 
-                {results.length > 10 && (
-                  <div className="text-center mt-10 pt-8 border-t border-slate-200 dark:border-slate-800">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      Menampilkan Top 10 dari <span className="font-bold text-slate-700 dark:text-slate-300">{results.length}</span> tanaman yang cocok.
+                {/* KONTROL PAGINATION (Layout Rata) */}
+                {totalPages > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-6 mt-8 gap-4 transition-colors">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 text-center sm:text-left">
+                      {dict.expertEngine.paginationShowing} <span className="font-bold text-gray-900 dark:text-slate-200">{startIndex + 1}</span> {dict.expertEngine.paginationTo} <span className="font-bold text-gray-900 dark:text-slate-200">{Math.min(endIndex, results.length)}</span> {dict.expertEngine.paginationOf} <span className="font-bold text-gray-900 dark:text-slate-200">{results.length}</span> {dict.expertEngine.paginationData}
                     </p>
+                    
+                    <div className="flex items-center justify-center gap-1 sm:gap-2">
+                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      
+                      {pageNumbers.map(num => (
+                        <Button
+                          key={num}
+                          variant={currentPage === num ? "default" : "outline"}
+                          onClick={() => setCurrentPage(num)}
+                          className={`h-9 w-9 p-0 text-sm font-medium transition-all ${
+                            currentPage === num 
+                              ? 'bg-teal-600 hover:bg-teal-500 text-white border-teal-600 dark:border-teal-500 shadow-md shadow-teal-600/20 scale-105' 
+                              : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
+                          }`}
+                        >
+                          {num}
+                        </Button>
+                      ))}
+
+                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
+
+                      {/* Input "Hal" / "Page" dengan flex-shrink-0 agar tidak turun ke bawah */}
+                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 border-l border-slate-300 dark:border-slate-700 pl-4 ml-2 shrink-0 transition-colors">
+                        <Input 
+                          type="number" min={1} max={totalPages} value={currentPage}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (val >= 1 && val <= totalPages) setCurrentPage(val);
+                          }}
+                          className="w-14 h-9 text-center bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-gray-900 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:border-teal-500 transition-colors"
+                        />
+                        <span className="hidden sm:inline whitespace-nowrap">/ {totalPages}</span>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

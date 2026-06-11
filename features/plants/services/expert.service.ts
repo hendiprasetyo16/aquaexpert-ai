@@ -152,7 +152,9 @@ export function generateRecommendations(allPlants: Plant[], answers: UserAnswers
 
     // 6. WARNA MERAH (Heuristik Terbatas - Menunggu Field color_category)
     if (answers.wantRedPlant) {
-      const nameL = plant.name.toLowerCase();
+      // PERBAIKAN: Menggabungkan name_en dan name_id dengan aman agar tidak undefined
+      const nameL = ((plant.name_en || "") + " " + (plant.name_id || "")).toLowerCase();
+      
       // Heuristik dipertajam
       const isRed = nameL.includes("red") || nameL.includes("macrandra") || 
                     nameL.includes("reineckii") || nameL.includes("colorata") || nameL.includes("aromatica") ||
