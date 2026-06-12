@@ -23,8 +23,9 @@ import {
   getCO2DisplayStatus, renderStars, getIndoLevelDetail, getPlacementBadgeStyle, 
   getTankSizeDetails, getStyleDesc, getPlantTypeDesc, 
   getRecommendedDesc, getRecommendationBadgeColor,
-  getPlantTypeLongDesc, getDifficultySubtitle, getMaintenanceSubtitle, 
-  getParamSubtitle, getPlacementSubtitle, getIndoLevelCore
+  getPlantTypeLongDesc,
+  getDifficultySubtitle, getMaintenanceSubtitle, getParamSubtitle, getPlacementSubtitle, getIndoLevelCore,
+  getPlantTypeSubtitle
 } from "@/features/plants/components/plant-helpers";
 
 export default function PlantDetailPage() {
@@ -301,9 +302,14 @@ export default function PlantDetailPage() {
                 <p className="italic text-slate-500 dark:text-slate-400 mt-2 font-serif">{plant.scientific_name || dict.plantDetail.noScientificName}</p>
                 
                 <div className="mt-6 flex flex-col items-center justify-center gap-3 w-full">
-                  <span className="px-4 py-2 rounded-lg text-sm font-black uppercase tracking-widest bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-900/50 w-full sm:w-auto transition-colors">
-                    {dict.plantDetail.typeLabel} {getPlantTypeDesc(plant.plant_type, language).split(" ")[0]}
-                  </span>
+                  <div className="flex flex-col items-center justify-center px-4 py-2 rounded-lg bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900/50 w-full sm:w-auto transition-colors">
+                    <span className="text-base font-black uppercase text-teal-700 dark:text-teal-400 text-center">
+                      {dict.plantDetail.typeLabel} {getPlantTypeDesc(plant.plant_type, language).split(" ")[0]}
+                    </span>
+                    <span className="text-[11px] opacity-80 font-medium text-center mt-0.5 text-teal-700 dark:text-teal-400">
+                      {getPlantTypeSubtitle(plant.plant_type, language)}
+                    </span>
+                  </div>
                   
                   {/* BADGES HEADER: DIFFICULTY & PLACEMENT */}
                   <div className="flex flex-row gap-3 w-full justify-center">
@@ -313,7 +319,7 @@ export default function PlantDetailPage() {
                       plant.difficulty?.toLowerCase() === 'hard' ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50' :
                       'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
                     }`}>
-                      <span className={`text-base font-black uppercase tracking-widest transition-colors ${
+                      <span className={`text-base font-black uppercase text-center transition-colors ${
                         plant.difficulty?.toLowerCase() === 'easy' ? 'text-green-700 dark:text-green-400' :
                         plant.difficulty?.toLowerCase() === 'medium' ? 'text-yellow-700 dark:text-yellow-400' :
                         plant.difficulty?.toLowerCase() === 'hard' ? 'text-red-700 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'
@@ -326,7 +332,7 @@ export default function PlantDetailPage() {
                     </div>
                     
                     <div className={`flex flex-col items-center justify-center flex-1 max-w-[150px] px-2 py-2 rounded-lg border shadow-sm transition-colors ${getPlacementBadgeStyle(plant.placement)}`}>
-                      <span className="text-base font-black tracking-widest uppercase">
+                      <span className="text-base font-black uppercase text-center">
                         {plant.placement || "Unknown"}
                       </span>
                       <span className="text-[11px] opacity-80 font-medium text-center mt-0.5 px-1 whitespace-nowrap overflow-hidden text-ellipsis w-full">
@@ -353,8 +359,7 @@ export default function PlantDetailPage() {
                       {cocokUntukTags.length > 0 ? (
                         cocokUntukTags.map(tag => (
                           <div key={tag} className={`flex flex-col items-center justify-center px-4 py-2.5 rounded-lg border shadow-sm transition-colors ${getRecommendationBadgeColor(tag)}`} >
-                            {/* KEMBALI KE DESAIN LAMA DENGAN BUG DIPERBAIKI (Murni Data vs Kamus) */}
-                            <span className="text-[12px] font-bold tracking-wide text-center">{tag.toUpperCase()}</span>
+                            <span className="text-sm font-black uppercase text-center">{tag}</span>
                             <span className="text-[10px] opacity-80 mt-1 text-center">{getRecommendedDesc(tag, language)}</span>
                           </div>
                         ))
@@ -372,8 +377,7 @@ export default function PlantDetailPage() {
                       {setupRekomendasiTags.length > 0 ? (
                         setupRekomendasiTags.map(tag => (
                           <div key={tag} className={`flex flex-col items-center justify-center px-4 py-2.5 rounded-lg border shadow-sm transition-colors ${getRecommendationBadgeColor(tag)}`} >
-                            {/* KEMBALI KE DESAIN LAMA DENGAN BUG DIPERBAIKI */}
-                            <span className="text-[12px] font-bold tracking-wide text-center">{tag.toUpperCase()}</span>
+                            <span className="text-sm font-black uppercase text-center">{tag}</span>
                             <span className="text-[10px] opacity-80 mt-1 text-center">{getRecommendedDesc(tag, language)}</span>
                           </div>
                         ))
@@ -389,13 +393,13 @@ export default function PlantDetailPage() {
                     </h4>
                     <div className="flex flex-wrap justify-center gap-2">
                       
-                      {/* CO2 Status - LOGIKA BUG DIPERBAIKI BERDASARKAN VARIANT */}
+                      {/* PERBAIKAN: BUG CO2 DIPERBAIKI MURNI DENGAN LOGIKA VARIANT */}
                       <div className={`flex flex-col items-center justify-center px-4 py-2 rounded-lg border shadow-sm min-w-[110px] transition-colors ${
                         co2Status.variant === 'danger' ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50' : 
                         co2Status.variant === 'warning' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/50' : 
                         'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50'
                       }`}>
-                        <span className="text-[12px] font-bold uppercase tracking-widest text-center">
+                        <span className="text-base font-black uppercase text-center">
                           {co2Status.variant === "danger"
                             ? (language === "id" ? "CO2 Wajib" : "CO2 Required")
                             : co2Status.variant === "warning"
@@ -406,39 +410,39 @@ export default function PlantDetailPage() {
                           {co2Status.variant === "danger"
                             ? (language === "id" ? "Butuh injeksi CO2" : "Requires CO2 injection")
                             : co2Status.variant === "warning"
-                            ? (language === "id" ? "Lebih baik dgn CO2" : "Better with CO2")
+                            ? (language === "id" ? "Lebih baik dgn CO2" : "Performs better with CO2")
                             : (language === "id" ? "Aman tanpa CO2" : "Safe without CO2")}
                         </span>
                       </div>
                       
-                      {/* Carpet - LOGIKA DIPERTAHANKAN */}
+                      {/* Carpet - LOGIKA HTML TIDAK DIRUBAH */}
                       {plant.carpet_potential && (
                         <div className="flex flex-col items-center justify-center px-4 py-2 rounded-lg border shadow-sm min-w-[110px] bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/50 transition-colors">
-                          <span className="text-[12px] font-bold uppercase tracking-widest text-center">{dict.plantDetail.carpetLabel}</span>
+                          <span className="text-base font-black uppercase text-center">{dict.plantDetail.carpetLabel}</span>
                           <span className="text-[10px] opacity-80 mt-1 text-center font-medium">{dict.plantDetail.carpetDesc}</span>
                         </div>
                       )}
                       
-                      {/* Shrimp Safe - LOGIKA DIPERTAHANKAN */}
+                      {/* Shrimp Safe - LOGIKA HTML TIDAK DIRUBAH */}
                       {plant.shrimp_safe && (
                         <div className="flex flex-col items-center justify-center px-4 py-2 rounded-lg border shadow-sm min-w-[110px] bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 transition-colors">
-                          <span className="text-[12px] font-bold uppercase tracking-widest text-center">{dict.plantDetail.shrimpSafeLabel}</span>
+                          <span className="text-base font-black uppercase text-center">{dict.plantDetail.shrimpSafeLabel}</span>
                           <span className="text-[10px] opacity-80 mt-1 text-center font-medium">{dict.plantDetail.shrimpSafeDesc}</span>
                         </div>
                       )}
 
-                      {/* Emersed - LOGIKA DIPERTAHANKAN */}
+                      {/* Emersed - LOGIKA HTML TIDAK DIRUBAH */}
                       {plant.emersed_capable && (
                         <div className="flex flex-col items-center justify-center px-4 py-2 rounded-lg border shadow-sm min-w-[110px] bg-lime-50 dark:bg-lime-950/40 text-lime-700 dark:text-lime-400 border-lime-200 dark:border-lime-900/50 transition-colors">
-                          <span className="text-[12px] font-bold uppercase tracking-widest text-center">{dict.plantDetail.emersedLabel}</span>
+                          <span className="text-base font-black uppercase text-center">{dict.plantDetail.emersedLabel}</span>
                           <span className="text-[10px] opacity-80 mt-1 text-center font-medium">{dict.plantDetail.emersedDesc}</span>
                         </div>
                       )}
 
-                      {/* Spesifik Ekosistem Tags - DESAIN LAMA + BUG FIX */}
+                      {/* Spesifik Ekosistem Tags - LOGIKA HTML TIDAK DIRUBAH */}
                       {ekosistemSpesifikTags.map(tag => (
                         <div key={tag} className={`flex flex-col items-center justify-center px-4 py-2.5 rounded-lg border shadow-sm transition-colors ${getRecommendationBadgeColor(tag)}`} >
-                          <span className="text-[12px] font-bold uppercase tracking-widest text-center">{tag}</span>
+                          <span className="text-sm font-black uppercase text-center">{tag}</span>
                           <span className="text-[10px] opacity-80 mt-1 text-center">{getRecommendedDesc(tag, language)}</span>
                         </div>
                       ))}
@@ -648,8 +652,8 @@ export default function PlantDetailPage() {
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{dict.plantDetail.lightLabel}</span>
                       </div>
                       <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors w-full">
-                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest truncate">{plant.light_requirement || "N/A"}</span>
-                        <span className="text-[11px] text-yellow-600 dark:text-yellow-500/80 mt-1 leading-tight break-words px-1">{getParamSubtitle(plant.light_requirement, language)}</span>
+                        <span className="text-base font-black text-gray-900 dark:text-slate-200 uppercase text-center">{plant.light_requirement || "N/A"}</span>
+                        <span className="text-[11px] text-yellow-600 dark:text-yellow-500/80 mt-1 leading-tight break-words px-1 text-center">{getParamSubtitle(plant.light_requirement, language)}</span>
                       </div>
                       <div className="bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-600 dark:text-slate-400 leading-tight flex items-center justify-center h-full transition-colors">
                         {dict.plantDetail.lightDesc} {getIndoLevelDetail(plant.light_requirement, "light", language)}
@@ -662,19 +666,19 @@ export default function PlantDetailPage() {
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{dict.plantDetail.co2Label}</span>
                       </div>
                       <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors w-full">
-                        {/* PERBAIKAN BUG CO2: KINI MENGGUNAKAN VARIANT */}
-                        <span className={`text-sm font-black uppercase tracking-widest truncate ${co2Status.variant === "danger" ? "text-red-600 dark:text-red-400" : co2Status.variant === "warning" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                        {/* PERBAIKAN: CO2 - DESAIN KEMBALI SEPERTI AWAL DGN BUG FIX */}
+                        <span className={`text-base font-black uppercase text-center ${co2Status.variant === "danger" ? "text-red-600 dark:text-red-400" : co2Status.variant === "warning" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                           {co2Status.variant === "danger"
                             ? (language === "id" ? "CO2 Wajib" : "CO2 Required")
                             : co2Status.variant === "warning"
                             ? (language === "id" ? "CO2 Disarankan" : "CO2 Recommended")
                             : (language === "id" ? "Tanpa CO2" : "No CO2")}
                         </span>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-tight break-words px-1">
+                        <span className="text-[10px] opacity-80 mt-1 text-center font-medium">
                           {co2Status.variant === "danger"
                             ? (language === "id" ? "Butuh injeksi CO2" : "Requires CO2 injection")
                             : co2Status.variant === "warning"
-                            ? (language === "id" ? "Lebih baik dgn CO2" : "Better with CO2")
+                            ? (language === "id" ? "Lebih baik dgn CO2" : "Performs better with CO2")
                             : (language === "id" ? "Aman tanpa CO2" : "Safe without CO2")}
                         </span>
                       </div>
@@ -689,10 +693,10 @@ export default function PlantDetailPage() {
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{dict.plantDetail.tempLabel}</span>
                       </div>
                       <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors w-full">
-                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 tracking-wider truncate">
+                        <span className="text-base font-black text-gray-900 dark:text-slate-200 text-center">
                           {plant.temperature_min && plant.temperature_max ? `${plant.temperature_min}–${plant.temperature_max}` : "N/A"}
                         </span>
-                        <span className="text-[11px] text-orange-600 dark:text-orange-400/80 mt-1 leading-tight break-words px-1">{dict.plantDetail.tempUnit}</span>
+                        <span className="text-[11px] text-orange-600 dark:text-orange-400/80 mt-1 leading-tight break-words px-1 text-center">{dict.plantDetail.tempUnit}</span>
                       </div>
                       <div className="bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-600 dark:text-slate-400 leading-tight flex items-center justify-center h-full transition-colors">
                         {dict.plantDetail.tempDesc}
@@ -705,10 +709,10 @@ export default function PlantDetailPage() {
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{dict.plantDetail.phLabel}</span>
                       </div>
                       <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors w-full">
-                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 tracking-wider truncate">
+                        <span className="text-base font-black text-gray-900 dark:text-slate-200 text-center">
                           {plant.ph_min && plant.ph_max ? `${plant.ph_min}–${plant.ph_max}` : "N/A"}
                         </span>
-                        <span className="text-[11px] text-purple-600 dark:text-purple-400/80 mt-1 leading-tight break-words px-1">{dict.plantDetail.phUnit}</span>
+                        <span className="text-[11px] text-purple-600 dark:text-purple-400/80 mt-1 leading-tight break-words px-1 text-center">{dict.plantDetail.phUnit}</span>
                       </div>
                       <div className="bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 px-2 py-2 mt-3 text-[11px] text-slate-600 dark:text-slate-400 leading-tight flex items-center justify-center h-full transition-colors">
                         {dict.plantDetail.phDesc}
@@ -728,8 +732,8 @@ export default function PlantDetailPage() {
                         <span className="text-[10px] text-slate-500 dark:text-slate-500 uppercase font-bold tracking-wider">{dict.plantDetail.fertLabel}</span>
                       </div>
                       <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col transition-colors w-full">
-                        <span className="text-base font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest truncate">{plant.fertilizer_requirement || "Unknown"}</span>
-                        <span className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-tight break-words px-1">{getParamSubtitle(plant.fertilizer_requirement, language)}</span>
+                        <span className="text-base font-black text-gray-900 dark:text-slate-200 uppercase text-center">{plant.fertilizer_requirement || "Unknown"}</span>
+                        <span className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-tight break-words px-1 text-center">{getParamSubtitle(plant.fertilizer_requirement, language)}</span>
                       </div>
                     </div>
                     
@@ -739,8 +743,8 @@ export default function PlantDetailPage() {
                         <span className="text-[10px] text-slate-500 dark:text-slate-500 uppercase font-bold tracking-wider">{dict.plantDetail.growthLabel}</span>
                       </div>
                       <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col transition-colors w-full">
-                        <span className="text-base font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest truncate">{plant.growth_rate || "Unknown"}</span>
-                        <span className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-tight break-words px-1">{getIndoLevelDetail(plant.growth_rate, "growth", language).split(",")[0]}</span>
+                        <span className="text-base font-black text-gray-900 dark:text-slate-200 uppercase text-center">{plant.growth_rate || "Unknown"}</span>
+                        <span className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-tight break-words px-1 text-center">{getIndoLevelDetail(plant.growth_rate, "growth", language).split(",")[0]}</span>
                       </div>
                     </div>
                     
@@ -750,7 +754,7 @@ export default function PlantDetailPage() {
                         <span className="text-[10px] text-slate-500 dark:text-slate-500 uppercase font-bold tracking-wider">{dict.plantDetail.heightLabel}</span>
                       </div>
                       <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col items-center justify-center h-full transition-colors w-full">
-                        <span className="text-lg font-black text-gray-900 dark:text-slate-200 block mt-1 truncate">{plant.max_height_cm ? `${plant.max_height_cm} cm` : "N/A"}</span>
+                        <span className="text-base font-black text-gray-900 dark:text-slate-200 text-center mt-1">{plant.max_height_cm ? `${plant.max_height_cm} cm` : "N/A"}</span>
                       </div>
                     </div>
                     

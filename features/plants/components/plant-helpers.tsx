@@ -182,6 +182,35 @@ export const getPlantTypeDesc = (type: string | null | undefined, lang: "id" | "
   return type ? type.charAt(0).toUpperCase() + type.slice(1) : "";
 };
 
+// TAMBAHAN BARU: Helper keterangan subtipe tanaman
+export const getPlantTypeSubtitle = (type: string | null | undefined, lang: "id" | "en" = "id") => {
+  const t = (type || "").toLowerCase();
+  if (lang === "id") {
+    if (t === "stem") return "Tumbuh Memanjang (Batang)";
+    if (t === "rhizome") return "Tumbuh dari Rimpang Akar";
+    if (t === "rosette") return "Tumbuh Berpusat (Roset)";
+    if (t === "carpet") return "Menjalar di Dasar Aquarium";
+    if (t === "moss") return "Lumut Menempel/Mengikat";
+    if (t === "floating") return "Mengapung di Permukaan";
+    if (t === "bulb") return "Tumbuh dari Umbi Dasar";
+    if (t === "runner") return "Menjalar Lewat Tunas Bawah";
+    if (t === "crypt") return "Berakar Kuat (Cryptocoryne)";
+    if (t === "epiphyte") return "Menempel (Epiphyte)";
+  } else {
+    if (t === "stem") return "Vertical Stalk Growth";
+    if (t === "rhizome") return "Grows from Creeping Root";
+    if (t === "rosette") return "Crown Centered Growth";
+    if (t === "carpet") return "Spreads on Ground Level";
+    if (t === "moss") return "Attached Bryophyte Moss";
+    if (t === "floating") return "Surface Floating Plant";
+    if (t === "bulb") return "Grows from Substrate Tuber";
+    if (t === "runner") return "Spreads via Bottom Stolons";
+    if (t === "crypt") return "Strong Roots (Cryptocoryne)";
+    if (t === "epiphyte") return "Attached to Hardscape";
+  }
+  return lang === "id" ? "Tipe Standar" : "Standard Type";
+};
+
 export const getPlantTypeLongDesc = (type: string | null | undefined, lang: "id" | "en" = "id") => {
   const t = (type || "").toLowerCase();
   if (lang === "id") {
@@ -242,8 +271,6 @@ export const getTankSizeDetails = (size: string, lang: "id" | "en" = "id") => {
   return { size_cm: lang === "id" ? "Bervariasi" : "Varies", liter: lang === "id" ? "Sesuai kebutuhan" : "As needed" };
 };
 
-// PERBAIKAN: Fungsi ini telah dirombak untuk TIDAK mengembalikan teks mentahnya jika tidak perlu.
-// Karena kita memakai ini sebagai Subteks (Deskripsi), maka cukup cetak penjelasan pendeknya saja.
 export const getRecommendedDesc = (tag: string, lang: "id" | "en" = "id") => {
   const t = tag.toLowerCase();
   if (lang === "id") {
