@@ -9,11 +9,16 @@ import idPlants from '@/dictionaries/id/plants.json';
 import enCommon from '@/dictionaries/en/common.json';
 import enPlants from '@/dictionaries/en/plants.json';
 
+// IMPORT ALGAE DICTIONARIES
+import idAlgae from '@/dictionaries/id/algae.json';
+import enAlgae from '@/dictionaries/en/algae.json';
+
 // GABUNGKAN SECARA OTOMATIS
 // Menggabungkan object dari berbagai file ke dalam 1 object raksasa secara "On the Fly"
 // Dengan cara ini, UI lama Bapak (seperti dict.plantForm, dict.dashboard) tetap bekerja tanpa perlu refactoring komponen sama sekali!
-const id = { ...idCommon, ...idPlants };
-const en = { ...enCommon, ...enPlants };
+// Kita bungkus idAlgae ke dalam key "algaeExpert" agar aman dan rapi
+const id = { ...idCommon, ...idPlants, algaeExpert: idAlgae };
+const en = { ...enCommon, ...enPlants, algaeExpert: enAlgae };
 
 type Language = 'id' | 'en';
 // Mengambil struktur data dari penggabungan objek agar TypeScript (IntelliSense) mendeteksi otomatis

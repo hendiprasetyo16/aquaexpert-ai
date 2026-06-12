@@ -1,0 +1,13 @@
+{
+  "title": "Diagnosis Alga (Algae Expert)",
+  "subtitle": "Jawab beberapa pertanyaan visual di bawah ini, dan sistem pakar kami akan mengidentifikasi jenis alga serta memberikan solusi penanganannya.",
+  "q1_color": "Apa warna dominan dari alga tersebut?",
+  "q2_texture": "Bagaimana teksturnya saat dilihat atau disentuh?",
+  "q3_location": "Di mana alga ini paling banyak tumbuh?",
+  "q4_trigger": "Apakah ada kondisi khusus di akuarium Anda?",
+  "btn_diagnose": "Mulai Diagnosis",
+  "reasonColor": "Sangat cocok dengan karakteristik warna.",
+  "reasonTexture": "Tekstur visual sesuai dengan identifikasi.",
+  "reasonLocation": "Habitat tumbuh cocok dengan pola persebaran alga ini.",
+  "reasonTrigger": "Terkonfirmasi kuat oleh pemicu/kondisi akuarium Anda."
+}

@@ -1,0 +1,13 @@
+{
+  "title": "Algae Diagnosis (Algae Expert)",
+  "subtitle": "Answer a few visual questions below, and our expert system will identify the algae type and provide treatment solutions.",
+  "q1_color": "What is the dominant color of the algae?",
+  "q2_texture": "What is its texture like when viewed or touched?",
+  "q3_location": "Where is this algae growing the most?",
+  "q4_trigger": "Are there any specific conditions in your aquarium?",
+  "btn_diagnose": "Start Diagnosis",
+  "reasonColor": "Strongly matches the color characteristics.",
+  "reasonTexture": "Visual texture aligns with identification.",
+  "reasonLocation": "Growth location perfectly fits this algae's spread pattern.",
+  "reasonTrigger": "Strongly confirmed by your aquarium's triggers/conditions."
+}
