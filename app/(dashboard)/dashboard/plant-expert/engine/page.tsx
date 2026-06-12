@@ -73,7 +73,6 @@ export default function PlantExpertEngineV4() {
           setWantCarpet(parsed.answers.wantCarpet);
           setWantRedPlant(parsed.answers.wantRedPlant || false);
         }
-        // KEMBALIKAN JUGA RESULTS DAN HALAMAN TERAKHIR
         if (parsed.results) {
           setResults(parsed.results);
         }
@@ -107,7 +106,6 @@ export default function PlantExpertEngineV4() {
       const aiResults = generateRecommendations(plants, answers, dict.expertEngine);
       setResults(aiResults);
       
-      // Update session storage dengan hasil bahasa baru
       const savedSession = sessionStorage.getItem(SESSION_KEY);
       if (savedSession) {
         try {
@@ -130,7 +128,6 @@ export default function PlantExpertEngineV4() {
 
     const aiResults = generateRecommendations(plants, answers, dict.expertEngine);
 
-    // SIMPAN SEMUANYA KE SESSION
     sessionStorage.setItem(SESSION_KEY, JSON.stringify({ 
       answers, 
       results: aiResults,
@@ -329,7 +326,7 @@ export default function PlantExpertEngineV4() {
                   </span>
                 </div>
                 
-                {/* PERBAIKAN RESPONSIVE GRID TABLET (lg:grid-cols-2) */}
+                {/* Responsive Grid Table - lg:grid-cols-2 menjaga proporsi di Tablet */}
                 <div className="grid gap-6 lg:grid-cols-2">
                   {displayedResults.map((plant, index) => {
                     const globalIndex = startIndex + index;
@@ -382,16 +379,17 @@ export default function PlantExpertEngineV4() {
                   })}
                 </div>
                 
-                {/* PERBAIKAN PAGINATION DESKTOP & MOBILE (Production Grade) */}
+                {/* PRODUCTION GRADE RESPONSIVE PAGINATION */}
                 {totalPages > 1 && (
-                  <div className="flex flex-col sm:flex-col lg:flex-row items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-6 mt-8 gap-3 w-full transition-colors">
-                    <p className="text-sm text-slate-600 dark:text-slate-400 text-center w-full lg:w-auto mb-2 lg:mb-0">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between border-t border-slate-200 dark:border-slate-800 pt-6 mt-8 gap-4 transition-colors">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 text-center lg:text-left mb-2 lg:mb-0">
                       {dict.expertEngine.paginationShowing} <span className="font-bold text-gray-900 dark:text-slate-200">{startIndex + 1}</span> {dict.expertEngine.paginationTo} <span className="font-bold text-gray-900 dark:text-slate-200">{Math.min(endIndex, results.length)}</span> {dict.expertEngine.paginationOf} <span className="font-bold text-gray-900 dark:text-slate-200">{results.length}</span> {dict.expertEngine.paginationData}
                     </p>
                     
-                    <div className="flex flex-col lg:flex-row items-center justify-center gap-3 w-full lg:w-auto">
+                    <div className="flex flex-col lg:flex-row items-center lg:items-center justify-center lg:justify-end gap-3 w-full lg:w-auto">
                       
-                      <div className="flex flex-wrap justify-center gap-1 sm:gap-2 w-full lg:w-auto">
+                      {/* Deretan Tombol Angka */}
+                      <div className="flex flex-wrap lg:flex-nowrap justify-center lg:justify-end gap-1 sm:gap-2 w-full lg:w-auto">
                         <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
                           <ChevronsLeft className="h-4 w-4" />
                         </Button>
@@ -422,6 +420,7 @@ export default function PlantExpertEngineV4() {
                         </Button>
                       </div>
 
+                      {/* Input Lompat Halaman */}
                       <div className="flex items-center justify-center gap-2 text-sm border-t lg:border-t-0 lg:border-l border-slate-300 dark:border-slate-700 pt-3 lg:pt-0 lg:pl-3 w-full lg:w-auto transition-colors text-slate-600 dark:text-slate-300">
                         <Input 
                           type="number" min={1} max={totalPages} value={currentPage}
@@ -437,6 +436,7 @@ export default function PlantExpertEngineV4() {
                     </div>
                   </div>
                 )}
+
               </div>
             )}
           </div>
