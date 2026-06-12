@@ -393,7 +393,7 @@ export default function PlantDetailPage() {
                     </h4>
                     <div className="flex flex-wrap justify-center gap-2">
                       
-                      {/* PERBAIKAN: BUG CO2 DIPERBAIKI MURNI DENGAN LOGIKA VARIANT */}
+                      {/* CO2 Status - LOGIKA BUG DIPERBAIKI BERDASARKAN VARIANT */}
                       <div className={`flex flex-col items-center justify-center px-4 py-2 rounded-lg border shadow-sm min-w-[110px] transition-colors ${
                         co2Status.variant === 'danger' ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50' : 
                         co2Status.variant === 'warning' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/50' : 
@@ -531,8 +531,8 @@ export default function PlantDetailPage() {
               <div className="bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col items-center justify-center shadow-sm transition-colors">
                 <p className="text-[11px] uppercase text-slate-500 font-bold mb-2 text-center">{dict.plantDetail.maintTitle}</p>
                 <div className="flex flex-col items-center justify-center mt-1 w-full">
-                  <span className="text-lg font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors w-full"><Scissors className="h-4 w-4 text-yellow-600 dark:text-yellow-500 shrink-0" /><span className="truncate">{plant.maintenance_level || "Medium"}</span></span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 transition-colors leading-tight text-center px-1 break-words line-clamp-2">{getMaintenanceSubtitle(plant.maintenance_level, language)}</span>
+                  <span className="text-lg font-black text-gray-900 dark:text-slate-200 uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors w-full"><Scissors className="h-4 w-4 text-yellow-600 dark:text-yellow-500 shrink-0" /><span className="">{plant.maintenance_level || "Medium"}</span></span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 transition-colors leading-tight text-center px-1 break-words">{getMaintenanceSubtitle(plant.maintenance_level, language)}</span>
                 </div>
               </div>
               <div className={`p-4 rounded-xl border text-center flex flex-col items-center justify-center shadow-sm transition-colors ${plant.shrimp_safe ? "bg-rose-50 dark:bg-rose-950/10 border-rose-200 dark:border-rose-900/30" : "bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800"}`}>
@@ -562,7 +562,7 @@ export default function PlantDetailPage() {
                   <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide text-center leading-tight">{dict.plantDetail.growthControlTitle.split(" ")[0]}<br className="hidden sm:block lg:hidden" /> {dict.plantDetail.growthControlTitle.split(" ")[1]}</p>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col flex-1 justify-center items-center shadow-inner text-center transition-colors min-h-[70px]">
-                  <span className="text-base font-black text-gray-900 dark:text-slate-100 uppercase tracking-wider mb-1.5">{plant.growth_control || "N/A"}</span>
+                  <span className="text-base font-black text-gray-900 dark:text-slate-100 uppercase text-center mb-1.5">{plant.growth_control || "N/A"}</span>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug px-1">{getIndoLevelDetail(plant.growth_control, "growth", language)}</span>
                 </div>
               </div>
@@ -576,7 +576,7 @@ export default function PlantDetailPage() {
                   {plant.aquascape_style && plant.aquascape_style.length > 0 ? (
                     plant.aquascape_style.map(style => (
                       <div key={style} className="bg-slate-50 dark:bg-slate-950 px-3 py-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col flex-1 shadow-inner items-center justify-center text-center transition-colors min-h-[70px]">
-                        <span className="text-[14px] font-black text-gray-900 dark:text-slate-200 uppercase tracking-wider mb-1">{style}</span>
+                        <span className="text-sm font-black text-gray-900 dark:text-slate-200 uppercase text-center mb-1">{style}</span>
                         <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug px-1">{getStyleDesc(style, language)}</span>
                       </div>
                     ))
@@ -599,7 +599,7 @@ export default function PlantDetailPage() {
                       const details = getTankSizeDetails(size, language);
                       return (
                         <div key={size} className="bg-slate-50 dark:bg-slate-950 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-inner transition-colors">
-                          <span className="text-[12px] font-black text-gray-900 dark:text-slate-200 uppercase tracking-wider shrink-0 mr-2">{size}</span>
+                          <span className="text-sm font-black text-gray-900 dark:text-slate-200 uppercase shrink-0 mr-2">{size}</span>
                           <div className="flex items-center justify-end gap-1.5 sm:gap-2 text-right whitespace-nowrap">
                             <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium">📏 {details.size_cm}</span>
                             <span className="text-[10px] text-slate-300 dark:text-slate-600">|</span>
@@ -666,7 +666,7 @@ export default function PlantDetailPage() {
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{dict.plantDetail.co2Label}</span>
                       </div>
                       <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors w-full">
-                        {/* PERBAIKAN: CO2 - DESAIN KEMBALI SEPERTI AWAL DGN BUG FIX */}
+                        {/* PERBAIKAN BUG CO2: KINI MENGGUNAKAN VARIANT */}
                         <span className={`text-base font-black uppercase text-center ${co2Status.variant === "danger" ? "text-red-600 dark:text-red-400" : co2Status.variant === "warning" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                           {co2Status.variant === "danger"
                             ? (language === "id" ? "CO2 Wajib" : "CO2 Required")
@@ -674,7 +674,7 @@ export default function PlantDetailPage() {
                             ? (language === "id" ? "CO2 Disarankan" : "CO2 Recommended")
                             : (language === "id" ? "Tanpa CO2" : "No CO2")}
                         </span>
-                        <span className="text-[10px] opacity-80 mt-1 text-center font-medium">
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-tight break-words px-1 text-center font-medium">
                           {co2Status.variant === "danger"
                             ? (language === "id" ? "Butuh injeksi CO2" : "Requires CO2 injection")
                             : co2Status.variant === "warning"
@@ -764,7 +764,7 @@ export default function PlantDetailPage() {
                         <span className="text-[10px] text-slate-500 dark:text-slate-500 uppercase font-bold tracking-wider">{dict.plantDetail.originLabel}</span>
                       </div>
                       <div className="border-t border-slate-200 dark:border-slate-800 pt-2 flex flex-col items-center justify-center h-full transition-colors w-full">
-                        <span className="text-[14px] font-bold text-gray-900 dark:text-slate-200 block mt-1 leading-snug truncate px-1">{plant.origin_country || "Unknown"}</span>
+                        <span className="text-[14px] font-bold text-gray-900 dark:text-slate-200 text-center mt-1 leading-snug px-1">{plant.origin_country || "Unknown"}</span>
                       </div>
                     </div>
 
