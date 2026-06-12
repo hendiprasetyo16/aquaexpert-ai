@@ -355,7 +355,7 @@ export default function PlantExpertEngineV4() {
                             {/* KANAN - Laporan Analisis Padat & Rapi */}
                             <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 p-4 lg:p-5">
                               
-                              {/* PERBAIKAN: Header Confidence - Lencana di Bawah Judul agar anti-terpotong */}
+                              {/* PERBAIKAN BUG HP: flex-wrap dan max-w-full pada container badge */}
                               <div className="flex flex-col items-start gap-3 pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
                                 <div>
                                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{dict.expertEngine.confidence}</p>
@@ -363,11 +363,13 @@ export default function PlantExpertEngineV4() {
                                     {language === "id" ? "Laporan Kecocokan AI" : "AI Match Report"}
                                   </h4>
                                 </div>
-                                <div className={`inline-flex items-center px-3 py-1.5 rounded-lg border ${getConfidenceColor(plant.matchConfidenceKey)} shadow-sm`}>
-                                  <Target className="w-4 h-4 mr-2 shrink-0" />
-                                  <span className="font-black text-sm whitespace-nowrap">{plant.matchScore} {dict.expertEngine.points}</span>
-                                  <span className="mx-2 opacity-40">|</span>
-                                  <span className="font-bold text-xs uppercase tracking-wide whitespace-nowrap">{getConfidenceLabel(plant.matchConfidenceKey)}</span>
+                                <div className={`inline-flex max-w-full flex-wrap items-center px-3 py-2 rounded-lg border ${getConfidenceColor(plant.matchConfidenceKey)} shadow-sm`}>
+                                  <div className="flex items-center shrink-0 whitespace-nowrap">
+                                    <Target className="w-4 h-4 mr-1.5" />
+                                    <span className="font-black text-sm">{plant.matchScore} {dict.expertEngine.points}</span>
+                                    <span className="mx-2 opacity-40">|</span>
+                                  </div>
+                                  <span className="font-bold text-xs uppercase tracking-wide leading-tight">{getConfidenceLabel(plant.matchConfidenceKey)}</span>
                                 </div>
                               </div>
 
@@ -416,12 +418,17 @@ export default function PlantExpertEngineV4() {
                         </div>
                         
                         <div className="p-5 flex-1 flex flex-col">
-                          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                          <div className="flex flex-col items-start gap-2 mb-4">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{dict.expertEngine.confidence}</span>
-                            <span className={`inline-flex items-center text-[10px] font-bold px-2.5 py-1 rounded-md border ${getConfidenceColor(plant.matchConfidenceKey)}`}>
-                              {plant.matchScore} {dict.expertEngine.points} • {getConfidenceLabel(plant.matchConfidenceKey)}
-                            </span>
+                            
+                            {/* PERBAIKAN BUG HP UNTUK CARD KECIL: flex-wrap dan max-w-full */}
+                            <div className={`inline-flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] font-bold px-2.5 py-1.5 rounded-md border ${getConfidenceColor(plant.matchConfidenceKey)}`}>
+                              <span className="whitespace-nowrap">{plant.matchScore} {dict.expertEngine.points}</span>
+                              <span className="opacity-40">•</span>
+                              <span className="leading-tight break-words">{getConfidenceLabel(plant.matchConfidenceKey)}</span>
+                            </div>
                           </div>
+
                           {plant.matchReasons.length > 0 ? (
                             <ul className="space-y-2 border-l-2 border-teal-500/40 pl-3 py-1 flex-1">
                               {plant.matchReasons.map((reason, i) => (
