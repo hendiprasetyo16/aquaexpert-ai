@@ -667,13 +667,22 @@ export default function PlantDetailPage() {
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{dict.plantDetail.co2Label}</span>
                       </div>
                       <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors w-full">
-                        <span className={`text-base font-black uppercase text-center ${co2Status.variant === "danger" ? "text-red-600 dark:text-red-400" : co2Status.variant === "warning" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
-                          {co2Status.variant === "danger"
-                            ? (language === "id" ? "CO2 Wajib" : "CO2 Required")
-                            : co2Status.variant === "warning"
-                            ? (language === "id" ? "CO2 Disarankan" : "CO2 Recommended")
-                            : (language === "id" ? "Tanpa CO2" : "No CO2")}
+                        <span
+                          className={`text-xs font-black uppercase text-center leading-tight whitespace-normal max-w-full ${
+                            co2Status.variant === "danger"
+                              ? "text-red-600 dark:text-red-400"
+                              : co2Status.variant === "warning"
+                              ? "text-amber-600 dark:text-amber-400"
+                              : "text-emerald-600 dark:text-emerald-400"
+                          }`}
+                          >
+                            {co2Status.variant === "danger"
+                              ? (language === "id" ? "CO2 Wajib" : "CO2 Required")
+                              : co2Status.variant === "warning"
+                              ? (language === "id" ? "CO2 Disarankan" : "CO2 Recommended")
+                              : (language === "id" ? "Tanpa CO2" : "No CO2")}
                         </span>
+
                         <span className="text-[10px] opacity-80 mt-1 text-center font-medium">
                           {co2Status.variant === "danger"
                             ? (language === "id" ? "Butuh injeksi CO2" : "Requires CO2 injection")
