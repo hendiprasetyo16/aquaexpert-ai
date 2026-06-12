@@ -19,13 +19,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
+// IMPORT DIPERBAIKI: Pastikan getPlantTypeSubtitle ada di sini
 import { 
   getCO2DisplayStatus, renderStars, getIndoLevelDetail, getPlacementBadgeStyle, 
   getTankSizeDetails, getStyleDesc, getPlantTypeDesc, 
   getRecommendedDesc, getRecommendationBadgeColor,
-  getPlantTypeLongDesc,
-  getDifficultySubtitle, getMaintenanceSubtitle, getParamSubtitle, getPlacementSubtitle, getIndoLevelCore,
-  getPlantTypeSubtitle
+  getPlantTypeLongDesc, getDifficultySubtitle, getMaintenanceSubtitle, 
+  getParamSubtitle, getPlacementSubtitle, getIndoLevelCore,
+  getPlantTypeSubtitle 
 } from "@/features/plants/components/plant-helpers";
 
 export default function PlantDetailPage() {
@@ -393,7 +394,7 @@ export default function PlantDetailPage() {
                     </h4>
                     <div className="flex flex-wrap justify-center gap-2">
                       
-                      {/* CO2 Status - LOGIKA BUG DIPERBAIKI BERDASARKAN VARIANT */}
+                      {/* CO2 Status */}
                       <div className={`flex flex-col items-center justify-center px-4 py-2 rounded-lg border shadow-sm min-w-[110px] transition-colors ${
                         co2Status.variant === 'danger' ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50' : 
                         co2Status.variant === 'warning' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/50' : 
@@ -415,7 +416,7 @@ export default function PlantDetailPage() {
                         </span>
                       </div>
                       
-                      {/* Carpet - LOGIKA HTML TIDAK DIRUBAH */}
+                      {/* Carpet */}
                       {plant.carpet_potential && (
                         <div className="flex flex-col items-center justify-center px-4 py-2 rounded-lg border shadow-sm min-w-[110px] bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/50 transition-colors">
                           <span className="text-base font-black uppercase text-center">{dict.plantDetail.carpetLabel}</span>
@@ -423,7 +424,7 @@ export default function PlantDetailPage() {
                         </div>
                       )}
                       
-                      {/* Shrimp Safe - LOGIKA HTML TIDAK DIRUBAH */}
+                      {/* Shrimp Safe */}
                       {plant.shrimp_safe && (
                         <div className="flex flex-col items-center justify-center px-4 py-2 rounded-lg border shadow-sm min-w-[110px] bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 transition-colors">
                           <span className="text-base font-black uppercase text-center">{dict.plantDetail.shrimpSafeLabel}</span>
@@ -431,7 +432,7 @@ export default function PlantDetailPage() {
                         </div>
                       )}
 
-                      {/* Emersed - LOGIKA HTML TIDAK DIRUBAH */}
+                      {/* Emersed */}
                       {plant.emersed_capable && (
                         <div className="flex flex-col items-center justify-center px-4 py-2 rounded-lg border shadow-sm min-w-[110px] bg-lime-50 dark:bg-lime-950/40 text-lime-700 dark:text-lime-400 border-lime-200 dark:border-lime-900/50 transition-colors">
                           <span className="text-base font-black uppercase text-center">{dict.plantDetail.emersedLabel}</span>
@@ -439,7 +440,7 @@ export default function PlantDetailPage() {
                         </div>
                       )}
 
-                      {/* Spesifik Ekosistem Tags - LOGIKA HTML TIDAK DIRUBAH */}
+                      {/* Spesifik Ekosistem Tags */}
                       {ekosistemSpesifikTags.map(tag => (
                         <div key={tag} className={`flex flex-col items-center justify-center px-4 py-2.5 rounded-lg border shadow-sm transition-colors ${getRecommendationBadgeColor(tag)}`} >
                           <span className="text-sm font-black uppercase text-center">{tag}</span>
@@ -666,7 +667,6 @@ export default function PlantDetailPage() {
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{dict.plantDetail.co2Label}</span>
                       </div>
                       <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors w-full">
-                        {/* PERBAIKAN BUG CO2: KINI MENGGUNAKAN VARIANT */}
                         <span className={`text-base font-black uppercase text-center ${co2Status.variant === "danger" ? "text-red-600 dark:text-red-400" : co2Status.variant === "warning" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                           {co2Status.variant === "danger"
                             ? (language === "id" ? "CO2 Wajib" : "CO2 Required")
@@ -674,7 +674,7 @@ export default function PlantDetailPage() {
                             ? (language === "id" ? "CO2 Disarankan" : "CO2 Recommended")
                             : (language === "id" ? "Tanpa CO2" : "No CO2")}
                         </span>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-tight break-words px-1 text-center font-medium">
+                        <span className="text-[10px] opacity-80 mt-1 text-center font-medium">
                           {co2Status.variant === "danger"
                             ? (language === "id" ? "Butuh injeksi CO2" : "Requires CO2 injection")
                             : co2Status.variant === "warning"
