@@ -400,7 +400,7 @@ export default function PlantDetailPage() {
                         co2Status.variant === 'warning' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/50' : 
                         'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50'
                       }`}>
-                        <span className="text-base font-black uppercase text-center">
+                        <span className="text-sm font-black uppercase text-center leading-tight px-1">
                           {co2Status.variant === "danger"
                             ? (language === "id" ? "CO2 Wajib" : "CO2 Required")
                             : co2Status.variant === "warning"
