@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { 
   Loader2, Cpu, Filter, Info, CheckCircle2, Trophy, Sparkles, 
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight 
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target
 } from "lucide-react";
 
 import { generateRecommendations, UserAnswers, RecommendedPlant } from "@/features/plants/services/expert.service";
@@ -316,7 +316,7 @@ export default function PlantExpertEngineV4() {
               </div>
             ) : (
               <div className="animate-in fade-in duration-500 slide-in-from-bottom-4">
-                <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between border-b border-slate-200 dark:border-slate-800 pb-5">
+                <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between border-b border-slate-200 dark:border-slate-800 pb-5">
                   <div>
                     <h3 className="text-2xl md:text-3xl font-bold text-teal-600 dark:text-teal-400">{dict.expertEngine.successTitle}</h3>
                     <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-2">{dict.expertEngine.successDesc}</p>
@@ -326,61 +326,115 @@ export default function PlantExpertEngineV4() {
                   </span>
                 </div>
                 
-                <div className="grid gap-6 lg:grid-cols-2">
+                <div className="grid gap-5 lg:grid-cols-2">
                   {displayedResults.map((plant, index) => {
                     const globalIndex = startIndex + index;
                     const isTopMatch = globalIndex === 0;
 
+                    // ==========================================
+                    // DESAIN COMPACT & PREMIUM UNTUK JUARA 1
+                    // ==========================================
+                    if (isTopMatch) {
+                      return (
+                        <div key={plant.id} className="lg:col-span-2 relative rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border-2 border-teal-500 shadow-xl shadow-teal-500/10 mb-2 flex flex-col">
+                          
+                          {/* Banner Juara */}
+                          <div className="bg-gradient-to-r from-teal-600 to-emerald-500 px-5 py-2.5 text-white font-black flex items-center gap-2 text-sm tracking-widest uppercase shadow-sm z-10 relative">
+                            <Trophy className="h-5 w-5 text-amber-300" /> {dict.expertEngine.bestMatch}
+                          </div>
+
+                          <div className="flex flex-col lg:flex-row items-stretch flex-1">
+                            
+                            {/* KIRI - Gambar & Kartu Tanaman */}
+                            <div className="p-4 lg:p-5 flex items-start justify-center border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30 lg:w-[320px] shrink-0">
+                              <div className="w-full max-w-[280px] lg:max-w-none">
+                                <PlantCard plant={plant} />
+                              </div>
+                            </div>
+
+                            {/* KANAN - Laporan Analisis Padat & Rapi */}
+                            <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 p-4 lg:p-5">
+                              
+                              {/* PERBAIKAN: Header Confidence - Lencana di Bawah Judul agar anti-terpotong */}
+                              <div className="flex flex-col items-start gap-3 pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
+                                <div>
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{dict.expertEngine.confidence}</p>
+                                  <h4 className="text-lg font-black text-gray-900 dark:text-slate-100 leading-tight">
+                                    {language === "id" ? "Laporan Kecocokan AI" : "AI Match Report"}
+                                  </h4>
+                                </div>
+                                <div className={`inline-flex items-center px-3 py-1.5 rounded-lg border ${getConfidenceColor(plant.matchConfidenceKey)} shadow-sm`}>
+                                  <Target className="w-4 h-4 mr-2 shrink-0" />
+                                  <span className="font-black text-sm whitespace-nowrap">{plant.matchScore} {dict.expertEngine.points}</span>
+                                  <span className="mx-2 opacity-40">|</span>
+                                  <span className="font-bold text-xs uppercase tracking-wide whitespace-nowrap">{getConfidenceLabel(plant.matchConfidenceKey)}</span>
+                                </div>
+                              </div>
+
+                              {/* Daftar Alasan */}
+                              <div className="flex-1">
+                                {plant.matchReasons.length > 0 ? (
+                                  <div className="grid gap-2.5 sm:grid-cols-1">
+                                    {plant.matchReasons.map((reason, i) => (
+                                      <div key={i} className="flex items-start bg-slate-50 dark:bg-slate-950/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800/60 transition-colors">
+                                        <div className="bg-teal-100 dark:bg-teal-900/40 p-1 rounded-full mr-3 shrink-0 mt-0.5">
+                                          <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                                        </div>
+                                        <span className="text-[13px] sm:text-sm text-slate-700 dark:text-slate-300 leading-snug font-medium">
+                                          {reason}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-slate-500 italic p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-800">{dict.expertEngine.defaultReason}</p>
+                                )}
+                              </div>
+
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // ==========================================
+                    // DESAIN REGULER UNTUK RANKING LAINNYA
+                    // ==========================================
                     return (
                       <div 
                         key={plant.id} 
-                        className={`relative group rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 ${isTopMatch ? 'lg:col-span-2 ring-2 ring-teal-500 shadow-teal-500/20 shadow-2xl scale-[1.01] transition-transform' : 'shadow-md hover:shadow-lg transition-shadow'}`}
+                        className="relative rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col"
                       >
-                        <div className={`absolute -top-1 -left-1 z-20 w-12 h-12 rounded-br-2xl flex items-center justify-center font-black shadow-md text-lg ${isTopMatch ? 'bg-amber-400 text-amber-950' : 'bg-slate-800 text-white dark:bg-slate-800 dark:text-white'}`}>
-                          {isTopMatch ? <Trophy className="h-6 w-6" /> : globalIndex + 1}
+                        <div className="absolute top-0 left-0 z-20 w-8 h-8 bg-slate-800 text-white rounded-br-xl flex items-center justify-center font-black shadow-sm text-xs">
+                          {globalIndex + 1}
                         </div>
 
-                        {isTopMatch && (
-                          <div className="bg-gradient-to-r from-teal-600 to-emerald-600 px-14 py-2.5 text-white font-bold flex items-center gap-2 text-sm tracking-widest uppercase shadow-sm">
-                            <Sparkles className="h-4 w-4" /> {dict.expertEngine.bestMatch}
-                          </div>
-                        )}
+                        <div className="p-4 flex justify-center bg-slate-50/50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800">
+                           <div className="w-full max-w-[280px]">
+                             <PlantCard plant={plant} />
+                           </div>
+                        </div>
                         
-                        {/* PERBAIKAN ABSOLUT: Menggunakan Flexbox agar tidak ada ruang kosong di desktop */}
-                        <div className={`flex flex-col ${isTopMatch ? "lg:flex-row items-stretch" : ""}`}>
-                          
-                          {/* Sisi Kiri: Plant Card (Dibatasi maksimal 320px di desktop agar pas) */}
-                          <div className={`p-4 flex-shrink-0 flex items-center justify-center ${isTopMatch ? "lg:w-[320px] lg:border-r border-slate-100 dark:border-slate-800" : ""}`}>
-                            <div className="w-full">
-                               <PlantCard plant={plant} />
-                            </div>
+                        <div className="p-5 flex-1 flex flex-col">
+                          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{dict.expertEngine.confidence}</span>
+                            <span className={`inline-flex items-center text-[10px] font-bold px-2.5 py-1 rounded-md border ${getConfidenceColor(plant.matchConfidenceKey)}`}>
+                              {plant.matchScore} {dict.expertEngine.points} • {getConfidenceLabel(plant.matchConfidenceKey)}
+                            </span>
                           </div>
-                          
-                          {/* Sisi Kanan: Alasan & Skor (Flex-1 akan mengambil seluruh sisa ruang yang ada) */}
-                          <div className={`p-6 flex-1 flex flex-col justify-center ${isTopMatch ? "bg-slate-50/50 dark:bg-slate-900/30" : "pt-0 border-t border-slate-100 dark:border-slate-800"}`}>
-                            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-                              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{dict.expertEngine.confidence}</span>
-                              <span className={`inline-flex items-center text-xs font-bold px-3 py-1.5 rounded-full border ${getConfidenceColor(plant.matchConfidenceKey)} shadow-sm`}>
-                                {plant.matchScore} {dict.expertEngine.points} • {getConfidenceLabel(plant.matchConfidenceKey)}
-                              </span>
-                            </div>
-                            
-                            {plant.matchReasons.length > 0 ? (
-                              <ul className="space-y-3 border-l-2 border-teal-500/40 pl-4 py-1">
-                                {plant.matchReasons.map((reason, i) => (
-                                  <li key={i} className="text-sm md:text-[15px] text-slate-700 dark:text-slate-300 leading-snug flex items-start">
-                                    <span className="text-teal-500 dark:text-teal-400 mr-2.5 font-bold mt-0.5">✓</span> 
-                                    <span>{reason}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p className="text-sm text-slate-500 italic pl-4 border-l-2 border-slate-200 dark:border-slate-800 py-2">{dict.expertEngine.defaultReason}</p>
-                            )}
-                          </div>
-
+                          {plant.matchReasons.length > 0 ? (
+                            <ul className="space-y-2 border-l-2 border-teal-500/40 pl-3 py-1 flex-1">
+                              {plant.matchReasons.map((reason, i) => (
+                                <li key={i} className="text-[12px] sm:text-[13px] text-slate-600 dark:text-slate-300 leading-snug flex items-start">
+                                  <span className="text-teal-500 dark:text-teal-400 mr-2 font-bold">✓</span> 
+                                  <span>{reason}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-xs text-slate-500 italic pl-3 border-l-2 border-slate-200 dark:border-slate-800 py-1 flex-1">{dict.expertEngine.defaultReason}</p>
+                          )}
                         </div>
-
                       </div>
                     );
                   })}
@@ -388,18 +442,18 @@ export default function PlantExpertEngineV4() {
                 
                 {/* PRODUCTION GRADE RESPONSIVE PAGINATION */}
                 {totalPages > 1 && (
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between border-t border-slate-200 dark:border-slate-800 pt-6 mt-8 gap-4 transition-colors">
-                    <p className="text-sm text-slate-600 dark:text-slate-400 text-center lg:text-left mb-2 lg:mb-0">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between border-t border-slate-200 dark:border-slate-800 pt-5 mt-6 gap-4 transition-colors">
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 text-center lg:text-left mb-1 lg:mb-0">
                       {dict.expertEngine.paginationShowing} <span className="font-bold text-gray-900 dark:text-slate-200">{startIndex + 1}</span> {dict.expertEngine.paginationTo} <span className="font-bold text-gray-900 dark:text-slate-200">{Math.min(endIndex, results.length)}</span> {dict.expertEngine.paginationOf} <span className="font-bold text-gray-900 dark:text-slate-200">{results.length}</span> {dict.expertEngine.paginationData}
                     </p>
                     
                     <div className="flex flex-col lg:flex-row items-center lg:items-center justify-center lg:justify-end gap-3 w-full lg:w-auto">
                       
-                      <div className="flex flex-wrap lg:flex-nowrap justify-center lg:justify-end gap-1 sm:gap-2 w-full lg:w-auto">
-                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
+                      <div className="flex flex-wrap lg:flex-nowrap justify-center lg:justify-end gap-1 sm:gap-1.5 w-full lg:w-auto">
+                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-8 w-8 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
                           <ChevronsLeft className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
+                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="h-8 w-8 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
                           <ChevronLeft className="h-4 w-4" />
                         </Button>
                         
@@ -408,7 +462,7 @@ export default function PlantExpertEngineV4() {
                             key={num}
                             variant={currentPage === num ? "default" : "outline"}
                             onClick={() => setCurrentPage(num)}
-                            className={`h-9 w-9 p-0 text-sm font-medium transition-all shrink-0 ${
+                            className={`h-8 w-8 p-0 text-sm font-medium transition-all shrink-0 ${
                               currentPage === num 
                                 ? 'bg-teal-600 hover:bg-teal-500 text-white border-teal-600 dark:border-teal-500 shadow-md shadow-teal-600/20 scale-105' 
                                 : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
@@ -418,22 +472,22 @@ export default function PlantExpertEngineV4() {
                           </Button>
                         ))}
 
-                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
+                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="h-8 w-8 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
                           <ChevronRight className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
+                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-8 w-8 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
                           <ChevronsRight className="h-4 w-4" />
                         </Button>
                       </div>
 
-                      <div className="flex items-center justify-center gap-2 text-sm border-t lg:border-t-0 lg:border-l border-slate-300 dark:border-slate-700 pt-3 lg:pt-0 lg:pl-3 w-full lg:w-auto transition-colors text-slate-600 dark:text-slate-300">
+                      <div className="flex items-center justify-center gap-2 text-sm border-t lg:border-t-0 lg:border-l border-slate-300 dark:border-slate-700 pt-2.5 lg:pt-0 lg:pl-3 w-full lg:w-auto transition-colors text-slate-600 dark:text-slate-300">
                         <Input 
                           type="number" min={1} max={totalPages} value={currentPage}
                           onChange={(e) => {
                             const val = parseInt(e.target.value);
                             if (val >= 1 && val <= totalPages) setCurrentPage(val);
                           }}
-                          className="w-14 h-9 text-center bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-gray-900 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:border-teal-500 transition-colors"
+                          className="w-12 h-8 text-center text-sm bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-gray-900 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:border-teal-500 transition-colors"
                         />
                         <span className="whitespace-nowrap">/ {totalPages}</span>
                       </div>
