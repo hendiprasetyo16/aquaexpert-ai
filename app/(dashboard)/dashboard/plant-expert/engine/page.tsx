@@ -41,6 +41,7 @@ export default function PlantExpertEngineV4() {
   // PAGINATION STATE
   const [currentPage, setCurrentPage] = useState(1);
 
+  // LOAD KNOWLEDGE BASE
   useEffect(() => {
     async function loadKnowledgeBase() {
       try {
@@ -55,6 +56,7 @@ export default function PlantExpertEngineV4() {
     loadKnowledgeBase();
   }, []);
 
+  // LOAD SESSION STORAGE (AGAR HASIL TIDAK HILANG SAAT KEMBALI)
   useEffect(() => {
     const savedSession = sessionStorage.getItem(SESSION_KEY);
     if (savedSession) {
@@ -71,21 +73,52 @@ export default function PlantExpertEngineV4() {
           setWantCarpet(parsed.answers.wantCarpet);
           setWantRedPlant(parsed.answers.wantRedPlant || false);
         }
+        // PERBAIKAN BUG KEMBALI (BACK): Kembalikan juga results dan halaman terakhir!
+        if (parsed.results) {
+          setResults(parsed.results);
+        }
+        if (parsed.currentPage) {
+          setCurrentPage(parsed.currentPage);
+        }
       } catch (e) {
         console.error("Gagal membaca session data", e);
       }
     }
   }, []);
 
-  // HITUNG ULANG JIKA BAHASA BERUBAH
+  // SIMPAN HALAMAN SAAT BERPINDAH (PAGINATION)
+  useEffect(() => {
+    if (results !== null) {
+       const savedSession = sessionStorage.getItem(SESSION_KEY);
+       if (savedSession) {
+         try {
+           const parsed = JSON.parse(savedSession);
+           parsed.currentPage = currentPage;
+           sessionStorage.setItem(SESSION_KEY, JSON.stringify(parsed));
+         } catch (e) {}
+       }
+    }
+  }, [currentPage, results]);
+
+  // HITUNG ULANG JIKA BAHASA BERUBAH (DAN HASIL SUDAH ADA)
   useEffect(() => {
     if (results !== null && plants.length > 0) {
       const answers: UserAnswers = { experience, tankSize, hasCO2: co2 === "Tinggi (Injeksi)", light, maintenance, style, shrimpTank, wantCarpet, wantRedPlant };
       const aiResults = generateRecommendations(plants, answers, dict.expertEngine);
       setResults(aiResults);
+      
+      // Update session storage dengan hasil bahasa baru
+      const savedSession = sessionStorage.getItem(SESSION_KEY);
+      if (savedSession) {
+        try {
+          const parsed = JSON.parse(savedSession);
+          parsed.results = aiResults;
+          sessionStorage.setItem(SESSION_KEY, JSON.stringify(parsed));
+        } catch(e) {}
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language, dict.expertEngine]); 
+  }, [language, dict.expertEngine, plants.length]); 
 
   const runInferenceEngine = () => {
     setLoading(true);
@@ -97,7 +130,12 @@ export default function PlantExpertEngineV4() {
 
     const aiResults = generateRecommendations(plants, answers, dict.expertEngine);
 
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ answers }));
+    // SIMPAN SEMUANYA KE SESSION
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ 
+      answers, 
+      results: aiResults,
+      currentPage: 1
+    }));
 
     setTimeout(() => {
       setResults(aiResults);
@@ -343,46 +381,44 @@ export default function PlantExpertEngineV4() {
                   })}
                 </div>
                 
-                {/* PERBAIKAN RESPONSIVE DI SINI (FLEX-WRAP AGAR RAPI DI LAYAR HP) */}
+                {/* PAGINATION YANG SUDAH ANDA SUKAI (Responsif di HP) */}
                 {totalPages > 1 && (
-                  <div className="flex flex-col xl:flex-row items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-6 mt-8 gap-4 transition-colors">
-                    <p className="text-sm text-slate-600 dark:text-slate-400 text-center xl:text-left mb-2 xl:mb-0">
+                  <div className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-6 mt-8 gap-4 transition-colors">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 text-center sm:text-left">
                       {dict.expertEngine.paginationShowing} <span className="font-bold text-gray-900 dark:text-slate-200">{startIndex + 1}</span> {dict.expertEngine.paginationTo} <span className="font-bold text-gray-900 dark:text-slate-200">{Math.min(endIndex, results.length)}</span> {dict.expertEngine.paginationOf} <span className="font-bold text-gray-900 dark:text-slate-200">{results.length}</span> {dict.expertEngine.paginationData}
                     </p>
                     
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
-                          <ChevronsLeft className="h-4 w-4" />
+                    <div className="flex items-center justify-center gap-1 sm:gap-2">
+                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      
+                      {pageNumbers.map(num => (
+                        <Button
+                          key={num}
+                          variant={currentPage === num ? "default" : "outline"}
+                          onClick={() => setCurrentPage(num)}
+                          className={`h-9 w-9 p-0 text-sm font-medium transition-all ${
+                            currentPage === num 
+                              ? 'bg-teal-600 hover:bg-teal-500 text-white border-teal-600 dark:border-teal-500 shadow-md shadow-teal-600/20 scale-105' 
+                              : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
+                          }`}
+                        >
+                          {num}
                         </Button>
-                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
-                          <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        
-                        {pageNumbers.map(num => (
-                          <Button
-                            key={num}
-                            variant={currentPage === num ? "default" : "outline"}
-                            onClick={() => setCurrentPage(num)}
-                            className={`h-9 w-9 p-0 text-sm font-medium transition-all ${
-                              currentPage === num 
-                                ? 'bg-teal-600 hover:bg-teal-500 text-white border-teal-600 dark:border-teal-500 shadow-md shadow-teal-600/20 scale-105' 
-                                : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
-                            }`}
-                          >
-                            {num}
-                          </Button>
-                        ))}
+                      ))}
 
-                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
-                          <ChevronsRight className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
 
-                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 border-l border-slate-300 dark:border-slate-700 pl-3 ml-1 shrink-0 transition-colors">
+                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 border-l border-slate-300 dark:border-slate-700 pl-4 ml-2 shrink-0 transition-colors">
                         <Input 
                           type="number" min={1} max={totalPages} value={currentPage}
                           onChange={(e) => {
@@ -391,7 +427,7 @@ export default function PlantExpertEngineV4() {
                           }}
                           className="w-14 h-9 text-center bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-gray-900 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:border-teal-500 transition-colors"
                         />
-                        <span className="whitespace-nowrap">/ {totalPages}</span>
+                        <span className="hidden sm:inline whitespace-nowrap">/ {totalPages}</span>
                       </div>
                     </div>
                   </div>
