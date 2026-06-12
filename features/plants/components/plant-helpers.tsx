@@ -48,7 +48,7 @@ export const getIndoLevelDetail = (level: string | null | undefined, type: "ligh
     if (type === "co2") {
       if (l === "low") return "Tanpa tabung CO2";
       if (l === "medium") return "Disarankan pakai CO2";
-      if (l === "high") return "Wajib injeksi CO2 tinggi";
+      if (l === "high") return "Wajib injeksi CO2";
     }
     if (type === "fert") {
       if (l === "low") return "Sesekali saja";
@@ -69,7 +69,7 @@ export const getIndoLevelDetail = (level: string | null | undefined, type: "ligh
     if (type === "co2") {
       if (l === "low") return "Without CO2 tank";
       if (l === "medium") return "CO2 recommended";
-      if (l === "high") return "High CO2 injection required";
+      if (l === "high") return "CO2 injection required";
     }
     if (type === "fert") {
       if (l === "low") return "Occasionally";
@@ -182,7 +182,6 @@ export const getPlantTypeDesc = (type: string | null | undefined, lang: "id" | "
   return type ? type.charAt(0).toUpperCase() + type.slice(1) : "";
 };
 
-// TAMBAHAN BARU: Helper keterangan subtipe tanaman
 export const getPlantTypeSubtitle = (type: string | null | undefined, lang: "id" | "en" = "id") => {
   const t = (type || "").toLowerCase();
   if (lang === "id") {
@@ -273,11 +272,14 @@ export const getTankSizeDetails = (size: string, lang: "id" | "en" = "id") => {
 
 export const getRecommendedDesc = (tag: string, lang: "id" | "en" = "id") => {
   const t = tag.toLowerCase();
+  
+  // PERBAIKAN LOGIKA BUG PENGULANGAN HIGH TECH vs CO2 SETUP
   if (lang === "id") {
     if (t === "pemula" || t === "beginner") return "Sangat Mudah";
     if (t.includes("low tech")) return "Bisa Tanpa CO2";
     if (t.includes("low light")) return "Cahaya Minim";
-    if (t.includes("high tech") || t.includes("co2 setup")) return "Wajib Injeksi CO2";
+    if (t.includes("high tech")) return "Setup Intensif"; // Logika Dipisah
+    if (t.includes("co2 setup")) return "Wajib Injeksi CO2"; // Logika Dipisah
     if (t.includes("shrimp tank")) return "Aman bagi Udang";
     if (t.includes("betta tank")) return "Aman bagi Cupang";
     if (t.includes("community tank")) return "Untuk Beragam Ikan";
@@ -295,7 +297,8 @@ export const getRecommendedDesc = (tag: string, lang: "id" | "en" = "id") => {
     if (t === "pemula" || t === "beginner") return "Very Easy";
     if (t.includes("low tech")) return "No CO2 Needed";
     if (t.includes("low light")) return "Low Light Demand";
-    if (t.includes("high tech") || t.includes("co2 setup")) return "CO2 Required";
+    if (t.includes("high tech")) return "Advanced Setup"; // Logika Dipisah
+    if (t.includes("co2 setup")) return "CO2 Required"; // Logika Dipisah
     if (t.includes("shrimp tank")) return "Safe for Shrimp";
     if (t.includes("betta tank")) return "Safe for Bettas";
     if (t.includes("community tank")) return "For Community Fish";
