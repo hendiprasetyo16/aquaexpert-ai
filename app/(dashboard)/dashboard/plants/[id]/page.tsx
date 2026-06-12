@@ -668,7 +668,7 @@ export default function PlantDetailPage() {
                       </div>
                       <div className="flex flex-col border-t border-slate-200 dark:border-slate-800 pt-3 mt-1 transition-colors w-full">
                         <span
-                          className={`text-xs font-black uppercase text-center leading-tight whitespace-normal max-w-full ${
+                          className={`text-xs font-black uppercase text-center leading-tight whitespace-normal px-1 ${
                             co2Status.variant === "danger"
                               ? "text-red-600 dark:text-red-400"
                               : co2Status.variant === "warning"
