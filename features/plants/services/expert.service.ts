@@ -1,5 +1,6 @@
 // features/plants/services/expert.service.ts
 import { Plant } from "../types/plant.types";
+import { RawEvaluation, processExpertResults, ConfidenceKey } from "@/lib/expert-engine";
 
 export interface UserAnswers {
   experience: "Pemula" | "Menengah" | "Mahir";
@@ -16,19 +17,36 @@ export interface UserAnswers {
 export interface RecommendedPlant extends Plant {
   matchScore: number;
   matchReasons: string[];
-  matchConfidenceKey: "Excellent" | "VeryGood" | "Good" | "Moderate"; // Menggunakan Kunci (Key), bukan teks mati
+  matchConfidenceKey: ConfidenceKey;
 }
 
-function getConfidenceKey(score: number): RecommendedPlant["matchConfidenceKey"] {
-  if (score >= 90) return "Excellent";
-  if (score >= 75) return "VeryGood";
-  if (score >= 60) return "Good";
-  return "Moderate";
+// Kamus pelokalan bahasa diisolasi penuh di dalam domain fitur tanaman
+export interface PlantExpertDictionary {
+  reasonPropIdeal: string;
+  reasonPropBad: string;
+  reasonBeginner: string;
+  reasonSafe: string;
+  reasonSkill: string;
+  reasonChallenging: string;
+  reasonExpert: string;
+  reasonMinMaint: string;
+  reasonSlowGrow: string;
+  reasonMaintMatch: string;
+  reasonHighMaintWarn: string;
+  reasonHighMaintIdeal: string;
+  reasonShrimp: string;
+  reasonCarpet: string;
+  reasonRed: string;
+  reasonLowTech: string;
+  reasonStyle: string;
 }
 
-// PERBAIKAN: Menerima dictEE sebagai kamus penterjemah dinamis
-export function generateRecommendations(allPlants: Plant[], answers: UserAnswers, dictEE: any): RecommendedPlant[] {
-  let results: RecommendedPlant[] = [];
+export function generateRecommendations(
+  allPlants: Plant[], 
+  answers: UserAnswers, 
+  dictEE: PlantExpertDictionary
+): RecommendedPlant[] {
+  const rawEvaluations: RawEvaluation<Plant>[] = [];
 
   for (const plant of allPlants) {
     let isEligible = true;
@@ -41,7 +59,7 @@ export function generateRecommendations(allPlants: Plant[], answers: UserAnswers
     
     if (!isEligible) continue;
 
-    // TAHAP B: SOFT SCORING (DENGAN KAMUS DINAMIS)
+    // TAHAP B: SOFT SCORING
     // 1. TANK SIZE
     if (plant.tank_size_recommendation && plant.tank_size_recommendation.length > 0) {
       if (plant.tank_size_recommendation.includes(answers.tankSize)) {
@@ -53,9 +71,9 @@ export function generateRecommendations(allPlants: Plant[], answers: UserAnswers
       }
     }
 
-    // 2. PENGALAMAN
+    // 2. PENGALAMAN (BUG FIX SAFE: Mengecek tipe number agar angka 0 tidak lolos sebagai false)
     if (answers.experience === "Pemula") {
-      if (plant.beginner_score) score += plant.beginner_score * 3; 
+      if (typeof plant.beginner_score === "number") score += plant.beginner_score * 3; 
       if (plant.difficulty === "Easy") {
         score += 20;
         reasons.push(dictEE.reasonBeginner);
@@ -63,7 +81,7 @@ export function generateRecommendations(allPlants: Plant[], answers: UserAnswers
         score -= 25; 
       }
     } else if (answers.experience === "Menengah") {
-      if (plant.beginner_score) score += plant.beginner_score * 1.5; 
+      if (typeof plant.beginner_score === "number") score += plant.beginner_score * 1.5; 
       if (plant.difficulty === "Easy") {
         score += 10;
         reasons.push(dictEE.reasonSafe);
@@ -75,7 +93,7 @@ export function generateRecommendations(allPlants: Plant[], answers: UserAnswers
         reasons.push(dictEE.reasonChallenging);
       }
     } else if (answers.experience === "Mahir") {
-      if (plant.difficulty === "Hard" || (plant.beginner_score && plant.beginner_score <= 4)) {
+      if (plant.difficulty === "Hard" || (typeof plant.beginner_score === "number" && plant.beginner_score <= 4)) {
         score += 20; 
         reasons.push(dictEE.reasonExpert);
       }
@@ -170,18 +188,18 @@ export function generateRecommendations(allPlants: Plant[], answers: UserAnswers
       }
     }
 
-    // TAHAP C: FINALISASI
-    const finalScore = Math.min(Math.max(score, 10), 100); 
-
-    if (finalScore >= 20) {
-      results.push({ 
-        ...plant, 
-        matchScore: finalScore, 
-        matchReasons: reasons,
-        matchConfidenceKey: getConfidenceKey(finalScore)
-      });
-    }
+    // Memasukkan item evaluasi mentah ke penampung
+    rawEvaluations.push({ item: plant, rawScore: score, reasons });
   }
 
-  return results.sort((a, b) => b.matchScore - a.matchScore);
+  // PANGGIL OTAL PIPELINE MATEMATIKA DARI EXPERT ENGINE LIB
+  const processedResults = processExpertResults(rawEvaluations, 20);
+
+  // Kembalikan ke struktur data rata (flattened) demi menjaga kecocokan kode UI lama kita
+  return processedResults.map(result => ({
+    ...result.item,
+    matchScore: result.matchScore,
+    matchReasons: result.matchReasons,
+    matchConfidenceKey: result.matchConfidenceKey
+  }));
 }

@@ -326,7 +326,6 @@ export default function PlantExpertEngineV4() {
                   </span>
                 </div>
                 
-                {/* Responsive Grid Table - lg:grid-cols-2 menjaga proporsi di Tablet */}
                 <div className="grid gap-6 lg:grid-cols-2">
                   {displayedResults.map((plant, index) => {
                     const globalIndex = startIndex + index;
@@ -347,25 +346,31 @@ export default function PlantExpertEngineV4() {
                           </div>
                         )}
                         
-                        <div className={isTopMatch ? "lg:grid lg:grid-cols-2" : ""}>
-                          <div className={isTopMatch ? "p-5" : "p-2"}>
-                            <div className="transform scale-95 origin-top">
+                        {/* PERBAIKAN ABSOLUT: Menggunakan Flexbox agar tidak ada ruang kosong di desktop */}
+                        <div className={`flex flex-col ${isTopMatch ? "lg:flex-row items-stretch" : ""}`}>
+                          
+                          {/* Sisi Kiri: Plant Card (Dibatasi maksimal 320px di desktop agar pas) */}
+                          <div className={`p-4 flex-shrink-0 flex items-center justify-center ${isTopMatch ? "lg:w-[320px] lg:border-r border-slate-100 dark:border-slate-800" : ""}`}>
+                            <div className="w-full">
                                <PlantCard plant={plant} />
                             </div>
                           </div>
                           
-                          <div className={`p-5 ${isTopMatch ? "bg-slate-50 dark:bg-slate-900/50 flex flex-col justify-center border-l border-slate-100 dark:border-slate-800" : "pt-0 border-t border-slate-100 dark:border-slate-800"}`}>
-                            <div className="flex items-center justify-between mb-4">
+                          {/* Sisi Kanan: Alasan & Skor (Flex-1 akan mengambil seluruh sisa ruang yang ada) */}
+                          <div className={`p-6 flex-1 flex flex-col justify-center ${isTopMatch ? "bg-slate-50/50 dark:bg-slate-900/30" : "pt-0 border-t border-slate-100 dark:border-slate-800"}`}>
+                            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{dict.expertEngine.confidence}</span>
-                              <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${getConfidenceColor(plant.matchConfidenceKey)} shadow-sm`}>
+                              <span className={`inline-flex items-center text-xs font-bold px-3 py-1.5 rounded-full border ${getConfidenceColor(plant.matchConfidenceKey)} shadow-sm`}>
                                 {plant.matchScore} {dict.expertEngine.points} • {getConfidenceLabel(plant.matchConfidenceKey)}
                               </span>
                             </div>
+                            
                             {plant.matchReasons.length > 0 ? (
-                              <ul className="space-y-2 border-l-2 border-teal-500/40 pl-4 py-1">
+                              <ul className="space-y-3 border-l-2 border-teal-500/40 pl-4 py-1">
                                 {plant.matchReasons.map((reason, i) => (
-                                  <li key={i} className="text-sm md:text-base text-slate-700 dark:text-slate-300 leading-snug">
-                                    <span className="text-teal-500 dark:text-teal-400 mr-2 font-bold">✓</span> {reason}
+                                  <li key={i} className="text-sm md:text-[15px] text-slate-700 dark:text-slate-300 leading-snug flex items-start">
+                                    <span className="text-teal-500 dark:text-teal-400 mr-2.5 font-bold mt-0.5">✓</span> 
+                                    <span>{reason}</span>
                                   </li>
                                 ))}
                               </ul>
@@ -373,7 +378,9 @@ export default function PlantExpertEngineV4() {
                               <p className="text-sm text-slate-500 italic pl-4 border-l-2 border-slate-200 dark:border-slate-800 py-2">{dict.expertEngine.defaultReason}</p>
                             )}
                           </div>
+
                         </div>
+
                       </div>
                     );
                   })}
@@ -388,7 +395,6 @@ export default function PlantExpertEngineV4() {
                     
                     <div className="flex flex-col lg:flex-row items-center lg:items-center justify-center lg:justify-end gap-3 w-full lg:w-auto">
                       
-                      {/* Deretan Tombol Angka */}
                       <div className="flex flex-wrap lg:flex-nowrap justify-center lg:justify-end gap-1 sm:gap-2 w-full lg:w-auto">
                         <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-9 w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
                           <ChevronsLeft className="h-4 w-4" />
@@ -420,7 +426,6 @@ export default function PlantExpertEngineV4() {
                         </Button>
                       </div>
 
-                      {/* Input Lompat Halaman */}
                       <div className="flex items-center justify-center gap-2 text-sm border-t lg:border-t-0 lg:border-l border-slate-300 dark:border-slate-700 pt-3 lg:pt-0 lg:pl-3 w-full lg:w-auto transition-colors text-slate-600 dark:text-slate-300">
                         <Input 
                           type="number" min={1} max={totalPages} value={currentPage}
