@@ -8,10 +8,9 @@ import AlgaeCard from "@/features/algae/components/AlgaeCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";  
 import { 
-  Loader2, Cpu, Filter, Info, CheckCircle2, Trophy, Sparkles, 
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target
+  Loader2, Cpu, Filter, Info, CheckCircle2, Trophy, 
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target, AlertTriangle, ShieldCheck
 } from "lucide-react";
 
 import { generateAlgaeDiagnosis, UserAnswersAlgae, RecommendedAlgae } from "@/features/algae/services/expert.service";
@@ -125,13 +124,12 @@ export default function AlgaeExpertEngine() {
     }
   };
 
-const getConfidenceLabel = (key: string) => {
+  const getConfidenceLabel = (key: string) => {
     switch (key) {
-      // PERBAIKAN: Menggunakan kamus dari expertEngine yang sudah ada
-      case "Excellent": return dict.expertEngine.confExcellent;
-      case "VeryGood": return dict.expertEngine.confVeryGood;
-      case "Good": return dict.expertEngine.confGood;
-      default: return dict.expertEngine.confModerate;
+      case "Excellent": return dict.expertEngine?.confExcellent || "Excellent Match";
+      case "VeryGood": return dict.expertEngine?.confVeryGood || "Very Good Match";
+      case "Good": return dict.expertEngine?.confGood || "Good Match";
+      default: return dict.expertEngine?.confModerate || "Moderate Match";
     }
   };
 
@@ -166,7 +164,6 @@ const getConfidenceLabel = (key: string) => {
   const pageNumbers = [];
   for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
-  // Jika dict.algaeExpert belum me-load, berikan loading state aman
   if (!dict.algaeExpert) return null;
 
   return (
@@ -199,7 +196,9 @@ const getConfidenceLabel = (key: string) => {
                     <option value="brown">{language === 'id' ? "Coklat / Keemasan" : "Brown / Golden"}</option>
                     <option value="black">{language === 'id' ? "Hitam / Abu Gelap" : "Black / Dark Gray"}</option>
                     <option value="gray">{language === 'id' ? "Abu-abu / Putih Pucat" : "Gray / Pale White"}</option>
+                    <option value="light_green">{language === 'id' ? "Hijau Muda" : "Light Green"}</option>
                     <option value="blue_green">{language === 'id' ? "Biru Kehijauan (Gelap)" : "Blue-Green / Dark"}</option>
+                    <option value="reddish">{language === 'id' ? "Kemerahan" : "Reddish"}</option>
                   </select>
                 </div>
 
@@ -213,6 +212,8 @@ const getConfidenceLabel = (key: string) => {
                     <option value="hard_spot">{language === 'id' ? "Titik Keras (Susah dikerok)" : "Hard Spots"}</option>
                     <option value="slime">{language === 'id' ? "Berlendir / Lembaran" : "Slime / Sheet"}</option>
                     <option value="branching">{language === 'id' ? "Bercabang (Tanduk Rusa)" : "Branching / Wiry"}</option>
+                    <option value="easily_wiped">{language === 'id' ? "Mudah Diusap" : "Easily Wiped"}</option>
+                    <option value="smelly">{language === 'id' ? "Berbau Busuk" : "Smelly"}</option>
                   </select>
                 </div>
 
@@ -225,6 +226,8 @@ const getConfidenceLabel = (key: string) => {
                     <option value="leaf_edges">{language === 'id' ? "Pinggiran Daun" : "Leaf Edges"}</option>
                     <option value="plants">{language === 'id' ? "Menyelimuti Tanaman" : "Covering Plants"}</option>
                     <option value="substrate">{language === 'id' ? "Substrat / Pasir" : "Substrate / Sand"}</option>
+                    <option value="equipment">{language === 'id' ? "Pipa / Peralatan" : "Equipment / Pipes"}</option>
+                    <option value="everywhere">{language === 'id' ? "Di Seluruh Area Tank" : "Everywhere"}</option>
                   </select>
                 </div>
 
@@ -237,6 +240,7 @@ const getConfidenceLabel = (key: string) => {
                     <option value="high_light">{language === 'id' ? "Lampu Terlalu Terang/Lama" : "Light Too Bright/Long"}</option>
                     <option value="poor_circulation">{language === 'id' ? "Arus Mati (Sirkulasi Buruk)" : "Poor Circulation (Dead Spots)"}</option>
                     <option value="nutrient_imbalance">{language === 'id' ? "Ketidakseimbangan Nutrisi" : "Nutrient Imbalance"}</option>
+                    <option value="high_organics">{language === 'id' ? "Penumpukan Organik Kotor" : "High Organics Buildup"}</option>
                   </select>
                 </div>
               </div>
@@ -284,6 +288,9 @@ const getConfidenceLabel = (key: string) => {
 
                     // JUARA 1 (THE BEST MATCH)
                     if (isTopMatch) {
+                      const topCauses = language === 'en' && algae.causes_en?.length ? algae.causes_en : algae.causes_id || [];
+                      const topSolutions = language === 'en' && algae.solutions_en?.length ? algae.solutions_en : algae.solutions_id || [];
+
                       return (
                         <div key={algae.id} className="lg:col-span-2 relative rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border-2 border-teal-500 shadow-xl shadow-teal-500/10 mb-2 flex flex-col">
                           
@@ -336,6 +343,35 @@ const getConfidenceLabel = (key: string) => {
                               </div>
                             </div>
                           </div>
+
+                          {/* ACTION PLAN EKSKLUSIF JUARA 1 */}
+                          <div className="grid md:grid-cols-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                             <div className="p-5 border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800">
+                               <h5 className="font-bold text-amber-600 dark:text-amber-500 mb-3 flex items-center gap-2">
+                                 <AlertTriangle className="h-5 w-5" /> {language === 'id' ? "Penyebab Umum" : "Root Causes"}
+                               </h5>
+                               <ul className="space-y-2">
+                                 {topCauses.map((c, i) => (
+                                   <li key={i} className="text-xs sm:text-[13px] text-slate-600 dark:text-slate-400 flex items-start">
+                                     <span className="text-amber-500 mr-2 mt-0.5">•</span> <span>{c}</span>
+                                   </li>
+                                 ))}
+                               </ul>
+                             </div>
+                             <div className="p-5">
+                               <h5 className="font-bold text-teal-600 dark:text-teal-500 mb-3 flex items-center gap-2">
+                                 <ShieldCheck className="h-5 w-5" /> {language === 'id' ? "Saran Penanganan" : "Treatment Solutions"}
+                               </h5>
+                               <ul className="space-y-2">
+                                 {topSolutions.map((s, i) => (
+                                   <li key={i} className="text-xs sm:text-[13px] text-slate-600 dark:text-slate-400 flex items-start">
+                                     <span className="text-teal-500 mr-2 mt-0.5">✓</span> <span>{s}</span>
+                                   </li>
+                                 ))}
+                               </ul>
+                             </div>
+                          </div>
+
                         </div>
                       );
                     }
@@ -385,7 +421,7 @@ const getConfidenceLabel = (key: string) => {
                 {totalPages > 1 && (
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between border-t border-slate-200 dark:border-slate-800 pt-5 mt-6 gap-4 transition-colors">
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 text-center lg:text-left mb-1 lg:mb-0">
-                       Menampilkan <span className="font-bold text-gray-900 dark:text-slate-200">{startIndex + 1}</span> - <span className="font-bold text-gray-900 dark:text-slate-200">{Math.min(endIndex, results.length)}</span> dari <span className="font-bold text-gray-900 dark:text-slate-200">{results.length}</span> data
+                       {language === 'id' ? "Menampilkan" : "Showing"} <span className="font-bold text-gray-900 dark:text-slate-200">{startIndex + 1}</span> - <span className="font-bold text-gray-900 dark:text-slate-200">{Math.min(endIndex, results.length)}</span> {language === 'id' ? "dari" : "of"} <span className="font-bold text-gray-900 dark:text-slate-200">{results.length}</span> data
                     </p>
                     
                     <div className="flex flex-col lg:flex-row items-center justify-center lg:justify-end gap-3 w-full lg:w-auto">
