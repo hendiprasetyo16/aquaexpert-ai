@@ -18,7 +18,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-// PERBAIKAN: Memanggil Helper getAlgaeTagDesc
 import { getAlgaeDifficultyDesc, getAlgaeTagDesc } from "@/features/algae/components/algae-helpers";
 
 export default function AlgaeDetailPage() {
@@ -172,10 +171,15 @@ export default function AlgaeDetailPage() {
   const causes = language === 'en' && algae.causes_en?.length ? algae.causes_en : algae.causes_id || [];
   const solutions = language === 'en' && algae.solutions_en?.length ? algae.solutions_en : algae.solutions_id || [];
 
-  // Panggil kamus untuk hints dari algaeForm
   const formDict = dict.algaeExpert?.algaeForm;
 
-  // Hitung "Related Algae" berdasarkan kesamaan tag lokasi dan pemicu
+  // Helper Deskripsi Tambahan Severity
+  const getSeverityHelper = (severity: number) => {
+    if (severity >= 4) return language === 'id' ? "(Sangat Berbahaya)" : "(Highly Dangerous)";
+    if (severity === 3) return language === 'id' ? "(Butuh Perhatian)" : "(Needs Attention)";
+    return language === 'id' ? "(Mudah Ditangani)" : "(Easy to Handle)";
+  };
+
   const relatedAlgae = allAlgaeList
     .filter(a => a.id !== algae.id && a.is_active)
     .map(a => {
@@ -294,17 +298,23 @@ export default function AlgaeDetailPage() {
                 )}
 
                 <div className="grid grid-cols-2 gap-3 w-full mt-6">
-                  <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col items-center">
+                  {/* TINGKAT KESULITAN */}
+                  <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center min-h-[90px]">
                     <span className="text-[10px] uppercase font-bold text-slate-500 mb-1">{language === 'id' ? "Kesulitan" : "Difficulty"}</span>
-                    <span className={`font-black uppercase text-sm ${algae.difficulty === 'Hard' ? 'text-red-600' : algae.difficulty === 'Medium' ? 'text-amber-600' : 'text-green-600'}`}>
+                    <span className={`font-black uppercase text-sm text-center leading-tight ${algae.difficulty === 'Hard' ? 'text-red-600' : algae.difficulty === 'Medium' ? 'text-amber-600' : 'text-green-600'}`}>
                       {getAlgaeDifficultyDesc(algae.difficulty, language)}
                     </span>
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col items-center">
+                  
+                  {/* TINGKAT BAHAYA */}
+                  <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center min-h-[90px]">
                     <span className="text-[10px] uppercase font-bold text-slate-500 mb-1">{language === 'id' ? "Tingkat Bahaya" : "Severity"}</span>
                     <span className={`font-black uppercase text-sm flex items-center gap-1 ${algae.severity >= 4 ? 'text-red-600' : algae.severity === 3 ? 'text-amber-600' : 'text-green-600'}`}>
                       {algae.severity >= 4 ? <Skull className="w-3 h-3" /> : algae.severity === 3 ? <AlertTriangle className="w-3 h-3" /> : <Info className="w-3 h-3" />}
                       Level {algae.severity} / 5
+                    </span>
+                    <span className={`text-[10px] mt-1 text-center leading-tight font-medium ${algae.severity >= 4 ? 'text-red-500/80' : algae.severity === 3 ? 'text-amber-500/80' : 'text-green-600/80'}`}>
+                      {getSeverityHelper(algae.severity)}
                     </span>
                   </div>
                 </div>
