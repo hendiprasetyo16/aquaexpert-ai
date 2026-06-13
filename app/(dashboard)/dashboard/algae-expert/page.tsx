@@ -8,7 +8,7 @@ import AlgaeCard from "@/features/algae/components/AlgaeCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";  
 import { 
   Loader2, Cpu, Filter, Info, CheckCircle2, Trophy, Sparkles, 
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target

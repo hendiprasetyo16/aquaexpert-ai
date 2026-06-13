@@ -85,7 +85,13 @@
     "confirmFolder": "Yakin ingin membuat 120 folder di Supabase Storage?",
     "confirmSync": "Yakin ingin mensinkronkan ulang URL gambar ke Database?",
     "confirmBackup": "Backup seluruh teks Database ke file JSON di Supabase Storage? (Ini TIDAK mengunduh gambar fisik).",
-    "confirmRestore": "PERINGATAN! RESTORE akan menimpa data saat ini dengan file backup JSON terakhir. Lanjutkan?"
+    "confirmRestore": "PERINGATAN! RESTORE akan menimpa data saat ini dengan file backup JSON terakhir. Lanjutkan?",
+    "confirmModal": {
+      "title": "Konfirmasi Eksekusi",
+      "cancel": "Batal",
+      "proceed": "Ya, Eksekusi",
+      "processing": "Mengeksekusi..."
+    }
   },
   "adminPanelPage": {
     "title": "Super Admin Control Panel",

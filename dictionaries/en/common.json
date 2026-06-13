@@ -85,7 +85,13 @@
     "confirmFolder": "Are you sure you want to create 120 folders in Supabase Storage?",
     "confirmSync": "Are you sure you want to resync image URLs to the Database?",
     "confirmBackup": "Backup all Database text to a JSON file in Supabase Storage? (This DOES NOT download physical images).",
-    "confirmRestore": "WARNING! RESTORE will overwrite current data with the latest JSON backup file. Continue?"
+    "confirmRestore": "WARNING! RESTORE will overwrite current data with the latest JSON backup file. Continue?",
+    "confirmModal": {
+      "title": "Execution Confirmation",
+      "cancel": "Cancel",
+      "proceed": "Yes, Execute",
+      "processing": "Executing..."
+    }
   },
   "adminPanelPage": {
     "title": "Super Admin Control Panel",

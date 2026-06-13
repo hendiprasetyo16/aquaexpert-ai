@@ -1,139 +1,215 @@
+// components/SetupStorage.tsx
 "use client";
 
 import { useState } from "react";
-import { Loader2, FolderPlus, RefreshCw, Server, AlertTriangle, Database, HardDriveDownload } from "lucide-react";
+import { Loader2, FolderPlus, RefreshCw, Server, AlertTriangle, Database, HardDriveDownload, Leaf, Bug } from "lucide-react";
 import toast from "react-hot-toast";
-import { useLanguage } from "@/providers/LanguageProvider"; // <-- IMPORT KAMUS
+import { useLanguage } from "@/providers/LanguageProvider";
 
 const ADMIN_SECRET = "aquaexpert-sinkron-2024";
 
+// Tipe aksi untuk modal
+type ActionType = "plant_folder" | "plant_sync" | "algae_sync" | "db_backup" | "db_restore" | null;
+
 export default function SetupStorage() {
-  const [loadingFolder, setLoadingFolder] = useState(false);
-  const [loadingSync, setLoadingSync] = useState(false);
-  const [loadingBackup, setLoadingBackup] = useState(false);
-  const { dict } = useLanguage(); // <-- PANGGIL KAMUS
+  const [loading, setLoading] = useState(false);
+  const [actionModal, setActionModal] = useState<ActionType>(null);
+  const { dict, language } = useLanguage();
 
-  const handleCreateFolders = async () => {
-    const confirm = window.confirm(dict.controlPanel.confirmFolder);
-    if (!confirm) return;
+  // --- FUNGSI EKSEKUSI UTAMA ---
+  const executeAction = async () => {
+    if (!actionModal) return;
+    setLoading(true);
 
-    setLoadingFolder(true);
     try {
-      const response = await fetch("/api/create-folders", {
-        method: "GET", headers: { "x-admin-secret": ADMIN_SECRET }
+      let endpoint = "";
+      let method = "GET";
+      let body = undefined;
+
+      switch (actionModal) {
+        case "plant_folder":
+          endpoint = "/api/plants/create-folders";
+          break;
+        case "plant_sync":
+          endpoint = "/api/plants/sync-images";
+          break;
+        case "algae_sync":
+          endpoint = "/api/algae/sync-images";
+          break;
+        case "db_backup":
+          endpoint = "/api/backup-restore";
+          method = "POST";
+          body = JSON.stringify({ action: "BACKUP" });
+          break;
+        case "db_restore":
+          endpoint = "/api/backup-restore";
+          method = "POST";
+          body = JSON.stringify({ action: "RESTORE" });
+          break;
+      }
+
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": ADMIN_SECRET
+        },
+        body
       });
+
       const data = await response.json();
-      data.success ? toast.success(data.message) : toast.error("Error: " + data.error);
-    } catch (error) { toast.error("Error"); } finally { setLoadingFolder(false); }
+      if (data.success) {
+        toast.success(data.message);
+      } else {
+        toast.error("Error: " + data.error);
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan jaringan atau server.");
+    } finally {
+      setLoading(false);
+      setActionModal(null);
+    }
   };
 
-  const handleSyncImages = async () => {
-    const confirm = window.confirm(dict.controlPanel.confirmSync);
-    if (!confirm) return;
-
-    setLoadingSync(true);
-    try {
-      const response = await fetch("/api/sync-images", {
-        method: "GET", headers: { "x-admin-secret": ADMIN_SECRET }
-      });
-      const data = await response.json();
-      data.success ? toast.success(data.message) : toast.error("Error: " + data.error);
-    } catch (error) { toast.error("Error"); } finally { setLoadingSync(false); }
+  // Helper untuk mengambil deskripsi modal yang sesuai
+  const getModalDescription = () => {
+    switch (actionModal) {
+      case "plant_folder": return dict.controlPanel.confirmFolder;
+      case "plant_sync": return dict.controlPanel.confirmSync;
+      case "algae_sync": return language === 'id' ? "Sinkronisasi otomatis URL gambar Alga ke database?" : "Auto-sync Algae image URLs to database?";
+      case "db_backup": return dict.controlPanel.confirmBackup;
+      case "db_restore": return dict.controlPanel.confirmRestore;
+      default: return "";
+    }
   };
-
-  const handleBackup = async () => {
-    if (!window.confirm(dict.controlPanel.confirmBackup)) return;
-    setLoadingBackup(true);
-    try {
-      const res = await fetch("/api/backup-restore", { 
-        method: "POST", headers: { "Content-Type": "application/json", "x-admin-secret": ADMIN_SECRET },
-        body: JSON.stringify({ action: "BACKUP" }) 
-      });
-      const data = await res.json();
-      data.success ? toast.success(data.message) : toast.error(data.error);
-    } catch (error) { toast.error("Error"); } finally { setLoadingBackup(false); }
-  };
-
-  const handleRestore = async () => {
-    if (!window.confirm(dict.controlPanel.confirmRestore)) return;
-    setLoadingBackup(true);
-    try {
-      const res = await fetch("/api/backup-restore", { 
-        method: "POST", headers: { "Content-Type": "application/json", "x-admin-secret": ADMIN_SECRET },
-        body: JSON.stringify({ action: "RESTORE" }) 
-      });
-      const data = await res.json();
-      data.success ? toast.success(data.message) : toast.error(data.error);
-    } catch (error) { toast.error("Error"); } finally { setLoadingBackup(false); }
-  };
-
-  const isAnyLoading = loadingFolder || loadingSync || loadingBackup;
 
   return (
-    <div className="w-full max-w-4xl mx-auto pb-20">
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl transition-colors duration-300">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-teal-500/10 dark:bg-teal-900/20 blur-3xl pointer-events-none"></div>
-
-        <div className="relative border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 px-6 py-5 sm:px-8 transition-colors duration-300">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-teal-200 dark:border-teal-500/20 bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 shadow-inner">
-              <Server className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{dict.controlPanel.title}</h3>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{dict.controlPanel.subtitle}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative px-6 py-6 sm:px-8 sm:py-8 space-y-8">
-          <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 p-4 text-amber-800 dark:text-amber-200/80 transition-colors duration-300">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-500" />
-            <div className="text-sm leading-relaxed">
-              <strong className="block text-amber-700 dark:text-amber-400 font-semibold mb-1">{dict.controlPanel.warningTitle}</strong>
-              {dict.controlPanel.warningDesc}
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">{dict.controlPanel.storageMgmt}</h4>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="group relative">
-                <button type="button" onClick={handleCreateFolders} disabled={isAnyLoading} className="relative flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-6 py-4 font-medium text-slate-700 dark:text-slate-200 transition-all hover:bg-slate-200 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 disabled:opacity-50">
-                  {loadingFolder ? <Loader2 className="h-5 w-5 animate-spin text-slate-500 dark:text-slate-400" /> : <FolderPlus className="h-5 w-5 text-slate-500 dark:text-slate-400" />}
-                  {loadingFolder ? dict.controlPanel.processing : dict.controlPanel.setupFolder}
-                </button>
-              </div>
-              <div className="group relative">
-                <button type="button" onClick={handleSyncImages} disabled={isAnyLoading} className="relative flex w-full items-center justify-center gap-3 rounded-xl bg-teal-600 px-6 py-4 font-medium text-white shadow-lg shadow-teal-600/20 dark:shadow-teal-900/20 transition-all hover:bg-teal-500 disabled:opacity-50">
-                  {loadingSync ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
-                  {loadingSync ? dict.controlPanel.syncing : dict.controlPanel.syncImages}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <hr className="border-slate-200 dark:border-slate-800 transition-colors duration-300" />
-
-          <div>
-            <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">{dict.controlPanel.disasterRecovery}</h4>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="group relative">
-                <button type="button" onClick={handleBackup} disabled={isAnyLoading} className="relative flex w-full items-center justify-center gap-3 rounded-xl border border-sky-200 dark:border-sky-900/50 bg-sky-50 dark:bg-sky-950/30 px-6 py-4 font-medium text-sky-700 dark:text-sky-400 transition-all hover:bg-sky-100 dark:hover:bg-sky-900/50 disabled:opacity-50">
-                  {loadingBackup ? <Loader2 className="h-5 w-5 animate-spin" /> : <Database className="h-5 w-5" />}
-                  {dict.controlPanel.backupDB}
-                </button>
-              </div>
-              <div className="group relative">
-                <button type="button" onClick={handleRestore} disabled={isAnyLoading} className="relative flex w-full items-center justify-center gap-3 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-6 py-4 font-medium text-red-700 dark:text-red-400 transition-all hover:bg-red-100 dark:hover:bg-red-900/50 disabled:opacity-50">
-                  {loadingBackup ? <Loader2 className="h-5 w-5 animate-spin" /> : <HardDriveDownload className="h-5 w-5" />}
-                  {dict.controlPanel.restoreDB}
-                </button>
-              </div>
-            </div>
-          </div>
+    <div className="w-full max-w-6xl mx-auto pb-20 space-y-6">
+      
+      {/* WARNING BANNER */}
+      <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 p-5 text-amber-800 dark:text-amber-200/80 transition-colors duration-300 shadow-sm">
+        <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0 text-amber-600 dark:text-amber-500" />
+        <div className="text-sm leading-relaxed">
+          <strong className="block text-amber-700 dark:text-amber-400 font-bold text-base mb-1.5">{dict.controlPanel.warningTitle}</strong>
+          {dict.controlPanel.warningDesc}
         </div>
       </div>
+
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        
+        {/* KARTU 1: MANAJEMEN TANAMAN (PLANTS) */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col">
+          <div className="bg-emerald-50 dark:bg-emerald-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
+            <div className="bg-emerald-100 dark:bg-emerald-900/50 p-2 rounded-lg text-emerald-600 dark:text-emerald-400">
+              <Leaf className="h-5 w-5" />
+            </div>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100">{language === 'id' ? "Sistem Tanaman" : "Plant System"}</h3>
+          </div>
+          <div className="p-5 space-y-3 flex-1">
+            <button onClick={() => setActionModal("plant_folder")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 hover:border-slate-300 disabled:opacity-50 transition-all">
+              <span className="flex items-center gap-2">
+                <FolderPlus className="h-4 w-4 text-slate-400" />
+                {dict.controlPanel.setupFolder}
+              </span>
+            </button>
+            <button onClick={() => setActionModal("plant_sync")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 hover:border-emerald-300 disabled:opacity-50 transition-all">
+              <span className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4" />
+                {dict.controlPanel.syncImages}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* KARTU 2: MANAJEMEN ALGAE */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col">
+          <div className="bg-teal-50 dark:bg-teal-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
+            <div className="bg-teal-100 dark:bg-teal-900/50 p-2 rounded-lg text-teal-600 dark:text-teal-400">
+              <Bug className="h-5 w-5" />
+            </div>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100">{language === 'id' ? "Sistem Alga" : "Algae System"}</h3>
+          </div>
+          <div className="p-5 space-y-3 flex-1">
+             <div className="text-xs text-slate-500 dark:text-slate-400 mb-2 italic">
+               {language === 'id' ? "*Alga tidak menggunakan sub-folder." : "*Algae do not use sub-folders."}
+             </div>
+            <button onClick={() => setActionModal("algae_sync")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-teal-200 dark:border-teal-800/50 bg-teal-50 dark:bg-teal-900/20 px-4 py-3 text-sm font-medium text-teal-700 dark:text-teal-400 hover:bg-teal-100 hover:border-teal-300 disabled:opacity-50 transition-all">
+              <span className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4" />
+                {dict.controlPanel.syncImages}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* KARTU 3: DISASTER RECOVERY (DATABASE CORE) */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col md:col-span-2 xl:col-span-1">
+          <div className="bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
+            <div className="bg-slate-200 dark:bg-slate-700 p-2 rounded-lg text-slate-700 dark:text-slate-300">
+              <Server className="h-5 w-5" />
+            </div>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100">{dict.controlPanel.disasterRecovery.split("(")[0]}</h3>
+          </div>
+          <div className="p-5 space-y-3 flex-1 flex flex-col justify-end">
+            <button onClick={() => setActionModal("db_backup")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-sky-200 dark:border-sky-800/50 bg-sky-50 dark:bg-sky-900/20 px-4 py-3 text-sm font-medium text-sky-700 dark:text-sky-400 hover:bg-sky-100 hover:border-sky-300 disabled:opacity-50 transition-all">
+              <span className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                {dict.controlPanel.backupDB}
+              </span>
+            </button>
+            <button onClick={() => setActionModal("db_restore")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm font-medium text-red-700 dark:text-red-400 hover:bg-red-100 hover:border-red-300 disabled:opacity-50 transition-all">
+              <span className="flex items-center gap-2">
+                <HardDriveDownload className="h-4 w-4" />
+                {dict.controlPanel.restoreDB}
+              </span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      {/* CUSTOM CONFIRMATION MODAL */}
+      {actionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-xl border border-amber-200 dark:border-amber-900/50 bg-white dark:bg-slate-900 p-6 shadow-2xl transition-all scale-in-95">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="p-2 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">
+                {dict.controlPanel.confirmModal?.title || "Konfirmasi Eksekusi"}
+              </h3>
+            </div>
+            
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+              {getModalDescription()}
+            </p>
+            
+            <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
+              <button 
+                type="button" 
+                disabled={loading} 
+                onClick={() => setActionModal(null)} 
+                className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+              >
+                {dict.controlPanel.confirmModal?.cancel || "Batal"}
+              </button>
+              <button 
+                type="button" 
+                disabled={loading} 
+                onClick={executeAction} 
+                className="rounded-md px-4 py-2 text-sm font-medium text-white transition-colors bg-amber-600 hover:bg-amber-500 disabled:opacity-50 flex items-center"
+              >
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {loading 
+                  ? (dict.controlPanel.confirmModal?.processing || "Memproses...") 
+                  : (dict.controlPanel.confirmModal?.proceed || "Ya, Eksekusi")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
