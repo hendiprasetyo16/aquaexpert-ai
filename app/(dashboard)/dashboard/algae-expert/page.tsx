@@ -10,12 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { 
   Loader2, Cpu, Filter, Info, CheckCircle2, Trophy, 
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target, AlertTriangle, ShieldCheck, Stethoscope, Droplets, FlaskConical
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target, AlertTriangle, ShieldCheck, Stethoscope, Droplets
 } from "lucide-react";
 
 import { generateAlgaeDiagnosis, UserAnswersAlgae, RecommendedAlgae } from "@/features/algae/services/expert.service";
 import { useLanguage } from "@/providers/LanguageProvider";
-import { getAlgaeDifficultyDesc, getAlgaeTagDesc } from "@/features/algae/components/algae-helpers";
 
 const SESSION_KEY = "aquaexpert_algae_inference_v1";
 const ITEMS_PAGE_1 = 11; 
@@ -27,7 +26,6 @@ export default function AlgaeExpertEngine() {
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<RecommendedAlgae[] | null>(null);
 
-  // USER INPUT STATES
   const [color, setColor] = useState("");
   const [texture, setTexture] = useState("");
   const [location, setLocation] = useState("");
@@ -194,11 +192,14 @@ export default function AlgaeExpertEngine() {
                   <select value={color} onChange={(e) => setColor(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
                     <option value="">-- {language === 'id' ? "Pilih Warna" : "Select Color"} --</option>
                     <option value="green">{language === 'id' ? "Hijau" : "Green"}</option>
-                    <option value="brown">{language === 'id' ? "Coklat / Keemasan" : "Brown / Golden"}</option>
-                    <option value="black">{language === 'id' ? "Hitam / Abu Gelap" : "Black / Dark Gray"}</option>
-                    <option value="gray">{language === 'id' ? "Abu-abu / Putih Pucat" : "Gray / Pale White"}</option>
                     <option value="light_green">{language === 'id' ? "Hijau Muda" : "Light Green"}</option>
-                    <option value="blue_green">{language === 'id' ? "Biru Kehijauan (Gelap)" : "Blue-Green / Dark"}</option>
+                    <option value="dark_green">{language === 'id' ? "Hijau Gelap" : "Dark Green"}</option>
+                    <option value="blue_green">{language === 'id' ? "Biru Kehijauan" : "Blue-Green"}</option>
+                    <option value="brown">{language === 'id' ? "Coklat / Keemasan" : "Brown / Golden"}</option>
+                    <option value="black">{language === 'id' ? "Hitam" : "Black"}</option>
+                    <option value="gray">{language === 'id' ? "Abu-abu" : "Gray"}</option>
+                    <option value="dark_gray">{language === 'id' ? "Abu-abu Gelap" : "Dark Gray"}</option>
+                    <option value="white">{language === 'id' ? "Putih Pucat" : "Pale White"}</option>
                     <option value="reddish">{language === 'id' ? "Kemerahan" : "Reddish"}</option>
                   </select>
                 </div>
@@ -208,12 +209,18 @@ export default function AlgaeExpertEngine() {
                   <select value={texture} onChange={(e) => setTexture(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
                     <option value="">-- {language === 'id' ? "Pilih Tekstur" : "Select Texture"} --</option>
                     <option value="tuft">{language === 'id' ? "Mengelompok (Kuas)" : "Tuft / Brush-like"}</option>
-                    <option value="hairy">{language === 'id' ? "Panjang (Rambut/Benang)" : "Long Hair / Threads"}</option>
+                    <option value="hairy">{language === 'id' ? "Seperti Rambut Pendek" : "Hairy"}</option>
+                    <option value="long_thread">{language === 'id' ? "Benang Panjang" : "Long Threads"}</option>
+                    <option value="wiry">{language === 'id' ? "Kaku / Seperti Kawat" : "Wiry / Stiff"}</option>
+                    <option value="branching">{language === 'id' ? "Bercabang (Tanduk)" : "Branching"}</option>
                     <option value="dust">{language === 'id' ? "Serbuk / Berdebu" : "Dust / Powdery"}</option>
-                    <option value="hard_spot">{language === 'id' ? "Titik Keras (Susah dikerok)" : "Hard Spots"}</option>
-                    <option value="slime">{language === 'id' ? "Berlendir / Lembaran" : "Slime / Sheet"}</option>
-                    <option value="branching">{language === 'id' ? "Bercabang (Tanduk Rusa)" : "Branching / Wiry"}</option>
-                    <option value="easily_wiped">{language === 'id' ? "Mudah Diusap" : "Easily Wiped"}</option>
+                    <option value="powdery">{language === 'id' ? "Seperti Bedak" : "Powdery"}</option>
+                    <option value="hard_spot">{language === 'id' ? "Titik Keras (Susah Dikerok)" : "Hard Spots"}</option>
+                    <option value="slime">{language === 'id' ? "Berlendir / Lendir" : "Slime"}</option>
+                    <option value="sheet">{language === 'id' ? "Membentuk Lembaran" : "Sheet-like"}</option>
+                    <option value="flat">{language === 'id' ? "Datar / Ceper" : "Flat"}</option>
+                    <option value="soft">{language === 'id' ? "Lembut" : "Soft"}</option>
+                    <option value="easily_wiped">{language === 'id' ? "Mudah Diusap/Dibersihkan" : "Easily Wiped"}</option>
                     <option value="smelly">{language === 'id' ? "Berbau Busuk" : "Smelly"}</option>
                   </select>
                 </div>
@@ -224,10 +231,13 @@ export default function AlgaeExpertEngine() {
                     <option value="">-- {language === 'id' ? "Pilih Lokasi" : "Select Location"} --</option>
                     <option value="glass">{language === 'id' ? "Kaca Akuarium" : "Aquarium Glass"}</option>
                     <option value="hardscape">{language === 'id' ? "Hardscape (Batu/Kayu)" : "Hardscape (Rocks/Wood)"}</option>
-                    <option value="leaf_edges">{language === 'id' ? "Pinggiran Daun" : "Leaf Edges"}</option>
-                    <option value="plants">{language === 'id' ? "Menyelimuti Tanaman" : "Covering Plants"}</option>
                     <option value="substrate">{language === 'id' ? "Substrat / Pasir" : "Substrate / Sand"}</option>
-                    <option value="equipment">{language === 'id' ? "Pipa / Peralatan" : "Equipment / Pipes"}</option>
+                    <option value="plants">{language === 'id' ? "Menyelimuti Tanaman" : "Covering Plants"}</option>
+                    <option value="leaf_edges">{language === 'id' ? "Pinggiran Daun" : "Leaf Edges"}</option>
+                    <option value="slow_leaves">{language === 'id' ? "Daun Tumbuh Lambat" : "Slow-growing Leaves"}</option>
+                    <option value="moss">{language === 'id' ? "Menyelinap di Lumut" : "Inside Moss"}</option>
+                    <option value="equipment">{language === 'id' ? "Pipa / Filter / Peralatan" : "Equipment / Pipes"}</option>
+                    <option value="high_flow">{language === 'id' ? "Area Arus Kencang" : "High Flow Areas"}</option>
                     <option value="everywhere">{language === 'id' ? "Di Seluruh Area Tank" : "Everywhere"}</option>
                   </select>
                 </div>
@@ -235,13 +245,20 @@ export default function AlgaeExpertEngine() {
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.algaeExpert.q4_trigger}</Label>
                   <select value={trigger} onChange={(e) => setTrigger(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
-                    <option value="">-- {language === 'id' ? "Pilih Pemicu" : "Select Trigger"} --</option>
+                    <option value="">-- {language === 'id' ? "Pilih Pemicu (Opsional)" : "Select Trigger (Optional)"} --</option>
                     <option value="new_tank">{language === 'id' ? "Tank Baru (< 2 Bulan)" : "New Tank (< 2 Months)"}</option>
                     <option value="co2_fluctuation">{language === 'id' ? "Fluktuasi CO2" : "CO2 Fluctuation"}</option>
+                    <option value="low_co2">{language === 'id' ? "Kekurangan CO2" : "Low CO2 Level"}</option>
                     <option value="high_light">{language === 'id' ? "Lampu Terlalu Terang/Lama" : "Light Too Bright/Long"}</option>
-                    <option value="poor_circulation">{language === 'id' ? "Arus Mati (Sirkulasi Buruk)" : "Poor Circulation (Dead Spots)"}</option>
-                    <option value="nutrient_imbalance">{language === 'id' ? "Ketidakseimbangan Nutrisi" : "Nutrient Imbalance"}</option>
-                    <option value="high_organics">{language === 'id' ? "Penumpukan Organik Kotor" : "High Organics Buildup"}</option>
+                    <option value="poor_circulation">{language === 'id' ? "Sirkulasi Buruk (Titik Mati)" : "Poor Circulation (Dead Spots)"}</option>
+                    <option value="low_flow">{language === 'id' ? "Kurang Arus Air Umum" : "Low Water Flow"}</option>
+                    <option value="nutrient_imbalance">{language === 'id' ? "Ketidakseimbangan Nutrisi Umum" : "General Nutrient Imbalance"}</option>
+                    <option value="low_phosphate">{language === 'id' ? "Kekurangan Fosfat (PO4)" : "Low Phosphate (PO4)"}</option>
+                    <option value="low_nitrate">{language === 'id' ? "Kekurangan Nitrat (NO3)" : "Low Nitrate (NO3)"}</option>
+                    <option value="high_ammonia">{language === 'id' ? "Amonia Tinggi (Spike)" : "High Ammonia Spike"}</option>
+                    <option value="iron_imbalance">{language === 'id' ? "Kelebihan Zat Besi (Fe)" : "Excess Iron (Fe)"}</option>
+                    <option value="high_silicate">{language === 'id' ? "Silikat Tinggi" : "High Silicate"}</option>
+                    <option value="high_organics">{language === 'id' ? "Penumpukan Sisa Organik Kotor" : "High Organics Buildup"}</option>
                   </select>
                 </div>
               </div>
@@ -294,7 +311,6 @@ export default function AlgaeExpertEngine() {
                       const topCauses = language === 'en' && algae.causes_en?.length ? algae.causes_en : algae.causes_id || [];
                       const allSolutions = language === 'en' && algae.solutions_en?.length ? algae.solutions_en : algae.solutions_id || [];
 
-                      // SMART SPLIT ALGORITHM (Pemisah Solusi & Pencegahan)
                       const preventionKeywordsID = ["jaga", "rutin", "hindari", "jangan", "pastikan", "cegah", "kuras", "bersihkan", "kontrol"];
                       const preventionKeywordsEN = ["maintain", "routine", "avoid", "do not", "ensure", "prevent", "clean", "regular", "control"];
                       const keywords = language === 'id' ? preventionKeywordsID : preventionKeywordsEN;
@@ -308,10 +324,7 @@ export default function AlgaeExpertEngine() {
                         else treatments.push(s);
                       });
 
-                      // Fallback jika tidak ada kata kunci pencegahan
-                      if (preventions.length === 0 && treatments.length > 0) {
-                        preventions.push(treatments.pop()!);
-                      }
+                      if (preventions.length === 0 && treatments.length > 0) preventions.push(treatments.pop()!);
 
                       return (
                         <div key={algae.id} className="lg:col-span-2 relative rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border-2 border-teal-500 shadow-xl shadow-teal-500/10 mb-4 flex flex-col">
@@ -321,25 +334,21 @@ export default function AlgaeExpertEngine() {
                           </div>
 
                           <div className="flex flex-col lg:flex-row items-stretch border-b border-slate-100 dark:border-slate-800">
-                            {/* KARTU VISUAL ALGA */}
                             <div className="p-4 lg:p-5 flex items-start justify-center border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30 lg:w-[320px] shrink-0">
                               <div className="w-full max-w-[280px] lg:max-w-none">
                                 <AlgaeCard algae={algae} />
                               </div>
                             </div>
 
-                            {/* REASONING ENGINE (DYNAMIC TEXT) */}
                             <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 p-4 lg:p-5">
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
-                                <div>
-                                  <h4 className="text-lg font-black text-gray-900 dark:text-slate-100 leading-tight flex items-center gap-2">
-                                    <Stethoscope className="w-5 h-5 text-teal-600 dark:text-teal-500" />
-                                    {language === "id" ? "Laporan Analisis Pakar" : "Expert Analysis Report"}
-                                  </h4>
-                                </div>
-                                <div className={`inline-flex items-center px-3 py-1.5 rounded-lg border ${getConfidenceColor(algae.matchConfidenceKey)} shadow-sm shrink-0`}>
+                              <div className="flex flex-col items-start gap-3 pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
+                                <h4 className="text-lg font-black text-gray-900 dark:text-slate-100 leading-tight flex items-center gap-2">
+                                  <Stethoscope className="w-5 h-5 text-teal-600 dark:text-teal-500" />
+                                  {language === "id" ? "Laporan Analisis Pakar" : "Expert Analysis Report"}
+                                </h4>
+                                <div className={`inline-flex items-center self-start px-3 py-1.5 rounded-lg border ${getConfidenceColor(algae.matchConfidenceKey)} shadow-sm shrink-0`}>
                                   <Target className="w-4 h-4 mr-1.5" />
-                                  <span className="font-black text-sm">{algae.matchScore} Pts</span>
+                                  <span className="font-black text-sm">{algae.matchScore} {language === 'id' ? 'Poin' : 'Pts'}</span>
                                   <span className="mx-2 opacity-40">|</span>
                                   <span className="font-bold text-xs uppercase tracking-wide">{getConfidenceLabel(algae.matchConfidenceKey)}</span>
                                 </div>
@@ -366,10 +375,7 @@ export default function AlgaeExpertEngine() {
                             </div>
                           </div>
 
-                          {/* ACTION PLAN KONSULTASI: 3 KARTU (CAUSES, TREATMENT, PREVENTION) */}
                           <div className="grid md:grid-cols-3 bg-slate-50/50 dark:bg-slate-950/50 divide-y md:divide-y-0 md:divide-x divide-slate-200 dark:divide-slate-800">
-                             
-                             {/* KARTU 1: CAUSES */}
                              <div className="p-5 flex flex-col h-full bg-amber-50/30 dark:bg-amber-950/10">
                                <h5 className="font-bold text-amber-700 dark:text-amber-500 mb-4 flex items-center gap-2 uppercase tracking-wider text-xs">
                                  <AlertTriangle className="h-4 w-4" /> {language === 'id' ? "Kemungkinan Penyebab" : "Root Causes"}
@@ -383,7 +389,6 @@ export default function AlgaeExpertEngine() {
                                </ul>
                              </div>
 
-                             {/* KARTU 2: TREATMENT */}
                              <div className="p-5 flex flex-col h-full bg-blue-50/30 dark:bg-blue-950/10">
                                <h5 className="font-bold text-blue-700 dark:text-blue-500 mb-4 flex items-center gap-2 uppercase tracking-wider text-xs">
                                  <Droplets className="h-4 w-4" /> {language === 'id' ? "Langkah Penanganan" : "Treatment Plan"}
@@ -397,7 +402,6 @@ export default function AlgaeExpertEngine() {
                                </ul>
                              </div>
 
-                             {/* KARTU 3: PREVENTION */}
                              <div className="p-5 flex flex-col h-full bg-emerald-50/30 dark:bg-emerald-950/10">
                                <h5 className="font-bold text-emerald-700 dark:text-emerald-500 mb-4 flex items-center gap-2 uppercase tracking-wider text-xs">
                                  <ShieldCheck className="h-4 w-4" /> {language === 'id' ? "Tindakan Pencegahan" : "Prevention"}
@@ -410,9 +414,7 @@ export default function AlgaeExpertEngine() {
                                  )) : <li className="text-sm text-slate-500 italic">-</li>}
                                </ul>
                              </div>
-
                           </div>
-
                         </div>
                       );
                     }
@@ -433,8 +435,11 @@ export default function AlgaeExpertEngine() {
                         </div>
                         
                         <div className="p-5 flex-1 flex flex-col">
-                          <div className="flex flex-col items-start gap-2 mb-4">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{language === 'id' ? 'Keyakinan AI' : 'AI Confidence'}</span>
+                          <div className="flex flex-col items-start gap-2 mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                               <Stethoscope className="w-3.5 h-3.5 text-teal-600 dark:text-teal-500" />
+                               {language === 'id' ? 'Laporan Analisis' : 'Analysis Report'}
+                            </span>
                             <div className={`inline-flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] font-bold px-2.5 py-1.5 rounded-md border ${getConfidenceColor(algae.matchConfidenceKey)}`}>
                               <span className="whitespace-nowrap">{algae.matchScore} {language === 'id' ? 'Poin' : 'Pts'}</span>
                               <span className="opacity-40">•</span>

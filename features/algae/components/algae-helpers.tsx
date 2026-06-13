@@ -15,8 +15,8 @@ export const getAlgaeDifficultyDesc = (level: string | null | undefined, lang: "
   return level;
 };
 
-export const getSeverityDesc = (severity: number | undefined, lang: "id" | "en" = "id") => {
-  if (!severity) return "-";
+export const getSeverityDesc = (severity: number | null | undefined, lang: "id" | "en" = "id") => {
+  if (severity === undefined || severity === null) return "-";
   if (severity >= 4) return lang === "id" ? "Bahaya Tinggi" : "High Risk";
   if (severity === 3) return lang === "id" ? "Risiko Sedang" : "Medium Risk";
   return lang === "id" ? "Risiko Rendah" : "Low Risk";
