@@ -101,6 +101,11 @@
     "processing": "Processing...",
     "nameEnPlaceholder": "Leave blank to use ID name",
     "severityHint": "1 = Mild (Easy to clean), 3 = Moderate, 5 = Highly Dangerous (Damages ecosystem).",
-    "expertEngineHint": "Check the matching traits. The AI system will use these tags to match user symptoms with this algae."
+    "expertEngineHint": "Check the matching traits. The AI system will use these tags to match user symptoms with this algae.",
+    "expertEngineHint": "Check the matching traits. The AI system will use these tags to match user symptoms with this algae.",
+    "colorHint": "Select the dominant colors of the algae.",
+    "textureHint": "Select the visual or tactile textures of the algae.",
+    "locationHint": "Select where this algae typically grows.",
+    "triggerHint": "Select the triggers or root causes for this algae."
   }
 }

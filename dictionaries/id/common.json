@@ -91,7 +91,9 @@
       "cancel": "Batal",
       "proceed": "Ya, Eksekusi",
       "processing": "Mengeksekusi..."
-    }
+    },
+    "syncHint": "*Gunakan fitur ini HANYA jika Anda baru saja mengunggah gambar secara manual ke Supabase Storage. Sistem akan menghubungkan gambar tersebut ke database secara otomatis.",
+    "disasterHint": "ℹ️ File Backup (JSON) akan disimpan otomatis di Storage. Fitur Restore akan menimpa seluruh isi database saat ini dengan file backup terbaru."
   },
   "adminPanelPage": {
     "title": "Super Admin Control Panel",

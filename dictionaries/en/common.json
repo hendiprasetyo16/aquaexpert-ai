@@ -91,7 +91,9 @@
       "cancel": "Cancel",
       "proceed": "Yes, Execute",
       "processing": "Executing..."
-    }
+    },
+    "syncHint": "*Use this ONLY if you have manually uploaded images directly to Supabase Storage. The system will auto-link them to the database.",
+    "disasterHint": "ℹ️ Backup files (JSON) are automatically saved to Storage. The Restore feature will overwrite the current database with the latest backup file."
   },
   "adminPanelPage": {
     "title": "Super Admin Control Panel",

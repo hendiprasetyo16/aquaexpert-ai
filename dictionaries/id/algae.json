@@ -101,6 +101,11 @@
     "processing": "Memproses...",
     "nameEnPlaceholder": "Kosongkan untuk menyamakan dengan ID",
     "severityHint": "1 = Ringan (Mudah dibersihkan), 3 = Sedang, 5 = Sangat Berbahaya (Merusak ekosistem).",
-    "expertEngineHint": "Centang ciri-ciri yang sesuai. Sistem AI akan menggunakan tag ini untuk mencocokkan keluhan pengguna dengan alga ini."
+    "expertEngineHint": "Centang ciri-ciri yang sesuai. Sistem AI akan menggunakan tag ini untuk mencocokkan keluhan pengguna dengan alga ini.",
+    "expertEngineHint": "Centang ciri-ciri yang sesuai. Sistem AI akan menggunakan tag ini untuk mencocokkan keluhan pengguna dengan alga ini.",
+    "colorHint": "Pilih warna dominan dari alga.",
+    "textureHint": "Pilih tekstur visual atau rabaan dari alga.",
+    "locationHint": "Pilih di mana alga ini biasa tumbuh.",
+    "triggerHint": "Pilih pemicu atau penyebab munculnya alga ini."
   }
 }

@@ -16,7 +16,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, ImagePlus, Archive, Trash2, X, Images, Brain, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/providers/LanguageProvider"; 
-import { getAlgaeDifficultyDesc } from "./algae-helpers";
+// PERBAIKAN: Memanggil Helper Baru
+import { getAlgaeDifficultyDesc, getAlgaeTagDesc } from "./algae-helpers";
 
 const COLOR_TAGS = ["green", "brown", "black", "gray", "white", "light_green", "blue_green", "dark_green", "dark_gray", "reddish"];
 const TEXTURE_TAGS = ["tuft", "hairy", "dust", "hard_spot", "slime", "branching", "brush", "flat", "powdery", "easily_wiped", "wiry", "long_thread", "soft", "sheet", "smelly"];
@@ -166,7 +167,6 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
 
       const payload: Partial<Algae> = {
         name_id: cleanNameId,
-        // PERBAIKAN: Jika name_en kosong, otomatis gunakan name_id
         name_en: formData.name_en.trim() || cleanNameId,
         alias: formData.alias.trim() || null,
         scientific_name: formData.scientific_name.trim() || null,
@@ -318,7 +318,6 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-slate-700 dark:text-slate-300">{formDict.nameEnLabel}</Label>
-                    {/* PERBAIKAN: Tidak required, tambah placeholder fallback */}
                     <Input name="name_en" value={formData.name_en} onChange={handleChange} placeholder={formDict.nameEnPlaceholder} className="bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-teal-500" />
                   </div>
                 </div>
@@ -345,7 +344,6 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
               <div className="space-y-2">
                 <Label className="text-slate-700 dark:text-slate-300">{formDict.severityLabel}</Label>
                 <Input type="number" name="severity" min="1" max="5" required value={formData.severity} onChange={handleChange} className="h-10 bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-teal-500" />
-                {/* PERBAIKAN: Teks keterangan Severity */}
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">{formDict.severityHint}</p>
               </div>
             </div>
@@ -397,53 +395,65 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
                 <h3 className="text-lg font-bold text-teal-700 dark:text-teal-400 flex items-center gap-2">
                   <Brain className="w-5 h-5" /> {formDict.expertEngineSection}
                 </h3>
-                {/* PERBAIKAN: Teks keterangan Expert Tags */}
                 <p className="text-sm text-teal-600/80 dark:text-teal-400/80 mt-1">{formDict.expertEngineHint}</p>
               </div>
               
+              {/* PERBAIKAN: Penambahan Keterangan/Hint per Bagian dan Helper Terjemahan Tag */}
               <div className="space-y-3 pt-2">
-                <Label className="text-teal-700 dark:text-teal-400 font-bold uppercase">{formDict.colors}</Label>
+                <div>
+                  <Label className="text-teal-700 dark:text-teal-400 font-bold uppercase">{formDict.colors}</Label>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">{formDict.colorHint}</p>
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 bg-white dark:bg-slate-950 p-4 rounded-lg border border-teal-200 dark:border-teal-900/50">
                   {COLOR_TAGS.map((tag) => (
                     <label key={tag} className="flex items-center space-x-2 cursor-pointer">
-                      <input type="checkbox" value={tag} checked={formData.color_tags.includes(tag)} onChange={(e) => handleArrayCheckboxChange(e, "color_tags")} className="h-4 w-4 accent-teal-600 rounded shrink-0" />
-                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{tag}</span>
+                      <input type="checkbox" value={tag} checked={formData.color_tags.includes(tag)} onChange={(e) => handleArrayCheckboxChange(e, "color_tags")} className="h-4 w-4 accent-teal-600 rounded shrink-0 border-slate-300 dark:border-slate-700" />
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{getAlgaeTagDesc(tag, language)}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-3 pt-2">
-                <Label className="text-teal-700 dark:text-teal-400 font-bold uppercase">{formDict.textures}</Label>
+              <div className="space-y-3 pt-2 mt-4">
+                <div>
+                  <Label className="text-teal-700 dark:text-teal-400 font-bold uppercase">{formDict.textures}</Label>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">{formDict.textureHint}</p>
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 bg-white dark:bg-slate-950 p-4 rounded-lg border border-teal-200 dark:border-teal-900/50">
                   {TEXTURE_TAGS.map((tag) => (
                     <label key={tag} className="flex items-center space-x-2 cursor-pointer">
-                      <input type="checkbox" value={tag} checked={formData.texture_tags.includes(tag)} onChange={(e) => handleArrayCheckboxChange(e, "texture_tags")} className="h-4 w-4 accent-teal-600 rounded shrink-0" />
-                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{tag}</span>
+                      <input type="checkbox" value={tag} checked={formData.texture_tags.includes(tag)} onChange={(e) => handleArrayCheckboxChange(e, "texture_tags")} className="h-4 w-4 accent-teal-600 rounded shrink-0 border-slate-300 dark:border-slate-700" />
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{getAlgaeTagDesc(tag, language)}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-3 pt-2">
-                <Label className="text-teal-700 dark:text-teal-400 font-bold uppercase">{formDict.locations}</Label>
+              <div className="space-y-3 pt-2 mt-4">
+                <div>
+                  <Label className="text-teal-700 dark:text-teal-400 font-bold uppercase">{formDict.locations}</Label>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">{formDict.locationHint}</p>
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 bg-white dark:bg-slate-950 p-4 rounded-lg border border-teal-200 dark:border-teal-900/50">
                   {LOCATION_TAGS.map((tag) => (
                     <label key={tag} className="flex items-center space-x-2 cursor-pointer">
-                      <input type="checkbox" value={tag} checked={formData.location_tags.includes(tag)} onChange={(e) => handleArrayCheckboxChange(e, "location_tags")} className="h-4 w-4 accent-teal-600 rounded shrink-0" />
-                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{tag}</span>
+                      <input type="checkbox" value={tag} checked={formData.location_tags.includes(tag)} onChange={(e) => handleArrayCheckboxChange(e, "location_tags")} className="h-4 w-4 accent-teal-600 rounded shrink-0 border-slate-300 dark:border-slate-700" />
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{getAlgaeTagDesc(tag, language)}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-3 pt-2">
-                <Label className="text-teal-700 dark:text-teal-400 font-bold uppercase">{formDict.triggers}</Label>
+              <div className="space-y-3 pt-2 mt-4">
+                <div>
+                  <Label className="text-teal-700 dark:text-teal-400 font-bold uppercase">{formDict.triggers}</Label>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">{formDict.triggerHint}</p>
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 bg-white dark:bg-slate-950 p-4 rounded-lg border border-teal-200 dark:border-teal-900/50">
                   {TRIGGER_TAGS.map((tag) => (
                     <label key={tag} className="flex items-center space-x-2 cursor-pointer">
-                      <input type="checkbox" value={tag} checked={formData.trigger_tags.includes(tag)} onChange={(e) => handleArrayCheckboxChange(e, "trigger_tags")} className="h-4 w-4 accent-teal-600 rounded shrink-0" />
-                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{tag}</span>
+                      <input type="checkbox" value={tag} checked={formData.trigger_tags.includes(tag)} onChange={(e) => handleArrayCheckboxChange(e, "trigger_tags")} className="h-4 w-4 accent-teal-600 rounded shrink-0 border-slate-300 dark:border-slate-700" />
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{getAlgaeTagDesc(tag, language)}</span>
                     </label>
                   ))}
                 </div>

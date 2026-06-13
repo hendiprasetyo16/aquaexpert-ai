@@ -105,19 +105,25 @@ export default function SetupStorage() {
             </div>
             <h3 className="font-bold text-slate-800 dark:text-slate-100">{language === 'id' ? "Sistem Tanaman" : "Plant System"}</h3>
           </div>
-          <div className="p-5 space-y-3 flex-1">
+          <div className="p-5 space-y-4 flex-1 flex flex-col">
             <button onClick={() => setActionModal("plant_folder")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 hover:border-slate-300 disabled:opacity-50 transition-all">
               <span className="flex items-center gap-2">
                 <FolderPlus className="h-4 w-4 text-slate-400" />
                 {dict.controlPanel.setupFolder}
               </span>
             </button>
-            <button onClick={() => setActionModal("plant_sync")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 hover:border-emerald-300 disabled:opacity-50 transition-all">
-              <span className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4" />
-                {dict.controlPanel.syncImages}
-              </span>
-            </button>
+            
+            <div className="pt-2 mt-auto">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-2 italic leading-relaxed">
+                {dict.controlPanel.syncHint}
+              </div>
+              <button onClick={() => setActionModal("plant_sync")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 hover:border-emerald-300 disabled:opacity-50 transition-all">
+                <span className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  {dict.controlPanel.syncImages}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -129,16 +135,22 @@ export default function SetupStorage() {
             </div>
             <h3 className="font-bold text-slate-800 dark:text-slate-100">{language === 'id' ? "Sistem Alga" : "Algae System"}</h3>
           </div>
-          <div className="p-5 space-y-3 flex-1">
-             <div className="text-xs text-slate-500 dark:text-slate-400 mb-2 italic">
-               {language === 'id' ? "*Alga tidak menggunakan sub-folder." : "*Algae do not use sub-folders."}
-             </div>
-            <button onClick={() => setActionModal("algae_sync")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-teal-200 dark:border-teal-800/50 bg-teal-50 dark:bg-teal-900/20 px-4 py-3 text-sm font-medium text-teal-700 dark:text-teal-400 hover:bg-teal-100 hover:border-teal-300 disabled:opacity-50 transition-all">
-              <span className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4" />
-                {dict.controlPanel.syncImages}
-              </span>
-            </button>
+          <div className="p-5 space-y-4 flex-1 flex flex-col">
+            <div className="text-xs text-slate-600 dark:text-slate-300 mb-2 font-medium bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+              {language === 'id' ? "ℹ️ Alga tidak menggunakan sub-folder. Semua gambar berada di root bucket." : "ℹ️ Algae do not use sub-folders. All images are in the root bucket."}
+            </div>
+            
+            <div className="pt-2 mt-auto">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-2 italic leading-relaxed">
+                {dict.controlPanel.syncHint}
+              </div>
+              <button onClick={() => setActionModal("algae_sync")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-teal-200 dark:border-teal-800/50 bg-teal-50 dark:bg-teal-900/20 px-4 py-3 text-sm font-medium text-teal-700 dark:text-teal-400 hover:bg-teal-100 hover:border-teal-300 disabled:opacity-50 transition-all">
+                <span className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  {dict.controlPanel.syncImages}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -150,19 +162,27 @@ export default function SetupStorage() {
             </div>
             <h3 className="font-bold text-slate-800 dark:text-slate-100">{dict.controlPanel.disasterRecovery.split("(")[0]}</h3>
           </div>
-          <div className="p-5 space-y-3 flex-1 flex flex-col justify-end">
-            <button onClick={() => setActionModal("db_backup")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-sky-200 dark:border-sky-800/50 bg-sky-50 dark:bg-sky-900/20 px-4 py-3 text-sm font-medium text-sky-700 dark:text-sky-400 hover:bg-sky-100 hover:border-sky-300 disabled:opacity-50 transition-all">
-              <span className="flex items-center gap-2">
-                <Database className="h-4 w-4" />
-                {dict.controlPanel.backupDB}
-              </span>
-            </button>
-            <button onClick={() => setActionModal("db_restore")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm font-medium text-red-700 dark:text-red-400 hover:bg-red-100 hover:border-red-300 disabled:opacity-50 transition-all">
-              <span className="flex items-center gap-2">
-                <HardDriveDownload className="h-4 w-4" />
-                {dict.controlPanel.restoreDB}
-              </span>
-            </button>
+          <div className="p-5 space-y-4 flex-1 flex flex-col">
+            
+            {/* INFO BOX TAMBAHAN */}
+            <div className="text-xs text-slate-600 dark:text-slate-300 mb-2 font-medium bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+              {dict.controlPanel.disasterHint || (language === 'id' ? "ℹ️ File Backup (JSON) akan disimpan otomatis di Storage. Fitur Restore akan menimpa seluruh isi database saat ini dengan file backup terbaru." : "ℹ️ Backup files (JSON) are automatically saved to Storage. The Restore feature will overwrite the current database with the latest backup file.")}
+            </div>
+
+            <div className="mt-auto space-y-3">
+              <button onClick={() => setActionModal("db_backup")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-sky-200 dark:border-sky-800/50 bg-sky-50 dark:bg-sky-900/20 px-4 py-3 text-sm font-medium text-sky-700 dark:text-sky-400 hover:bg-sky-100 hover:border-sky-300 disabled:opacity-50 transition-all">
+                <span className="flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  {dict.controlPanel.backupDB}
+                </span>
+              </button>
+              <button onClick={() => setActionModal("db_restore")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm font-medium text-red-700 dark:text-red-400 hover:bg-red-100 hover:border-red-300 disabled:opacity-50 transition-all">
+                <span className="flex items-center gap-2">
+                  <HardDriveDownload className="h-4 w-4" />
+                  {dict.controlPanel.restoreDB}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
 
