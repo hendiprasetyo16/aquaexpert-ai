@@ -10,11 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { 
   Loader2, Cpu, Filter, Info, CheckCircle2, Trophy, 
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target, AlertTriangle, ShieldCheck
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target, AlertTriangle, ShieldCheck, Stethoscope, Droplets, FlaskConical
 } from "lucide-react";
 
 import { generateAlgaeDiagnosis, UserAnswersAlgae, RecommendedAlgae } from "@/features/algae/services/expert.service";
 import { useLanguage } from "@/providers/LanguageProvider";
+import { getAlgaeDifficultyDesc, getAlgaeTagDesc } from "@/features/algae/components/algae-helpers";
 
 const SESSION_KEY = "aquaexpert_algae_inference_v1";
 const ITEMS_PAGE_1 = 11; 
@@ -26,7 +27,7 @@ export default function AlgaeExpertEngine() {
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<RecommendedAlgae[] | null>(null);
 
-  // USER INPUT STATES FOR ALGAE
+  // USER INPUT STATES
   const [color, setColor] = useState("");
   const [texture, setTexture] = useState("");
   const [location, setLocation] = useState("");
@@ -81,7 +82,7 @@ export default function AlgaeExpertEngine() {
   useEffect(() => {
     if (results !== null && algaeList.length > 0) {
       const answers: UserAnswersAlgae = { color, texture, location, trigger };
-      const aiResults = generateAlgaeDiagnosis(algaeList, answers, dict.algaeExpert);
+      const aiResults = generateAlgaeDiagnosis(algaeList, answers, dict.algaeExpert, language);
       setResults(aiResults);
       
       const savedSession = sessionStorage.getItem(SESSION_KEY);
@@ -101,7 +102,7 @@ export default function AlgaeExpertEngine() {
     setCurrentPage(1); 
     
     const answers: UserAnswersAlgae = { color, texture, location, trigger };
-    const aiResults = generateAlgaeDiagnosis(algaeList, answers, dict.algaeExpert);
+    const aiResults = generateAlgaeDiagnosis(algaeList, answers, dict.algaeExpert, language);
 
     sessionStorage.setItem(SESSION_KEY, JSON.stringify({ 
       answers, 
@@ -117,9 +118,9 @@ export default function AlgaeExpertEngine() {
 
   const getConfidenceColor = (key: string) => {
     switch (key) {
-      case "Excellent": return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800";
-      case "VeryGood": return "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 border-teal-200 dark:border-teal-800";
-      case "Good": return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800";
+      case "Excellent": return "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 border-green-200 dark:border-green-800";
+      case "VeryGood": return "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400 border-teal-200 dark:border-teal-800";
+      case "Good": return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 border-blue-200 dark:border-blue-800";
       default: return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700";
     }
   };
@@ -281,57 +282,78 @@ export default function AlgaeExpertEngine() {
                   </span>
                 </div>
                 
-                <div className="grid gap-5 lg:grid-cols-2">
+                <div className="grid gap-6 lg:grid-cols-2">
                   {displayedResults.map((algae, index) => {
                     const globalIndex = startIndex + index;
                     const isTopMatch = globalIndex === 0;
 
-                    // JUARA 1 (THE BEST MATCH)
+                    // ==========================================
+                    // EKSKLUSIF JUARA 1 (KONSULTASI PAKAR MEWAH)
+                    // ==========================================
                     if (isTopMatch) {
                       const topCauses = language === 'en' && algae.causes_en?.length ? algae.causes_en : algae.causes_id || [];
-                      const topSolutions = language === 'en' && algae.solutions_en?.length ? algae.solutions_en : algae.solutions_id || [];
+                      const allSolutions = language === 'en' && algae.solutions_en?.length ? algae.solutions_en : algae.solutions_id || [];
+
+                      // SMART SPLIT ALGORITHM (Pemisah Solusi & Pencegahan)
+                      const preventionKeywordsID = ["jaga", "rutin", "hindari", "jangan", "pastikan", "cegah", "kuras", "bersihkan", "kontrol"];
+                      const preventionKeywordsEN = ["maintain", "routine", "avoid", "do not", "ensure", "prevent", "clean", "regular", "control"];
+                      const keywords = language === 'id' ? preventionKeywordsID : preventionKeywordsEN;
+
+                      const treatments: string[] = [];
+                      const preventions: string[] = [];
+
+                      allSolutions.forEach(s => {
+                        const lowerS = s.toLowerCase();
+                        if (keywords.some(kw => lowerS.includes(kw))) preventions.push(s);
+                        else treatments.push(s);
+                      });
+
+                      // Fallback jika tidak ada kata kunci pencegahan
+                      if (preventions.length === 0 && treatments.length > 0) {
+                        preventions.push(treatments.pop()!);
+                      }
 
                       return (
-                        <div key={algae.id} className="lg:col-span-2 relative rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border-2 border-teal-500 shadow-xl shadow-teal-500/10 mb-2 flex flex-col">
+                        <div key={algae.id} className="lg:col-span-2 relative rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border-2 border-teal-500 shadow-xl shadow-teal-500/10 mb-4 flex flex-col">
                           
                           <div className="bg-gradient-to-r from-teal-600 to-emerald-500 px-5 py-2.5 text-white font-black flex items-center gap-2 text-sm tracking-widest uppercase shadow-sm z-10 relative">
-                            <Trophy className="h-5 w-5 text-amber-300" /> {language === 'id' ? "Kemungkinan Terbesar" : "Highest Probability"}
+                            <Trophy className="h-5 w-5 text-amber-300" /> {language === 'id' ? "Diagnosis Utama (Kemungkinan Terbesar)" : "Primary Diagnosis (Highest Probability)"}
                           </div>
 
-                          <div className="flex flex-col lg:flex-row items-stretch flex-1">
+                          <div className="flex flex-col lg:flex-row items-stretch border-b border-slate-100 dark:border-slate-800">
+                            {/* KARTU VISUAL ALGA */}
                             <div className="p-4 lg:p-5 flex items-start justify-center border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30 lg:w-[320px] shrink-0">
                               <div className="w-full max-w-[280px] lg:max-w-none">
                                 <AlgaeCard algae={algae} />
                               </div>
                             </div>
 
+                            {/* REASONING ENGINE (DYNAMIC TEXT) */}
                             <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 p-4 lg:p-5">
-                              <div className="flex flex-col items-start gap-3 pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
                                 <div>
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{language === 'id' ? 'Keyakinan AI' : 'AI Confidence'}</p>
-                                  <h4 className="text-lg font-black text-gray-900 dark:text-slate-100 leading-tight">
-                                    {language === "id" ? "Laporan Diagnosis" : "Diagnosis Report"}
+                                  <h4 className="text-lg font-black text-gray-900 dark:text-slate-100 leading-tight flex items-center gap-2">
+                                    <Stethoscope className="w-5 h-5 text-teal-600 dark:text-teal-500" />
+                                    {language === "id" ? "Laporan Analisis Pakar" : "Expert Analysis Report"}
                                   </h4>
                                 </div>
-                                <div className={`inline-flex max-w-full flex-wrap items-center px-3 py-2 rounded-lg border ${getConfidenceColor(algae.matchConfidenceKey)} shadow-sm`}>
-                                  <div className="flex items-center shrink-0 whitespace-nowrap">
-                                    <Target className="w-4 h-4 mr-1.5" />
-                                    <span className="font-black text-sm">{algae.matchScore} {language === 'id' ? 'Poin' : 'Points'}</span>
-                                    <span className="mx-2 opacity-40">|</span>
-                                  </div>
-                                  <span className="font-bold text-xs uppercase tracking-wide leading-tight">{getConfidenceLabel(algae.matchConfidenceKey)}</span>
+                                <div className={`inline-flex items-center px-3 py-1.5 rounded-lg border ${getConfidenceColor(algae.matchConfidenceKey)} shadow-sm shrink-0`}>
+                                  <Target className="w-4 h-4 mr-1.5" />
+                                  <span className="font-black text-sm">{algae.matchScore} Pts</span>
+                                  <span className="mx-2 opacity-40">|</span>
+                                  <span className="font-bold text-xs uppercase tracking-wide">{getConfidenceLabel(algae.matchConfidenceKey)}</span>
                                 </div>
                               </div>
 
                               <div className="flex-1">
                                 {algae.matchReasons.length > 0 ? (
-                                  <div className="grid gap-2.5 sm:grid-cols-1">
+                                  <div className="grid gap-3 sm:grid-cols-1">
                                     {algae.matchReasons.map((reason, i) => (
                                       <div key={i} className="flex items-start bg-slate-50 dark:bg-slate-950/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800/60 transition-colors">
                                         <div className="bg-teal-100 dark:bg-teal-900/40 p-1 rounded-full mr-3 shrink-0 mt-0.5">
                                           <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
                                         </div>
-                                        <span className="text-[13px] sm:text-sm text-slate-700 dark:text-slate-300 leading-snug font-medium">
+                                        <span className="text-[13px] sm:text-[14px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                                           {reason}
                                         </span>
                                       </div>
@@ -344,39 +366,60 @@ export default function AlgaeExpertEngine() {
                             </div>
                           </div>
 
-                          {/* ACTION PLAN EKSKLUSIF JUARA 1 */}
-                          <div className="grid md:grid-cols-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
-                             <div className="p-5 border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800">
-                               <h5 className="font-bold text-amber-600 dark:text-amber-500 mb-3 flex items-center gap-2">
-                                 <AlertTriangle className="h-5 w-5" /> {language === 'id' ? "Penyebab Umum" : "Root Causes"}
+                          {/* ACTION PLAN KONSULTASI: 3 KARTU (CAUSES, TREATMENT, PREVENTION) */}
+                          <div className="grid md:grid-cols-3 bg-slate-50/50 dark:bg-slate-950/50 divide-y md:divide-y-0 md:divide-x divide-slate-200 dark:divide-slate-800">
+                             
+                             {/* KARTU 1: CAUSES */}
+                             <div className="p-5 flex flex-col h-full bg-amber-50/30 dark:bg-amber-950/10">
+                               <h5 className="font-bold text-amber-700 dark:text-amber-500 mb-4 flex items-center gap-2 uppercase tracking-wider text-xs">
+                                 <AlertTriangle className="h-4 w-4" /> {language === 'id' ? "Kemungkinan Penyebab" : "Root Causes"}
                                </h5>
-                               <ul className="space-y-2">
+                               <ul className="space-y-3 flex-1">
                                  {topCauses.map((c, i) => (
-                                   <li key={i} className="text-xs sm:text-[13px] text-slate-600 dark:text-slate-400 flex items-start">
-                                     <span className="text-amber-500 mr-2 mt-0.5">•</span> <span>{c}</span>
+                                   <li key={i} className="text-sm text-slate-700 dark:text-slate-300 flex items-start font-medium leading-snug">
+                                     <span className="text-amber-500 mr-2.5 mt-0.5 text-base leading-none">•</span> <span>{c}</span>
                                    </li>
                                  ))}
                                </ul>
                              </div>
-                             <div className="p-5">
-                               <h5 className="font-bold text-teal-600 dark:text-teal-500 mb-3 flex items-center gap-2">
-                                 <ShieldCheck className="h-5 w-5" /> {language === 'id' ? "Saran Penanganan" : "Treatment Solutions"}
+
+                             {/* KARTU 2: TREATMENT */}
+                             <div className="p-5 flex flex-col h-full bg-blue-50/30 dark:bg-blue-950/10">
+                               <h5 className="font-bold text-blue-700 dark:text-blue-500 mb-4 flex items-center gap-2 uppercase tracking-wider text-xs">
+                                 <Droplets className="h-4 w-4" /> {language === 'id' ? "Langkah Penanganan" : "Treatment Plan"}
                                </h5>
-                               <ul className="space-y-2">
-                                 {topSolutions.map((s, i) => (
-                                   <li key={i} className="text-xs sm:text-[13px] text-slate-600 dark:text-slate-400 flex items-start">
-                                     <span className="text-teal-500 mr-2 mt-0.5">✓</span> <span>{s}</span>
+                               <ul className="space-y-3 flex-1">
+                                 {treatments.length > 0 ? treatments.map((s, i) => (
+                                   <li key={i} className="text-sm text-slate-700 dark:text-slate-300 flex items-start font-medium leading-snug">
+                                     <span className="text-blue-500 mr-2 mt-0.5 font-bold">✓</span> <span>{s}</span>
                                    </li>
-                                 ))}
+                                 )) : <li className="text-sm text-slate-500 italic">-</li>}
                                </ul>
                              </div>
+
+                             {/* KARTU 3: PREVENTION */}
+                             <div className="p-5 flex flex-col h-full bg-emerald-50/30 dark:bg-emerald-950/10">
+                               <h5 className="font-bold text-emerald-700 dark:text-emerald-500 mb-4 flex items-center gap-2 uppercase tracking-wider text-xs">
+                                 <ShieldCheck className="h-4 w-4" /> {language === 'id' ? "Tindakan Pencegahan" : "Prevention"}
+                               </h5>
+                               <ul className="space-y-3 flex-1">
+                                 {preventions.length > 0 ? preventions.map((s, i) => (
+                                   <li key={i} className="text-sm text-slate-700 dark:text-slate-300 flex items-start font-medium leading-snug">
+                                     <span className="text-emerald-500 mr-2 mt-0.5 font-bold">✓</span> <span>{s}</span>
+                                   </li>
+                                 )) : <li className="text-sm text-slate-500 italic">-</li>}
+                               </ul>
+                             </div>
+
                           </div>
 
                         </div>
                       );
                     }
 
-                    // RANKING LAINNYA
+                    // ==========================================
+                    // RANKING 2, 3, DST...
+                    // ==========================================
                     return (
                       <div key={algae.id} className="relative rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col">
                         <div className="absolute top-0 left-0 z-20 w-8 h-8 bg-slate-800 text-white rounded-br-xl flex items-center justify-center font-black shadow-sm text-xs">
