@@ -19,7 +19,12 @@
   },
   "sidebar": {
     "profileTooltip": "Open My Profile Settings",
-    "logout": "Sign Out"
+    "logout": "Sign Out",
+    "logoutModalTitle": "Sign Out Confirmation",
+    "logoutModalDesc": "Are you sure you want to sign out? You will need to log in again to access the dashboard.",
+    "logoutCancel": "Cancel",
+    "logoutConfirm": "Yes, Sign Out",
+    "logoutProcessing": "Signing out..."
   },
   "notification": {
     "titleSuperAdmin": "System Activity (All Logs)",

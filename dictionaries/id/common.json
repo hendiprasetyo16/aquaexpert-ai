@@ -19,7 +19,12 @@
   },
   "sidebar": {
     "profileTooltip": "Buka Pengaturan Profil Saya",
-    "logout": "Keluar Akun"
+    "logout": "Keluar Akun",
+    "logoutModalTitle": "Konfirmasi Keluar",
+    "logoutModalDesc": "Apakah Anda yakin ingin keluar dari sesi ini? Anda harus masuk kembali untuk mengakses dashboard.",
+    "logoutCancel": "Batal",
+    "logoutConfirm": "Ya, Keluar",
+    "logoutProcessing": "Keluar..."
   },
   "notification": {
     "titleSuperAdmin": "Aktivitas Sistem (Semua Log)",
