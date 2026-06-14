@@ -3,7 +3,6 @@
 export const getTankTypeDesc = (type: string | null | undefined, lang: "id" | "en" = "id") => {
   if (!type) return "-";
   if (lang === "en") return type;
-  
   const map: Record<string, string> = {
     "Community": "Komunitas (Ikan Campur / Ramah Pemula)",
     "Nature": "Gaya Alami (Nature Aquascape)",
@@ -21,7 +20,6 @@ export const getTankTypeDesc = (type: string | null | undefined, lang: "id" | "e
 export const getSubstrateDesc = (type: string | null | undefined, lang: "id" | "en" = "id") => {
   if (!type) return "-";
   if (lang === "en") return type;
-  
   const map: Record<string, string> = {
     "Aquasoil": "Tanah Khusus Akuarium (Aquasoil)",
     "Sand": "Pasir Halus (Silika / Pasir Malang Halus)",
@@ -35,7 +33,6 @@ export const getSubstrateDesc = (type: string | null | undefined, lang: "id" | "
 export const getFilterDesc = (type: string | null | undefined, lang: "id" | "en" = "id") => {
   if (!type) return "-";
   if (lang === "en") return type;
-  
   const map: Record<string, string> = {
     "Canister": "Filter Tabung (Canister Pabrikan / DIY Pipa PVC)",
     "Hang on Back (HOB)": "Filter Gantung (Hang-On Back)",
@@ -51,14 +48,14 @@ export const getFilterDesc = (type: string | null | undefined, lang: "id" | "en"
 export const getLightDesc = (type: string | null | undefined, lang: "id" | "en" = "id") => {
   if (!type) return "-";
   if (lang === "en") return type;
-  
   const map: Record<string, string> = {
     "WRGB LED": "LED WRGB (Lampu Khusus Aquascape / Berwarna)",
     "RGB LED": "LED RGB (Lampu Merah-Hijau-Biru standar)",
     "White LED": "LED Putih Terang (Lampu Biasa / HPL)",
     "T5 / T8 Fluorescent": "Lampu Neon Tabung (T5 / T8)",
     "Halogen": "Lampu Halogen / Sorot",
-    "Natural Sunlight": "Sinar Matahari Alami (Outdoor / Dekat Jendela)",
+    "Natural Sunlight": "Sinar Matahari Alami (Outdoor / Teras)",
+    "Mixed (Sunlight + Artificial)": "Kombinasi (Matahari + Lampu Buatan Malam)", // <--- OPSI BARU
     "None": "Tanpa Lampu Khusus"
   };
   return map[type] || type;
@@ -67,7 +64,6 @@ export const getLightDesc = (type: string | null | undefined, lang: "id" | "en" 
 export const getCO2Desc = (type: string | null | undefined, lang: "id" | "en" = "id") => {
   if (!type) return "-";
   if (lang === "en") return type;
-  
   const map: Record<string, string> = {
     "Pressurized Cylinder": "Tabung Gas Bertekanan (Besi / Alumunium)",
     "DIY (Yeast/Citric)": "CO2 Rakitan / DIY (Sitrun + Baking Soda / Ragi)",
@@ -80,7 +76,6 @@ export const getCO2Desc = (type: string | null | undefined, lang: "id" | "en" = 
 export const getFertilizerDesc = (type: string | null | undefined, lang: "id" | "en" = "id") => {
   if (!type) return "-";
   if (lang === "en") return type;
-  
   const map: Record<string, string> = {
     "Estimative Index (EI)": "Metode EI (Pupuk Cair Dosis Tinggi + Kuras Air)",
     "PPS-Pro": "Metode PPS-Pro (Pupuk Cair Dosis Harian Presisi)",
@@ -101,6 +96,7 @@ export const getHeaterDesc = (enabled: boolean | null | undefined, lang: "id" | 
   }
 };
 
+// ... (Bawahnya biarkan interface AquariumDictionary dan calculateTankAge tetap sama seperti sebelumnya) ...
 // --- STRICT TYPING UNTUK DICTIONARY ---
 export interface AquariumDictionary {
   dashboard?: {
@@ -128,6 +124,7 @@ export interface AquariumDictionary {
     btnNext: string;
     btnPrev: string;
     btnSave: string;
+    btnCancel: string; // <--- TAMBAHKAN BARIS INI
     labels: Record<string, string>;
     hints: Record<string, string>;
   };

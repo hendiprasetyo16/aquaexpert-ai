@@ -37,6 +37,7 @@ export const LIGHT_TYPES = [
   "T5 / T8 Fluorescent",
   "Halogen",
   "Natural Sunlight",
+  "Mixed (Sunlight + Artificial)", // <--- OPSI BARU (KOMBINASI)
   "None"
 ] as const;
 
