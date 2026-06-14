@@ -5,15 +5,15 @@ export const getTankTypeDesc = (type: string | null | undefined, lang: "id" | "e
   if (lang === "en") return type;
   
   const map: Record<string, string> = {
-    "Community": "Komunitas (Ikan Campur)",
-    "Nature": "Gaya Alami (Nature)",
-    "Dutch": "Gaya Belanda (Dutch)",
-    "Iwagumi": "Iwagumi (Padang Batu)",
-    "Biotope": "Biotope (Spesifik Habitat)",
-    "Shrimp": "Tangki Udang Hias",
-    "Breeding": "Tangki Pemijahan (Breeding)",
-    "Paludarium": "Paludarium (Air & Darat)",
-    "Blackwater": "Air Gelap (Blackwater)"
+    "Community": "Komunitas (Ikan Campur / Ramah Pemula)",
+    "Nature": "Gaya Alami (Nature Aquascape)",
+    "Dutch": "Gaya Belanda (Banyak Tanaman Berwarna)",
+    "Iwagumi": "Iwagumi (Dominan Bebatuan & Karpet)",
+    "Biotope": "Biotope (Meniru Habitat Asli Alam)",
+    "Shrimp": "Tangki Khusus Udang Hias (Neocaridina/Caridina)",
+    "Breeding": "Tangki Pemijahan / Perawatan Burayak",
+    "Paludarium": "Paludarium (Kombinasi Air & Daratan)",
+    "Blackwater": "Air Gelap (Blackwater / Banyak Daun Ketapang)"
   };
   return map[type] || type;
 };
@@ -23,11 +23,11 @@ export const getSubstrateDesc = (type: string | null | undefined, lang: "id" | "
   if (lang === "en") return type;
   
   const map: Record<string, string> = {
-    "Aquasoil": "Tanah Akuarium (Aquasoil)",
-    "Sand": "Pasir Silika / Kosmetik",
-    "Gravel": "Kerikil / Batu Kecil",
-    "Bare Bottom": "Tanpa Substrat (Bare Bottom)",
-    "Mixed": "Campuran (Mixed)"
+    "Aquasoil": "Tanah Khusus Akuarium (Aquasoil)",
+    "Sand": "Pasir Halus (Silika / Pasir Malang Halus)",
+    "Gravel": "Kerikil Kasar (Gravel / Pasir Malang Kasar)",
+    "Bare Bottom": "Tanpa Substrat (Dasar Kaca Kosong)",
+    "Mixed": "Campuran (Misal: Pasir di depan, Soil di belakang)"
   };
   return map[type] || type;
 };
@@ -37,13 +37,13 @@ export const getFilterDesc = (type: string | null | undefined, lang: "id" | "en"
   if (lang === "en") return type;
   
   const map: Record<string, string> = {
-    "Canister": "Filter Tabung (Canister)",
-    "Hang on Back (HOB)": "Filter Gantung (HOB)",
-    "Sponge": "Filter Busa (Sponge)",
-    "Undergravel": "Filter Dasar (Undergravel)",
-    "Sump": "Sump Filter Bawah",
-    "Internal": "Filter Celup (Internal)",
-    "None": "Tanpa Filter"
+    "Canister": "Filter Tabung (Canister Pabrikan / DIY Pipa PVC)",
+    "Hang on Back (HOB)": "Filter Gantung (Hang-On Back)",
+    "Sponge": "Filter Busa (Sponge Filter ditiup Aerator)",
+    "Undergravel": "Filter Dasar (Undergravel Filter / UGF)",
+    "Sump": "Sump Filter (Filter Kotak Kaca di Bawah)",
+    "Internal": "Filter Celup (Powerhead + Busa di dalam air)",
+    "None": "Tanpa Filter (Hanya Tanaman / Walstad)"
   };
   return map[type] || type;
 };
@@ -53,12 +53,12 @@ export const getLightDesc = (type: string | null | undefined, lang: "id" | "en" 
   if (lang === "en") return type;
   
   const map: Record<string, string> = {
-    "WRGB LED": "LED WRGB (Spektrum Penuh)",
-    "RGB LED": "LED RGB",
-    "White LED": "LED Putih Terang",
-    "T5 / T8 Fluorescent": "Lampu Neon (T5/T8)",
-    "Halogen": "Lampu Halogen",
-    "Natural Sunlight": "Sinar Matahari Alami",
+    "WRGB LED": "LED WRGB (Lampu Khusus Aquascape / Berwarna)",
+    "RGB LED": "LED RGB (Lampu Merah-Hijau-Biru standar)",
+    "White LED": "LED Putih Terang (Lampu Biasa / HPL)",
+    "T5 / T8 Fluorescent": "Lampu Neon Tabung (T5 / T8)",
+    "Halogen": "Lampu Halogen / Sorot",
+    "Natural Sunlight": "Sinar Matahari Alami (Outdoor / Dekat Jendela)",
     "None": "Tanpa Lampu Khusus"
   };
   return map[type] || type;
@@ -69,10 +69,10 @@ export const getCO2Desc = (type: string | null | undefined, lang: "id" | "en" = 
   if (lang === "en") return type;
   
   const map: Record<string, string> = {
-    "Pressurized Cylinder": "Tabung Gas Bertekanan",
-    "DIY (Yeast/Citric)": "DIY (Ragi/Sitrun)",
-    "Liquid Carbon": "Karbon Cair (Liquid)",
-    "None": "Tanpa Injeksi CO2"
+    "Pressurized Cylinder": "Tabung Gas Bertekanan (Besi / Alumunium)",
+    "DIY (Yeast/Citric)": "CO2 Rakitan / DIY (Sitrun + Baking Soda / Ragi)",
+    "Liquid Carbon": "Karbon Cair (Pupuk Cair Pengganti CO2)",
+    "None": "Tanpa Injeksi CO2 (Low-Tech)"
   };
   return map[type] || type;
 };
@@ -82,12 +82,12 @@ export const getFertilizerDesc = (type: string | null | undefined, lang: "id" | 
   if (lang === "en") return type;
   
   const map: Record<string, string> = {
-    "Estimative Index (EI)": "Metode EI (Estimative Index)",
-    "PPS-Pro": "Metode PPS-Pro",
-    "All-in-One (Liquid)": "Pupuk Cair All-in-One",
-    "Root Tabs Only": "Hanya Pupuk Tancap",
-    "Custom": "Dosis Kustom",
-    "None": "Tanpa Pupuk"
+    "Estimative Index (EI)": "Metode EI (Pupuk Cair Dosis Tinggi + Kuras Air)",
+    "PPS-Pro": "Metode PPS-Pro (Pupuk Cair Dosis Harian Presisi)",
+    "All-in-One (Liquid)": "Pupuk Cair Botolan Praktis (All-in-One)",
+    "Root Tabs Only": "Hanya Pupuk Tancap (Kapsul Akar di Pasir/Soil)",
+    "Custom": "Dosis Kustom (Racikan Pupuk Sendiri)",
+    "None": "Tanpa Pupuk Tambahan"
   };
   return map[type] || type;
 };
@@ -101,9 +101,7 @@ export const getHeaterDesc = (enabled: boolean | null | undefined, lang: "id" | 
   }
 };
 
-// --- STRICT TYPING UNTUK DICTIONARY (BEBAS DARI 'ANY') ---
-// features/aquariums/components/aquarium-helpers.tsx
-
+// --- STRICT TYPING UNTUK DICTIONARY ---
 export interface AquariumDictionary {
   dashboard?: {
     title?: string;
@@ -122,7 +120,6 @@ export interface AquariumDictionary {
     months?: string;
     years?: string;
   };
-  // TIDAK ADA LAGI 'any'!
   wizard?: {
     step1: string;
     step2: string;
@@ -150,7 +147,6 @@ export const calculateTankAge = (
   // VALIDASI BUG: Jika tanggal setup di masa depan
   if (setupDate > today) return lang === "id" ? "0 hari" : "0 days";
 
-  // Math.abs dihapus agar tidak menjadi positif jika masa depan
   const diffTime = today.getTime() - setupDate.getTime(); 
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 

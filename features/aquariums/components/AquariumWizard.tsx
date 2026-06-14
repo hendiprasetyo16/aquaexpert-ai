@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { createAquariumAction } from "../actions/aquarium.actions";
 import { CreateAquariumInput } from "../types/aquarium.types";
-import { AquariumDictionary } from "./aquarium-helpers";
 import { createAquariumSchema } from "../validations/aquarium.schema";
 import { 
   TANK_TYPES, SUBSTRATE_TYPES, FILTER_TYPES, 
@@ -18,58 +17,73 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// MENGIMPOR SEMUA HELPER PENERJEMAH UNTUK DROPDOWN
+import { 
+  AquariumDictionary, 
+  getTankTypeDesc, 
+  getSubstrateDesc, 
+  getFilterDesc, 
+  getLightDesc, 
+  getCO2Desc, 
+  getFertilizerDesc 
+} from "./aquarium-helpers";
+
 export default function AquariumWizard() {
   const { dict, language } = useLanguage();
   const router = useRouter();
+  const lang = language as "id" | "en";
   
-  // SOLUSI UX: Penjelasan Bahasa Manusia Awam
-  const aqDict = (dict as any)?.aquarium as AquariumDictionary | undefined;
+  // SOLUSI TS ERROR: Cast ke Record<string, any> agar TS tidak rewel
+  const safeDict = dict as Record<string, any>;
+  const aqDict = safeDict?.aquarium as AquariumDictionary | undefined;
+
+  // FALLBACK DICTIONARY (Anti-Blank)
   const wizDict = aqDict?.wizard || {
-    step1: language === 'id' ? "Identitas" : "Identity",
-    step2: language === 'id' ? "Dimensi" : "Dimensions",
-    step3: language === 'id' ? "Peralatan" : "Equipment",
-    step4: language === 'id' ? "Perawatan" : "Maintenance",
-    btnNext: language === 'id' ? "Selanjutnya" : "Next",
-    btnPrev: language === 'id' ? "Kembali" : "Previous",
-    btnSave: language === 'id' ? "Simpan Akuarium" : "Save Aquarium",
+    step1: lang === 'id' ? "Identitas" : "Identity",
+    step2: lang === 'id' ? "Dimensi" : "Dimensions",
+    step3: lang === 'id' ? "Peralatan" : "Equipment",
+    step4: lang === 'id' ? "Perawatan" : "Maintenance",
+    btnNext: lang === 'id' ? "Selanjutnya" : "Next",
+    btnPrev: lang === 'id' ? "Kembali" : "Previous",
+    btnSave: lang === 'id' ? "Simpan Akuarium" : "Save Aquarium",
     labels: {
-      name: language === 'id' ? "Nama Akuarium" : "Aquarium Name",
-      tankType: language === 'id' ? "Jenis Tema Akuarium" : "Aquascape Style",
-      setupDate: language === 'id' ? "Tanggal Setup Awal" : "Initial Setup Date",
-      isPrimary: language === 'id' ? "Jadikan Tangki Utama" : "Set as Primary Tank",
-      length: language === 'id' ? "Panjang (cm)" : "Length (cm)",
-      width: language === 'id' ? "Lebar (cm)" : "Width (cm)",
-      height: language === 'id' ? "Tinggi (cm)" : "Height (cm)",
-      volume: language === 'id' ? "Volume Estimasi (Liter)" : "Estimated Volume (Liters)",
-      filter: language === 'id' ? "Sistem Filter" : "Filtration System",
-      filterCapacity: language === 'id' ? "Kapasitas Pompa (L/H)" : "Pump Flow Rate (L/H)",
-      light: language === 'id' ? "Jenis Lampu" : "Lighting Type",
-      lightWatt: language === 'id' ? "Daya Lampu (Watt)" : "Light Power (Watts)",
-      lightHours: language === 'id' ? "Durasi Nyala (Jam/Hari)" : "Photoperiod (Hours/Day)",
-      co2: language === 'id' ? "Sistem CO2" : "CO2 System",
-      co2Bps: language === 'id' ? "Dosis CO2 (BPS)" : "CO2 Dosage (BPS)",
-      heater: language === 'id' ? "Gunakan Heater (Pemanas Air)" : "Use Water Heater",
-      substrate: language === 'id' ? "Substrat Dasar" : "Bottom Substrate",
-      wcPercent: language === 'id' ? "Volume Ganti Air (%)" : "Water Change Volume (%)",
-      wcInterval: language === 'id' ? "Interval Ganti Air (Hari)" : "Water Change Interval (Days)",
-      fertType: language === 'id' ? "Metode Pupuk" : "Fertilizer Method",
-      fertSchedule: language === 'id' ? "Jadwal Pupuk" : "Fertilizer Schedule"
+      name: lang === 'id' ? "Nama Akuarium" : "Aquarium Name",
+      tankType: lang === 'id' ? "Jenis Tema Akuarium" : "Aquascape Style",
+      setupDate: lang === 'id' ? "Tanggal Setup Awal" : "Initial Setup Date",
+      isPrimary: lang === 'id' ? "Jadikan Tangki Utama" : "Set as Primary Tank",
+      length: lang === 'id' ? "Panjang (cm)" : "Length (cm)",
+      width: lang === 'id' ? "Lebar (cm)" : "Width (cm)",
+      height: lang === 'id' ? "Tinggi (cm)" : "Height (cm)",
+      volume: lang === 'id' ? "Volume Estimasi (Liter)" : "Estimated Volume (Liters)",
+      filter: lang === 'id' ? "Sistem Filter" : "Filtration System",
+      filterCapacity: lang === 'id' ? "Kapasitas Pompa (L/H)" : "Pump Flow Rate (L/H)",
+      light: lang === 'id' ? "Jenis Lampu" : "Lighting Type",
+      lightWatt: lang === 'id' ? "Daya Lampu (Watt)" : "Light Power (Watts)",
+      lightHours: lang === 'id' ? "Durasi Nyala (Jam/Hari)" : "Photoperiod (Hours/Day)",
+      co2: lang === 'id' ? "Sistem CO2" : "CO2 System",
+      co2Bps: lang === 'id' ? "Dosis CO2 (BPS)" : "CO2 Dosage (BPS)",
+      heater: lang === 'id' ? "Gunakan Heater (Pemanas Air)" : "Use Water Heater",
+      substrate: lang === 'id' ? "Substrat Dasar" : "Bottom Substrate",
+      wcPercent: lang === 'id' ? "Volume Ganti Air (%)" : "Water Change Volume (%)",
+      wcInterval: lang === 'id' ? "Interval Ganti Air (Hari)" : "Water Change Interval (Days)",
+      fertType: lang === 'id' ? "Metode Pupuk" : "Fertilizer Method",
+      fertSchedule: lang === 'id' ? "Jadwal Pupuk" : "Fertilizer Schedule"
     },
     hints: {
-      name: language === 'id' ? "Beri nama unik (misal: Akuarium Ruang Tamu)." : "Give it a unique name (e.g., Living Room Tank).",
-      tankType: language === 'id' ? "Pilih yang paling mirip. Sangat mempengaruhi saran dari AI." : "Choose the closest match. Influences AI advice.",
-      setupDate: language === 'id' ? "Kapan air pertama kali dimasukkan? Penting untuk analisis AI." : "When was water first added? Crucial for AI.",
-      isPrimary: language === 'id' ? "AI Assistant akan otomatis menggunakan tank ini saat Anda bertanya." : "AI Assistant uses this tank as the default.",
-      dimensions: language === 'id' ? "Digunakan AI untuk menghitung kecocokan jumlah ikan." : "Used by AI to calculate fish capacity.",
-      filter: language === 'id' ? "Jika pakai filter rakitan (DIY), pilih jenis yang paling mendekati cara kerjanya." : "For DIY filters, choose the closest working mechanism.",
-      light: language === 'id' ? "WRGB = Lampu khusus aquascape (berwarna). White LED = Lampu putih biasa." : "WRGB = Color aquascape light. White LED = Standard white.",
-      co2: language === 'id' ? "Pressurized = Tabung gas besi/alumunium. BPS = Jumlah gelembung per detik. Pilih 'None' jika tidak pakai." : "Pressurized = Iron/Alumunium gas tank. BPS = Bubbles per second. Choose 'None' if unused.",
-      substrate: language === 'id' ? "Pasir, kerikil (gravel), atau tanah khusus tanaman (aquasoil)." : "Sand, gravel, or specific plant soil (aquasoil).",
-      maintenance: language === 'id' ? "Metode 'All-in-One' adalah untuk pupuk cair botolan biasa. Kosongkan jadwal jika tidak pasti." : "Use 'All-in-One' for standard liquid ferts. Leave schedule blank if unsure."
+      name: lang === 'id' ? "Beri nama unik (misal: Akuarium Ruang Tamu)." : "Give it a unique name (e.g., Living Room Tank).",
+      tankType: lang === 'id' ? "Pilih yang paling mirip. Sangat mempengaruhi saran dari AI." : "Choose the closest match. Influences AI advice.",
+      setupDate: lang === 'id' ? "Kapan air pertama kali dimasukkan? Penting untuk analisis AI." : "When was water first added? Crucial for AI.",
+      isPrimary: lang === 'id' ? "AI Assistant akan otomatis menggunakan tank ini saat Anda bertanya." : "AI Assistant uses this tank as the default.",
+      dimensions: lang === 'id' ? "Digunakan AI untuk menghitung kecocokan jumlah ikan." : "Used by AI to calculate fish capacity.",
+      filter: lang === 'id' ? "Jika pakai filter rakitan (DIY), pilih jenis yang paling mendekati cara kerjanya." : "For DIY filters, choose the closest working mechanism.",
+      light: lang === 'id' ? "WRGB = Lampu khusus aquascape (berwarna). White LED = Lampu putih biasa." : "WRGB = Color aquascape light. White LED = Standard white.",
+      co2: lang === 'id' ? "Pilih jenis suplai CO2. Kosongkan Dosis BPS jika tidak tahu/tidak pakai." : "Select CO2 supply type. Leave BPS empty if unsure/unused.",
+      substrate: lang === 'id' ? "Pilih material yang menutupi dasar akuarium Anda." : "Select the material covering your tank bottom.",
+      maintenance: lang === 'id' ? "Data ini sangat penting bagi AI untuk mencari akar masalah alga/penyakit." : "Key metrics for AI to find root cause of algae/disease."
     }
   };
 
-  const titleAddText = aqDict?.dashboard?.btnAdd || (language === 'id' ? "Tambah Akuarium" : "Add Aquarium");
+  const titleAddText = aqDict?.dashboard?.btnAdd || (lang === 'id' ? "Tambah Akuarium" : "Add Aquarium");
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -77,7 +91,7 @@ export default function AquariumWizard() {
 
   const [formData, setFormData] = useState<CreateAquariumInput>({
     name: "",
-    tank_type: "Community", // Diubah default ke Community agar ramah pemula
+    tank_type: "Community", 
     setup_date: new Date().toISOString().split('T')[0], 
     is_primary: false,
     
@@ -86,18 +100,18 @@ export default function AquariumWizard() {
     height_cm: 36,
     volume_liters: 64.8, 
     
-    substrate_type: "Sand", // Ramah pemula
-    filter_type: "Hang on Back (HOB)", // Ramah pemula
+    substrate_type: "Sand",
+    filter_type: "Hang on Back (HOB)", 
     filter_capacity_lph: null,
-    light_type: "White LED", // Ramah pemula
+    light_type: "White LED",
     light_wattage: null,
     photoperiod_hours: 8,
-    co2_type: "None", // Ramah pemula
+    co2_type: "None",
     co2_bps: null,
     heater_enabled: false,
     water_change_percent: 30,
     water_change_interval_days: 7,
-    fertilizer_type: "None", // Ramah pemula
+    fertilizer_type: "None",
     fertilizer_schedule: ""
   });
 
@@ -230,7 +244,8 @@ export default function AquariumWizard() {
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.tankType}</label>
                   <select name="tank_type" value={formData.tank_type} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none">
-                    {TANK_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    {/* IMPLEMENTASI HELPER: getTankTypeDesc */}
+                    {TANK_TYPES.map(t => <option key={t} value={t}>{getTankTypeDesc(t, lang)}</option>)}
                   </select>
                   <p className="text-xs text-slate-500 flex items-start gap-1 mt-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.tankType}</p>
                 </div>
@@ -279,7 +294,8 @@ export default function AquariumWizard() {
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.substrate}</label>
                 <select name="substrate_type" value={formData.substrate_type || ""} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none">
-                  {SUBSTRATE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  {/* IMPLEMENTASI HELPER: getSubstrateDesc */}
+                  {SUBSTRATE_TYPES.map(t => <option key={t} value={t}>{getSubstrateDesc(t, lang)}</option>)}
                 </select>
                 <p className="text-xs text-slate-500 flex items-start gap-1 mt-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.substrate}</p>
               </div>
@@ -292,7 +308,8 @@ export default function AquariumWizard() {
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.filter}</label>
                   <select name="filter_type" value={formData.filter_type || ""} onChange={handleChange} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none">
-                    {FILTER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    {/* IMPLEMENTASI HELPER: getFilterDesc */}
+                    {FILTER_TYPES.map(t => <option key={t} value={t}>{getFilterDesc(t, lang)}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -306,16 +323,17 @@ export default function AquariumWizard() {
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.light}</label>
                   <select name="light_type" value={formData.light_type || ""} onChange={handleChange} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none">
-                    {LIGHT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    {/* IMPLEMENTASI HELPER: getLightDesc */}
+                    {LIGHT_TYPES.map(t => <option key={t} value={t}>{getLightDesc(t, lang)}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.lightWatt}</label>
-                  <input type="number" name="light_wattage" value={formData.light_wattage || ""} onChange={handleChange} placeholder="Kosongkan jika tidak tahu" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
+                  <input type="number" name="light_wattage" value={formData.light_wattage || ""} onChange={handleChange} placeholder="Kosongkan jika tak tahu" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.lightHours}</label>
-                  <input type="number" name="photoperiod_hours" value={formData.photoperiod_hours || ""} onChange={handleChange} placeholder="Contoh: 8 (jam sehari)" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
+                  <input type="number" name="photoperiod_hours" value={formData.photoperiod_hours || ""} onChange={handleChange} placeholder="Contoh: 8 (jam)" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
                 </div>
                 <p className="text-xs text-slate-500 col-span-full flex items-start gap-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.light}</p>
               </div>
@@ -324,12 +342,13 @@ export default function AquariumWizard() {
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.co2}</label>
                   <select name="co2_type" value={formData.co2_type || ""} onChange={handleChange} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none">
-                    {CO2_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    {/* IMPLEMENTASI HELPER: getCO2Desc */}
+                    {CO2_TYPES.map(t => <option key={t} value={t}>{getCO2Desc(t, lang)}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.co2Bps}</label>
-                  <input type="number" name="co2_bps" value={formData.co2_bps || ""} onChange={handleChange} placeholder="Kosongkan jika tidak tahu" disabled={formData.co2_type === 'None'} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none disabled:opacity-50" />
+                  <input type="number" name="co2_bps" value={formData.co2_bps || ""} onChange={handleChange} placeholder="Dosis. Contoh: 2" disabled={formData.co2_type === 'None'} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none disabled:opacity-50" />
                 </div>
                 <div className="space-y-2 pt-8 pl-4">
                   <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700 dark:text-slate-300 text-sm">
@@ -366,7 +385,8 @@ export default function AquariumWizard() {
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.fertType}</label>
                   <select name="fertilizer_type" value={formData.fertilizer_type || ""} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 outline-none">
-                    {FERTILIZER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    {/* IMPLEMENTASI HELPER: getFertilizerDesc */}
+                    {FERTILIZER_TYPES.map(t => <option key={t} value={t}>{getFertilizerDesc(t, lang)}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
