@@ -1,3 +1,4 @@
+// D:\aquaexpert-ai\app\(dashboard)\dashboard\profile\page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -42,8 +43,11 @@ export default function ProfilePage() {
         toast.error(result.error || "Gagal / Failed");
         setFullName(profile?.full_name || ""); 
       }
-    } catch (error: any) {
-      toast.error("Error.");
+    // REFAKTOR: Mengganti any menjadi unknown
+    } catch (error: unknown) {
+      // REFAKTOR: Menambahkan type guard (pengecekan tipe error yang aman)
+      const errorMessage = error instanceof Error ? error.message : "Error.";
+      toast.error(errorMessage);
     } finally {
       setIsSavingName(false);
     }
@@ -65,8 +69,11 @@ export default function ProfilePage() {
       } else {
         toast.error(result.error || "Gagal / Failed");
       }
-    } catch (error: any) {
-      toast.error("Error.");
+    // REFAKTOR: Mengganti any menjadi unknown
+    } catch (error: unknown) {
+      // REFAKTOR: Menambahkan type guard (pengecekan tipe error yang aman)
+      const errorMessage = error instanceof Error ? error.message : "Error.";
+      toast.error(errorMessage);
     } finally {
       setIsSavingPassword(false);
     }
