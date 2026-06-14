@@ -101,14 +101,39 @@ export const getHeaterDesc = (enabled: boolean | null | undefined, lang: "id" | 
   }
 };
 
-// --- STRICT TYPING UNTUK DICTIONARY ---
+// --- STRICT TYPING UNTUK DICTIONARY (BEBAS DARI 'ANY') ---
+// features/aquariums/components/aquarium-helpers.tsx
+
 export interface AquariumDictionary {
+  dashboard?: {
+    title?: string;
+    subtitle?: string;
+    btnAdd?: string;
+    emptyTitle?: string;
+    emptyDesc?: string;
+  };
   card?: {
+    volume?: string;
+    age?: string;
+    plants?: string;
+    fishes?: string;
+    primaryBadge?: string;
     days?: string;
     months?: string;
     years?: string;
   };
-  // Tambahkan key lain jika nanti butuh menerjemahkan sesuatu secara dinamis di helper
+  // TIDAK ADA LAGI 'any'!
+  wizard?: {
+    step1: string;
+    step2: string;
+    step3: string;
+    step4: string;
+    btnNext: string;
+    btnPrev: string;
+    btnSave: string;
+    labels: Record<string, string>;
+    hints: Record<string, string>;
+  };
 }
 
 // --- FUNGSI MENGHITUNG UMUR OTOMATIS DARI TANGGAL SETUP ---
@@ -121,7 +146,12 @@ export const calculateTankAge = (
   
   const setupDate = new Date(setupDateStr);
   const today = new Date();
-  const diffTime = Math.abs(today.getTime() - setupDate.getTime());
+
+  // VALIDASI BUG: Jika tanggal setup di masa depan
+  if (setupDate > today) return lang === "id" ? "0 hari" : "0 days";
+
+  // Math.abs dihapus agar tidak menjadi positif jika masa depan
+  const diffTime = today.getTime() - setupDate.getTime(); 
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
   const daysTxt = dict?.card?.days || (lang === "id" ? "hari" : "days");

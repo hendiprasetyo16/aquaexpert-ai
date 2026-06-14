@@ -4,7 +4,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Aquarium } from "../types/aquarium.types";
-import { calculateTankAge, getTankTypeDesc } from "./aquarium-helpers";
+import { AquariumDictionary, calculateTankAge, getTankTypeDesc } from "./aquarium-helpers";
 import { 
   Leaf, 
   Fish, 
@@ -18,16 +18,14 @@ import {
 
 interface AquariumCardProps {
   aquarium: Aquarium;
-  dict: any;
+  dict: AquariumDictionary; // STRICT TYPING!
   lang: "id" | "en";
 }
 
 export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps) {
-  // Hitung jumlah ekosistem dari relasi (Opsi B yang brilian)
   const plantCount = aquarium.aquarium_plants?.length || 0;
   const fishCount = aquarium.aquarium_fishes?.length || 0;
 
-  // Render detail ringkas
   const tankType = getTankTypeDesc(aquarium.tank_type, lang);
   const tankAge = calculateTankAge(aquarium.setup_date, dict, lang);
 
@@ -39,7 +37,6 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
           : "border border-slate-200 dark:border-slate-800 shadow-sm"
       }`}>
         
-        {/* BAGIAN ATAS: FOTO & BADGE */}
         <div className="relative h-48 w-full bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden">
           {aquarium.image_url ? (
             <Image 
@@ -58,7 +55,6 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
           
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80"></div>
 
-          {/* Badge Primary */}
           {aquarium.is_primary && (
             <div className="absolute top-3 right-3 bg-teal-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-lg tracking-wider">
               <Star className="w-3 h-3 fill-white" /> 
@@ -66,7 +62,6 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
             </div>
           )}
 
-          {/* Nama & Tipe Tangki (Melayang di atas foto) */}
           <div className="absolute bottom-3 left-4 right-4 text-white">
             <h3 className="text-xl font-black leading-tight drop-shadow-md truncate">{aquarium.name}</h3>
             <p className="text-xs font-medium text-slate-200 drop-shadow flex items-center gap-1.5 mt-1 truncate">
@@ -75,7 +70,6 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
           </div>
         </div>
 
-        {/* BAGIAN TENGAH: INFO UMUR & HARDWARE RINGKAS */}
         <div className="p-4 flex-1 flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
@@ -94,7 +88,6 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
             </div>
           </div>
 
-          {/* Indikator Hardware Singkat (Lampu & CO2) */}
           <div className="flex flex-wrap gap-1.5 mt-auto">
             {aquarium.light_type && aquarium.light_type !== 'None' && (
               <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
@@ -109,7 +102,6 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
           </div>
         </div>
 
-        {/* BAGIAN BAWAH: EKOSISTEM (Tanaman & Ikan) */}
         <div className="grid grid-cols-2 divide-x divide-slate-100 dark:divide-slate-800 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
           <div className="p-3 flex items-center justify-center gap-2 group-hover:bg-green-50 dark:group-hover:bg-green-900/20 transition-colors">
             <div className="bg-green-100 dark:bg-green-900/50 p-1.5 rounded-full text-green-600 dark:text-green-400">

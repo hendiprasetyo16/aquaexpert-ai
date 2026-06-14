@@ -7,6 +7,7 @@ import { useLanguage } from "@/providers/LanguageProvider";
 import { getUserAquariumsAction } from "../actions/aquarium.actions";
 import { Aquarium } from "../types/aquarium.types";
 import AquariumCard from "./AquariumCard";
+import { AquariumDictionary } from "./aquarium-helpers";
 import { Plus, Loader2, Container } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -16,8 +17,26 @@ export default function AquariumDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // BYPASS TYPESCRIPT ERROR DENGAN (dict as any)
-  const aqDict = (dict as any).aquarium;
+  // SOLUSI BLANK PAGE: Fallback Dictionary (Jika dictionary belum diload dari root)
+  const aqDict: AquariumDictionary = (dict as any)?.aquarium || {
+    dashboard: {
+      title: language === 'id' ? "Akuarium Saya" : "My Aquariums",
+      subtitle: language === 'id' ? "Kelola profil tangki Anda untuk integrasi AI." : "Manage your tank profiles for AI integration.",
+      btnAdd: language === 'id' ? "Tambah Akuarium" : "Add Aquarium",
+      emptyTitle: language === 'id' ? "Belum Ada Akuarium" : "No Aquariums Yet",
+      emptyDesc: language === 'id' ? "Tambahkan profil akuarium pertama Anda untuk mulai menggunakan fitur AI tingkat lanjut." : "Add your first aquarium profile to unlock advanced AI features."
+    },
+    card: {
+      volume: "Volume",
+      age: language === 'id' ? "Umur" : "Age",
+      plants: language === 'id' ? "Tanaman" : "Plants",
+      fishes: language === 'id' ? "Ikan" : "Fishes",
+      primaryBadge: "PRIMARY TANK",
+      days: language === 'id' ? "hari" : "days",
+      months: language === 'id' ? "bulan" : "months",
+      years: language === 'id' ? "tahun" : "years"
+    }
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -37,7 +56,7 @@ export default function AquariumDashboard() {
     loadData();
   }, []);
 
-  if (!aqDict) return null;
+  // KITA HAPUS "if (!aqDict) return null;" AGAR TIDAK BLANK LAGI
 
   return (
     <div className="w-full h-full min-h-[80vh] p-4 sm:p-6 md:p-8 lg:p-10 transition-colors duration-300">
@@ -48,17 +67,17 @@ export default function AquariumDashboard() {
           <div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-teal-600 dark:text-teal-400 flex items-center gap-3">
               <Container className="h-8 w-8 md:h-10 md:w-10" /> 
-              {aqDict.dashboard?.title || "My Aquariums"}
+              {aqDict.dashboard?.title}
             </h1>
             <p className="mt-3 text-slate-600 dark:text-slate-400 max-w-2xl text-sm md:text-base leading-relaxed">
-              {aqDict.dashboard?.subtitle || "Manage your tank profiles for AI integration."}
+              {aqDict.dashboard?.subtitle}
             </p>
           </div>
 
           <Link href="/dashboard/my-aquarium/new" className="shrink-0 w-full sm:w-auto">
             <Button className="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 text-white font-bold h-12 px-6 shadow-lg shadow-teal-600/20 dark:shadow-teal-900/30 transition-all active:scale-95 flex items-center gap-2">
               <Plus className="w-5 h-5" /> 
-              {aqDict.dashboard?.btnAdd || "Add Aquarium"}
+              {aqDict.dashboard?.btnAdd}
             </Button>
           </Link>
         </div>
@@ -80,15 +99,15 @@ export default function AquariumDashboard() {
               <Container className="h-16 w-16 text-teal-500/50" />
             </div>
             <h3 className="text-2xl font-black text-slate-800 dark:text-slate-200 mb-3">
-              {aqDict.dashboard?.emptyTitle || "No Aquariums Yet"}
+              {aqDict.dashboard?.emptyTitle}
             </h3>
             <p className="text-slate-500 dark:text-slate-400 max-w-md text-base leading-relaxed mb-8">
-              {aqDict.dashboard?.emptyDesc || "Add your first aquarium profile to unlock advanced AI features."}
+              {aqDict.dashboard?.emptyDesc}
             </p>
             <Link href="/dashboard/my-aquarium/new">
               <Button className="bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-bold px-8 h-12 rounded-full transition-all">
                 <Plus className="w-5 h-5 mr-2" /> 
-                {aqDict.dashboard?.btnAdd || "Add Aquarium"}
+                {aqDict.dashboard?.btnAdd}
               </Button>
             </Link>
           </div>
