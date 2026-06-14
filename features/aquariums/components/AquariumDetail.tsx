@@ -25,7 +25,6 @@ import {
   AquariumDictionary
 } from "./aquarium-helpers";
 
-// DEFINE INTERFACE UNTUK DICTIONARY AGAR TIDAK PAKAI 'ANY'
 interface DetailDictionary {
   back: string;
   edit: string;
@@ -41,7 +40,6 @@ interface DetailDictionary {
   dimensions: string;
 }
 
-// DEFINE TIPE UNTUK ID TAB AGAR TYPE-SAFE
 type TabId = "overview" | "parameters" | "flora" | "ai";
 
 interface TabItem {
@@ -54,7 +52,6 @@ export default function AquariumDetail() {
   const { dict, language } = useLanguage();
   const { role } = useAuth(); 
   
-  // useParams di Client Component mengembalikan string secara langsung
   const params = useParams<{ id: string }>(); 
   const router = useRouter();
   const lang = language as "id" | "en";
@@ -66,14 +63,11 @@ export default function AquariumDetail() {
   const [error, setError] = useState("");
   const [imgError, setImgError] = useState(false); 
   
-  // State untuk Tab (Type-Safe)
   const [activeTab, setActiveTab] = useState<TabId>("overview");
 
-  // State untuk Modal
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // STRICT TYPING DICTIONARY (100% BEBAS ANY)
   const rootDict = dict as { aquarium?: { detail?: DetailDictionary } };
   const detailDict: DetailDictionary = rootDict?.aquarium?.detail || {
     back: lang === 'id' ? "Kembali" : "Back",
@@ -90,7 +84,6 @@ export default function AquariumDetail() {
     dimensions: lang === 'id' ? "Dimensi" : "Dimensions",
   };
 
-  // DAFTAR TAB INTERAKTIF
   const TABS: TabItem[] = [
     { id: "overview", label: detailDict.overview, icon: LayoutDashboard },
     { id: "parameters", label: detailDict.parameters, icon: Activity },
@@ -109,7 +102,6 @@ export default function AquariumDetail() {
           setError(res.error || "Akuarium tidak ditemukan.");
         }
       } catch (err: unknown) {
-        // Bebas any: Menggunakan instanceof Error
         setError(err instanceof Error ? err.message : "Terjadi kesalahan yang tidak diketahui.");
       } finally {
         setLoading(false);
@@ -175,8 +167,8 @@ export default function AquariumDetail() {
   return (
     <div className="w-full pb-24 animate-in fade-in duration-700">
       
-      {/* 1. HERO HEADER - PREMIUM DESIGN */}
-      <div className="relative w-full min-h-[45vh] flex flex-col bg-slate-900 overflow-hidden">
+      {/* 1. HERO HEADER */}
+      <div className="relative w-full min-h-[28vh] flex flex-col bg-slate-900 overflow-hidden">
         {aquarium.image_url && !imgError ? (
           <Image 
             src={aquarium.image_url} 
@@ -192,7 +184,7 @@ export default function AquariumDetail() {
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent pointer-events-none" />
         
         {/* Tombol Back */}
-        <div className="absolute top-4 sm:top-8 left-4 sm:left-8 z-50">
+        <div className="absolute top-4 sm:top-6 left-4 sm:left-6 z-50">
           <Button 
             onClick={() => router.push("/dashboard/my-aquarium")}
             variant="outline" 
@@ -203,38 +195,38 @@ export default function AquariumDetail() {
         </div>
 
         {/* Info & Action Buttons */}
-        <div className="relative z-10 mt-auto p-6 sm:p-12 pt-24 w-full max-w-[1400px] mx-auto">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-            <div className="space-y-4">
+        <div className="relative z-10 mt-auto p-4 sm:p-6 w-full max-w-[1400px] mx-auto">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
+            <div className="space-y-3">
               <div className="flex items-center gap-2 flex-wrap">
                 {isArchived ? (
-                  <span className="inline-flex px-4 py-1.5 bg-amber-500/20 text-amber-400 text-[10px] font-black tracking-widest uppercase rounded-full border border-amber-500/30 backdrop-blur-md items-center gap-1.5">
+                  <span className="inline-flex px-3 py-1 bg-amber-500/20 text-amber-400 text-[10px] font-black tracking-widest uppercase rounded-full border border-amber-500/30 backdrop-blur-md items-center gap-1.5">
                     <Archive className="w-3.5 h-3.5" /> {lang === 'id' ? "DATA DIARSIPKAN" : "DATA ARCHIVED"}
                   </span>
                 ) : (
-                  <span className="inline-flex px-4 py-1.5 bg-teal-500/20 text-teal-400 text-[10px] font-black tracking-widest uppercase rounded-full border border-teal-500/30 backdrop-blur-md items-center gap-1.5">
+                  <span className="inline-flex px-3 py-1 bg-teal-500/20 text-teal-400 text-[10px] font-black tracking-widest uppercase rounded-full border border-teal-500/30 backdrop-blur-md items-center gap-1.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" /> {lang === 'id' ? "EKOSISTEM AKTIF" : "ACTIVE ECOSYSTEM"}
                   </span>
                 )}
                 {aquarium.is_primary && !isArchived && (
-                  <span className="inline-flex px-4 py-1.5 bg-blue-500 text-white text-[10px] font-black tracking-widest uppercase rounded-full shadow-lg border border-blue-400">
+                  <span className="inline-flex px-3 py-1 bg-blue-500 text-white text-[10px] font-black tracking-widest uppercase rounded-full shadow-lg border border-blue-400">
                     PRIMARY TANK
                   </span>
                 )}
               </div>
               
-              <h1 className="text-4xl sm:text-6xl font-black text-white drop-shadow-2xl tracking-tight">
+              <h1 className="text-3xl sm:text-5xl font-black text-white drop-shadow-2xl tracking-tight">
                 {aquarium.name}
               </h1>
               
-              <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-slate-300 font-medium">
+              <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-slate-300 font-medium">
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm">
                   <Container className="w-4 h-4 text-teal-400" /> 
-                  <span className="text-sm sm:text-base">{tankType}</span>
+                  <span className="text-sm">{tankType}</span>
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm">
                   <Droplets className="w-4 h-4 text-blue-400" /> 
-                  <span className="text-sm sm:text-base">{aquarium.volume_liters} L</span>
+                  <span className="text-sm">{aquarium.volume_liters} L</span>
                 </div>
               </div>
             </div>
@@ -242,17 +234,17 @@ export default function AquariumDetail() {
             <div className="flex flex-wrap items-center gap-3 shrink-0">
               <Button 
                 onClick={() => router.push(`/dashboard/my-aquarium/${aquariumId}/edit`)} 
-                className="bg-white/10 hover:bg-white text-white hover:text-slate-900 border border-white/20 transition-all backdrop-blur-md h-11 px-6 rounded-xl font-bold"
+                className="bg-white/10 hover:bg-white text-white hover:text-slate-900 border border-white/20 transition-all backdrop-blur-md h-10 px-5 rounded-xl font-bold"
               >
                 <Edit className="w-4 h-4 mr-2" /> {detailDict.edit}
               </Button>
 
               <Button 
                 onClick={() => setShowArchiveModal(true)} 
-                className={`h-11 px-6 rounded-xl font-bold border transition-all backdrop-blur-md ${
+                className={`h-10 px-5 rounded-xl font-bold border text-white transition-all backdrop-blur-md ${
                   isArchived 
-                  ? "bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-white border-emerald-500/30" 
-                  : "bg-amber-500/20 hover:bg-amber-500 text-amber-400 hover:text-white border-amber-500/30"
+                  ? "bg-emerald-600/80 hover:bg-emerald-500 border-emerald-500/50" 
+                  : "bg-amber-600/80 hover:bg-amber-500 border-amber-500/50"
                 }`}
               >
                 {isArchived ? <RefreshCw className="w-4 h-4 mr-2" /> : <Archive className="w-4 h-4 mr-2" />} 
@@ -262,7 +254,7 @@ export default function AquariumDetail() {
               {role === 'super_admin' && (
                 <Button 
                   onClick={() => setShowDeleteModal(true)} 
-                  className="bg-red-500/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 backdrop-blur-md h-11 px-6 rounded-xl font-bold transition-all"
+                  className="bg-red-600/80 hover:bg-red-500 text-white border border-red-500/50 backdrop-blur-md h-10 px-5 rounded-xl font-bold transition-all"
                 >
                   <Trash2 className="w-4 h-4 mr-2" /> {detailDict.delete}
                 </Button>
@@ -272,19 +264,19 @@ export default function AquariumDetail() {
         </div>
       </div>
 
-      {/* 2. MAIN CONTENT - MODERN TAB SYSTEM */}
-      <div className="max-w-[1400px] mx-auto p-4 sm:p-8 -mt-10 relative z-20">
+      {/* 2. MAIN CONTENT */}
+      <div className="max-w-[1400px] mx-auto p-4 sm:p-6 -mt-6 relative z-20">
         
         {/* TAB NAVBAR */}
-        <div className="flex items-center justify-start sm:justify-between bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 mb-8 p-2 overflow-x-auto no-scrollbar">
+        <div className="flex items-center justify-start sm:justify-between bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 mb-6 p-2 overflow-x-auto no-scrollbar">
           <div className="flex gap-2 min-w-max w-full">
             {TABS.map((tab) => (
               <button 
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)} 
-                className={`flex items-center justify-center gap-2 flex-1 min-w-[140px] px-4 py-3 text-sm font-black rounded-xl transition-all duration-300 ${
+                className={`flex items-center justify-center gap-2 flex-1 min-w-[140px] px-4 py-2.5 text-sm font-black rounded-xl transition-all duration-300 ${
                   activeTab === tab.id 
-                  ? "bg-teal-600 text-white shadow-lg shadow-teal-600/20 scale-[1.02]" 
+                  ? "bg-teal-600 text-white shadow-md shadow-teal-600/20" 
                   : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-teal-600"
                 }`}
               >
@@ -298,28 +290,28 @@ export default function AquariumDetail() {
         {/* TAB CONTENT RENDERER */}
         <div className="min-h-[40vh]">
           
-          {/* TAB: OVERVIEW */}
+          {/* TAB: OVERVIEW - RESTRUKTURISASI 3 GRID */}
           {activeTab === "overview" && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in slide-in-from-bottom-4 duration-500">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 animate-in slide-in-from-bottom-4 duration-500 items-stretch">
               
-              {/* Kolom Kiri: Dimensi (WARNA TEAL) */}
-              <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-xl border-l-8 border-teal-500 border-y border-r border-slate-200 dark:border-slate-800">
-                <h3 className="text-xs font-black text-teal-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+              {/* Kolom 1: Dimensi (WARNA TEAL) */}
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-md border-t-4 border-teal-500 border-x border-b border-slate-200 dark:border-slate-800 flex flex-col h-full">
+                <h3 className="text-xs font-black text-teal-600 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                   <CalendarDays className="w-5 h-5" /> {detailDict.dimensions} & Age
                 </h3>
-                <div className="space-y-6">
-                  <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl">
+                <div className="space-y-3 flex-1 flex flex-col justify-center">
+                  <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
                     <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">System Maturity</p>
-                    <p className="text-2xl font-black text-slate-800 dark:text-slate-100">{tankAge}</p>
+                    <p className="text-xl font-black text-slate-800 dark:text-slate-100">{tankAge}</p>
                     <p className="text-xs text-slate-500 mt-1">Est. Setup: {aquarium.setup_date}</p>
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl">
+                  <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
                     <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Glass Dimensions</p>
-                    <p className="text-xl font-black text-slate-800 dark:text-slate-100">
+                    <p className="text-lg font-black text-slate-800 dark:text-slate-100">
                       {aquarium.length_cm} <span className="text-slate-400 mx-1">×</span> {aquarium.width_cm} <span className="text-slate-400 mx-1">×</span> {aquarium.height_cm} <span className="text-xs text-slate-400 ml-1">cm</span>
                     </p>
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl">
+                  <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
                     <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Substrate Foundation</p>
                     <p className="font-black text-slate-700 dark:text-slate-300">
                       {getSubstrateDesc(aquarium.substrate_type, lang)}
@@ -328,57 +320,57 @@ export default function AquariumDetail() {
                 </div>
               </div>
 
-              {/* Kolom Tengah: Equipment (WARNA INDIGO) */}
-              <div className="lg:col-span-2 space-y-8">
-                <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-xl border-l-8 border-indigo-500 border-y border-r border-slate-200 dark:border-slate-800">
-                  <h3 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                    <Settings2 className="w-5 h-5" /> {detailDict.equipment} Configuration
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 group hover:border-indigo-500 transition-colors">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Filtration</p>
-                      <p className="font-black text-lg text-slate-800 dark:text-slate-100">{getFilterDesc(aquarium.filter_type, lang)}</p>
-                      {aquarium.filter_capacity_lph && <p className="text-xs font-bold text-indigo-500 mt-1 bg-indigo-500/10 inline-block px-2 py-0.5 rounded-md">{aquarium.filter_capacity_lph} L/H Pump</p>}
+              {/* Kolom 2: Equipment (WARNA INDIGO) */}
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-md border-t-4 border-indigo-500 border-x border-b border-slate-200 dark:border-slate-800 flex flex-col h-full">
+                <h3 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                  <Settings2 className="w-5 h-5" /> {detailDict.equipment} Config
+                </h3>
+                <div className="space-y-3 flex-1 flex flex-col justify-center">
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/50 group hover:border-indigo-500 transition-colors">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Filtration</p>
+                    <p className="font-black text-sm text-slate-800 dark:text-slate-100">{getFilterDesc(aquarium.filter_type, lang)}</p>
+                    {aquarium.filter_capacity_lph && <p className="text-[10px] font-bold text-indigo-500 mt-1 bg-indigo-500/10 inline-block px-2 py-0.5 rounded-md">{aquarium.filter_capacity_lph} L/H Pump</p>}
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/50 group hover:border-indigo-500 transition-colors">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Lighting System</p>
+                    <p className="font-black text-sm text-slate-800 dark:text-slate-100">{getLightDesc(aquarium.light_type, lang)}</p>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {aquarium.light_wattage && <span className="text-[10px] font-bold bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-md">{aquarium.light_wattage} W</span>}
+                      {aquarium.photoperiod_hours && <span className="text-[10px] font-bold bg-blue-500/10 text-blue-600 px-2 py-0.5 rounded-md">{aquarium.photoperiod_hours} Hrs/Day</span>}
                     </div>
-                    <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 group hover:border-indigo-500 transition-colors">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Lighting System</p>
-                      <p className="font-black text-lg text-slate-800 dark:text-slate-100">{getLightDesc(aquarium.light_type, lang)}</p>
-                      <div className="flex gap-2 mt-1">
-                        {aquarium.light_wattage && <span className="text-[10px] font-bold bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-md">{aquarium.light_wattage} Watt</span>}
-                        {aquarium.photoperiod_hours && <span className="text-[10px] font-bold bg-blue-500/10 text-blue-600 px-2 py-0.5 rounded-md">{aquarium.photoperiod_hours} Hrs/Day</span>}
-                      </div>
-                    </div>
-                    <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 group hover:border-indigo-500 transition-colors">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">CO2 Supply</p>
-                      <p className="font-black text-lg text-slate-800 dark:text-slate-100">{getCO2Desc(aquarium.co2_type, lang)}</p>
-                      {aquarium.co2_bps && <p className="text-xs font-bold text-emerald-500 mt-1">{aquarium.co2_bps} Bubbles per Second</p>}
-                    </div>
-                    <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 group hover:border-indigo-500 transition-colors">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Thermal Control</p>
-                      <p className="font-black text-lg text-slate-800 dark:text-slate-100">{aquarium.heater_enabled ? "Heater Active" : "No Heater"}</p>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/50 group hover:border-indigo-500 transition-colors">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">CO2 Supply</p>
+                    <p className="font-black text-sm text-slate-800 dark:text-slate-100">{getCO2Desc(aquarium.co2_type, lang)}</p>
+                    {aquarium.co2_bps && <p className="text-[10px] font-bold text-emerald-500 mt-1">{aquarium.co2_bps} BPS</p>}
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/50 group hover:border-indigo-500 transition-colors flex items-center justify-between">
+                    <div>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">Thermal Control</p>
+                       <p className="font-black text-sm text-slate-800 dark:text-slate-100">{aquarium.heater_enabled ? "Heater Active" : "No Heater"}</p>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Baris Bawah: Maintenance (WARNA BLUE) */}
-                <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-xl border-l-8 border-blue-500 border-y border-r border-slate-200 dark:border-slate-800">
-                  <h3 className="text-xs font-black text-blue-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                    <Droplets className="w-5 h-5" /> {detailDict.maintenance} Routine
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="p-6 rounded-2xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30">
-                      <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase mb-2">Water Change Frequency</p>
-                      <p className="font-black text-2xl text-blue-900 dark:text-blue-100">
-                        {aquarium.water_change_percent}% <span className="text-sm font-bold opacity-60">Every</span> {aquarium.water_change_interval_days} <span className="text-sm font-bold opacity-60">Days</span>
-                      </p>
-                    </div>
-                    <div className="p-6 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30">
-                      <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase mb-2">Fertilizer Regimen</p>
-                      <p className="font-black text-lg text-emerald-900 dark:text-emerald-100">
-                        {getFertilizerDesc(aquarium.fertilizer_type, lang)}
-                      </p>
-                      {aquarium.fertilizer_schedule && <p className="text-xs font-bold text-emerald-700/70 dark:text-emerald-400/70 mt-2 bg-white/50 dark:bg-black/20 p-2 rounded-lg italic">"{aquarium.fertilizer_schedule}"</p>}
-                    </div>
+              {/* Kolom 3: Maintenance (WARNA BLUE) */}
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-md border-t-4 border-blue-500 border-x border-b border-slate-200 dark:border-slate-800 flex flex-col h-full">
+                <h3 className="text-xs font-black text-blue-600 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                  <Droplets className="w-5 h-5" /> {detailDict.maintenance} Routine
+                </h3>
+                <div className="space-y-3 flex-1 flex flex-col">
+                  <div className="p-5 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 flex-1 flex flex-col justify-center">
+                    <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase mb-1.5">Water Change</p>
+                    <p className="font-black text-2xl text-blue-900 dark:text-blue-100">
+                      {aquarium.water_change_percent}% <span className="text-xs font-bold opacity-60">Every</span> {aquarium.water_change_interval_days} <span className="text-xs font-bold opacity-60">Days</span>
+                    </p>
+                  </div>
+                  <div className="p-5 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 flex-1 flex flex-col justify-center">
+                    <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase mb-1.5">Fertilizer Regimen</p>
+                    <p className="font-black text-base text-emerald-900 dark:text-emerald-100 leading-tight">
+                      {getFertilizerDesc(aquarium.fertilizer_type, lang)}
+                    </p>
+                    {aquarium.fertilizer_schedule && <p className="text-[11px] font-bold text-emerald-700/70 dark:text-emerald-400/70 mt-2 bg-white/50 dark:bg-black/20 p-2 rounded-lg italic">"{aquarium.fertilizer_schedule}"</p>}
                   </div>
                 </div>
               </div>
@@ -394,22 +386,22 @@ export default function AquariumDetail() {
 
           {/* TAB: FLORA FAUNA */}
           {activeTab === "flora" && (
-            <div className="flex flex-col items-center justify-center p-20 bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-500">
-               <div className="flex gap-4 mb-6 text-slate-200">
-                  <Leaf className="w-16 h-16" />
-                  <Fish className="w-16 h-16" />
+            <div className="flex flex-col items-center justify-center p-16 bg-white dark:bg-slate-900 rounded-2xl shadow-md border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-500">
+               <div className="flex gap-4 mb-5 text-slate-300 dark:text-slate-700">
+                  <Leaf className="w-12 h-12" />
+                  <Fish className="w-12 h-12" />
                </div>
-               <h4 className="text-xl font-black text-slate-800 dark:text-slate-200">Flora & Fauna Inventory</h4>
-               <p className="text-slate-500 mt-2">Segera hadir: Kelola daftar tanaman dan ikan Anda untuk simulasi beban biologis.</p>
+               <h4 className="text-lg font-black text-slate-800 dark:text-slate-200">Flora & Fauna Inventory</h4>
+               <p className="text-sm text-slate-500 mt-2 text-center">Segera hadir: Kelola daftar tanaman dan ikan Anda untuk simulasi beban biologis.</p>
             </div>
           )}
 
           {/* TAB: AI DIAGNOSIS */}
           {activeTab === "ai" && (
-            <div className="flex flex-col items-center justify-center p-20 bg-teal-50/30 dark:bg-teal-950/10 rounded-3xl border-2 border-dashed border-teal-200 dark:border-teal-900/50 animate-in zoom-in-95 duration-500">
-               <ShieldAlert className="w-20 h-20 text-teal-500/40 mb-6" />
-               <h4 className="text-xl font-black text-teal-800 dark:text-teal-200">AI Deep Diagnosis</h4>
-               <p className="text-teal-600/70 dark:text-teal-400/70 mt-2 text-center max-w-md">AI akan menganalisis tren parameter air Anda selama 30 hari terakhir untuk memberikan saran pencegahan alga dan penyakit.</p>
+            <div className="flex flex-col items-center justify-center p-16 bg-teal-50/50 dark:bg-teal-950/20 rounded-2xl border border-teal-200 dark:border-teal-900/50 animate-in zoom-in-95 duration-500">
+               <ShieldAlert className="w-16 h-16 text-teal-500/50 mb-5" />
+               <h4 className="text-lg font-black text-teal-800 dark:text-teal-200">AI Deep Diagnosis</h4>
+               <p className="text-sm text-teal-600/70 dark:text-teal-400/70 mt-2 text-center max-w-sm">AI akan menganalisis tren parameter air Anda selama 30 hari terakhir untuk memberikan saran pencegahan alga dan penyakit.</p>
             </div>
           )}
         </div>
@@ -418,21 +410,23 @@ export default function AquariumDetail() {
       {/* MODAL ARSIP / RESTORE */}
       {showArchiveModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
-          <div className={`w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 ${isArchived ? 'border-emerald-500' : 'border-amber-500'}`}>
-            <h3 className="text-2xl font-black text-gray-900 dark:text-slate-100 mb-2">
+          <div className={`w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-2xl border-t-8 ${isArchived ? 'border-emerald-500' : 'border-amber-500'}`}>
+            <h3 className="text-xl font-black text-gray-900 dark:text-slate-100 mb-2">
               {isArchived ? (lang === 'id' ? "Pulihkan?" : "Restore?") : (lang === 'id' ? "Arsipkan?" : "Archive?")}
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
               {isArchived 
                 ? (lang === 'id' ? "Data akuarium akan kembali aktif di Dashboard utama." : "Aquarium data will be reactivated on the main Dashboard.")
                 : (lang === 'id' ? "Data akan disembunyikan tapi riwayat tetap aman tersimpan." : "Data will be hidden but history remains safely stored.")
               }
             </p>
-            <div className="flex flex-col gap-2">
-              <Button onClick={handleArchiveToggle} disabled={loading} className={`w-full h-12 rounded-xl font-black uppercase tracking-widest ${isArchived ? "bg-emerald-600 hover:bg-emerald-500" : "bg-amber-600 hover:bg-amber-500"}`}>
+            <div className="flex flex-col gap-3">
+              {/* FIXED TEXT COLOR HERE */}
+              <Button onClick={handleArchiveToggle} disabled={loading} className={`w-full h-11 rounded-xl font-black uppercase tracking-widest text-white ${isArchived ? "bg-emerald-600 hover:bg-emerald-500" : "bg-amber-600 hover:bg-amber-500"}`}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Confirm Action"}
               </Button>
-              <Button variant="ghost" onClick={() => setShowArchiveModal(false)} disabled={loading} className="w-full text-slate-400">Cancel</Button>
+              {/* FIXED CANCEL BUTTON COLOR HERE */}
+              <Button variant="ghost" onClick={() => setShowArchiveModal(false)} disabled={loading} className="w-full text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 h-11 rounded-xl">Cancel</Button>
             </div>
           </div>
         </div>
@@ -441,19 +435,21 @@ export default function AquariumDetail() {
       {/* MODAL HAPUS PERMANEN */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600">
-            <div className="flex items-center gap-3 mb-4 text-red-600">
-              <ShieldAlert className="h-10 w-10" />
-              <h3 className="text-2xl font-black uppercase tracking-tight">{lang === 'id' ? "Hapus Total" : "Purge Data"}</h3>
+          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-2xl border-t-8 border-red-600">
+            <div className="flex items-center gap-3 mb-3 text-red-600">
+              <ShieldAlert className="h-8 w-8" />
+              <h3 className="text-xl font-black uppercase tracking-tight">{lang === 'id' ? "Hapus Total" : "Purge Data"}</h3>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
               Peringatan: Tindakan ini akan <strong>menghapus permanen</strong> {aquarium.name} beserta seluruh log parameter yang pernah dicatat. Tidak bisa dibatalkan.
             </p>
-            <div className="flex flex-col gap-2">
-              <Button onClick={handleDelete} disabled={loading} variant="destructive" className="w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 text-white">
+            <div className="flex flex-col gap-3">
+              {/* TEXT COLOR ALREADY WHITE */}
+              <Button onClick={handleDelete} disabled={loading} variant="destructive" className="w-full h-11 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 text-white">
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "YES, PURGE EVERYTHING"}
               </Button>
-              <Button variant="ghost" onClick={() => setShowDeleteModal(false)} disabled={loading} className="w-full text-slate-400">Abort</Button>
+              {/* FIXED CANCEL BUTTON COLOR HERE */}
+              <Button variant="ghost" onClick={() => setShowDeleteModal(false)} disabled={loading} className="w-full text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 h-11 rounded-xl">Abort</Button>
             </div>
           </div>
         </div>
