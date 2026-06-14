@@ -1,0 +1,67 @@
+{
+  "dashboard": {
+    "title": "Akuarium Saya",
+    "subtitle": "Kelola profil tangki Anda. Data di sini akan otomatis digunakan oleh AI Plant, Algae, dan Disease Expert untuk memberikan analisis yang akurat.",
+    "btnAdd": "Tambah Akuarium",
+    "emptyTitle": "Belum Ada Akuarium",
+    "emptyDesc": "Tambahkan profil akuarium pertama Anda untuk mulai menggunakan fitur AI tingkat lanjut."
+  },
+  "card": {
+    "volume": "Volume",
+    "age": "Umur",
+    "plants": "Tanaman",
+    "fishes": "Ikan",
+    "primaryBadge": "TANGKI UTAMA",
+    "days": "hari",
+    "months": "bulan",
+    "years": "tahun"
+  },
+  "wizard": {
+    "step1": "Identitas",
+    "step2": "Dimensi",
+    "step3": "Peralatan",
+    "step4": "Perawatan",
+    "btnNext": "Selanjutnya",
+    "btnPrev": "Kembali",
+    "btnSave": "Simpan Akuarium",
+    
+    "labels": {
+      "name": "Nama Akuarium",
+      "tankType": "Jenis Tema Akuarium",
+      "setupDate": "Tanggal Setup Awal",
+      "isPrimary": "Jadikan Tangki Utama",
+      
+      "length": "Panjang (cm)",
+      "width": "Lebar (cm)",
+      "height": "Tinggi (cm)",
+      "volume": "Volume Estimasi (Liter)",
+      
+      "filter": "Sistem Filter",
+      "filterCapacity": "Kapasitas Pompa (L/H)",
+      "light": "Jenis Lampu",
+      "lightWatt": "Daya Lampu (Watt)",
+      "lightHours": "Durasi Nyala (Jam/Hari)",
+      "co2": "Sistem CO2",
+      "co2Bps": "Dosis CO2 (BPS)",
+      "heater": "Gunakan Heater (Pemanas)",
+      "substrate": "Substrat Dasar",
+      
+      "wcPercent": "Volume Ganti Air (%)",
+      "wcInterval": "Interval Ganti Air (Hari)",
+      "fertType": "Metode Pupuk",
+      "fertSchedule": "Jadwal Pupuk"
+    },
+    
+    "hints": {
+      "name": "Beri nama unik agar mudah dikenali (misal: Nature 60P).",
+      "tankType": "Gaya aquascape sangat mempengaruhi saran tanaman & ikan dari AI.",
+      "setupDate": "Penting untuk mendeteksi sindrom tangki baru (New Tank Syndrome).",
+      "isPrimary": "AI Assistant akan menggunakan tank ini sebagai referensi utama jika Anda tidak menyebut nama tank.",
+      "dimensions": "Digunakan AI untuk menghitung rasio cahaya (Watt/Liter) dan kecocokan ikan.",
+      "filter": "Kapasitas filtrasi membantu AI menganalisis risiko amonia dan alga.",
+      "light": "Durasi fotoperiode sangat krusial untuk analisis fotosintesis dan alga.",
+      "co2": "BPS (Bubble per second). Kosongkan jika tidak memakai tabung CO2.",
+      "maintenance": "Rutinitas perawatan (*Water Change* & Pupuk) menjadi data kunci bagi AI untuk mencari akar masalah."
+    }
+  }
+}

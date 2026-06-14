@@ -1,6 +1,7 @@
 // features/auth/constants/menu.ts
 import {
   LayoutDashboard,
+  Container, // <-- Tambahkan icon ini untuk My Aquarium
   Leaf,
   Fish,
   Bug,
@@ -23,6 +24,10 @@ export const MENU_BY_ROLE = {
   super_admin: [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     
+    // --- TAMBAHKAN MENU MY AQUARIUM DI SINI ---
+    { title: "My Aquarium", href: "/dashboard/my-aquarium", icon: Container },
+    // ------------------------------------------
+
     { title: "Plant Expert", href: "/dashboard/plants", icon: Leaf },
     { title: "Plant Expert AI", href: "/dashboard/plant-expert/engine", icon: Cpu, color: AI_COLORS.plants },
     
@@ -43,6 +48,10 @@ export const MENU_BY_ROLE = {
   admin: [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     
+    // --- TAMBAHKAN MENU MY AQUARIUM DI SINI ---
+    { title: "My Aquarium", href: "/dashboard/my-aquarium", icon: Container },
+    // ------------------------------------------
+    
     { title: "Plant Expert", href: "/dashboard/plants", icon: Leaf },
     { title: "Plant Expert AI", href: "/dashboard/plant-expert/engine", icon: Cpu, color: AI_COLORS.plants },
     
@@ -60,6 +69,10 @@ export const MENU_BY_ROLE = {
 
   user: [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    
+    // --- TAMBAHKAN MENU MY AQUARIUM DI SINI ---
+    { title: "My Aquarium", href: "/dashboard/my-aquarium", icon: Container },
+    // ------------------------------------------
     
     { title: "Plant Expert", href: "/dashboard/plants", icon: Leaf },
     { title: "Plant Expert AI", href: "/dashboard/plant-expert/engine", icon: Cpu, color: AI_COLORS.plants },
