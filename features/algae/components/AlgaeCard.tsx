@@ -18,33 +18,43 @@ export default function AlgaeCard({ algae }: AlgaeCardProps) {
 
   const displayName = language === "id" ? algae.name_id : algae.name_en;
   
-  // Fungsi penentu warna tingkat bahaya (Severity)
   const getSeverityBadge = (severity: number) => {
     if (severity >= 4) {
       return (
-        <span className="flex items-center gap-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border border-red-200 dark:border-red-800">
+        <span className="flex items-center gap-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border border-red-200 dark:border-red-800 shadow-sm">
           <Skull className="w-3 h-3" /> {language === "id" ? "Bahaya Tinggi" : "High Risk"}
         </span>
       );
     }
     if (severity === 3) {
       return (
-        <span className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border border-amber-200 dark:border-amber-800">
+        <span className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border border-amber-200 dark:border-amber-800 shadow-sm">
           <AlertTriangle className="w-3 h-3" /> {language === "id" ? "Risiko Sedang" : "Medium Risk"}
         </span>
       );
     }
     return (
-      <span className="flex items-center gap-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border border-green-200 dark:border-green-800">
+      <span className="flex items-center gap-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border border-green-200 dark:border-green-800 shadow-sm">
         <Info className="w-3 h-3" /> {language === "id" ? "Risiko Rendah" : "Low Risk"}
       </span>
     );
   };
 
+  // FUNGSI WARNA (Menerima null untuk mengatasi TS Error)
+  const getDifficultyColor = (difficulty: string | null | undefined) => {
+    const diff = (difficulty || "Easy").toLowerCase();
+    if (diff === "hard") {
+      return "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/50";
+    }
+    if (diff === "medium") {
+      return "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50";
+    }
+    return "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50";
+  };
+
   return (
     <div className="w-full h-full bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col group transition-all hover:border-teal-500 dark:hover:border-teal-700 hover:shadow-lg hover:shadow-teal-600/10 dark:hover:shadow-teal-900/20 relative">
       
-      {/* Tombol Edit Pintas (Hanya untuk Admin/Super Admin) */}
       {role !== "user" && (
         <Link
           href={`/dashboard/algae/${algae.id}/edit`}
@@ -56,7 +66,6 @@ export default function AlgaeCard({ algae }: AlgaeCardProps) {
       )}
 
       <Link href={`/dashboard/algae/${algae.id}`} className="block cursor-pointer flex-1 flex flex-col">
-        {/* Gambar Alga */}
         <div className="relative w-full aspect-video bg-slate-100 dark:bg-slate-900 overflow-hidden shrink-0">
           {algae.image_url ? (
             <Image 
@@ -77,7 +86,6 @@ export default function AlgaeCard({ algae }: AlgaeCardProps) {
           </div>
         </div>
 
-        {/* Detail Konten */}
         <div className="p-4 flex flex-col flex-1">
           <div className="mb-3">
             <h3 className="text-lg font-black text-teal-700 dark:text-teal-400 leading-tight mb-1 truncate transition-colors group-hover:text-teal-600 dark:group-hover:text-teal-300">
@@ -91,11 +99,16 @@ export default function AlgaeCard({ algae }: AlgaeCardProps) {
           <div className="space-y-2 mt-auto border-t border-slate-200 dark:border-slate-800/60 pt-3">
             <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
               <span className="font-bold uppercase tracking-wider opacity-70">Alias:</span>
-              <span className="font-semibold text-gray-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-800">{algae.alias || "-"}</span>
+              <span className="font-semibold text-gray-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-800 truncate max-w-[120px]">
+                {algae.alias || "-"}
+              </span>
             </div>
+            
             <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
               <span className="font-bold uppercase tracking-wider opacity-70">Tingkat:</span>
-              <span className="font-semibold uppercase bg-slate-50 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-800">{algae.difficulty || "-"}</span>
+              <span className={`font-bold uppercase px-2 py-0.5 rounded border ${getDifficultyColor(algae.difficulty)}`}>
+                {algae.difficulty || "Easy"}
+              </span>
             </div>
           </div>
         </div>

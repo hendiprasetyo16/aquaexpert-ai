@@ -38,7 +38,7 @@ export default function AquariumDetail() {
 
   const safeDict = dict as Record<string, any>;
   const detailDict = safeDict?.aquarium?.detail || {
-    back: lang === 'id' ? "Kembali ke Dashboard" : "Back to Dashboard",
+    back: lang === 'id' ? "Kembali" : "Back",
     edit: lang === 'id' ? "Edit" : "Edit",
     archive: lang === 'id' ? "Arsipkan" : "Archive",
     restore: lang === 'id' ? "Pulihkan" : "Restore",
@@ -73,7 +73,7 @@ export default function AquariumDetail() {
   const handleArchiveToggle = async () => {
     if (!aquarium) return;
     setLoading(true);
-    const newStatus = !aquarium.is_active; // Toggle: Jika true jadi false, jika false jadi true
+    const newStatus = !aquarium.is_active;
     const res = await updateAquariumAction(aquariumId, { is_active: newStatus });
     
     if (res.success) {
@@ -114,7 +114,7 @@ export default function AquariumDetail() {
         <h2 className="text-2xl font-bold text-red-700 mb-2">Terjadi Kesalahan</h2>
         <p className="text-red-600 mb-6">{error}</p>
         <Button onClick={() => router.push("/dashboard/my-aquarium")} variant="outline">
-          {detailDict.back}
+          <ArrowLeft className="w-4 h-4 mr-2" /> {detailDict.back}
         </Button>
       </div>
     );
@@ -127,8 +127,9 @@ export default function AquariumDetail() {
   return (
     <div className="w-full pb-20 animate-in fade-in duration-500">
       
-      {/* 1. HERO HEADER */}
-      <div className="relative w-full h-[35vh] sm:h-[45vh] bg-slate-900 overflow-hidden">
+      {/* 1. HERO HEADER - PERBAIKAN LAYOUT HP */}
+      <div className="relative w-full min-h-[45vh] flex flex-col bg-slate-900 overflow-hidden">
+        {/* Background Image */}
         {aquarium.image_url && !imgError ? (
           <Image 
             src={aquarium.image_url} 
@@ -141,29 +142,31 @@ export default function AquariumDetail() {
         ) : (
           <div className={`absolute inset-0 bg-gradient-to-br ${isArchived ? 'from-amber-900 to-slate-900' : 'from-teal-900 to-slate-900'} opacity-80`} />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent pointer-events-none" />
         
-        <div className="absolute top-4 sm:top-8 left-4 sm:left-8 flex gap-2 z-10">
+        {/* Tombol Back (z-50 agar selalu bisa diklik di atas segalanya) */}
+        <div className="absolute top-4 sm:top-8 left-4 sm:left-8 z-50">
           <Button 
             onClick={() => router.push("/dashboard/my-aquarium")}
             variant="outline" 
-            className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-md"
+            className="bg-slate-900/50 hover:bg-slate-800 text-white border-white/20 backdrop-blur-md shadow-lg"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" /> {detailDict.back}
+            <ArrowLeft className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{detailDict.back}</span>
           </Button>
         </div>
 
-        <div className="absolute bottom-0 left-0 w-full p-4 sm:p-8 z-10">
-          <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
+        {/* Informasi Utama (Didorong ke bawah dengan mt-auto, diberi jarak pt-20 agar aman dari tombol back) */}
+        <div className="relative z-10 mt-auto p-4 sm:p-8 pt-24 w-full max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 {isArchived && (
-                  <span className="inline-block px-3 py-1 bg-amber-500 text-white text-[10px] font-black tracking-widest uppercase rounded-full shadow-lg flex items-center gap-1">
+                  <span className="inline-flex px-3 py-1 bg-amber-500 text-white text-[10px] font-black tracking-widest uppercase rounded-full shadow-lg items-center gap-1">
                     <Archive className="w-3 h-3" /> {lang === 'id' ? "DIARSIPKAN" : "ARCHIVED"}
                   </span>
                 )}
                 {aquarium.is_primary && !isArchived && (
-                  <span className="inline-block px-3 py-1 bg-teal-500 text-white text-[10px] font-black tracking-widest uppercase rounded-full shadow-lg">
+                  <span className="inline-flex px-3 py-1 bg-teal-500 text-white text-[10px] font-black tracking-widest uppercase rounded-full shadow-lg">
                     PRIMARY TANK
                   </span>
                 )}
@@ -172,14 +175,15 @@ export default function AquariumDetail() {
               <h1 className="text-3xl sm:text-5xl font-black text-white drop-shadow-md leading-tight">
                 {aquarium.name}
               </h1>
-              <p className="text-slate-300 font-medium mt-2 flex items-center gap-2 text-sm sm:text-base">
-                <Container className="w-4 h-4" /> {tankType} 
-                <span className="opacity-50 text-xl">•</span> 
-                {aquarium.volume_liters} Liter
+              <p className="text-slate-300 font-medium flex items-center gap-2 text-sm sm:text-base">
+                <Container className="w-4 h-4 shrink-0" /> <span className="truncate">{tankType}</span> 
+                <span className="opacity-50 text-xl shrink-0">•</span> 
+                <span className="shrink-0">{aquarium.volume_liters} Liter</span>
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 shrink-0 mt-4 md:mt-0">
+            {/* ACTION BUTTONS */}
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               <Button onClick={() => router.push(`/dashboard/my-aquarium/${aquariumId}/edit`)} className="bg-white/10 hover:bg-white/20 text-white border-none backdrop-blur-md">
                 <Edit className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{detailDict.edit}</span>
               </Button>
@@ -310,7 +314,7 @@ export default function AquariumDetail() {
         </div>
       </div>
 
-      {/* MODAL ARSIP / RESTORE (Teks Dinamis) */}
+      {/* MODAL ARSIP / RESTORE */}
       {showArchiveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in">
           <div className={`w-full max-w-sm rounded-xl bg-white dark:bg-slate-900 p-6 shadow-2xl border ${isArchived ? 'border-emerald-200 dark:border-emerald-900/50' : 'border-amber-200 dark:border-amber-900/50'}`}>
@@ -319,8 +323,8 @@ export default function AquariumDetail() {
             </h3>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
               {isArchived 
-                ? (lang === 'id' ? "Akuarium ini akan kembali muncul di Dashboard utama dan bisa dilacak lagi parameternya." : "This aquarium will reappear on the main Dashboard.")
-                : (lang === 'id' ? "Akuarium ini akan disembunyikan dari Tab Aktif, namun semua data riwayat tetap tersimpan aman." : "This aquarium will be hidden from the Active Tab, but all history is safely stored.")
+                ? (lang === 'id' ? "Akuarium ini akan kembali muncul di Dashboard utama." : "This aquarium will reappear on the main Dashboard.")
+                : (lang === 'id' ? "Akuarium ini akan disembunyikan dari Tab Aktif, namun data tetap aman." : "This aquarium will be hidden from the Active Tab.")
               }
             </p>
             <div className="flex justify-end gap-3">
@@ -344,7 +348,7 @@ export default function AquariumDetail() {
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
               {lang === 'id' ? "Peringatan: Tindakan ini akan " : "Warning: This action will "}
               <strong>{lang === 'id' ? "menghapus total" : "permanently delete"}</strong> 
-              {lang === 'id' ? " akuarium ini beserta seluruh log parameternya." : " this aquarium and all its parameter logs."}
+              {lang === 'id' ? " akuarium ini." : " this aquarium."}
             </p>
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setShowDeleteModal(false)} disabled={loading}>{lang === 'id' ? "Batal" : "Cancel"}</Button>
