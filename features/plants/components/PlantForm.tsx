@@ -123,11 +123,12 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     const { name, value, type } = e.target;
-    let finalValue: any = value;
+    // REFAKTOR 1: Menghapus `any` menjadi tipe persis yang diizinkan (string | number | boolean)
+    let finalValue: string | number | boolean = value;
     if (type === "checkbox") finalValue = (e.target as HTMLInputElement).checked;
     else if (type === "number") {
       finalValue = value === "" ? "" : Number(value);
-      if (name === "beginner_score" && finalValue !== "") finalValue = Math.min(10, Math.max(1, finalValue));
+      if (name === "beginner_score" && finalValue !== "") finalValue = Math.min(10, Math.max(1, finalValue as number));
     }
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
   }
@@ -262,9 +263,11 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       router.push("/dashboard/plants");
       router.refresh();
 
-    } catch (err: any) {
-      setError(err?.message || "Error saving data.");
-      toast.error(err?.message || "Error saving data.");
+    // REFAKTOR 2: Ganti catch any menjadi unknown
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "Error saving data.";
+      setError(errMsg);
+      toast.error(errMsg);
       if (uploadedImagesToRollback.length > 0) {
         for (const orphanUrl of uploadedImagesToRollback) { await removePlantImage(orphanUrl); }
       }
@@ -272,22 +275,46 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
   }
 
   function triggerArchiveModal() { if (!plant || mode !== "edit") return; setIsArchiveModalOpen(true); }
+  
   async function executeArchive() {
     if (!plant || mode !== "edit") return;
-    try { setLoading(true); await deletePlant(plant.id); toast.success("Archived."); router.push("/dashboard/plants"); router.refresh();
-    } catch (error: any) { toast.error("Failed."); } finally { setLoading(false); setIsArchiveModalOpen(false); }
+    try { 
+      setLoading(true); 
+      await deletePlant(plant.id); 
+      toast.success("Archived."); 
+      router.push("/dashboard/plants"); 
+      router.refresh();
+    // REFAKTOR 3: Ganti catch any menjadi unknown
+    } catch (error: unknown) { 
+      toast.error(error instanceof Error ? error.message : "Failed."); 
+    } finally { 
+      setLoading(false); setIsArchiveModalOpen(false); 
+    }
   }
 
   function triggerHardDeleteModal() { if (!plant) return; setDeleteConfirmText(""); setIsDeleteModalOpen(true); }
+  
   async function executeHardDelete(e: React.FormEvent) {
     e.preventDefault(); if (!plant) return;
     const currentName = language === 'en' && plant.name_en ? plant.name_en : plant.name_id;
-    if (deleteConfirmText !== currentName) { toast.error("Name mismatch."); return; }
-    try { setLoading(true); const result = await hardDeletePlantAction(plant.id); if (!result.success) throw new Error(result.error);
-      toast.success("Deleted."); router.push("/dashboard/plants"); router.refresh();
-    } catch (error: any) { toast.error("Failed."); } finally { setLoading(false); setIsDeleteModalOpen(false); }
+    if (deleteConfirmText !== currentName) { toast.error("Nama tidak cocok."); return; }
+    try { 
+      setLoading(true); 
+      const result = await hardDeletePlantAction(plant.id); 
+      if (!result.success) throw new Error(result.error);
+      toast.success("Deleted."); 
+      router.push("/dashboard/plants"); 
+      router.refresh();
+    // REFAKTOR 4: Ganti catch any menjadi unknown
+    } catch (error: unknown) { 
+      toast.error(error instanceof Error ? error.message : "Failed."); 
+    } finally { 
+      setLoading(false); setIsDeleteModalOpen(false); 
+    }
   }
 
+  if (!dict.algaeExpert?.algaeForm) return null; // Safe guard
+  const formDict = dict.algaeExpert.algaeForm;
   const totalGalleryCount = existingGallery.length + newGallery.length;
 
   return (
@@ -481,7 +508,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               </div>
             </div>
 
-            {/* BAGIAN 5: PARAMETER SISTEM PAKAR */}
+            {/* BAGIAN 5: PARAMETER SISTEM PAKAR AI */}
             <div className="bg-teal-50/50 dark:bg-teal-950/20 p-4 sm:p-6 rounded-xl border border-teal-200 dark:border-teal-900/50 space-y-6">
               <h3 className="text-lg font-bold text-teal-700 dark:text-teal-400 mb-2">{dict.plantForm.expertEngineSection}</h3>
               
