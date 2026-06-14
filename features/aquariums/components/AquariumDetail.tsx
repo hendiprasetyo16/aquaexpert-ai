@@ -11,13 +11,14 @@ import { Aquarium } from "../types/aquarium.types";
 import { 
   ArrowLeft, Edit, Archive, Trash2, Container, AlertTriangle, 
   Droplets, Settings2, CalendarDays, Loader2, RefreshCw, 
-  LayoutDashboard, Activity, Leaf, ShieldAlert, Fish
+  LayoutDashboard, Activity, Leaf, ShieldAlert
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
-// IMPORT TAB PARAMETER
+// IMPORT TAB PARAMETER DAN INVENTORY
 import ParameterTab from "./ParameterTab";
+import InventoryTab from "./InventoryTab"; // <--- TAMBAHAN BARU
 
 import { 
   calculateTankAge, getTankTypeDesc, getSubstrateDesc, 
@@ -70,7 +71,7 @@ export default function AquariumDetail() {
 
   const rootDict = dict as { aquarium?: { detail?: DetailDictionary } };
   const detailDict: DetailDictionary = rootDict?.aquarium?.detail || {
-    back: lang === 'id' ? "Kembali" : "Back",
+    back: lang === 'id' ? "Kembali ke Dashboard" : "Back to Dashboard",
     edit: lang === 'id' ? "Edit" : "Edit",
     archive: lang === 'id' ? "Arsipkan" : "Archive",
     restore: lang === 'id' ? "Pulihkan" : "Restore",
@@ -167,105 +168,109 @@ export default function AquariumDetail() {
   return (
     <div className="w-full pb-24 animate-in fade-in duration-700">
       
-      {/* 1. HERO HEADER */}
-      <div className="relative w-full min-h-[28vh] flex flex-col bg-slate-900 overflow-hidden">
-        {aquarium.image_url && !imgError ? (
-          <Image 
-            src={aquarium.image_url} 
-            alt={aquarium.name} 
-            fill 
-            className={`object-cover transition-all duration-1000 ${isArchived ? 'opacity-30 grayscale' : 'opacity-60'}`}
-            onError={() => setImgError(true)}
-            unoptimized
-          />
-        ) : (
-          <div className={`absolute inset-0 bg-gradient-to-br ${isArchived ? 'from-slate-800 to-slate-950' : 'from-teal-900 via-slate-900 to-slate-950'} opacity-90`} />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent pointer-events-none" />
-        
-        {/* Tombol Back */}
-        <div className="absolute top-4 sm:top-6 left-4 sm:left-6 z-50">
-          <Button 
-            onClick={() => router.push("/dashboard/my-aquarium")}
-            variant="outline" 
-            className="bg-slate-950/50 hover:bg-teal-600 text-white border-white/10 hover:border-teal-400 backdrop-blur-md transition-all shadow-xl rounded-full"
-          >
-            <ArrowLeft className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{detailDict.back}</span>
-          </Button>
-        </div>
+      {/* 1. TOP STATIC NAVIGATION (Aman dari bentrok gambar) */}
+      <div className="w-full bg-transparent px-4 sm:px-8 pt-4 pb-2 max-w-[1400px] mx-auto">
+        <Button 
+          onClick={() => router.push("/dashboard/my-aquarium")}
+          variant="ghost" 
+          className="text-slate-500 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/30 pl-2 pr-4 font-bold"
+        >
+          <ArrowLeft className="w-5 h-5 mr-2" /> {detailDict.back}
+        </Button>
+      </div>
 
-        {/* Info & Action Buttons */}
-        <div className="relative z-10 mt-auto p-4 sm:p-6 w-full max-w-[1400px] mx-auto">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                {isArchived ? (
-                  <span className="inline-flex px-3 py-1 bg-amber-500/20 text-amber-400 text-[10px] font-black tracking-widest uppercase rounded-full border border-amber-500/30 backdrop-blur-md items-center gap-1.5">
-                    <Archive className="w-3.5 h-3.5" /> {lang === 'id' ? "DATA DIARSIPKAN" : "DATA ARCHIVED"}
-                  </span>
-                ) : (
-                  <span className="inline-flex px-3 py-1 bg-teal-500/20 text-teal-400 text-[10px] font-black tracking-widest uppercase rounded-full border border-teal-500/30 backdrop-blur-md items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" /> {lang === 'id' ? "EKOSISTEM AKTIF" : "ACTIVE ECOSYSTEM"}
-                  </span>
-                )}
-                {aquarium.is_primary && !isArchived && (
-                  <span className="inline-flex px-3 py-1 bg-blue-500 text-white text-[10px] font-black tracking-widest uppercase rounded-full shadow-lg border border-blue-400">
-                    PRIMARY TANK
-                  </span>
-                )}
-              </div>
-              
-              <h1 className="text-3xl sm:text-5xl font-black text-white drop-shadow-2xl tracking-tight">
-                {aquarium.name}
-              </h1>
-              
-              <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-slate-300 font-medium">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm">
-                  <Container className="w-4 h-4 text-teal-400" /> 
-                  <span className="text-sm">{tankType}</span>
+      {/* 2. HERO HEADER - MODERN BENTO STYLE */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-8">
+        <div className="relative w-full min-h-[40vh] flex flex-col bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800">
+          
+          {/* Gambar Cover */}
+          {aquarium.image_url && !imgError ? (
+            <Image 
+              src={aquarium.image_url} 
+              alt={aquarium.name} 
+              fill 
+              className={`object-cover transition-all duration-1000 ${isArchived ? 'opacity-30 grayscale' : 'opacity-60'}`}
+              onError={() => setImgError(true)}
+              unoptimized
+            />
+          ) : (
+            <div className={`absolute inset-0 bg-gradient-to-br ${isArchived ? 'from-slate-800 to-slate-950' : 'from-teal-900 via-slate-900 to-slate-950'} opacity-90`} />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent pointer-events-none" />
+
+          {/* Info & Action Buttons */}
+          <div className="relative z-10 mt-auto p-6 sm:p-10 w-full">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {isArchived ? (
+                    <span className="inline-flex px-3 py-1 bg-amber-500/20 text-amber-400 text-[10px] font-black tracking-widest uppercase rounded-full border border-amber-500/30 backdrop-blur-md items-center gap-1.5">
+                      <Archive className="w-3.5 h-3.5" /> {lang === 'id' ? "DATA DIARSIPKAN" : "DATA ARCHIVED"}
+                    </span>
+                  ) : (
+                    <span className="inline-flex px-3 py-1 bg-teal-500/20 text-teal-400 text-[10px] font-black tracking-widest uppercase rounded-full border border-teal-500/30 backdrop-blur-md items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" /> {lang === 'id' ? "EKOSISTEM AKTIF" : "ACTIVE ECOSYSTEM"}
+                    </span>
+                  )}
+                  {aquarium.is_primary && !isArchived && (
+                    <span className="inline-flex px-3 py-1 bg-blue-500 text-white text-[10px] font-black tracking-widest uppercase rounded-full shadow-lg border border-blue-400">
+                      PRIMARY TANK
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm">
-                  <Droplets className="w-4 h-4 text-blue-400" /> 
-                  <span className="text-sm">{aquarium.volume_liters} L</span>
+                
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white drop-shadow-2xl tracking-tight">
+                  {aquarium.name}
+                </h1>
+                
+                <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-slate-300 font-medium">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg border border-white/10 backdrop-blur-sm">
+                    <Container className="w-4 h-4 text-teal-400" /> 
+                    <span className="text-sm">{tankType}</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg border border-white/10 backdrop-blur-sm">
+                    <Droplets className="w-4 h-4 text-blue-400" /> 
+                    <span className="text-sm">{aquarium.volume_liters} L</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
-              <Button 
-                onClick={() => router.push(`/dashboard/my-aquarium/${aquariumId}/edit`)} 
-                className="bg-white/10 hover:bg-white text-white hover:text-slate-900 border border-white/20 transition-all backdrop-blur-md h-10 px-5 rounded-xl font-bold"
-              >
-                <Edit className="w-4 h-4 mr-2" /> {detailDict.edit}
-              </Button>
-
-              <Button 
-                onClick={() => setShowArchiveModal(true)} 
-                className={`h-10 px-5 rounded-xl font-bold border text-white transition-all backdrop-blur-md ${
-                  isArchived 
-                  ? "bg-emerald-600/80 hover:bg-emerald-500 border-emerald-500/50" 
-                  : "bg-amber-600/80 hover:bg-amber-500 border-amber-500/50"
-                }`}
-              >
-                {isArchived ? <RefreshCw className="w-4 h-4 mr-2" /> : <Archive className="w-4 h-4 mr-2" />} 
-                {isArchived ? detailDict.restore : detailDict.archive}
-              </Button>
-              
-              {role === 'super_admin' && (
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
                 <Button 
-                  onClick={() => setShowDeleteModal(true)} 
-                  className="bg-red-600/80 hover:bg-red-500 text-white border border-red-500/50 backdrop-blur-md h-10 px-5 rounded-xl font-bold transition-all"
+                  onClick={() => router.push(`/dashboard/my-aquarium/${aquariumId}/edit`)} 
+                  className="bg-white/10 hover:bg-white text-white hover:text-slate-900 border border-white/20 transition-all backdrop-blur-md h-11 px-5 rounded-xl font-bold"
                 >
-                  <Trash2 className="w-4 h-4 mr-2" /> {detailDict.delete}
+                  <Edit className="w-4 h-4 mr-2" /> {detailDict.edit}
                 </Button>
-              )}
+
+                <Button 
+                  onClick={() => setShowArchiveModal(true)} 
+                  className={`h-11 px-5 rounded-xl font-bold border text-white transition-all backdrop-blur-md ${
+                    isArchived 
+                    ? "bg-emerald-600/80 hover:bg-emerald-500 border-emerald-500/50" 
+                    : "bg-amber-600/80 hover:bg-amber-500 border-amber-500/50"
+                  }`}
+                >
+                  {isArchived ? <RefreshCw className="w-4 h-4 mr-2" /> : <Archive className="w-4 h-4 mr-2" />} 
+                  {isArchived ? detailDict.restore : detailDict.archive}
+                </Button>
+                
+                {role === 'super_admin' && (
+                  <Button 
+                    onClick={() => setShowDeleteModal(true)} 
+                    className="bg-red-600/80 hover:bg-red-500 text-white border border-red-500/50 backdrop-blur-md h-11 px-5 rounded-xl font-bold transition-all"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" /> {detailDict.delete}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 2. MAIN CONTENT */}
-      <div className="max-w-[1400px] mx-auto p-4 sm:p-6 -mt-6 relative z-20">
+      {/* 3. MAIN CONTENT */}
+      <div className="max-w-[1400px] mx-auto p-4 sm:p-8 mt-4 relative z-20">
         
         {/* TAB NAVBAR */}
         <div className="flex items-center justify-start sm:justify-between bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 mb-6 p-2 overflow-x-auto no-scrollbar">
@@ -290,11 +295,10 @@ export default function AquariumDetail() {
         {/* TAB CONTENT RENDERER */}
         <div className="min-h-[40vh]">
           
-          {/* TAB: OVERVIEW - RESTRUKTURISASI 3 GRID */}
+          {/* TAB: OVERVIEW */}
           {activeTab === "overview" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 animate-in slide-in-from-bottom-4 duration-500 items-stretch">
               
-              {/* Kolom 1: Dimensi (WARNA TEAL) */}
               <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-md border-t-4 border-teal-500 border-x border-b border-slate-200 dark:border-slate-800 flex flex-col h-full">
                 <h3 className="text-xs font-black text-teal-600 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                   <CalendarDays className="w-5 h-5" /> {detailDict.dimensions} & Age
@@ -320,7 +324,6 @@ export default function AquariumDetail() {
                 </div>
               </div>
 
-              {/* Kolom 2: Equipment (WARNA INDIGO) */}
               <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-md border-t-4 border-indigo-500 border-x border-b border-slate-200 dark:border-slate-800 flex flex-col h-full">
                 <h3 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                   <Settings2 className="w-5 h-5" /> {detailDict.equipment} Config
@@ -353,7 +356,6 @@ export default function AquariumDetail() {
                 </div>
               </div>
 
-              {/* Kolom 3: Maintenance (WARNA BLUE) */}
               <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-md border-t-4 border-blue-500 border-x border-b border-slate-200 dark:border-slate-800 flex flex-col h-full">
                 <h3 className="text-xs font-black text-blue-600 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                   <Droplets className="w-5 h-5" /> {detailDict.maintenance} Routine
@@ -384,15 +386,10 @@ export default function AquariumDetail() {
             </div>
           )}
 
-          {/* TAB: FLORA FAUNA */}
+          {/* TAB: FLORA FAUNA (MEMANGGIL KOMPONEN BARU) */}
           {activeTab === "flora" && (
-            <div className="flex flex-col items-center justify-center p-16 bg-white dark:bg-slate-900 rounded-2xl shadow-md border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-500">
-               <div className="flex gap-4 mb-5 text-slate-300 dark:text-slate-700">
-                  <Leaf className="w-12 h-12" />
-                  <Fish className="w-12 h-12" />
-               </div>
-               <h4 className="text-lg font-black text-slate-800 dark:text-slate-200">Flora & Fauna Inventory</h4>
-               <p className="text-sm text-slate-500 mt-2 text-center">Segera hadir: Kelola daftar tanaman dan ikan Anda untuk simulasi beban biologis.</p>
+            <div className="animate-in slide-in-from-right-4 duration-500">
+              <InventoryTab aquariumId={aquariumId} />
             </div>
           )}
 
@@ -421,11 +418,9 @@ export default function AquariumDetail() {
               }
             </p>
             <div className="flex flex-col gap-3">
-              {/* FIXED TEXT COLOR HERE */}
               <Button onClick={handleArchiveToggle} disabled={loading} className={`w-full h-11 rounded-xl font-black uppercase tracking-widest text-white ${isArchived ? "bg-emerald-600 hover:bg-emerald-500" : "bg-amber-600 hover:bg-amber-500"}`}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Confirm Action"}
               </Button>
-              {/* FIXED CANCEL BUTTON COLOR HERE */}
               <Button variant="ghost" onClick={() => setShowArchiveModal(false)} disabled={loading} className="w-full text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 h-11 rounded-xl">Cancel</Button>
             </div>
           </div>
@@ -444,11 +439,9 @@ export default function AquariumDetail() {
               Peringatan: Tindakan ini akan <strong>menghapus permanen</strong> {aquarium.name} beserta seluruh log parameter yang pernah dicatat. Tidak bisa dibatalkan.
             </p>
             <div className="flex flex-col gap-3">
-              {/* TEXT COLOR ALREADY WHITE */}
               <Button onClick={handleDelete} disabled={loading} variant="destructive" className="w-full h-11 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 text-white">
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "YES, PURGE EVERYTHING"}
               </Button>
-              {/* FIXED CANCEL BUTTON COLOR HERE */}
               <Button variant="ghost" onClick={() => setShowDeleteModal(false)} disabled={loading} className="w-full text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 h-11 rounded-xl">Abort</Button>
             </div>
           </div>
