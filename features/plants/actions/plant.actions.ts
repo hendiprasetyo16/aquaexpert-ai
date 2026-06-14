@@ -1,3 +1,4 @@
+// features/plants/actions/plant.actions.ts
 "use server";
 
 import { createServerClient } from "@supabase/ssr";
@@ -71,8 +72,9 @@ export async function createPlantAction(plantData: Partial<Plant>) {
     revalidatePath("/dashboard/plants"); 
     
     return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  // REFAKTOR: Mengganti any menjadi unknown
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }
 
@@ -125,8 +127,9 @@ export async function updatePlantAction(id: string, plantData: Partial<Plant>) {
     revalidatePath(`/dashboard/plants/${id}`); 
 
     return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  // REFAKTOR: Mengganti any menjadi unknown
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }
 
@@ -196,8 +199,9 @@ export async function hardDeletePlantAction(id: string) {
     revalidatePath("/dashboard/plants/archive");
 
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  // REFAKTOR: Mengganti any menjadi unknown
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }
 
@@ -247,7 +251,8 @@ export async function restorePlantAction(id: string) {
     revalidatePath("/dashboard/plants/archive");
 
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  // REFAKTOR: Mengganti any menjadi unknown
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }

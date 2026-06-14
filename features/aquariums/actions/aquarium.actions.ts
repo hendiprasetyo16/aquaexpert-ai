@@ -21,8 +21,9 @@ export async function getUserAquariumsAction() {
 
     const data = await getUserAquariums(supabase, user.id);
     return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  // REFAKTOR: Mengganti any menjadi unknown
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }
 
@@ -34,8 +35,9 @@ export async function getAquariumByIdAction(id: string) {
 
     const data = await getAquariumById(supabase, id, user.id);
     return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  // REFAKTOR: Mengganti any menjadi unknown
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }
 
@@ -53,12 +55,14 @@ export async function createAquariumAction(payload: CreateAquariumInput) {
     const data = await createAquarium(supabase, { ...payload, user_id: user.id });
     revalidatePath("/dashboard/my-aquarium");
     return { success: true, data };
-  } catch (error: any) {
+  // REFAKTOR: Mengganti any menjadi unknown dan casting khusus untuk error Database
+  } catch (error: unknown) {
     // Tangkap error unique index database jika terjadi race condition
-    if (error.code === '23505') { 
+    const dbError = error as { code?: string; message?: string };
+    if (dbError?.code === '23505') { 
       return { success: false, error: "A primary aquarium already exists. Please refresh." };
     }
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }
 
@@ -76,11 +80,13 @@ export async function updateAquariumAction(id: string, payload: UpdateAquariumIn
     revalidatePath("/dashboard/my-aquarium");
     revalidatePath(`/dashboard/my-aquarium/${id}`);
     return { success: true, data };
-  } catch (error: any) {
-    if (error.code === '23505') { 
+  // REFAKTOR: Mengganti any menjadi unknown dan casting khusus untuk error Database
+  } catch (error: unknown) {
+    const dbError = error as { code?: string; message?: string };
+    if (dbError?.code === '23505') { 
       return { success: false, error: "A primary aquarium already exists. Please refresh." };
     }
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }
 
@@ -93,8 +99,9 @@ export async function deleteAquariumAction(id: string) {
     await deleteAquarium(supabase, id, user.id);
     revalidatePath("/dashboard/my-aquarium");
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  // REFAKTOR: Mengganti any menjadi unknown
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }
 
@@ -109,7 +116,8 @@ export async function setPrimaryAquariumAction(id: string) {
     
     revalidatePath("/dashboard/my-aquarium");
     return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  // REFAKTOR: Mengganti any menjadi unknown
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }

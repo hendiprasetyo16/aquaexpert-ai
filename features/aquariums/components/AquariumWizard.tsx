@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import Image from "next/image"; 
 import { createClient } from "@/lib/supabase/client"; 
 import { useLanguage } from "@/providers/LanguageProvider";
-import { createAquariumAction, updateAquariumAction } from "../actions/aquarium.actions"; // <--- TAMBAH UPDATE ACTION
+import { createAquariumAction, updateAquariumAction } from "../actions/aquarium.actions";
 import { CreateAquariumInput, Aquarium } from "../types/aquarium.types";
 import { createAquariumSchema } from "../validations/aquarium.schema";
+// Hapus import z from "zod" karena kita tidak memerlukannya lagi untuk pengecekan
 import { 
   TANK_TYPES, SUBSTRATE_TYPES, FILTER_TYPES, 
   LIGHT_TYPES, CO2_TYPES, FERTILIZER_TYPES 
@@ -25,7 +26,6 @@ import {
   getFilterDesc, getLightDesc, getCO2Desc, getFertilizerDesc 
 } from "./aquarium-helpers";
 
-// TAMBAHKAN PROPS UNTUK MODE EDIT
 interface AquariumWizardProps {
   mode?: "create" | "edit";
   initialData?: Aquarium | null;
@@ -36,8 +36,8 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
   const router = useRouter();
   const lang = language as "id" | "en";
   
-  const safeDict = dict as Record<string, any>;
-  const aqDict = safeDict?.aquarium as AquariumDictionary | undefined;
+  const dictRoot = dict as { aquarium?: AquariumDictionary };
+  const aqDict = dictRoot?.aquarium;
 
   const wizDict = aqDict?.wizard || {
     step1: lang === 'id' ? "Identitas" : "Identity",
@@ -105,30 +105,29 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
     water_change_percent: 30, water_change_interval_days: 7, fertilizer_type: "None", fertilizer_schedule: ""
   });
 
-  // MENGISI DATA JIKA MODE EDIT
   useEffect(() => {
     if (mode === "edit" && initialData) {
       setFormData({
         name: initialData.name || "",
-        tank_type: initialData.tank_type as any || "Community",
+        tank_type: (initialData.tank_type as CreateAquariumInput["tank_type"]) || "Community",
         setup_date: initialData.setup_date || new Date().toISOString().split('T')[0],
         is_primary: initialData.is_primary || false,
         length_cm: initialData.length_cm || 60,
         width_cm: initialData.width_cm || 30,
         height_cm: initialData.height_cm || 36,
         volume_liters: initialData.volume_liters || 64.8,
-        substrate_type: initialData.substrate_type as any || "Sand",
-        filter_type: initialData.filter_type as any || "Hang on Back (HOB)",
+        substrate_type: (initialData.substrate_type as CreateAquariumInput["substrate_type"]) || "Sand",
+        filter_type: (initialData.filter_type as CreateAquariumInput["filter_type"]) || "Hang on Back (HOB)",
         filter_capacity_lph: initialData.filter_capacity_lph || null,
-        light_type: initialData.light_type as any || "White LED",
+        light_type: (initialData.light_type as CreateAquariumInput["light_type"]) || "White LED",
         light_wattage: initialData.light_wattage || null,
         photoperiod_hours: initialData.photoperiod_hours || 8,
-        co2_type: initialData.co2_type as any || "None",
+        co2_type: (initialData.co2_type as CreateAquariumInput["co2_type"]) || "None",
         co2_bps: initialData.co2_bps || null,
         heater_enabled: initialData.heater_enabled || false,
         water_change_percent: initialData.water_change_percent || 30,
         water_change_interval_days: initialData.water_change_interval_days || 7,
-        fertilizer_type: initialData.fertilizer_type as any || "None",
+        fertilizer_type: (initialData.fertilizer_type as CreateAquariumInput["fertilizer_type"]) || "None",
         fertilizer_schedule: initialData.fertilizer_schedule || ""
       });
       if (initialData.image_url) {
@@ -167,17 +166,79 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
     }
   };
 
+  const extractErrorMessage = (err: unknown): string | null => {
+    if (!err) return null;
+    
+    // Check if it's an object with an 'errors' array (Zod format)
+    if (typeof err === 'object' && 'errors' in err) {
+      const errObj = err as { errors: unknown };
+      if (Array.isArray(errObj.errors) && errObj.errors.length > 0) {
+        const firstError = errObj.errors[0];
+        // Parse JSON string inside the array if Zod threw a stringified array
+        if (typeof firstError === 'string') {
+           try {
+             const parsed = JSON.parse(firstError);
+             if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].message) {
+               return parsed[0].message;
+             }
+             if (parsed.message) return parsed.message;
+           } catch {
+             return firstError;
+           }
+        }
+        if (firstError && typeof firstError === 'object' && 'message' in firstError) {
+          return String((firstError as { message: unknown }).message);
+        }
+      }
+    }
+    
+    // Check if err itself is a stringified JSON array from Zod
+    if (typeof err === 'string' && err.startsWith('[') && err.includes('"message"')) {
+       try {
+          const parsed = JSON.parse(err);
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].message) {
+             return parsed[0].message;
+          }
+       } catch {}
+    }
+
+    if (err instanceof Error) {
+       // Kadang Zod membungkus JSON di dalam err.message
+       if (err.message.startsWith('[') && err.message.includes('"message"')) {
+         try {
+            const parsed = JSON.parse(err.message);
+            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].message) {
+               return parsed[0].message;
+            }
+         } catch {}
+       }
+       return err.message;
+    }
+
+    return null;
+  };
+
   const handleNextStep = () => {
     try {
       if (step === 1) {
+        if (!formData.name.trim()) {
+           setError(lang === 'id' ? "Nama akuarium wajib diisi!" : "Aquarium name is required!");
+           return;
+        }
         createAquariumSchema.pick({ name: true, setup_date: true, tank_type: true }).parse(formData);
       } else if (step === 2) {
         createAquariumSchema.pick({ length_cm: true, width_cm: true, height_cm: true, volume_liters: true }).parse(formData);
       }
       setError("");
       setStep(s => Math.min(4, s + 1));
-    } catch (err: any) {
-      if (err.errors && err.errors.length > 0) setError(err.errors[0].message);
+    } catch (err: unknown) {
+      // PERBAIKAN PENCEGAHAN JSON MERAH: Ekstrak pesan bersih
+      const cleanError = extractErrorMessage(err);
+      if (cleanError) {
+        setError(cleanError);
+      } else {
+        setError(lang === "id" ? "Input tidak valid. Mohon periksa kembali form Anda." : "Invalid input. Please check your form.");
+      }
     }
   };
 
@@ -204,7 +265,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
 
       const payloadToSave = { ...formData, image_url: finalImageUrl };
       
-      // PERCABANGAN CREATE ATAU UPDATE
       let res;
       if (mode === "edit" && initialData) {
         res = await updateAquariumAction(initialData.id, payloadToSave);
@@ -222,11 +282,13 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
         setError(res.error || "Failed to save aquarium");
         setLoading(false);
       }
-    } catch (err: any) {
-      if (err.errors && err.errors.length > 0) {
-        setError(err.errors[0].message);
+    } catch (err: unknown) {
+      // PERBAIKAN PENCEGAHAN JSON MERAH: Ekstrak pesan bersih
+      const cleanError = extractErrorMessage(err);
+      if (cleanError) {
+        setError(cleanError);
       } else {
-        setError(err.message || "Validation failed. Please check your inputs.");
+        setError("Validation failed. Please check your inputs.");
       }
       setLoading(false);
     }
@@ -475,13 +537,12 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
 
         </div>
 
-        <div className="p-4 md:p-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-b-2xl flex items-center justify-between">
+        <div className="p-4 md:p-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-b-2xl flex items-center justify-between transition-colors">
           <Button 
             type="button"
             variant="outline" 
             onClick={() => {
               if (step === 1) {
-                // KEMBALI KE HALAMAN SEBELUMNYA ATAU DASHBOARD
                 if (mode === "edit" && initialData) {
                    router.push(`/dashboard/my-aquarium/${initialData.id}`);
                 } else {
@@ -493,21 +554,21 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
               }
             }}
             disabled={loading}
-            className="font-bold border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+            className="h-12 px-6 rounded-xl font-bold border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm"
           >
             {step === 1 ? (
-              <><X className="w-4 h-4 mr-1" /> {wizDict.btnCancel || (lang === 'id' ? "Batal" : "Cancel")}</>
+              <><X className="w-4 h-4 mr-2" /> {wizDict.btnCancel || (lang === 'id' ? "Batal" : "Cancel")}</>
             ) : (
-              <><ChevronLeft className="w-4 h-4 mr-1" /> {wizDict.btnPrev}</>
+              <><ChevronLeft className="w-4 h-4 mr-2" /> {wizDict.btnPrev}</>
             )}
           </Button>
 
           {step < 4 ? (
-            <Button onClick={handleNextStep} className="bg-teal-600 hover:bg-teal-500 text-white font-bold">
-              {wizDict.btnNext} <ChevronRight className="w-4 h-4 ml-1" />
+            <Button onClick={handleNextStep} className="bg-teal-600 hover:bg-teal-500 text-white font-bold h-12 px-8 rounded-xl shadow-md shadow-teal-600/20 transition-all">
+              {wizDict.btnNext} <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={loading} className="bg-teal-600 hover:bg-teal-500 text-white font-bold px-8 shadow-lg shadow-teal-600/20 transition-all active:scale-95">
+            <Button onClick={handleSubmit} disabled={loading} className="bg-teal-600 hover:bg-teal-500 text-white font-bold h-12 px-8 rounded-xl shadow-lg shadow-teal-600/30 transition-all active:scale-95">
               {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
               {mode === "edit" ? (lang === 'id' ? "Perbarui" : "Update") : wizDict.btnSave}
             </Button>

@@ -19,7 +19,10 @@ export default function AquariumDashboard() {
   
   const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
 
-  const aqDict: AquariumDictionary = (dict as any)?.aquarium || {
+  // REFAKTOR: Menghindari penggunaan as any saat memanggil dictionary. 
+  // Kita casting dict root-nya menjadi struktur yang memiliki properti aquarium
+  const dictRoot = dict as { aquarium?: AquariumDictionary };
+  const aqDict: AquariumDictionary = dictRoot?.aquarium || {
     dashboard: {
       title: language === 'id' ? "Akuarium Saya" : "My Aquariums",
       subtitle: language === 'id' ? "Kelola profil tangki Anda untuk integrasi AI." : "Manage your tank profiles for AI integration.",
@@ -48,8 +51,9 @@ export default function AquariumDashboard() {
         } else {
           setError(res.error || "Failed to load aquariums");
         }
-      } catch (err: any) {
-        setError(err.message);
+      // REFAKTOR: Mengganti catch (err: any) menjadi catch (err: unknown)
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Terjadi kesalahan sistem");
       } finally {
         setLoading(false);
       }
