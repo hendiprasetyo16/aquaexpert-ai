@@ -49,8 +49,15 @@ function LoginFormContent() {
       }
       await new Promise((resolve) => setTimeout(resolve, 300));
       window.location.replace("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "Login gagal");
+      
+    // REFAKTOR: Menghapus 'any' diganti menjadi 'unknown'
+    } catch (err: unknown) {
+      // Pengecekan aman (Type Guarding)
+      if (err instanceof Error) {
+         setError(err.message);
+      } else {
+         setError("Login gagal karena kesalahan yang tidak diketahui");
+      }
     } finally {
       setLoading(false);
     }
