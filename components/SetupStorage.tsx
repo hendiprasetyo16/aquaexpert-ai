@@ -11,15 +11,36 @@ const ADMIN_SECRET = "aquaexpert-sinkron-2024";
 
 type ActionType = "plant_folder" | "plant_sync" | "algae_sync" | "aquarium_folder" | "aquarium_sync" | "db_backup" | "db_restore" | null;
 
+interface ControlPanelDict {
+  warningTitle?: string;
+  warningDesc?: string;
+  setupFolder?: string;
+  syncImages?: string;
+  disasterRecovery?: string;
+  disasterHint?: string;
+  backupDB?: string;
+  restoreDB?: string;
+  confirmFolder?: string;
+  confirmSync?: string;
+  confirmBackup?: string;
+  confirmRestore?: string;
+  confirmModal?: {
+    title?: string;
+    cancel?: string;
+    proceed?: string;
+    processing?: string;
+  };
+}
+
 export default function SetupStorage() {
   const [loading, setLoading] = useState(false);
   const [actionModal, setActionModal] = useState<ActionType>(null);
   const { dict, language } = useLanguage();
   const lang = language as "id" | "en";
 
-  const cpDict = (dict as any)?.controlPanel || {};
+  const dictRoot = dict as { controlPanel?: ControlPanelDict };
+  const cpDict: ControlPanelDict = dictRoot?.controlPanel || {};
 
-  // Teks Hint Khusus Sinkronisasi (Pesan dari Bapak)
   const syncWarningText = lang === 'id' 
     ? "*Gunakan fitur ini HANYA jika Anda baru saja mengunggah gambar secara manual ke Supabase Storage. Sistem akan menghubungkan gambar tersebut ke database secara otomatis."
     : "*Only use this feature if you just manually uploaded images to Supabase Storage. The system will automatically link them to the database.";
@@ -31,7 +52,7 @@ export default function SetupStorage() {
     try {
       let endpoint = "";
       let method = "GET";
-      let body = undefined;
+      let body: string | undefined = undefined;
 
       switch (actionModal) {
         case "plant_folder": endpoint = "/api/plants/create-folders"; break;
@@ -57,7 +78,10 @@ export default function SetupStorage() {
       } else {
         toast.error("Error: " + data.error);
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+         console.error("Setup Action Error:", error.message);
+      }
       toast.error("Terjadi kesalahan jaringan atau server.");
     } finally {
       setLoading(false);
@@ -90,7 +114,6 @@ export default function SetupStorage() {
         </div>
       </div>
 
-      {/* PERBAIKAN GRID: Menjadi 3 Kolom di layar besar (lg:grid-cols-3) */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         
         {/* KARTU 1: MANAJEMEN TANAMAN */}
@@ -102,18 +125,31 @@ export default function SetupStorage() {
             <h3 className="font-bold text-slate-800 dark:text-slate-100">{lang === 'id' ? "Sistem Tanaman" : "Plant System"}</h3>
           </div>
           <div className="p-5 space-y-4 flex-1 flex flex-col">
-            <button onClick={() => setActionModal("plant_folder")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 hover:border-slate-300 disabled:opacity-50 transition-all">
-              <span className="flex items-center gap-2">
-                <FolderPlus className="h-4 w-4 text-slate-400" />
+            
+            {/* PERBAIKAN: Tombol Setup Folder */}
+            <button 
+              onClick={() => setActionModal("plant_folder")} 
+              disabled={loading} 
+              className="group flex w-full items-center justify-between rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 hover:border-slate-400 dark:hover:bg-slate-700 dark:hover:border-slate-500 disabled:opacity-50 transition-all cursor-pointer"
+            >
+              <span className="flex items-center gap-2 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                <FolderPlus className="h-4 w-4 text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200" />
                 {cpDict.setupFolder || (lang === 'id' ? "Setup Folder Storage" : "Setup Storage Folders")}
               </span>
             </button>
+
             <div className="pt-2 mt-auto">
               <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 italic leading-relaxed text-justify">
                 {syncWarningText}
               </div>
-              <button onClick={() => setActionModal("plant_sync")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 hover:border-emerald-300 disabled:opacity-50 transition-all">
-                <span className="flex items-center gap-2">
+              
+              {/* PERBAIKAN: Tombol Sync */}
+              <button 
+                onClick={() => setActionModal("plant_sync")} 
+                disabled={loading} 
+                className="group flex w-full items-center justify-between rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/40 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 hover:border-emerald-400 dark:hover:bg-emerald-800 dark:hover:border-emerald-500 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                <span className="flex items-center gap-2 group-hover:text-emerald-900 dark:group-hover:text-emerald-100 transition-colors">
                   <RefreshCw className="h-4 w-4" />
                   {cpDict.syncImages || (lang === 'id' ? "Sinkronisasi Gambar" : "Sync Images")}
                 </span>
@@ -131,23 +167,39 @@ export default function SetupStorage() {
             <h3 className="font-bold text-slate-800 dark:text-slate-100">{lang === 'id' ? "Sistem Akuarium" : "Aquarium System"}</h3>
           </div>
           <div className="p-5 space-y-4 flex-1 flex flex-col">
-            <button onClick={() => setActionModal("aquarium_folder")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 hover:border-slate-300 disabled:opacity-50 transition-all">
-              <span className="flex items-center gap-2">
-                <FolderPlus className="h-4 w-4 text-slate-400" />
+            
+            {/* PERBAIKAN: Tombol Setup Folder */}
+            <button 
+              onClick={() => setActionModal("aquarium_folder")} 
+              disabled={loading} 
+              className="group flex w-full items-center justify-between rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 hover:border-slate-400 dark:hover:bg-slate-700 dark:hover:border-slate-500 disabled:opacity-50 transition-all cursor-pointer"
+            >
+              <span className="flex items-center gap-2 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                <FolderPlus className="h-4 w-4 text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200" />
                 {cpDict.setupFolder || (lang === 'id' ? "Setup Folder Storage" : "Setup Storage Folders")}
               </span>
             </button>
+
             <div className="pt-2 mt-auto space-y-3">
-              <button onClick={() => setActionModal("aquarium_sync")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-teal-200 dark:border-teal-800/50 bg-teal-50 dark:bg-teal-900/20 px-4 py-3 text-sm font-medium text-teal-700 dark:text-teal-400 hover:bg-teal-100 hover:border-teal-300 disabled:opacity-50 transition-all">
-                <span className="flex items-center gap-2">
+              {/* PERBAIKAN: Tombol Sync */}
+              <button 
+                onClick={() => setActionModal("aquarium_sync")} 
+                disabled={loading} 
+                className="group flex w-full items-center justify-between rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-900/40 px-4 py-3 text-sm font-medium text-teal-700 dark:text-teal-300 hover:bg-teal-100 hover:border-teal-400 dark:hover:bg-teal-800 dark:hover:border-teal-500 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                <span className="flex items-center gap-2 group-hover:text-teal-900 dark:group-hover:text-teal-100 transition-colors">
                   <RefreshCw className="h-4 w-4" />
                   {cpDict.syncImages || (lang === 'id' ? "Validasi Storage" : "Validate Storage")}
                 </span>
               </button>
               
               <Link href="/dashboard/admin-panel/aquariums" className="block">
-                <button disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-indigo-200 dark:border-indigo-800/50 bg-indigo-50 dark:bg-indigo-900/20 px-4 py-3 text-sm font-bold text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 hover:border-indigo-300 transition-all">
-                  <span className="flex items-center gap-2">
+                {/* PERBAIKAN: Tombol View All */}
+                <button 
+                  disabled={loading} 
+                  className="group flex w-full items-center justify-between rounded-lg border border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/40 px-4 py-3 text-sm font-bold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 hover:border-indigo-400 dark:hover:bg-indigo-800 dark:hover:border-indigo-500 transition-all cursor-pointer"
+                >
+                  <span className="flex items-center gap-2 group-hover:text-indigo-900 dark:group-hover:text-indigo-100 transition-colors">
                     <Eye className="h-4 w-4" />
                     {lang === 'id' ? "Lihat Semua Akuarium" : "View All Aquariums"}
                   </span>
@@ -173,8 +225,14 @@ export default function SetupStorage() {
               <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 italic leading-relaxed text-justify">
                 {syncWarningText}
               </div>
-              <button onClick={() => setActionModal("algae_sync")} disabled={loading} className="flex w-full items-center justify-between rounded-lg border border-teal-200 dark:border-teal-800/50 bg-teal-50 dark:bg-teal-900/20 px-4 py-3 text-sm font-medium text-teal-700 dark:text-teal-400 hover:bg-teal-100 hover:border-teal-300 disabled:opacity-50 transition-all">
-                <span className="flex items-center gap-2">
+              
+              {/* PERBAIKAN: Tombol Sync */}
+              <button 
+                onClick={() => setActionModal("algae_sync")} 
+                disabled={loading} 
+                className="group flex w-full items-center justify-between rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-900/40 px-4 py-3 text-sm font-medium text-teal-700 dark:text-teal-300 hover:bg-teal-100 hover:border-teal-400 dark:hover:bg-teal-800 dark:hover:border-teal-500 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                <span className="flex items-center gap-2 group-hover:text-teal-900 dark:group-hover:text-teal-100 transition-colors">
                   <RefreshCw className="h-4 w-4" />
                   {cpDict.syncImages || (lang === 'id' ? "Sinkronisasi Gambar" : "Sync Images")}
                 </span>
@@ -183,7 +241,7 @@ export default function SetupStorage() {
           </div>
         </div>
 
-        {/* KARTU 4: DISASTER RECOVERY (Membentang Penuh di Baris Bawah) */}
+        {/* KARTU 4: DISASTER RECOVERY */}
         <div className="lg:col-span-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col mt-4">
           <div className="bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
             <div className="bg-slate-200 dark:bg-slate-700 p-2 rounded-lg text-slate-700 dark:text-slate-300">
@@ -196,11 +254,26 @@ export default function SetupStorage() {
               {cpDict.disasterHint || (lang === 'id' ? "ℹ️ File Backup (JSON) disimpan otomatis di Storage Supabase. Fitur Restore akan menimpa seluruh isi database saat ini secara permanen." : "ℹ️ Backup files (JSON) are auto-saved. Restore will overwrite the current database.")}
             </div>
             <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
-              <button onClick={() => setActionModal("db_backup")} disabled={loading} className="flex-1 sm:flex-none items-center justify-center rounded-lg border border-sky-200 dark:border-sky-800/50 bg-sky-50 dark:bg-sky-900/20 px-6 py-3 text-sm font-bold text-sky-700 dark:text-sky-400 hover:bg-sky-100 hover:border-sky-300 disabled:opacity-50 transition-all flex gap-2">
-                <Database className="h-4 w-4" /> {cpDict.backupDB || "Backup Database"}
+              {/* PERBAIKAN: Tombol Backup */}
+              <button 
+                onClick={() => setActionModal("db_backup")} 
+                disabled={loading} 
+                className="group flex-1 sm:flex-none items-center justify-center rounded-lg border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-900/40 px-6 py-3 text-sm font-bold text-sky-700 dark:text-sky-300 hover:bg-sky-100 hover:border-sky-400 dark:hover:bg-sky-800 dark:hover:border-sky-500 disabled:opacity-50 transition-all flex gap-2 cursor-pointer"
+              >
+                <span className="flex items-center gap-2 group-hover:text-sky-900 dark:group-hover:text-sky-100 transition-colors">
+                  <Database className="h-4 w-4" /> {cpDict.backupDB || "Backup Database"}
+                </span>
               </button>
-              <button onClick={() => setActionModal("db_restore")} disabled={loading} className="flex-1 sm:flex-none items-center justify-center rounded-lg border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 px-6 py-3 text-sm font-bold text-red-700 dark:text-red-400 hover:bg-red-100 hover:border-red-300 disabled:opacity-50 transition-all flex gap-2">
-                <HardDriveDownload className="h-4 w-4" /> {cpDict.restoreDB || "Restore Database"}
+              
+              {/* PERBAIKAN: Tombol Restore */}
+              <button 
+                onClick={() => setActionModal("db_restore")} 
+                disabled={loading} 
+                className="group flex-1 sm:flex-none items-center justify-center rounded-lg border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/40 px-6 py-3 text-sm font-bold text-red-700 dark:text-red-300 hover:bg-red-100 hover:border-red-400 dark:hover:bg-red-800 dark:hover:border-red-500 disabled:opacity-50 transition-all flex gap-2 cursor-pointer"
+              >
+                <span className="flex items-center gap-2 group-hover:text-red-900 dark:group-hover:text-red-100 transition-colors">
+                  <HardDriveDownload className="h-4 w-4" /> {cpDict.restoreDB || "Restore Database"}
+                </span>
               </button>
             </div>
           </div>
