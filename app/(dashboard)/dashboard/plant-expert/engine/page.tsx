@@ -21,6 +21,10 @@ const SESSION_KEY = "aquaexpert_plant_inference_v4";
 const ITEMS_PAGE_1 = 11; 
 const ITEMS_PAGE_N = 10; 
 
+type ExperienceLevel = "Pemula" | "Menengah" | "Mahir";
+type LightLevel = "Low" | "Medium" | "High";
+type MaintenanceLevel = "Low" | "Medium" | "High";
+
 export default function PlantExpertEngineV4() {
   const { dict, language } = useLanguage(); 
   const [plants, setPlants] = useState<Plant[]>([]);
@@ -28,11 +32,11 @@ export default function PlantExpertEngineV4() {
   const [results, setResults] = useState<RecommendedPlant[] | null>(null);
 
   // USER INPUT STATES
-  const [experience, setExperience] = useState<"Pemula" | "Menengah" | "Mahir">("Pemula");
+  const [experience, setExperience] = useState<ExperienceLevel>("Pemula");
   const [tankSize, setTankSize] = useState("Medium");
   const [co2, setCo2] = useState("Tanpa CO2");
-  const [light, setLight] = useState<"Low" | "Medium" | "High">("Low");
-  const [maintenance, setMaintenance] = useState<"Low" | "Medium" | "High">("Low");
+  const [light, setLight] = useState<LightLevel>("Low");
+  const [maintenance, setMaintenance] = useState<MaintenanceLevel>("Low");
   const [style, setStyle] = useState("Bebas");
   const [shrimpTank, setShrimpTank] = useState(false);
   const [wantCarpet, setWantCarpet] = useState(false);
@@ -56,18 +60,18 @@ export default function PlantExpertEngineV4() {
     loadKnowledgeBase();
   }, []);
 
-  // LOAD SESSION STORAGE (AGAR HASIL TIDAK HILANG SAAT KEMBALI)
+  // LOAD SESSION STORAGE
   useEffect(() => {
     const savedSession = sessionStorage.getItem(SESSION_KEY);
     if (savedSession) {
       try {
         const parsed = JSON.parse(savedSession);
         if (parsed.answers) {
-          setExperience(parsed.answers.experience);
+          setExperience(parsed.answers.experience as ExperienceLevel);
           setTankSize(parsed.answers.tankSize);
           setCo2(parsed.answers.hasCO2 ? "Tinggi (Injeksi)" : "Tanpa CO2");
-          setLight(parsed.answers.light);
-          setMaintenance(parsed.answers.maintenance);
+          setLight(parsed.answers.light as LightLevel);
+          setMaintenance(parsed.answers.maintenance as MaintenanceLevel);
           setStyle(parsed.answers.style);
           setShrimpTank(parsed.answers.shrimpTank);
           setWantCarpet(parsed.answers.wantCarpet);
@@ -99,11 +103,13 @@ export default function PlantExpertEngineV4() {
     }
   }, [currentPage, results]);
 
-  // HITUNG ULANG JIKA BAHASA BERUBAH (DAN HASIL SUDAH ADA)
+  // HITUNG ULANG JIKA BAHASA BERUBAH
   useEffect(() => {
-    if (results !== null && plants.length > 0) {
+    if (results !== null && plants.length > 0 && dict.expertEngine) {
       const answers: UserAnswers = { experience, tankSize, hasCO2: co2 === "Tinggi (Injeksi)", light, maintenance, style, shrimpTank, wantCarpet, wantRedPlant };
-      const aiResults = generateRecommendations(plants, answers, dict.expertEngine);
+      
+      // SOLUSI ERROR ARGUMEN: Menambahkan dict.expertEngine sebagai argumen ke-3
+      const aiResults = generateRecommendations(plants, answers, dict.expertEngine as any); 
       setResults(aiResults);
       
       const savedSession = sessionStorage.getItem(SESSION_KEY);
@@ -119,6 +125,7 @@ export default function PlantExpertEngineV4() {
   }, [language, dict.expertEngine, plants.length]); 
 
   const runInferenceEngine = () => {
+    if (!dict.expertEngine) return;
     setLoading(true);
     setCurrentPage(1); 
     
@@ -126,7 +133,8 @@ export default function PlantExpertEngineV4() {
       experience, tankSize, hasCO2: co2 === "Tinggi (Injeksi)", light, maintenance, style, shrimpTank, wantCarpet, wantRedPlant
     };
 
-    const aiResults = generateRecommendations(plants, answers, dict.expertEngine);
+    // SOLUSI ERROR ARGUMEN: Menambahkan dict.expertEngine sebagai argumen ke-3
+    const aiResults = generateRecommendations(plants, answers, dict.expertEngine as any);
 
     sessionStorage.setItem(SESSION_KEY, JSON.stringify({ 
       answers, 
@@ -150,6 +158,7 @@ export default function PlantExpertEngineV4() {
   };
 
   const getConfidenceLabel = (key: string) => {
+    if (!dict.expertEngine) return key;
     switch (key) {
       case "Excellent": return dict.expertEngine.confExcellent;
       case "VeryGood": return dict.expertEngine.confVeryGood;
@@ -194,6 +203,8 @@ export default function PlantExpertEngineV4() {
   const pageNumbers = [];
   for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
+  if (!dict.expertEngine) return null; // Safety check for dictionary loading
+
   return (
     <div className="w-full h-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10">
       <div className="max-w-[1400px] mx-auto space-y-8 pb-10 text-slate-900 dark:text-slate-100">
@@ -218,7 +229,7 @@ export default function PlantExpertEngineV4() {
               <div className="space-y-5">
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.expertEngine.q1}</Label>
-                  <select value={experience} onChange={(e) => setExperience(e.target.value as any)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
+                  <select value={experience} onChange={(e) => setExperience(e.target.value as ExperienceLevel)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
                     <option value="Pemula">{dict.expertEngine.q1Opt1}</option>
                     <option value="Menengah">{dict.expertEngine.q1Opt2}</option>
                     <option value="Mahir">{dict.expertEngine.q1Opt3}</option>
@@ -247,7 +258,7 @@ export default function PlantExpertEngineV4() {
 
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.expertEngine.q4}</Label>
-                  <select value={light} onChange={(e) => setLight(e.target.value as any)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
+                  <select value={light} onChange={(e) => setLight(e.target.value as LightLevel)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
                     <option value="Low">{dict.expertEngine.q4Opt1}</option>
                     <option value="Medium">{dict.expertEngine.q4Opt2}</option>
                     <option value="High">{dict.expertEngine.q4Opt3}</option>
@@ -256,7 +267,7 @@ export default function PlantExpertEngineV4() {
 
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.expertEngine.q5}</Label>
-                  <select value={maintenance} onChange={(e) => setMaintenance(e.target.value as any)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
+                  <select value={maintenance} onChange={(e) => setMaintenance(e.target.value as MaintenanceLevel)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
                     <option value="Low">{dict.expertEngine.q5Opt1}</option>
                     <option value="Medium">{dict.expertEngine.q5Opt2}</option>
                     <option value="High">{dict.expertEngine.q5Opt3}</option>
@@ -331,31 +342,22 @@ export default function PlantExpertEngineV4() {
                     const globalIndex = startIndex + index;
                     const isTopMatch = globalIndex === 0;
 
-                    // ==========================================
-                    // DESAIN COMPACT & PREMIUM UNTUK JUARA 1
-                    // ==========================================
+                    // SOLUSI ERROR PROPERTI: Menggunakan matchConfidenceKey
+                    const confidenceKey = plant.matchConfidenceKey || "Moderate";
+
                     if (isTopMatch) {
                       return (
                         <div key={plant.id} className="lg:col-span-2 relative rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border-2 border-teal-500 shadow-xl shadow-teal-500/10 mb-2 flex flex-col">
-                          
-                          {/* Banner Juara */}
                           <div className="bg-gradient-to-r from-teal-600 to-emerald-500 px-5 py-2.5 text-white font-black flex items-center gap-2 text-sm tracking-widest uppercase shadow-sm z-10 relative">
                             <Trophy className="h-5 w-5 text-amber-300" /> {dict.expertEngine.bestMatch}
                           </div>
-
                           <div className="flex flex-col lg:flex-row items-stretch flex-1">
-                            
-                            {/* KIRI - Gambar & Kartu Tanaman */}
                             <div className="p-4 lg:p-5 flex items-start justify-center border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30 lg:w-[320px] shrink-0">
                               <div className="w-full max-w-[280px] lg:max-w-none">
                                 <PlantCard plant={plant} />
                               </div>
                             </div>
-
-                            {/* KANAN - Laporan Analisis Padat & Rapi */}
                             <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 p-4 lg:p-5">
-                              
-                              {/* PERBAIKAN BUG HP: flex-wrap dan max-w-full pada container badge */}
                               <div className="flex flex-col items-start gap-3 pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
                                 <div>
                                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{dict.expertEngine.confidence}</p>
@@ -363,19 +365,17 @@ export default function PlantExpertEngineV4() {
                                     {language === "id" ? "Laporan Kecocokan AI" : "AI Match Report"}
                                   </h4>
                                 </div>
-                                <div className={`inline-flex max-w-full flex-wrap items-center px-3 py-2 rounded-lg border ${getConfidenceColor(plant.matchConfidenceKey)} shadow-sm`}>
+                                <div className={`inline-flex max-w-full flex-wrap items-center px-3 py-2 rounded-lg border ${getConfidenceColor(confidenceKey)} shadow-sm`}>
                                   <div className="flex items-center shrink-0 whitespace-nowrap">
                                     <Target className="w-4 h-4 mr-1.5" />
                                     <span className="font-black text-sm">{plant.matchScore} {dict.expertEngine.points}</span>
                                     <span className="mx-2 opacity-40">|</span>
                                   </div>
-                                  <span className="font-bold text-xs uppercase tracking-wide leading-tight">{getConfidenceLabel(plant.matchConfidenceKey)}</span>
+                                  <span className="font-bold text-xs uppercase tracking-wide leading-tight">{getConfidenceLabel(confidenceKey)}</span>
                                 </div>
                               </div>
-
-                              {/* Daftar Alasan */}
                               <div className="flex-1">
-                                {plant.matchReasons.length > 0 ? (
+                                {plant.matchReasons && plant.matchReasons.length > 0 ? (
                                   <div className="grid gap-2.5 sm:grid-cols-1">
                                     {plant.matchReasons.map((reason, i) => (
                                       <div key={i} className="flex items-start bg-slate-50 dark:bg-slate-950/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800/60 transition-colors">
@@ -392,44 +392,32 @@ export default function PlantExpertEngineV4() {
                                   <p className="text-sm text-slate-500 italic p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-800">{dict.expertEngine.defaultReason}</p>
                                 )}
                               </div>
-
                             </div>
                           </div>
                         </div>
                       );
                     }
 
-                    // ==========================================
-                    // DESAIN REGULER UNTUK RANKING LAINNYA
-                    // ==========================================
                     return (
-                      <div 
-                        key={plant.id} 
-                        className="relative rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col"
-                      >
+                      <div key={plant.id} className="relative rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col">
                         <div className="absolute top-0 left-0 z-20 w-8 h-8 bg-slate-800 text-white rounded-br-xl flex items-center justify-center font-black shadow-sm text-xs">
                           {globalIndex + 1}
                         </div>
-
                         <div className="p-4 flex justify-center bg-slate-50/50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800">
                            <div className="w-full max-w-[280px]">
                              <PlantCard plant={plant} />
                            </div>
                         </div>
-                        
                         <div className="p-5 flex-1 flex flex-col">
                           <div className="flex flex-col items-start gap-2 mb-4">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{dict.expertEngine.confidence}</span>
-                            
-                            {/* PERBAIKAN BUG HP UNTUK CARD KECIL: flex-wrap dan max-w-full */}
-                            <div className={`inline-flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] font-bold px-2.5 py-1.5 rounded-md border ${getConfidenceColor(plant.matchConfidenceKey)}`}>
+                            <div className={`inline-flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] font-bold px-2.5 py-1.5 rounded-md border ${getConfidenceColor(confidenceKey)}`}>
                               <span className="whitespace-nowrap">{plant.matchScore} {dict.expertEngine.points}</span>
                               <span className="opacity-40">•</span>
-                              <span className="leading-tight break-words">{getConfidenceLabel(plant.matchConfidenceKey)}</span>
+                              <span className="leading-tight break-words">{getConfidenceLabel(confidenceKey)}</span>
                             </div>
                           </div>
-
-                          {plant.matchReasons.length > 0 ? (
+                          {plant.matchReasons && plant.matchReasons.length > 0 ? (
                             <ul className="space-y-2 border-l-2 border-teal-500/40 pl-3 py-1 flex-1">
                               {plant.matchReasons.map((reason, i) => (
                                 <li key={i} className="text-[12px] sm:text-[13px] text-slate-600 dark:text-slate-300 leading-snug flex items-start">
@@ -447,7 +435,7 @@ export default function PlantExpertEngineV4() {
                   })}
                 </div>
                 
-                {/* PRODUCTION GRADE RESPONSIVE PAGINATION */}
+                {/* PAGINATION */}
                 {totalPages > 1 && (
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between border-t border-slate-200 dark:border-slate-800 pt-5 mt-6 gap-4 transition-colors">
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 text-center lg:text-left mb-1 lg:mb-0">
@@ -455,7 +443,6 @@ export default function PlantExpertEngineV4() {
                     </p>
                     
                     <div className="flex flex-col lg:flex-row items-center lg:items-center justify-center lg:justify-end gap-3 w-full lg:w-auto">
-                      
                       <div className="flex flex-wrap lg:flex-nowrap justify-center lg:justify-end gap-1 sm:gap-1.5 w-full lg:w-auto">
                         <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-8 w-8 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
                           <ChevronsLeft className="h-4 w-4" />
@@ -498,7 +485,6 @@ export default function PlantExpertEngineV4() {
                         />
                         <span className="whitespace-nowrap">/ {totalPages}</span>
                       </div>
-
                     </div>
                   </div>
                 )}
