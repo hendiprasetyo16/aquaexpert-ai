@@ -24,8 +24,9 @@ export async function createAlgaeAction(payload: Partial<Algae>) {
 
     revalidatePath("/dashboard/algae");
     return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  // REFAKTOR: Hapus any, ganti unknown + Type Guard
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }
 
@@ -44,8 +45,9 @@ export async function updateAlgaeAction(id: string, payload: Partial<Algae>) {
     revalidatePath("/dashboard/algae");
     revalidatePath(`/dashboard/algae/${id}`);
     return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  // REFAKTOR: Hapus any, ganti unknown + Type Guard
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }
 
@@ -62,8 +64,9 @@ export async function restoreAlgaeAction(id: string) {
     revalidatePath("/dashboard/algae");
     revalidatePath("/dashboard/algae/archive");
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  // REFAKTOR: Hapus any, ganti unknown + Type Guard
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }
 
@@ -89,7 +92,8 @@ export async function hardDeleteAlgaeAction(id: string) {
     revalidatePath("/dashboard/algae");
     revalidatePath("/dashboard/algae/archive");
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  // REFAKTOR: Hapus any, ganti unknown + Type Guard
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }

@@ -79,10 +79,11 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     const { name, value, type } = e.target;
-    let finalValue: any = value;
+    // REFAKTOR 1: Mengganti any menjadi tipe spesifik string | number
+    let finalValue: string | number = value;
     if (type === "number") {
       finalValue = value === "" ? "" : Number(value);
-      if (name === "severity" && finalValue !== "") finalValue = Math.min(5, Math.max(1, finalValue));
+      if (name === "severity" && finalValue !== "") finalValue = Math.min(5, Math.max(1, finalValue as number));
     }
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
   }
@@ -203,9 +204,11 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
       router.push("/dashboard/algae");
       router.refresh();
 
-    } catch (err: any) {
-      setError(err?.message || "Error saving data.");
-      toast.error(err?.message || "Error saving data.");
+    // REFAKTOR 2: Mengganti any menjadi unknown dan menggunakan type guard
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Error saving data.";
+      setError(errorMessage);
+      toast.error(errorMessage);
       if (uploadedImagesToRollback.length > 0) {
         for (const orphanUrl of uploadedImagesToRollback) { await removeAlgaeImage(orphanUrl); }
       }
@@ -213,20 +216,30 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
   }
 
   function triggerArchiveModal() { if (!algae || mode !== "edit") return; setIsArchiveModalOpen(true); }
+  
   async function executeArchive() {
     if (!algae || mode !== "edit") return;
     try { setLoading(true); await deleteAlgae(algae.id); toast.success("Diarsipkan."); router.push("/dashboard/algae"); router.refresh();
-    } catch (error: any) { toast.error("Gagal."); } finally { setLoading(false); setIsArchiveModalOpen(false); }
+    // REFAKTOR 3: Mengganti any menjadi unknown
+    } catch (error: unknown) { 
+      const msg = error instanceof Error ? error.message : "Gagal.";
+      toast.error(msg); 
+    } finally { setLoading(false); setIsArchiveModalOpen(false); }
   }
 
   function triggerHardDeleteModal() { if (!algae) return; setDeleteConfirmText(""); setIsDeleteModalOpen(true); }
+  
   async function executeHardDelete(e: React.FormEvent) {
     e.preventDefault(); if (!algae) return;
     const currentName = language === 'en' && algae.name_en ? algae.name_en : algae.name_id;
     if (deleteConfirmText !== currentName) { toast.error("Nama tidak cocok."); return; }
     try { setLoading(true); const result = await hardDeleteAlgaeAction(algae.id); if (!result.success) throw new Error(result.error);
       toast.success("Dihapus permanen."); router.push("/dashboard/algae"); router.refresh();
-    } catch (error: any) { toast.error("Gagal."); } finally { setLoading(false); setIsDeleteModalOpen(false); }
+    // REFAKTOR 4: Mengganti any menjadi unknown
+    } catch (error: unknown) { 
+      const msg = error instanceof Error ? error.message : "Gagal.";
+      toast.error(msg); 
+    } finally { setLoading(false); setIsDeleteModalOpen(false); }
   }
 
   if (!dict.algaeExpert?.algaeForm) return null; // Safe guard
@@ -398,7 +411,6 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
                 <p className="text-sm text-teal-600/80 dark:text-teal-400/80 mt-1">{formDict.expertEngineHint}</p>
               </div>
               
-              {/* PERBAIKAN: Penambahan Keterangan/Hint per Bagian dan Helper Terjemahan Tag */}
               <div className="space-y-3 pt-2">
                 <div>
                   <Label className="text-teal-700 dark:text-teal-400 font-bold uppercase">{formDict.colors}</Label>

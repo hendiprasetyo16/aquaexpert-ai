@@ -43,7 +43,8 @@ export default function AlgaeArchiveList() {
       if (!result.success) throw new Error(result.error);
       toast.success("Restore success");
       setAlgaeData((prev) => prev.filter((a) => a.id !== algaeToRestore.id));
-    } catch (error: any) { toast.error(error.message); } 
+    // REFAKTOR: Hapus any, ganti unknown + Type Guard
+    } catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Error"); } 
     finally { setProcessingId(null); setAlgaeToRestore(null); }
   }
 
@@ -59,7 +60,8 @@ export default function AlgaeArchiveList() {
       if (!result.success) throw new Error(result.error);
       toast.success("Permanently deleted");
       setAlgaeData((prev) => prev.filter((a) => a.id !== algaeToDelete.id));
-    } catch (error: any) { toast.error(error.message); } 
+    // REFAKTOR: Hapus any, ganti unknown + Type Guard
+    } catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Error"); } 
     finally { setProcessingId(null); setAlgaeToDelete(null); setDeleteConfirmText(""); }
   }
 

@@ -1,3 +1,4 @@
+// components/NotificationBell.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -40,8 +41,12 @@ export default function NotificationBell({ role }: { role: string }) {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "system_activities" },
-        (payload: any) => {
-          const newActivity = payload.new as Activity;
+        // REFAKTOR: Mengubah (payload: any) menjadi (payload: unknown)
+        (payload: unknown) => {
+          // Melakukan type assertion yang aman untuk payload bawaan Supabase
+          const realtimePayload = payload as { new: Activity };
+          const newActivity = realtimePayload.new;
+          
           if (role === "super_admin" || (role === "admin" && newActivity.category === "user_activity")) {
             setActivities((prev) => [newActivity, ...prev.slice(0, 9)]);
             setUnread(true);

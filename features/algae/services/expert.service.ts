@@ -18,7 +18,9 @@ export interface RecommendedAlgae extends Algae {
 export function generateAlgaeDiagnosis(
   algaeList: Algae[],
   answers: UserAnswersAlgae,
-  dict: any,
+  // REFAKTOR: Mengganti any menjadi unknown. 
+  // (Meskipun dict saat ini belum dipakai di dalam fungsi, tipe unknown akan melindunginya dari teguran linter)
+  dict: unknown,
   lang: "id" | "en" = "id"
 ): RecommendedAlgae[] {
   
