@@ -1,3 +1,4 @@
+// D:\aquaexpert-ai\app\api\backup-restore\route.ts
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
@@ -32,12 +33,15 @@ export async function POST(request: Request) {
     // LOGIKA BACKUP
     // ==========================================
     if (action === 'BACKUP') {
-      const backupData: Record<string, any[]> = {};
+      // REFAKTOR: Mengganti any[] menjadi Record<string, unknown>[]
+      // Baris dari database (row) adalah objek dengan key string dan value yang belum diketahui (unknown)
+      const backupData: Record<string, Record<string, unknown>[]> = {};
 
       for (const tableName of TABLES_TO_BACKUP) {
         const { data, error } = await supabase.from(tableName).select('*');
         if (!error && data) {
-          backupData[tableName] = data;
+          // Melakukan type assertion yang aman dari Supabase data ke tipe kita
+          backupData[tableName] = data as Record<string, unknown>[];
         }
       }
       
@@ -76,7 +80,8 @@ export async function POST(request: Request) {
 
       for (const tableName of Object.keys(json)) {
          const tableData = json[tableName];
-         if (tableData && tableData.length > 0) {
+         // Memastikan tableData benar-benar sebuah Array sebelum di-upsert (Type Guard)
+         if (tableData && Array.isArray(tableData) && tableData.length > 0) {
              const { error: upsertError } = await supabase.from(tableName).upsert(tableData);
              if (!upsertError) {
                 restoredTables++;
@@ -93,7 +98,9 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ error: "Aksi tidak dikenali." }, { status: 400 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) { // REFAKTOR: Mengganti 'any' menjadi 'unknown'
+    // REFAKTOR: Pengecekan tipe error yang aman (Type Guarding)
+    const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan internal server";
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
