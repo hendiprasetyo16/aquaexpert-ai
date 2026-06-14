@@ -16,9 +16,8 @@ import {
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
-// IMPORT TAB PARAMETER DAN INVENTORY
 import ParameterTab from "./ParameterTab";
-import InventoryTab from "./InventoryTab"; // <--- TAMBAHAN BARU
+import InventoryTab from "./InventoryTab"; 
 
 import { 
   calculateTankAge, getTankTypeDesc, getSubstrateDesc, 
@@ -92,6 +91,7 @@ export default function AquariumDetail() {
     { id: "ai", label: detailDict.aiDiagnose, icon: ShieldAlert },
   ];
 
+  // Efek ganda: Fetching Data Aquarium & Mengecek Hash URL
   useEffect(() => {
     async function fetchAquarium() {
       if (!aquariumId) return;
@@ -108,8 +108,23 @@ export default function AquariumDetail() {
         setLoading(false);
       }
     }
+
+    // CEK HASH URL UNTUK MENGINGAT TAB (Contoh: localhost:3000/...#flora)
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash.replace("#", "") as TabId;
+      if (["overview", "parameters", "flora", "ai"].includes(hash)) {
+        setActiveTab(hash);
+      }
+    }
+
     fetchAquarium();
   }, [aquariumId]);
+
+  // FUNGSI KLIK TAB BARU (Ubah State + Update URL Hash)
+  const handleTabClick = (tabId: TabId) => {
+    setActiveTab(tabId);
+    window.history.replaceState(null, '', `#${tabId}`);
+  };
 
   const handleArchiveToggle = async () => {
     if (!aquarium) return;
@@ -168,7 +183,7 @@ export default function AquariumDetail() {
   return (
     <div className="w-full pb-24 animate-in fade-in duration-700">
       
-      {/* 1. TOP STATIC NAVIGATION (Aman dari bentrok gambar) */}
+      {/* 1. TOP STATIC NAVIGATION */}
       <div className="w-full bg-transparent px-4 sm:px-8 pt-4 pb-2 max-w-[1400px] mx-auto">
         <Button 
           onClick={() => router.push("/dashboard/my-aquarium")}
@@ -272,13 +287,13 @@ export default function AquariumDetail() {
       {/* 3. MAIN CONTENT */}
       <div className="max-w-[1400px] mx-auto p-4 sm:p-8 mt-4 relative z-20">
         
-        {/* TAB NAVBAR */}
+        {/* TAB NAVBAR (SEKARANG MEMAKAI FUNGSI MENGUBAH URL HASH) */}
         <div className="flex items-center justify-start sm:justify-between bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 mb-6 p-2 overflow-x-auto no-scrollbar">
           <div className="flex gap-2 min-w-max w-full">
             {TABS.map((tab) => (
               <button 
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)} 
+                onClick={() => handleTabClick(tab.id)} 
                 className={`flex items-center justify-center gap-2 flex-1 min-w-[140px] px-4 py-2.5 text-sm font-black rounded-xl transition-all duration-300 ${
                   activeTab === tab.id 
                   ? "bg-teal-600 text-white shadow-md shadow-teal-600/20" 
@@ -386,7 +401,7 @@ export default function AquariumDetail() {
             </div>
           )}
 
-          {/* TAB: FLORA FAUNA (MEMANGGIL KOMPONEN BARU) */}
+          {/* TAB: FLORA FAUNA */}
           {activeTab === "flora" && (
             <div className="animate-in slide-in-from-right-4 duration-500">
               <InventoryTab aquariumId={aquariumId} />
