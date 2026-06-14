@@ -7,6 +7,7 @@ import { getParametersAction, addParameterAction, softDeleteParameterAction, Aqu
 import { Plus, Trash2, Loader2, FlaskConical, Thermometer, Skull, Activity, Droplets, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
+import ParameterCharts from "./ParameterCharts";
 
 interface ParameterTabProps {
   aquariumId: string;
@@ -189,6 +190,13 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
               </Button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* GRAFIK TREN PARAMETER (Ditampilkan jika data >= 2) */}
+      {!loading && parameters.length > 0 && (
+        <div className="animate-in slide-in-from-bottom-4 duration-700">
+          <ParameterCharts data={parameters} />
         </div>
       )}
 

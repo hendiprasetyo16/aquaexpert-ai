@@ -13,7 +13,8 @@ import {
   Star, 
   Container, 
   Wind, 
-  Sun 
+  Sun,
+  Ruler 
 } from "lucide-react";
 
 interface AquariumCardProps {
@@ -37,6 +38,7 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
           : "border border-slate-200 dark:border-slate-800 shadow-sm"
       }`}>
         
+        {/* GAMBAR COVER & OVERLAY HEADER */}
         <div className="relative h-48 w-full bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden">
           {aquarium.image_url ? (
             <Image 
@@ -53,8 +55,9 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
             </div>
           )}
           
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80"></div>
 
+          {/* PRIMARY BADGE */}
           {aquarium.is_primary && (
             <div className="absolute top-3 right-3 bg-teal-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-lg tracking-wider">
               <Star className="w-3 h-3 fill-white" /> 
@@ -62,14 +65,16 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
             </div>
           )}
 
+          {/* INFORMASI TEKS DI ATAS GAMBAR (SUDAH DIBERSIHKAN DARI DIMENSI) */}
           <div className="absolute bottom-3 left-4 right-4 text-white">
-            <h3 className="text-xl font-black leading-tight drop-shadow-md truncate">{aquarium.name}</h3>
-            <p className="text-xs font-medium text-slate-200 drop-shadow flex items-center gap-1.5 mt-1 truncate">
-              {tankType} <span className="opacity-50">•</span> {aquarium.volume_liters}L
+            <h3 className="text-xl font-black leading-tight drop-shadow-md truncate mb-1">{aquarium.name}</h3>
+            <p className="text-xs font-medium text-slate-200 drop-shadow flex items-center gap-1 truncate">
+              {tankType} <span className="opacity-50 text-[10px] mx-0.5">•</span> {aquarium.volume_liters}L
             </p>
           </div>
         </div>
 
+        {/* ISI KARTU BAWAH */}
         <div className="p-4 flex-1 flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
@@ -88,7 +93,13 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
             </div>
           </div>
 
+          {/* AREA TAG/BADGE (DIMENSI, LAMPU, CO2) */}
           <div className="flex flex-wrap gap-1.5 mt-auto">
+            {aquarium.length_cm > 0 && (
+              <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                <Ruler className="w-3 h-3 mr-1" /> {aquarium.length_cm}x{aquarium.width_cm}x{aquarium.height_cm} cm
+              </span>
+            )}
             {aquarium.light_type && aquarium.light_type !== 'None' && (
               <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
                 <Sun className="w-3 h-3 mr-1" /> {aquarium.light_type}
@@ -102,6 +113,7 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
           </div>
         </div>
 
+        {/* FOOTER INVENTORI */}
         <div className="grid grid-cols-2 divide-x divide-slate-100 dark:divide-slate-800 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
           <div className="p-3 flex items-center justify-center gap-2 group-hover:bg-green-50 dark:group-hover:bg-green-900/20 transition-colors">
             <div className="bg-green-100 dark:bg-green-900/50 p-1.5 rounded-full text-green-600 dark:text-green-400">
