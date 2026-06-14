@@ -96,8 +96,10 @@ export async function GET(request: Request) {
       message: `TADAA! 🎉 Berhasil melakukan sinkronisasi URL gambar untuk ${updatedCount} tanaman.` 
     });
 
-  } catch (error: any) {
+  // ... kode perulangan untuk mengambil file public URL ...
+  } catch (error: unknown) {
     console.error("Kesalahan sistem Sync Images:", error);
-    return NextResponse.json({ success: false, error: error.message || "Terjadi kesalahan internal server." }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan internal server.";
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }

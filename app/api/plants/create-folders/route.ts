@@ -86,8 +86,10 @@ export async function GET(request: Request) {
       message: `Selesai! Seluruh ${createdCount} Folder berhasil dibuat tanpa error.` 
     });
 
-  } catch (error: any) {
+  // ... kode deklarasi array plantSlugs Bapak tidak saya ubah ...
+  } catch (error: unknown) {
     console.error("Kesalahan sistem Create Folders:", error);
-    return NextResponse.json({ success: false, error: error.message || "Terjadi kesalahan internal server." }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan internal server.";
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }

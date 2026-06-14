@@ -34,7 +34,9 @@ export async function GET(request: Request) {
       message: `TADAA! 🎉 Storage Akuarium sehat. Sinkronisasi gambar dilakukan secara real-time saat pengguna mengunggahnya.` 
     });
 
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  // REFAKTOR: Mengubah any menjadi unknown
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan verifikasi storage";
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }

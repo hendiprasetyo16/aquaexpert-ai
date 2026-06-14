@@ -87,7 +87,9 @@ export async function GET(request: Request) {
       message: `Berhasil sinkronisasi URL gambar untuk ${updatedCount} alga.` 
     });
 
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  // REFAKTOR: Mengubah any menjadi unknown
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan sistem";
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
