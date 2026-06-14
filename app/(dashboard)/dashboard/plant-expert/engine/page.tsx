@@ -14,7 +14,7 @@ import {
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target
 } from "lucide-react";
 
-import { generateRecommendations, UserAnswers, RecommendedPlant } from "@/features/plants/services/expert.service";
+import { generateRecommendations, UserAnswers, RecommendedPlant, PlantExpertDictionary } from "@/features/plants/services/expert.service";
 import { useLanguage } from "@/providers/LanguageProvider";
 
 const SESSION_KEY = "aquaexpert_plant_inference_v4";
@@ -108,8 +108,8 @@ export default function PlantExpertEngineV4() {
     if (results !== null && plants.length > 0 && dict.expertEngine) {
       const answers: UserAnswers = { experience, tankSize, hasCO2: co2 === "Tinggi (Injeksi)", light, maintenance, style, shrimpTank, wantCarpet, wantRedPlant };
       
-      // SOLUSI ERROR ARGUMEN: Menambahkan dict.expertEngine sebagai argumen ke-3
-      const aiResults = generateRecommendations(plants, answers, dict.expertEngine as any); 
+      // SOLUSI ERROR ARGUMEN: Menambahkan dict.expertEngine secara Type-Safe (Bebas dari 'any')
+      const aiResults = generateRecommendations(plants, answers, dict.expertEngine as unknown as PlantExpertDictionary); 
       setResults(aiResults);
       
       const savedSession = sessionStorage.getItem(SESSION_KEY);
@@ -133,8 +133,8 @@ export default function PlantExpertEngineV4() {
       experience, tankSize, hasCO2: co2 === "Tinggi (Injeksi)", light, maintenance, style, shrimpTank, wantCarpet, wantRedPlant
     };
 
-    // SOLUSI ERROR ARGUMEN: Menambahkan dict.expertEngine sebagai argumen ke-3
-    const aiResults = generateRecommendations(plants, answers, dict.expertEngine as any);
+    // SOLUSI ERROR ARGUMEN: Menambahkan dict.expertEngine secara Type-Safe (Bebas dari 'any')
+    const aiResults = generateRecommendations(plants, answers, dict.expertEngine as unknown as PlantExpertDictionary);
 
     sessionStorage.setItem(SESSION_KEY, JSON.stringify({ 
       answers, 
