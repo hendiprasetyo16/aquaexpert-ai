@@ -1,3 +1,4 @@
+// D:\aquaexpert-ai\app\(dashboard)\dashboard\users\page.tsx
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -68,7 +69,10 @@ export default function UsersPage() {
       toast.success("Success!");
       await loadUsersData(); 
       setRoleChangeData(null); 
-    } catch (error: any) { toast.error(error?.message || "Error"); } finally { setIsSubmitting(false); }
+    // REFAKTOR 1: Hapus any
+    } catch (error: unknown) { 
+      toast.error(error instanceof Error ? error.message : "Error"); 
+    } finally { setIsSubmitting(false); }
   };
 
   const executeToggleStatus = async () => {
@@ -82,7 +86,10 @@ export default function UsersPage() {
       toast.success("Success!");
       await loadUsersData(); 
       setUserToToggle(null);
-    } catch (error: any) { toast.error(error?.message || "Error"); } finally { setIsSubmitting(false); }
+    // REFAKTOR 2: Hapus any
+    } catch (error: unknown) { 
+      toast.error(error instanceof Error ? error.message : "Error"); 
+    } finally { setIsSubmitting(false); }
   };
 
   const executeHardDelete = async (e: React.FormEvent) => {
@@ -98,7 +105,10 @@ export default function UsersPage() {
       toast.success("Success!");
       await loadUsersData(); 
       setUserToDelete(null); setDeleteConfirmText("");
-    } catch (error: any) { toast.error(error?.message || "Error"); } finally { setIsSubmitting(false); }
+    // REFAKTOR 3: Hapus any
+    } catch (error: unknown) { 
+      toast.error(error instanceof Error ? error.message : "Error"); 
+    } finally { setIsSubmitting(false); }
   };
 
   const handleEditProfile = async (e: React.FormEvent) => {
@@ -113,7 +123,10 @@ export default function UsersPage() {
       toast.success("Success!");
       await loadUsersData();
       setIsEditModalOpen(false); 
-    } catch (error: any) { toast.error(error?.message || "Error"); } finally { setIsSubmitting(false); }
+    // REFAKTOR 4: Hapus any
+    } catch (error: unknown) { 
+      toast.error(error instanceof Error ? error.message : "Error"); 
+    } finally { setIsSubmitting(false); }
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -133,7 +146,10 @@ export default function UsersPage() {
         setShowAddPassword(false);
         await loadUsersData(); 
       } else { throw new Error(result.error || "Error"); }
-    } catch (error: any) { toast.error(error?.message || "Error"); } finally { setIsSubmitting(false); }
+    // REFAKTOR 5: Hapus any
+    } catch (error: unknown) { 
+      toast.error(error instanceof Error ? error.message : "Error"); 
+    } finally { setIsSubmitting(false); }
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -147,7 +163,10 @@ export default function UsersPage() {
         toast.success("Success!");
         setIsResetModalOpen(false); setResetPasswordValue(""); setShowResetPassword(false);
       } else { throw new Error(result.error || "Error"); }
-    } catch (error: any) { toast.error(error?.message || "Error"); } finally { setIsSubmitting(false); }
+    // REFAKTOR 6: Hapus any
+    } catch (error: unknown) { 
+      toast.error(error instanceof Error ? error.message : "Error"); 
+    } finally { setIsSubmitting(false); }
   };
 
   const stats = useMemo(() => {
@@ -246,7 +265,8 @@ export default function UsersPage() {
           
           <div className="relative w-full sm:w-40">
             <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as any)} className="w-full appearance-none rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors">
+            {/* REFAKTOR 7: Menggunakan casting explicit as "all" | UserRole ketimbang as any */}
+            <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as "all" | UserRole)} className="w-full appearance-none rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors">
               <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.allRoles}</option>
               <option value="user" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.user}</option>
               {currentUserRole === "super_admin" && (
@@ -257,7 +277,8 @@ export default function UsersPage() {
 
           <div className="relative w-full sm:w-40">
             <Activity className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className="w-full appearance-none rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors">
+            {/* REFAKTOR 8: Menggunakan casting explicit ketimbang as any */}
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")} className="w-full appearance-none rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors">
               <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.accessStatus}</option>
               <option value="active" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.allowed}</option>
               <option value="inactive" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.blocked}</option>
