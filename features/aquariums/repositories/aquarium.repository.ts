@@ -11,7 +11,7 @@ export async function getUserAquariums(supabase: SupabaseClient, userId: string)
       aquarium_fishes(id)
     `)
     .eq("user_id", userId)
-    .eq("is_active", true)
+    // .eq("is_active", true) // <--- HAPUS ATAU KOMENTARI BARIS INI
     .order("is_primary", { ascending: false }) // Primary selalu di atas
     .order("created_at", { ascending: false });
 
