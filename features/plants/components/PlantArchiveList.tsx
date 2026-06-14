@@ -1,3 +1,4 @@
+// features/plants/components/PlantArchiveList.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -28,7 +29,13 @@ export default function PlantArchiveList() {
       setLoading(true);
       const data = await getArchivedPlants();
       setPlants(data);
-    } catch (error) { toast.error("Error"); } finally { setLoading(false); }
+    // REFAKTOR: Mengubah any menjadi unknown
+    } catch (error: unknown) { 
+      // Karena kita hanya memunculkan string statis, kita tidak perlu mengekstrak pesan spesifik
+      toast.error("Error"); 
+    } finally { 
+      setLoading(false); 
+    }
   }
 
   useEffect(() => { loadArchivedData(); }, []);
@@ -41,7 +48,13 @@ export default function PlantArchiveList() {
       if (!result.success) throw new Error(result.error);
       toast.success("Success");
       setPlants((prev) => prev.filter((p) => p.id !== plantToRestore.id));
-    } catch (error: any) { toast.error(error.message); } finally { setProcessingId(null); setPlantToRestore(null); }
+    // REFAKTOR: Mengubah any menjadi unknown, lalu pakai Type Guard
+    } catch (error: unknown) { 
+      toast.error(error instanceof Error ? error.message : "Error"); 
+    } finally { 
+      setProcessingId(null); 
+      setPlantToRestore(null); 
+    }
   }
 
   async function executeHardDelete(e: React.FormEvent) {
@@ -56,7 +69,14 @@ export default function PlantArchiveList() {
       if (!result.success) throw new Error(result.error);
       toast.success("Success");
       setPlants((prev) => prev.filter((p) => p.id !== plantToDelete.id));
-    } catch (error: any) { toast.error(error.message); } finally { setProcessingId(null); setPlantToDelete(null); setDeleteConfirmText(""); }
+    // REFAKTOR: Mengubah any menjadi unknown, lalu pakai Type Guard
+    } catch (error: unknown) { 
+      toast.error(error instanceof Error ? error.message : "Error"); 
+    } finally { 
+      setProcessingId(null); 
+      setPlantToDelete(null); 
+      setDeleteConfirmText(""); 
+    }
   }
 
   return (

@@ -1,3 +1,4 @@
+// features/users/actions/user.actions.ts
 "use server";
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
@@ -112,10 +113,12 @@ export async function updateUserRoleAction(
       success: true,
       message: `Jabatan diubah menjadi ${newRole.toUpperCase()}.`,
     };
-  } catch (error: any) {
+  // REFAKTOR: Mengganti any menjadi unknown dan menggunakan type guard
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Gagal mengubah role pengguna.";
     return {
       success: false,
-      error: error?.message || "Gagal mengubah role pengguna.",
+      error: errorMessage,
     };
   }
 }
@@ -161,10 +164,12 @@ export async function toggleUserStatus(
         ? "Pengguna berhasil diblokir."
         : "Pengguna berhasil diaktifkan.",
     };
-  } catch (error: any) {
+  // REFAKTOR: Mengganti any menjadi unknown dan menggunakan type guard
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Gagal mengubah status pengguna.";
     return {
       success: false,
-      error: error?.message || "Gagal mengubah status pengguna.",
+      error: errorMessage,
     };
   }
 }
@@ -220,10 +225,12 @@ export async function createUser(
       success: true,
       message: "Pengguna berhasil ditambahkan.",
     };
-  } catch (error: any) {
+  // REFAKTOR: Mengganti any menjadi unknown dan menggunakan type guard
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan saat membuat user.";
     return {
       success: false,
-      error: error?.message || "Terjadi kesalahan saat membuat user.",
+      error: errorMessage,
     };
   }
 }
@@ -265,10 +272,12 @@ export async function updateUserProfile(
       success: true,
       message: "Profil berhasil diperbarui.",
     };
-  } catch (error: any) {
+  // REFAKTOR: Mengganti any menjadi unknown dan menggunakan type guard
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Gagal memperbarui profil pengguna.";
     return {
       success: false,
-      error: error?.message || "Gagal memperbarui profil pengguna.",
+      error: errorMessage,
     };
   }
 }
@@ -299,10 +308,12 @@ export async function resetUserPassword(
       success: true,
       message: "Password berhasil di-reset.",
     };
-  } catch (error: any) {
+  // REFAKTOR: Mengganti any menjadi unknown dan menggunakan type guard
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Gagal mereset password.";
     return {
       success: false,
-      error: error?.message || "Gagal mereset password.",
+      error: errorMessage,
     };
   }
 }
@@ -341,10 +352,12 @@ export async function hardDeleteUser(
       success: true,
       message: "Akun pengguna berhasil dihapus secara permanen.",
     };
-  } catch (error: any) {
+  // REFAKTOR: Mengganti any menjadi unknown dan menggunakan type guard
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Gagal menghapus pengguna secara permanen.";
     return {
       success: false,
-      error: error?.message || "Gagal menghapus pengguna secara permanen.",
+      error: errorMessage,
     };
   }
 }

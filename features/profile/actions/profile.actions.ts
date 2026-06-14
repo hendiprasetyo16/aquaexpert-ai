@@ -1,3 +1,4 @@
+// features/profile/actions/profile.actions.ts
 "use server";
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
@@ -79,10 +80,12 @@ export async function updateProfileName(
       success: true,
       message: "Profil berhasil diperbarui.",
     };
-  } catch (error: any) {
+  // REFAKTOR: Mengubah any menjadi unknown dan menggunakan type guard
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Gagal memperbarui profil.";
     return {
       success: false,
-      error: error?.message || "Gagal memperbarui profil.",
+      error: errorMessage,
     };
   }
 }
@@ -113,10 +116,12 @@ export async function updateProfilePassword(
       success: true,
       message: "Kata sandi berhasil diperbarui.",
     };
-  } catch (error: any) {
+  // REFAKTOR: Mengubah any menjadi unknown dan menggunakan type guard
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Gagal memperbarui kata sandi.";
     return {
       success: false,
-      error: error?.message || "Gagal memperbarui kata sandi.",
+      error: errorMessage,
     };
   }
 }
