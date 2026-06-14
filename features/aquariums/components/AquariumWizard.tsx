@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image"; 
 import { createClient } from "@/lib/supabase/client"; 
 import { useLanguage } from "@/providers/LanguageProvider";
-import { createAquariumAction } from "../actions/aquarium.actions";
-import { CreateAquariumInput } from "../types/aquarium.types";
+import { createAquariumAction, updateAquariumAction } from "../actions/aquarium.actions"; // <--- TAMBAH UPDATE ACTION
+import { CreateAquariumInput, Aquarium } from "../types/aquarium.types";
 import { createAquariumSchema } from "../validations/aquarium.schema";
 import { 
   TANK_TYPES, SUBSTRATE_TYPES, FILTER_TYPES, 
@@ -15,22 +15,23 @@ import {
 } from "../constants/aquarium-options";
 import { 
   CheckCircle2, ChevronLeft, ChevronRight, Save, 
-  Ruler, Settings2, Droplets, Info, Loader2, Container, ImagePlus, X // <--- TAMBAH ICON X
+  Ruler, Settings2, Droplets, Info, Loader2, Container, ImagePlus, X 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
 import { 
-  AquariumDictionary, 
-  getTankTypeDesc, 
-  getSubstrateDesc, 
-  getFilterDesc, 
-  getLightDesc, 
-  getCO2Desc, 
-  getFertilizerDesc 
+  AquariumDictionary, getTankTypeDesc, getSubstrateDesc, 
+  getFilterDesc, getLightDesc, getCO2Desc, getFertilizerDesc 
 } from "./aquarium-helpers";
 
-export default function AquariumWizard() {
+// TAMBAHKAN PROPS UNTUK MODE EDIT
+interface AquariumWizardProps {
+  mode?: "create" | "edit";
+  initialData?: Aquarium | null;
+}
+
+export default function AquariumWizard({ mode = "create", initialData }: AquariumWizardProps) {
   const { dict, language } = useLanguage();
   const router = useRouter();
   const lang = language as "id" | "en";
@@ -46,7 +47,7 @@ export default function AquariumWizard() {
     btnNext: lang === 'id' ? "Selanjutnya" : "Next",
     btnPrev: lang === 'id' ? "Kembali" : "Previous",
     btnSave: lang === 'id' ? "Simpan Akuarium" : "Save Aquarium",
-    btnCancel: lang === 'id' ? "Batal" : "Cancel", // <--- TAMBAHAN DICTIONARY BATAL
+    btnCancel: lang === 'id' ? "Batal" : "Cancel", 
     labels: {
       name: lang === 'id' ? "Nama Akuarium" : "Aquarium Name",
       tankType: lang === 'id' ? "Jenis Tema Akuarium" : "Aquascape Style",
@@ -84,7 +85,9 @@ export default function AquariumWizard() {
     }
   };
 
-  const titleAddText = aqDict?.dashboard?.btnAdd || (lang === 'id' ? "Tambah Akuarium" : "Add Aquarium");
+  const titleAddText = mode === "edit" 
+    ? (lang === 'id' ? "Edit Akuarium" : "Edit Aquarium") 
+    : (aqDict?.dashboard?.btnAdd || (lang === 'id' ? "Tambah Akuarium" : "Add Aquarium"));
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -101,6 +104,38 @@ export default function AquariumWizard() {
     co2_type: "None", co2_bps: null, heater_enabled: false,
     water_change_percent: 30, water_change_interval_days: 7, fertilizer_type: "None", fertilizer_schedule: ""
   });
+
+  // MENGISI DATA JIKA MODE EDIT
+  useEffect(() => {
+    if (mode === "edit" && initialData) {
+      setFormData({
+        name: initialData.name || "",
+        tank_type: initialData.tank_type as any || "Community",
+        setup_date: initialData.setup_date || new Date().toISOString().split('T')[0],
+        is_primary: initialData.is_primary || false,
+        length_cm: initialData.length_cm || 60,
+        width_cm: initialData.width_cm || 30,
+        height_cm: initialData.height_cm || 36,
+        volume_liters: initialData.volume_liters || 64.8,
+        substrate_type: initialData.substrate_type as any || "Sand",
+        filter_type: initialData.filter_type as any || "Hang on Back (HOB)",
+        filter_capacity_lph: initialData.filter_capacity_lph || null,
+        light_type: initialData.light_type as any || "White LED",
+        light_wattage: initialData.light_wattage || null,
+        photoperiod_hours: initialData.photoperiod_hours || 8,
+        co2_type: initialData.co2_type as any || "None",
+        co2_bps: initialData.co2_bps || null,
+        heater_enabled: initialData.heater_enabled || false,
+        water_change_percent: initialData.water_change_percent || 30,
+        water_change_interval_days: initialData.water_change_interval_days || 7,
+        fertilizer_type: initialData.fertilizer_type as any || "None",
+        fertilizer_schedule: initialData.fertilizer_schedule || ""
+      });
+      if (initialData.image_url) {
+        setCoverPreview(initialData.image_url);
+      }
+    }
+  }, [mode, initialData]);
 
   useEffect(() => {
     if (formData.length_cm > 0 && formData.width_cm > 0 && formData.height_cm > 0) {
@@ -152,7 +187,7 @@ export default function AquariumWizard() {
       setLoading(true);
       setError("");
 
-      let finalImageUrl = null;
+      let finalImageUrl = mode === "edit" ? initialData?.image_url : null;
       
       if (coverFile) {
         const supabase = createClient();
@@ -168,11 +203,21 @@ export default function AquariumWizard() {
       }
 
       const payloadToSave = { ...formData, image_url: finalImageUrl };
-      const res = await createAquariumAction(payloadToSave);
+      
+      // PERCABANGAN CREATE ATAU UPDATE
+      let res;
+      if (mode === "edit" && initialData) {
+        res = await updateAquariumAction(initialData.id, payloadToSave);
+      } else {
+        res = await createAquariumAction(payloadToSave);
+      }
       
       if (res.success) {
-        toast.success(lang === 'id' ? "Akuarium berhasil ditambahkan!" : "Aquarium added successfully!");
-        router.push("/dashboard/my-aquarium");
+        toast.success(mode === "edit" 
+          ? (lang === 'id' ? "Akuarium diperbarui!" : "Aquarium updated!") 
+          : (lang === 'id' ? "Akuarium ditambahkan!" : "Aquarium added!")
+        );
+        router.push(mode === "edit" ? `/dashboard/my-aquarium/${initialData?.id}` : "/dashboard/my-aquarium");
       } else {
         setError(res.error || "Failed to save aquarium");
         setLoading(false);
@@ -241,7 +286,6 @@ export default function AquariumWizard() {
           {step === 1 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
               
-              {/* UPLOAD FOTO AKUARIUM */}
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Foto Akuarium (Opsional)</label>
                 <input id="cover-image" type="file" accept="image/jpeg, image/png, image/webp" onChange={handleCoverChange} className="hidden" />
@@ -437,13 +481,18 @@ export default function AquariumWizard() {
             variant="outline" 
             onClick={() => {
               if (step === 1) {
-                router.push("/dashboard/my-aquarium"); // <--- LOGIKA BATAL DI STEP 1
+                // KEMBALI KE HALAMAN SEBELUMNYA ATAU DASHBOARD
+                if (mode === "edit" && initialData) {
+                   router.push(`/dashboard/my-aquarium/${initialData.id}`);
+                } else {
+                   router.push("/dashboard/my-aquarium"); 
+                }
               } else {
                 setError(""); 
                 setStep(s => Math.max(1, s - 1));
               }
             }}
-            disabled={loading} // <--- JANGAN DIDISABLE SAAT STEP 1
+            disabled={loading}
             className="font-bold border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
           >
             {step === 1 ? (
@@ -454,25 +503,17 @@ export default function AquariumWizard() {
           </Button>
 
           {step < 4 ? (
-            <Button 
-              onClick={handleNextStep} 
-              className="bg-teal-600 hover:bg-teal-500 text-white font-bold"
-            >
+            <Button onClick={handleNextStep} className="bg-teal-600 hover:bg-teal-500 text-white font-bold">
               {wizDict.btnNext} <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           ) : (
-            <Button 
-              onClick={handleSubmit} 
-              disabled={loading}
-              className="bg-teal-600 hover:bg-teal-500 text-white font-bold px-8 shadow-lg shadow-teal-600/20 transition-all active:scale-95"
-            >
+            <Button onClick={handleSubmit} disabled={loading} className="bg-teal-600 hover:bg-teal-500 text-white font-bold px-8 shadow-lg shadow-teal-600/20 transition-all active:scale-95">
               {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
-              {wizDict.btnSave}
+              {mode === "edit" ? (lang === 'id' ? "Perbarui" : "Update") : wizDict.btnSave}
             </Button>
           )}
         </div>
       </div>
-
     </div>
   );
 }

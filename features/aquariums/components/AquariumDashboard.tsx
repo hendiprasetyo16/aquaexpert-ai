@@ -8,7 +8,7 @@ import { getUserAquariumsAction } from "../actions/aquarium.actions";
 import { Aquarium } from "../types/aquarium.types";
 import AquariumCard from "./AquariumCard";
 import { AquariumDictionary } from "./aquarium-helpers";
-import { Plus, Loader2, Container, Archive } from "lucide-react"; // <--- TAMBAH ICON ARCHIVE
+import { Plus, Loader2, Container, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function AquariumDashboard() {
@@ -17,7 +17,6 @@ export default function AquariumDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
-  // STATE BARU UNTUK FILTER TAB
   const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
 
   const aqDict: AquariumDictionary = (dict as any)?.aquarium || {
@@ -58,7 +57,6 @@ export default function AquariumDashboard() {
     loadData();
   }, []);
 
-  // Filter Data berdasarkan Tab
   const filteredAquariums = aquariums.filter(aq => 
     activeTab === "active" ? aq.is_active !== false : aq.is_active === false
   );
@@ -67,11 +65,11 @@ export default function AquariumDashboard() {
   const archivedCount = aquariums.filter(aq => aq.is_active === false).length;
 
   return (
-    <div className="w-full h-full min-h-[80vh] p-4 sm:p-6 md:p-8 lg:p-10 transition-colors duration-300">
-      <div className="max-w-[1400px] mx-auto space-y-8">
+    <div className="w-full h-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors duration-300 relative">
+      <div className="max-w-[1400px] mx-auto space-y-8 flex flex-col min-h-full">
         
         {/* HEADER DASHBOARD */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 border-b border-slate-200 dark:border-slate-800 pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 border-b border-slate-200 dark:border-slate-800 pb-6 shrink-0">
           <div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-teal-600 dark:text-teal-400 flex items-center gap-3">
               <Container className="h-8 w-8 md:h-10 md:w-10" /> 
@@ -90,50 +88,51 @@ export default function AquariumDashboard() {
           </Link>
         </div>
 
-        {/* TAB FILTER (Aktif / Arsip) */}
+        {/* TAB FILTER MODERN (PILL SHAPE) */}
         {!loading && !error && aquariums.length > 0 && (
-          <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800">
-            <button
-              onClick={() => setActiveTab("active")}
-              className={`px-4 py-2 font-bold text-sm border-b-2 transition-colors ${
-                activeTab === "active" 
-                  ? "border-teal-500 text-teal-700 dark:text-teal-400" 
-                  : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-              }`}
-            >
-              Aktif ({activeCount})
-            </button>
-            <button
-              onClick={() => setActiveTab("archived")}
-              className={`px-4 py-2 font-bold text-sm border-b-2 transition-colors flex items-center gap-2 ${
-                activeTab === "archived" 
-                  ? "border-amber-500 text-amber-700 dark:text-amber-400" 
-                  : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-              }`}
-            >
-              <Archive className="w-4 h-4" /> Arsip ({archivedCount})
-            </button>
+          <div className="flex justify-center sm:justify-start mb-8 shrink-0">
+            <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl shadow-inner border border-slate-200 dark:border-slate-700 w-full sm:w-auto overflow-x-auto">
+              <button
+                onClick={() => setActiveTab("active")}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 ${
+                  activeTab === "active" 
+                    ? "bg-white dark:bg-slate-600 text-teal-600 dark:text-teal-400 shadow-sm" 
+                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                }`}
+              >
+                <Container className="w-4 h-4" /> Aktif ({activeCount})
+              </button>
+              <button
+                onClick={() => setActiveTab("archived")}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-300 ${
+                  activeTab === "archived" 
+                    ? "bg-white dark:bg-slate-600 text-amber-600 dark:text-amber-400 shadow-sm" 
+                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                }`}
+              >
+                <Archive className="w-4 h-4" /> Arsip ({archivedCount})
+              </button>
+            </div>
           </div>
         )}
 
         {/* KONTEN UTAMA */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center min-h-[40vh]">
+          <div className="flex flex-col items-center justify-center min-h-[40vh] flex-1">
             <Loader2 className="h-10 w-10 animate-spin text-teal-600 dark:text-teal-400 mb-4" />
             <p className="text-slate-500 font-medium animate-pulse">Loading ecosystem...</p>
           </div>
         ) : error ? (
-          <div className="bg-red-50 dark:bg-red-950/20 border-2 border-dashed border-red-200 dark:border-red-900/50 rounded-2xl p-8 text-center">
+          <div className="bg-red-50 dark:bg-red-950/20 border-2 border-dashed border-red-200 dark:border-red-900/50 rounded-2xl p-8 text-center flex-1">
             <p className="text-red-600 dark:text-red-400 font-bold">{error}</p>
           </div>
         ) : filteredAquariums.length === 0 ? (
-          /* STATE KOSONG (EMPTY STATE) */
-          <div className="flex flex-col items-center justify-center min-h-[40vh] border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-3xl bg-slate-50/50 dark:bg-slate-900/20 p-8 text-center transition-colors">
+          <div className="flex flex-col items-center justify-center min-h-[40vh] border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-3xl bg-slate-50/50 dark:bg-slate-900/20 p-8 text-center transition-colors flex-1">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-full shadow-sm mb-6 border border-slate-100 dark:border-slate-700">
               {activeTab === "archived" ? <Archive className="h-16 w-16 text-amber-500/50" /> : <Container className="h-16 w-16 text-teal-500/50" />}
             </div>
             <h3 className="text-2xl font-black text-slate-800 dark:text-slate-200 mb-3">
-              {activeTab === "archived" ? "Tidak Ada Arsip" : aqDict.dashboard?.emptyTitle}
+              {activeTab === "archived" ? (language === 'id' ? "Tidak Ada Arsip" : "No Archives") : aqDict.dashboard?.emptyTitle}
             </h3>
             {activeTab === "active" && (
               <>
@@ -150,8 +149,7 @@ export default function AquariumDashboard() {
             )}
           </div>
         ) : (
-          /* BENTO GRID KARTU AKUARIUM */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 flex-1 content-start">
             {filteredAquariums.map((aq) => (
               <div key={aq.id} className={`animate-in fade-in zoom-in-95 duration-500 fill-mode-both ${activeTab === 'archived' ? 'grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all' : ''}`} style={{ animationDelay: '100ms' }}>
                 <AquariumCard 
@@ -163,6 +161,9 @@ export default function AquariumDashboard() {
             ))}
           </div>
         )}
+        
+        {/* SPACER BAWAH: Memberikan jarak agar tidak mepet layar */}
+        <div className="h-24 md:h-32 shrink-0 w-full pointer-events-none"></div>
 
       </div>
     </div>
