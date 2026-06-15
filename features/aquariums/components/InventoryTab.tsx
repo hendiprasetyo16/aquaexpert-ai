@@ -13,7 +13,7 @@ import {
   TankFish, 
   TankPlant 
 } from "../actions/inventory.actions";
-import { Plus, Trash2, Loader2, Leaf, Fish as FishIcon, Search, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Leaf, Fish as FishIcon, Search, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
@@ -47,6 +47,10 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
   // Form UI State
   const [showAddModal, setShowAddModal] = useState<"fish" | "plant" | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Delete UI State (PENGGANTI CONFIRM JADUL)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string, table: "aquarium_fishes" | "aquarium_plants", name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Input Form
   const [selectedItemId, setSelectedItemId] = useState("");
@@ -105,13 +109,26 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
     setSubmitting(false);
   };
 
-  const handleRemove = async (table: "aquarium_fishes" | "aquarium_plants", id: string) => {
-    if (!confirm(lang === 'id' ? "Hapus dari akuarium?" : "Remove from aquarium?")) return;
-    const res = await removeInventoryItemAction(table, id, aquariumId);
+  // --- FUNGSI TRIGGER MODAL HAPUS ---
+  const triggerDelete = (table: "aquarium_fishes" | "aquarium_plants", id: string, name: string) => {
+    setDeleteTarget({ table, id, name });
+  };
+
+  // --- FUNGSI EKSEKUSI HAPUS (DARI MODAL) ---
+  const executeRemove = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    
+    const res = await removeInventoryItemAction(deleteTarget.table, deleteTarget.id, aquariumId);
     if (res.success) {
-      toast.success(lang === 'id' ? "Terhapus." : "Removed.");
+      toast.success(lang === 'id' ? "Berhasil dihapus." : "Successfully removed.");
       loadInventory();
+    } else {
+      toast.error(lang === 'id' ? "Gagal menghapus." : "Failed to remove.");
     }
+    
+    setIsDeleting(false);
+    setDeleteTarget(null);
   };
 
   // Pencarian Cepat
@@ -144,18 +161,20 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
               <p className="text-sm font-medium text-slate-500">Total: {fishes.reduce((acc, curr) => acc + curr.quantity, 0)} {lang === 'id' ? "Ekor" : "Fishes"}</p>
             </div>
           </div>
-          <Button onClick={() => { setShowAddModal("fish"); setSelectedItemId(""); setSearchQuery(""); setQuantity(1); }} className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/20">
+          <Button onClick={() => { setShowAddModal("fish"); setSelectedItemId(""); setSearchQuery(""); setQuantity(1); }} className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/20 h-11 px-5">
             <Plus className="w-4 h-4 mr-2" /> {lang === 'id' ? "Tambah Ikan" : "Add Fish"}
           </Button>
         </div>
 
         {fishes.length === 0 ? (
-          <div className="text-center p-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-slate-400 bg-slate-50/50 dark:bg-slate-950/20">
+          <div className="text-center p-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-slate-400 bg-slate-50/50 dark:bg-slate-950/20 font-medium">
             {lang === 'id' ? "Belum ada ikan di akuarium ini." : "No fishes in this aquarium yet."}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {fishes.map((item) => (
+            {fishes.map((item) => {
+              const fishName = lang === 'id' ? item.fish?.name_id || "" : item.fish?.name_en || "";
+              return (
               <div key={item.id} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:border-blue-300 hover:shadow-md transition-all group">
                 <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 relative border-2 border-transparent group-hover:border-blue-200">
                   {item.fish?.image_url ? (
@@ -163,14 +182,18 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                   ) : <FishIcon className="w-6 h-6 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-300" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{lang === 'id' ? item.fish?.name_id : item.fish?.name_en}</p>
+                  <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{fishName}</p>
                   <p className="text-xs text-blue-600 dark:text-blue-400 font-black mt-0.5 bg-blue-50 dark:bg-blue-900/30 inline-block px-2 py-0.5 rounded-md">{item.quantity} {lang === 'id' ? "Ekor" : "pcs"}</p>
                 </div>
-                <button onClick={() => handleRemove("aquarium_fishes", item.id)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors">
-                  <Trash2 className="w-4 h-4" />
+                <button 
+                  onClick={() => triggerDelete("aquarium_fishes", item.id, fishName)} 
+                  className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors border border-transparent hover:border-red-200 dark:hover:border-red-800"
+                  title={lang === 'id' ? "Hapus" : "Delete"}
+                >
+                  <Trash2 className="w-5 h-5" />
                 </button>
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>
@@ -187,18 +210,20 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
               <p className="text-sm font-medium text-slate-500">Total: {plants.reduce((acc, curr) => acc + curr.quantity, 0)} {lang === 'id' ? "Porsi" : "Portions"}</p>
             </div>
           </div>
-          <Button onClick={() => { setShowAddModal("plant"); setSelectedItemId(""); setSearchQuery(""); setQuantity(1); }} className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/20">
+          <Button onClick={() => { setShowAddModal("plant"); setSelectedItemId(""); setSearchQuery(""); setQuantity(1); }} className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/20 h-11 px-5">
             <Plus className="w-4 h-4 mr-2" /> {lang === 'id' ? "Tambah Tanaman" : "Add Plant"}
           </Button>
         </div>
 
         {plants.length === 0 ? (
-          <div className="text-center p-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-slate-400 bg-slate-50/50 dark:bg-slate-950/20">
+          <div className="text-center p-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-slate-400 bg-slate-50/50 dark:bg-slate-950/20 font-medium">
             {lang === 'id' ? "Belum ada tanaman di akuarium ini." : "No plants in this aquarium yet."}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {plants.map((item) => (
+            {plants.map((item) => {
+              const plantName = lang === 'id' ? item.plant?.name_id || "" : item.plant?.name_en || "";
+              return (
               <div key={item.id} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all group">
                 <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 relative border-2 border-transparent group-hover:border-emerald-200">
                   {item.plant?.image_url ? (
@@ -206,20 +231,24 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                   ) : <Leaf className="w-6 h-6 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-300" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{lang === 'id' ? item.plant?.name_id : item.plant?.name_en}</p>
+                  <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{plantName}</p>
                   <p className="text-xs text-emerald-600 dark:text-emerald-400 font-black mt-0.5 bg-emerald-50 dark:bg-emerald-900/30 inline-block px-2 py-0.5 rounded-md">{item.quantity} {lang === 'id' ? "Porsi/Rumpun" : "Portions"}</p>
                 </div>
-                <button onClick={() => handleRemove("aquarium_plants", item.id)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors">
-                  <Trash2 className="w-4 h-4" />
+                <button 
+                  onClick={() => triggerDelete("aquarium_plants", item.id, plantName)} 
+                  className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors border border-transparent hover:border-red-200 dark:hover:border-red-800"
+                  title={lang === 'id' ? "Hapus" : "Delete"}
+                >
+                  <Trash2 className="w-5 h-5" />
                 </button>
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>
 
       {/* ========================================================
-          3. VISUAL PICKER MODAL (PORTAL LEVEL TINGGI Z-9999)
+          1. MODAL TAMBAH INVENTORY (VISUAL PICKER)
       ======================================================== */}
       {mounted && showAddModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
@@ -319,6 +348,36 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
         </div>,
         document.body
       )}
+
+      {/* ========================================================
+          2. MODAL KONFIRMASI HAPUS (GANTI CONFIRM JADUL)
+      ======================================================== */}
+      {mounted && deleteTarget && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600">
+            <div className="flex items-center gap-3 mb-5 text-red-600">
+              <AlertTriangle className="h-8 w-8" />
+              <h3 className="text-2xl font-black uppercase tracking-tight">{lang === 'id' ? "Hapus Item?" : "Remove Item?"}</h3>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed font-medium">
+              {lang === 'id' 
+                ? <>Anda yakin ingin menghapus <strong className="text-red-500 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">{deleteTarget.name}</strong> dari akuarium ini?</>
+                : <>Are you sure you want to remove <strong className="text-red-500 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">{deleteTarget.name}</strong> from this aquarium?</>
+              }
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button onClick={executeRemove} disabled={isDeleting} className="bg-red-600 hover:bg-red-700 w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 text-white transition-colors">
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : (lang === 'id' ? "YA, HAPUS" : "YES, REMOVE")}
+              </Button>
+              <Button variant="ghost" onClick={() => setDeleteTarget(null)} disabled={isDeleting} className="w-full h-12 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
+                {lang === 'id' ? "Batal" : "Cancel"}
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
     </div>
   );
 }

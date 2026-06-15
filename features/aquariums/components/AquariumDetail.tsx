@@ -112,9 +112,8 @@ export default function AquariumDetail() {
 
   // --- TRANSLATOR UNTUK HEALTH ENGINE ALERTS (HARDCODED TRANSLATION) ---
   const translateHealthAlert = (text: string, isEn: boolean) => {
-    if (!isEn) return text; // Jika ID, kembalikan apa adanya (karena engine berbahasa ID)
+    if (!isEn) return text; 
     
-    // Kamus statis untuk menerjemahkan output health-engine
     if (text.includes("Kondisi ekosistem stabil")) return "Stable ecosystem conditions.";
     if (text.includes("Tidak ada log parameter air")) return "No water parameter logs found.";
     if (text.includes("Tidak ada tanaman hidup untuk menyerap nitrat")) return "No live plants to absorb nitrate.";
@@ -124,7 +123,6 @@ export default function AquariumDetail() {
     if (text.includes("Suhu terlalu dingin")) return "Temperature is too cold. Ensure heater is functioning.";
     if (text.includes("Peringatan: Nitrit mulai terdeteksi")) return "Warning: Nitrite is beginning to be detected.";
     
-    // Terjemahan dinamis dengan Regex
     let translated = text;
     translated = translated.replace("Bahaya: Amonia terdeteksi", "Danger: Ammonia detected");
     translated = translated.replace("Kritis: Kadar Nitrit tinggi", "Critical: High Nitrite levels");
@@ -221,7 +219,7 @@ export default function AquariumDetail() {
     }
   };
 
-  // --- 9. HELPERS WARNA ---
+  // --- 9. HELPERS WARNA & STATUS ---
   const getHealthColor = (status: string) => {
     switch (status) {
       case "Excellent": return "text-emerald-500";
@@ -249,6 +247,17 @@ export default function AquariumDetail() {
       case "Warning": return "border-amber-500";
       case "Critical": return "border-red-500";
       default: return "border-slate-500";
+    }
+  };
+
+  const getHealthStatusText = (status: string, isEn: boolean) => {
+    if (isEn) return status.toUpperCase();
+    switch (status) {
+      case "Excellent": return "SEMPURNA";
+      case "Good": return "BAIK";
+      case "Warning": return "PERINGATAN";
+      case "Critical": return "KRITIS";
+      default: return status.toUpperCase();
     }
   };
 
@@ -364,7 +373,10 @@ export default function AquariumDetail() {
                     <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
                       <div className={`p-2 rounded-xl text-white ${getHealthBg(healthResult.status)} shadow-lg`}><HeartPulse className="w-6 h-6" /></div>
                       <div>
-                        <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">Ecosystem Health: <span className={getHealthColor(healthResult.status)}>{healthResult.status.toUpperCase()}</span></h3>
+                        {/* TRANSLASI STATUS */}
+                        <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">
+                          {lang === 'id' ? "Kesehatan Ekosistem:" : "Ecosystem Health:"} <span className={getHealthColor(healthResult.status)}>{getHealthStatusText(healthResult.status, lang === 'en')}</span>
+                        </h3>
                         <p className="text-sm font-medium text-slate-500">{lang === 'id' ? "Berdasarkan kalkulasi beban biologis dan parameter air terakhir." : "Based on biological load calculation and latest water parameters."}</p>
                       </div>
                     </div>
