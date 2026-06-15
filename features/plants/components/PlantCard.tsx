@@ -1,3 +1,4 @@
+// features/plants/components/PlantCard.tsx
 "use client";
 
 import { Plant } from "../types/plant.types";
@@ -5,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Leaf, Sun, Wind, Droplets, Edit } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { useLanguage } from "@/providers/LanguageProvider"; // <-- PANGGIL KAMUS
+import { useLanguage } from "@/providers/LanguageProvider"; 
 
 interface PlantCardProps {
   plant: Plant;
@@ -17,6 +18,36 @@ export default function PlantCard({ plant }: PlantCardProps) {
 
   // PENDETEKSI BAHASA UNTUK NAMA TANAMAN
   const displayName = language === 'en' && plant.name_en ? plant.name_en : plant.name_id;
+
+  // --- FUNGSI PENERJEMAH OTOMATIS (MAPPING KE DICTIONARY) ---
+  const getPlacementText = (val: string | null | undefined) => {
+    if (!val) return dict.plantCard.unknown;
+    const lower = val.toLowerCase();
+    if (lower === 'foreground') return dict.formOptions?.placeFore || val;
+    if (lower === 'midground') return dict.formOptions?.placeMid || val;
+    if (lower === 'background') return dict.formOptions?.placeBack || val;
+    if (lower === 'floating') return dict.formOptions?.placeFloat || val;
+    if (lower === 'epiphyte') return dict.formOptions?.placeEpi || val;
+    return val;
+  };
+
+  const getParamText = (val: string | null | undefined) => {
+    if (!val) return dict.plantCard.unknown;
+    const lower = val.toLowerCase();
+    if (lower === 'low') return dict.formOptions?.paramLow || val;
+    if (lower === 'medium') return dict.formOptions?.paramMed || val;
+    if (lower === 'high') return dict.formOptions?.paramHigh || val;
+    return val;
+  };
+
+  const getDifficultyText = (val: string | null | undefined) => {
+    if (!val) return dict.plantCard.unknown;
+    const lower = val.toLowerCase();
+    if (lower === 'easy') return dict.formOptions?.diffEasy || val;
+    if (lower === 'medium') return dict.formOptions?.diffMedium || val;
+    if (lower === 'hard') return dict.formOptions?.diffHard || val;
+    return val;
+  };
 
   return (
     <Card className="group relative overflow-hidden border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 transition-all duration-300 hover:border-teal-500 dark:hover:border-teal-700 hover:shadow-lg hover:shadow-teal-600/10 dark:hover:shadow-teal-900/20">
@@ -55,22 +86,26 @@ export default function PlantCard({ plant }: PlantCardProps) {
 
       <CardContent>
         <div className="space-y-3 text-sm text-slate-700 dark:text-slate-300">
+          
           <div className="flex items-center gap-2">
             <Leaf className="h-4 w-4 text-teal-600 dark:text-teal-500 shrink-0" />
             <span className="font-medium shrink-0">{dict.plantCard.placement}</span>
-            <span className="truncate">{plant.placement || dict.plantCard.unknown}</span>
+            {/* Menggunakan Fungsi Terjemahan */}
+            <span className="truncate">{getPlacementText(plant.placement)}</span>
           </div>
 
           <div className="flex items-center gap-2">
             <Sun className="h-4 w-4 text-yellow-600 dark:text-yellow-500 shrink-0" />
             <span className="font-medium shrink-0">{dict.plantCard.light}</span>
-            <span className="truncate">{plant.light_requirement || dict.plantCard.unknown}</span>
+            {/* Menggunakan Fungsi Terjemahan */}
+            <span className="truncate">{getParamText(plant.light_requirement)}</span>
           </div>
 
           <div className="flex items-center gap-2">
             <Wind className="h-4 w-4 text-blue-500 dark:text-blue-400 shrink-0" />
             <span className="font-medium shrink-0">{dict.plantCard.co2}</span>
-            <span className="truncate">{plant.co2_requirement || dict.plantCard.unknown}</span>
+            {/* Menggunakan Fungsi Terjemahan */}
+            <span className="truncate">{getParamText(plant.co2_requirement)}</span>
           </div>
 
           <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-800/60 mt-3 transition-colors duration-300">
@@ -84,7 +119,8 @@ export default function PlantCard({ plant }: PlantCardProps) {
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
               }`}
             >
-              {plant.difficulty || dict.plantCard.unknown}
+              {/* Menggunakan Fungsi Terjemahan */}
+              {getDifficultyText(plant.difficulty)}
             </span>
           </div>
         </div>
