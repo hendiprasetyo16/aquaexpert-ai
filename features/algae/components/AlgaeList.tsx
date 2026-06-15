@@ -169,9 +169,9 @@ export default function AlgaeList() {
             Urutkan
           </Button>
 
-          <div className="relative flex-1 sm:flex-none sm:w-36">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-            <select value={severityFilter} onChange={(e) => { setSeverityFilter(e.target.value); setCurrentPage(1); }} className="w-full h-10 appearance-none rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 py-2 pl-9 pr-4 text-sm text-slate-900 dark:text-slate-300 outline-none focus:border-teal-500">
+          <div className="relative w-full sm:w-56 shrink-0">
+            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <select value={severityFilter} onChange={(e) => { setSeverityFilter(e.target.value); setCurrentPage(1); }} className="w-full h-12 appearance-none rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 pl-11 pr-8 text-sm font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-teal-500 transition-all cursor-pointer shadow-sm">
               <option value="all">{dict.algaeExpert?.allSeverities}</option>
               <option value="high">{dict.algaeExpert?.statHighRisk}</option>
               <option value="medium">{dict.algaeExpert?.statMediumRisk}</option>
