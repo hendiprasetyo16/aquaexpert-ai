@@ -529,23 +529,42 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
 
       {/* MODAL HAPUS PERMANEN */}
       {isDeleteModalOpen && algae && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-sm rounded-xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 p-6 shadow-2xl">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="p-2 rounded-full bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400"><AlertTriangle className="h-6 w-6" /></div>
-              <h3 className="text-xl font-bold text-red-600 dark:text-red-400">{formDict.modalDeleteTitle}</h3>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-500">
+            <div className="flex items-center gap-3 mb-4 text-red-500">
+              <AlertTriangle className="h-8 w-8" />
+              <h3 className="text-2xl font-black uppercase tracking-tight">{formDict.modalDeleteTitle}</h3>
             </div>
-            <form onSubmit={executeHardDelete}>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
-                {formDict.modalDeleteDesc1} <strong>{formDict.modalDeleteDesc2}</strong> {formDict.modalDeleteDesc3} <strong className="text-gray-900 dark:text-slate-200 select-all">{language === 'en' && algae.name_en ? algae.name_en : algae.name_id}</strong> {formDict.modalDeleteDesc4}
+            
+            <form onSubmit={executeHardDelete} className="flex flex-col gap-2">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                {formDict.modalDeleteDesc1} <strong>{formDict.modalDeleteDesc2}</strong> {formDict.modalDeleteDesc3} <strong className="text-gray-900 dark:text-slate-100 bg-red-50 dark:bg-red-900/30 px-1 py-0.5 rounded select-all">{language === 'en' && algae.name_en ? algae.name_en : algae.name_id}</strong> {formDict.modalDeleteDesc4}
               </p>
-              <Input required type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder={formDict.typeAlgaeName} className="mb-6 bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-red-500" />
-              <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
-                <button type="button" disabled={loading} onClick={() => {setIsDeleteModalOpen(false); setDeleteConfirmText("");}} className="rounded-md px-4 py-2 text-sm font-semibold transition-colors bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 disabled:opacity-50 flex items-center justify-center">
-                  {formDict.btnCancel}
+              
+              <Input 
+                required 
+                type="text" 
+                value={deleteConfirmText} 
+                onChange={(e) => setDeleteConfirmText(e.target.value)} 
+                placeholder={formDict.typeAlgaeName} 
+                className="h-12 px-4 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 focus:border-red-500 font-bold mb-4" 
+              />
+              
+              <div className="flex flex-col gap-3 pt-2">
+                <button 
+                  type="submit" 
+                  disabled={loading || deleteConfirmText !== (language === 'en' && algae.name_en ? algae.name_en : algae.name_id)} 
+                  className="w-full h-12 flex items-center justify-center rounded-xl bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest shadow-lg shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : formDict.btnConfirmDelete}
                 </button>
-                <button type="submit" disabled={loading || deleteConfirmText !== (language === 'en' && algae.name_en ? algae.name_en : algae.name_id)} className="rounded-md px-4 py-2 text-sm font-semibold transition-colors bg-red-600 hover:bg-red-500 text-white disabled:opacity-50 flex items-center justify-center">
-                  {loading ? formDict.processing : formDict.btnConfirmDelete}
+                <button 
+                  type="button" 
+                  disabled={loading} 
+                  onClick={() => {setIsDeleteModalOpen(false); setDeleteConfirmText("");}} 
+                  className="w-full h-12 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold uppercase tracking-wider transition-colors"
+                >
+                  {formDict.btnCancel}
                 </button>
               </div>
             </form>

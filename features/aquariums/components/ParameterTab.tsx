@@ -2,8 +2,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom"; // <-- TAMBAHAN: Import createPortal
 import { useLanguage } from "@/providers/LanguageProvider";
-import { getParametersAction, addParameterAction, softDeleteParameterAction, AquariumParameterLog } from "../actions/parameter.actions";
+import { getParametersAction, addParameterAction, deleteParameterAction, AquariumParameterLog } from "../actions/parameter.actions";
 import { Plus, Trash2, Loader2, FlaskConical, Thermometer, Skull, Activity, Droplets, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
@@ -13,22 +14,28 @@ interface ParameterTabProps {
   aquariumId: string;
 }
 
+const getLocalDatetime = () => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 16);
+};
+
 export default function ParameterTab({ aquariumId }: ParameterTabProps) {
   const { language } = useLanguage();
   const lang = language as "id" | "en";
 
-  // SUDAH STRICT TYPING, BEBAS DARI ANY
+  // State untuk memastikan Portal di-render hanya di sisi Client
+  const [mounted, setMounted] = useState(false);
+
   const [parameters, setParameters] = useState<AquariumParameterLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
-  // STATE BARU: Untuk Modal Hapus Elegan
   const [deleteLogId, setDeleteLogId] = useState<string | null>(null);
 
-  // Form State mencakup semua properti baru
   const [formData, setFormData] = useState({
-    record_date: new Date().toISOString().split('T')[0],
+    record_date: getLocalDatetime(),
     temperature: "", ph: "", ammonia: "", nitrite: "", nitrate: "", 
     tds: "", gh: "", kh: "", notes: ""
   });
@@ -41,6 +48,7 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
   };
 
   useEffect(() => {
+    setMounted(true); // Pastikan komponen sudah di-mount sebelum memanggil portal
     loadData();
   }, [aquariumId]);
 
@@ -50,7 +58,7 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
     
     const payload = {
       aquarium_id: aquariumId,
-      record_date: formData.record_date,
+      record_date: new Date(formData.record_date).toISOString(),
       parameter_source: "Manual", 
       temperature: formData.temperature ? Number(formData.temperature) : null,
       ph: formData.ph ? Number(formData.ph) : null,
@@ -67,7 +75,7 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
     if (res.success) {
       toast.success(lang === 'id' ? "Parameter dicatat!" : "Parameters logged!");
       setShowForm(false);
-      setFormData({ record_date: new Date().toISOString().split('T')[0], temperature: "", ph: "", ammonia: "", nitrite: "", nitrate: "", tds: "", gh: "", kh: "", notes: "" });
+      setFormData({ record_date: getLocalDatetime(), temperature: "", ph: "", ammonia: "", nitrite: "", nitrate: "", tds: "", gh: "", kh: "", notes: "" });
       loadData();
     } else {
       toast.error(res.error || "Gagal menyimpan.");
@@ -75,21 +83,20 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
     setSubmitting(false);
   };
 
-  // TRIGGER MODAL ELEGAN
   const triggerDelete = (id: string) => {
     setDeleteLogId(id);
   };
 
-  // EKSEKUSI DELETE DARI MODAL
   const executeDelete = async () => {
     if (!deleteLogId) return;
     setSubmitting(true);
-    const res = await softDeleteParameterAction(deleteLogId, aquariumId); 
+    const res = await deleteParameterAction(deleteLogId, aquariumId); 
     if (res.success) {
-      toast.success(lang === 'id' ? "Dihapus (Masuk Arsip)." : "Removed (Archived).");
+      toast.success(lang === 'id' ? "Catatan berhasil dihapus." : "Log deleted successfully.");
       setDeleteLogId(null);
       loadData();
     } else {
+      // Jika muncul tulisan ini, berarti kolom 'is_deleted' belum ada di database Bapak.
       toast.error(lang === 'id' ? "Gagal menghapus." : "Failed to delete.");
     }
     setSubmitting(false);
@@ -137,10 +144,12 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
         <div className="bg-white dark:bg-slate-900 border border-teal-200 dark:border-teal-900/50 p-6 rounded-3xl shadow-xl animate-in slide-in-from-top-4 duration-300">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Tanggal" : "Date"} *</label>
-                <input required type="date" value={formData.record_date} onChange={(e) => setFormData({...formData, record_date: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
+              
+              <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Waktu Pencatatan" : "Record Time"} *</label>
+                <input required type="datetime-local" value={formData.record_date} onChange={(e) => setFormData({...formData, record_date: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
               </div>
+              
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest flex items-center gap-1"><Thermometer className="w-3 h-3"/> {lang === 'id' ? "Suhu" : "Temp"} (°C)</label>
                 <input type="number" step="0.1" placeholder="Ex: 26.5" value={formData.temperature} onChange={(e) => setFormData({...formData, temperature: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
@@ -193,7 +202,7 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
         </div>
       )}
 
-      {/* GRAFIK TREN PARAMETER (Ditampilkan jika data >= 2) */}
+      {/* GRAFIK TREN PARAMETER */}
       {!loading && parameters.length > 0 && (
         <div className="animate-in slide-in-from-bottom-4 duration-700">
           <ParameterCharts data={parameters} />
@@ -214,14 +223,16 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
           {parameters.map((log, idx) => (
             <div key={log.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 flex flex-col xl:flex-row gap-5 justify-between hover:shadow-xl hover:border-teal-200 dark:hover:border-teal-900 transition-all relative overflow-hidden group">
               
-              {idx === 0 && <div className="absolute top-0 right-0 bg-teal-500 text-white text-[9px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest shadow-md">Latest Log</div>}
+              {idx === 0 && <div className="absolute top-0 right-0 bg-teal-500 text-white text-[9px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest shadow-md">{lang === 'id' ? "Log Terbaru" : "Latest Log"}</div>}
 
               <div className="flex items-center gap-4 min-w-[180px]">
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-full text-slate-400 group-hover:text-teal-500 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/30 transition-colors border border-slate-100 dark:border-slate-700">
                   <FlaskConical className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-base font-black text-slate-800 dark:text-slate-200">{new Date(log.record_date).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                  <p className="text-base font-black text-slate-800 dark:text-slate-200">
+                    {new Date(log.record_date).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </p>
                   <p className="text-xs font-medium text-slate-500 mt-0.5">{log.notes || (lang === 'id' ? "Pengecekan rutin" : "Routine check")}</p>
                 </div>
               </div>
@@ -282,7 +293,6 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
                   </div>
                 )}
                 
-                {/* TOMBOL DELETE PINTAS -> BUKA MODAL */}
                 <button onClick={() => triggerDelete(log.id)} className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-all ml-2 border border-transparent hover:border-red-200 dark:hover:border-red-900/50">
                   <Trash2 className="h-5 w-5" />
                 </button>
@@ -292,9 +302,9 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
         </div>
       )}
 
-      {/* CUSTOM DELETE MODAL ELEGAN */}
-      {deleteLogId && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
+      {/* MENGGUNAKAN PORTAL AGAR MODAL TIDAK TERJEBAK ANIMASI TAB */}
+      {mounted && deleteLogId && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
           <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-500">
             <div className="flex items-center gap-3 mb-4 text-red-500">
               <AlertTriangle className="h-8 w-8" />
@@ -306,15 +316,16 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
                 : "This parameter log will be removed from system history. Are you sure you want to proceed?"}
             </p>
             <div className="flex flex-col gap-3">
-              <Button onClick={executeDelete} disabled={submitting} variant="destructive" className="w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 text-white">
+              <Button onClick={executeDelete} disabled={submitting} className="bg-red-600 hover:bg-red-700 w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 text-white transition-colors">
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : (lang === 'id' ? "Ya, Hapus Catatan" : "Yes, Delete Log")}
               </Button>
-              <Button variant="ghost" onClick={() => setDeleteLogId(null)} disabled={submitting} className="w-full h-12 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold uppercase tracking-wider">
+              <Button variant="ghost" onClick={() => setDeleteLogId(null)} disabled={submitting} className="w-full h-12 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700">
                 {lang === 'id' ? "Batal" : "Cancel"}
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

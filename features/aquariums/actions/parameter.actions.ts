@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
-// 1. STRICT TYPING (Tanpa Any)
+// 1. STRICT TYPING
 export interface AquariumParameterLog {
   id: string;
   aquarium_id: string;
@@ -25,7 +25,7 @@ export interface AquariumParameterLog {
   created_at: string;
 }
 
-// 2. ZOD SCHEMA (Mencakup ide milik Bapak)
+// 2. ZOD SCHEMA
 const parameterSchema = z.object({
   aquarium_id: z.string().uuid(),
   record_date: z.string(),
@@ -73,21 +73,33 @@ export async function addParameterAction(payload: z.infer<typeof parameterSchema
 
     revalidatePath(`/dashboard/my-aquarium/${payload.aquarium_id}`);
     return { success: true };
-  // REFAKTOR: Mengganti any menjadi unknown
   } catch (error: unknown) {
-    return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
   }
 }
 
-// SOFT DELETE
-export async function softDeleteParameterAction(id: string, aquariumId: string) {
+// 3. HARD DELETE (HAPUS PERMANEN)
+export async function deleteParameterAction(id: string, aquariumId: string) {
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("aquarium_parameters")
-    .update({ is_deleted: true }) 
-    .eq("id", id);
   
-  if (error) return { success: false, error: error.message };
+  // Menggunakan .delete() untuk menghapus fisik dari database
+  const { data, error } = await supabase
+    .from("aquarium_parameters")
+    .delete() 
+    .eq("id", id)
+    .select();
+  
+  if (error) {
+    console.error("Supabase Delete Error:", error);
+    return { success: false, error: error.message };
+  }
+
+  // Jika RLS gagal/diblokir, Supabase mengembalikan array kosong []
+  if (!data || data.length === 0) {
+    console.error("Akses diblokir oleh RLS atau ID tidak ditemukan. ID:", id);
+    return { success: false, error: "Akses ditolak oleh RLS Database atau data tidak ditemukan." };
+  }
+
   revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
   return { success: true };
 }
