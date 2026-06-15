@@ -144,7 +144,13 @@
     "tooltipPrev": "Sebelumnya",
     "tooltipNext": "Selanjutnya",
     "tooltipLast": "Halaman Akhir",
-    "page": "Hal"
+    "page": "Hal",
+    "placeAll": "Semua Posisi",
+    "placeForeground": "Foreground (Depan)",
+    "placeMidground": "Midground (Tengah)",
+    "placeBackground": "Background (Belakang)",
+    "placeEpiphyte": "Epiphyte (Menempel)",
+    "placeFloating": "Floating (Apung)"
   },
   "editPlant": {
     "title": "Edit Tanaman",

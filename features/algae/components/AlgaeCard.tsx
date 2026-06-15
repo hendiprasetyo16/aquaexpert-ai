@@ -14,36 +14,33 @@ interface AlgaeCardProps {
 
 export default function AlgaeCard({ algae }: AlgaeCardProps) {
   const { role } = useAuth();
-  const { language } = useLanguage();
+  const { language, dict } = useLanguage();
+  const lang = language as "id" | "en";
 
-  const displayName = language === "id" ? algae.name_id : algae.name_en;
+  const displayName = lang === "id" ? algae.name_id : algae.name_en;
   
   const getSeverityBadge = (severity: number) => {
     if (severity >= 4) {
       return (
-        // PERBAIKAN WARNA: Kontras lebih tinggi di Dark Mode (bg-red-950/80 & text-red-300)
         <span className="flex items-center gap-1 bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-300 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border border-red-300 dark:border-red-700 shadow-sm relative z-10">
-          <Skull className="w-3 h-3" /> {language === "id" ? "Bahaya Tinggi" : "High Risk"}
+          <Skull className="w-3 h-3" /> {dict.algaeExpert?.statHighRisk || "High Risk"}
         </span>
       );
     }
     if (severity === 3) {
       return (
-        // PERBAIKAN WARNA: Kontras lebih tinggi di Dark Mode (bg-amber-950/80 & text-amber-300)
         <span className="flex items-center gap-1 bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border border-amber-300 dark:border-amber-700 shadow-sm relative z-10">
-          <AlertTriangle className="w-3 h-3" /> {language === "id" ? "Risiko Sedang" : "Medium Risk"}
+          <AlertTriangle className="w-3 h-3" /> {dict.algaeExpert?.statMediumRisk || "Medium Risk"}
         </span>
       );
     }
     return (
-      // PERBAIKAN WARNA: Kontras lebih tinggi di Dark Mode (bg-green-950/80 & text-green-300)
       <span className="flex items-center gap-1 bg-green-100 dark:bg-green-950/80 text-green-700 dark:text-green-300 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border border-green-300 dark:border-green-700 shadow-sm relative z-10">
-        <Info className="w-3 h-3" /> {language === "id" ? "Risiko Rendah" : "Low Risk"}
+        <Info className="w-3 h-3" /> {dict.algaeExpert?.statLowRisk || "Low Risk"}
       </span>
     );
   };
 
-  // FUNGSI WARNA TINGKAT KESULITAN
   const getDifficultyColor = (difficulty: string | null | undefined) => {
     const diff = (difficulty || "Easy").toLowerCase();
     if (diff === "hard") {
@@ -58,7 +55,7 @@ export default function AlgaeCard({ algae }: AlgaeCardProps) {
   return (
     <div className="w-full h-full bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col group transition-all hover:border-teal-500 dark:hover:border-teal-700 hover:shadow-lg hover:shadow-teal-600/10 dark:hover:shadow-teal-900/20 relative z-0">
       
-      {/* UKIRAN / ORNAMEN AKUARIUM (WATERMARK LATAR BELAKANG) */}
+      {/* UKIRAN / ORNAMEN AKUARIUM */}
       <div className="absolute -bottom-6 -right-6 z-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none group-hover:opacity-10 dark:group-hover:opacity-10 transition-opacity duration-700 rotate-12">
         <Leaf className="w-32 h-32 text-teal-900 dark:text-teal-100" />
       </div>
@@ -70,7 +67,7 @@ export default function AlgaeCard({ algae }: AlgaeCardProps) {
         <Link
           href={`/dashboard/algae/${algae.id}/edit`}
           className="absolute right-3 top-3 z-20 rounded-lg bg-teal-600 p-2 text-white opacity-0 transition-all hover:bg-teal-500 group-hover:opacity-100 shadow-md"
-          title={language === 'id' ? "Edit Alga" : "Edit Algae"}
+          title={lang === 'id' ? "Edit Alga" : "Edit Algae"}
         >
           <Edit className="h-4 w-4" />
         </Link>
@@ -103,24 +100,32 @@ export default function AlgaeCard({ algae }: AlgaeCardProps) {
               {displayName}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 italic truncate font-serif">
-              {algae.scientific_name || "Algae species"}
+              {algae.scientific_name || (lang === 'id' ? "Spesies Alga" : "Algae species")}
             </p>
           </div>
 
           <div className="space-y-2 mt-auto border-t border-slate-200 dark:border-slate-800/60 pt-3">
+            
+            {/* BAGIAN BILINGUAL: ALIAS */}
             <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
-              <span className="font-bold uppercase tracking-wider opacity-70">Alias:</span>
+              <span className="font-bold uppercase tracking-wider opacity-70">
+                {lang === 'id' ? "Nama Lain:" : "Alias:"}
+              </span>
               <span className="font-semibold text-gray-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-800 truncate max-w-[120px]">
                 {algae.alias || "-"}
               </span>
             </div>
             
+            {/* BAGIAN BILINGUAL: TINGKAT KESULITAN */}
             <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
-              <span className="font-bold uppercase tracking-wider opacity-70">Tingkat:</span>
+              <span className="font-bold uppercase tracking-wider opacity-70">
+                {lang === 'id' ? "Kesulitan:" : "Difficulty:"}
+              </span>
               <span className={`font-bold uppercase px-2 py-0.5 rounded border ${getDifficultyColor(algae.difficulty)}`}>
                 {algae.difficulty || "Easy"}
               </span>
             </div>
+
           </div>
         </div>
       </Link>

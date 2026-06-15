@@ -18,6 +18,7 @@ const ITEMS_PER_PAGE = 12;
 export default function AlgaeList() {
   const { role } = useAuth();
   const { dict, language } = useLanguage();
+  const lang = language as "id" | "en"; // <--- TAMBAHKAN BARIS INI DI SINI
   
   const [algaeData, setAlgaeData] = useState<Algae[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,22 +157,27 @@ export default function AlgaeList() {
         </div>
       </div>
 
-      {/* FILTER BAR */}
-      <div className="flex flex-col gap-3 border-b border-slate-200 dark:border-slate-800 pb-6 xl:flex-row xl:items-center xl:justify-between transition-colors">
-        <div className="relative w-full xl:max-w-sm shrink-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input placeholder={dict.algaeExpert?.searchPlaceholder} value={searchQuery} onChange={(e) => handleSearch(e.target.value)} className="pl-9 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200 focus:border-teal-500 w-full" />
+{/* FILTER BAR - RESPONSIVE WRAP */}
+      <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-5 w-full">
+        
+        {/* PENCARIAN (SEARCH) */}
+        <div className="relative flex-grow min-w-[200px] sm:min-w-[250px]">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 dark:text-slate-500" />
+          <Input placeholder={dict.algaeExpert?.searchPlaceholder} value={searchQuery} onChange={(e) => handleSearch(e.target.value)} className="pl-12 h-12 rounded-xl text-base font-medium bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200 focus:border-teal-500 w-full transition-colors shadow-sm" />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
-          <Button variant="outline" onClick={() => handleSort(sortOrder === "asc" ? "desc" : "asc")} className="flex-1 sm:flex-none border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300">
-            {sortOrder === "asc" ? <ArrowDownAZ className="mr-2 h-4 w-4 text-teal-600" /> : <ArrowUpZA className="mr-2 h-4 w-4 text-teal-600" />}
-            Urutkan
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto lg:flex-nowrap lg:justify-end">
+          
+          {/* TOMBOL URUTKAN */}
+          <Button variant="outline" onClick={() => handleSort(sortOrder === "asc" ? "desc" : "asc")} className="flex-1 sm:flex-none shrink-0 border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors h-12 rounded-xl font-bold shadow-sm px-5">
+            {sortOrder === "asc" ? <ArrowDownAZ className="mr-2 h-5 w-5 text-teal-600" /> : <ArrowUpZA className="mr-2 h-5 w-5 text-teal-600" />}
+            {lang === 'id' ? "Urutkan" : "Sort"}
           </Button>
 
-          <div className="relative w-full sm:w-56 shrink-0">
+          {/* FILTER RISIKO */}
+          <div className="relative flex-1 sm:flex-none shrink-0 sm:w-56">
             <Filter className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <select value={severityFilter} onChange={(e) => { setSeverityFilter(e.target.value); setCurrentPage(1); }} className="w-full h-12 appearance-none rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 pl-11 pr-8 text-sm font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-teal-500 transition-all cursor-pointer shadow-sm">
+            <select value={severityFilter} onChange={(e) => { setSeverityFilter(e.target.value); setCurrentPage(1); }} className="w-full h-12 appearance-none rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 pl-11 pr-8 text-sm font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-teal-500 transition-colors shadow-sm cursor-pointer">
               <option value="all">{dict.algaeExpert?.allSeverities}</option>
               <option value="high">{dict.algaeExpert?.statHighRisk}</option>
               <option value="medium">{dict.algaeExpert?.statMediumRisk}</option>
@@ -179,19 +185,20 @@ export default function AlgaeList() {
             </select>
           </div>
 
+          {/* TOMBOL AKSI */}
           {role !== "user" && (
-            <>
+            <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 mt-1 lg:mt-0">
               <Link href="/dashboard/algae/archive" className="flex-1 sm:flex-none">
-                <Button variant="outline" className="w-full border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300">
+                <Button variant="outline" className="w-full h-12 px-5 rounded-xl font-bold border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-sm transition-colors active:scale-95">
                   <Archive className="mr-2 h-4 w-4" /> {dict.algaeExpert?.btnArchive}
                 </Button>
               </Link>
               <Link href="/dashboard/algae/create" className="flex-1 sm:flex-none">
-                <Button className="w-full bg-teal-600 text-white hover:bg-teal-500">
-                  <Plus className="mr-2 h-4 w-4" /> {dict.algaeExpert?.btnAdd}
+                <Button className="w-full h-12 px-5 rounded-xl font-bold bg-teal-600 text-white hover:bg-teal-500 transition-colors active:scale-95 shadow-lg shadow-teal-600/20">
+                  <Plus className="mr-2 h-5 w-5" /> {dict.algaeExpert?.btnAdd}
                 </Button>
               </Link>
-            </>
+            </div>
           )}
         </div>
       </div>

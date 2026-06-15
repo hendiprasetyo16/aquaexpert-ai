@@ -144,7 +144,13 @@
     "tooltipPrev": "Previous",
     "tooltipNext": "Next",
     "tooltipLast": "Last Page",
-    "page": "Pg"
+    "page": "Pg",
+    "placeAll": "All Placements",
+    "placeForeground": "Foreground",
+    "placeMidground": "Midground",
+    "placeBackground": "Background",
+    "placeEpiphyte": "Epiphyte",
+    "placeFloating": "Floating"
   },
   "editPlant": {
     "title": "Edit Plant",
