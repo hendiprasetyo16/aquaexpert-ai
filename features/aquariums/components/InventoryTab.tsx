@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom"; // <-- TAMBAHAN: Untuk mengatasi modal terpotong
+import { createPortal } from "react-dom";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { createClient } from "@/lib/supabase/client";
 import { 
@@ -48,7 +48,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
   const [showAddModal, setShowAddModal] = useState<"fish" | "plant" | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Delete UI State (PENGGANTI CONFIRM JADUL)
+  // Delete UI State
   const [deleteTarget, setDeleteTarget] = useState<{ id: string, table: "aquarium_fishes" | "aquarium_plants", name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -109,12 +109,10 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
     setSubmitting(false);
   };
 
-  // --- FUNGSI TRIGGER MODAL HAPUS ---
   const triggerDelete = (table: "aquarium_fishes" | "aquarium_plants", id: string, name: string) => {
     setDeleteTarget({ table, id, name });
   };
 
-  // --- FUNGSI EKSEKUSI HAPUS (DARI MODAL) ---
   const executeRemove = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
@@ -131,13 +129,24 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
     setDeleteTarget(null);
   };
 
-  // Pencarian Cepat
-  const filteredMasterFishes = masterFishes.filter(f => 
-    f.name_id.toLowerCase().includes(searchQuery.toLowerCase()) || f.name_en.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  const filteredMasterPlants = masterPlants.filter(p => 
-    p.name_id.toLowerCase().includes(searchQuery.toLowerCase()) || p.name_en.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // ==========================================
+  // PENCARIAN & PENGURUTAN ABJAD (BILINGUAL)
+  // ==========================================
+  const filteredMasterFishes = masterFishes
+    .filter(f => f.name_id.toLowerCase().includes(searchQuery.toLowerCase()) || f.name_en.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      const nameA = lang === 'id' ? a.name_id : a.name_en;
+      const nameB = lang === 'id' ? b.name_id : b.name_en;
+      return nameA.localeCompare(nameB); // Mengurutkan dari A ke Z
+    });
+
+  const filteredMasterPlants = masterPlants
+    .filter(p => p.name_id.toLowerCase().includes(searchQuery.toLowerCase()) || p.name_en.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      const nameA = lang === 'id' ? a.name_id : a.name_en;
+      const nameB = lang === 'id' ? b.name_id : b.name_en;
+      return nameA.localeCompare(nameB); // Mengurutkan dari A ke Z
+    });
 
   const currentList = showAddModal === 'fish' ? filteredMasterFishes : filteredMasterPlants;
   const isFish = showAddModal === 'fish';
@@ -304,6 +313,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                             : "border-slate-100 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-600"
                         }`}
                       >
+                        {/* INDEKS LIST (SESUAI URUTAN ABJAD SEKARANG) */}
                         <div className="absolute top-2 left-2 w-5 h-5 flex items-center justify-center rounded-md bg-slate-100 dark:bg-slate-800 text-[9px] font-black text-slate-400">
                           {idx + 1}
                         </div>
@@ -364,7 +374,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
       )}
 
       {/* ========================================================
-          2. MODAL KONFIRMASI HAPUS (GANTI CONFIRM JADUL)
+          2. MODAL KONFIRMASI HAPUS
       ======================================================== */}
       {mounted && deleteTarget && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
