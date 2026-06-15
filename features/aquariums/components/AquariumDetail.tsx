@@ -15,7 +15,7 @@ import {
   Droplets, Settings2, CalendarDays, Loader2, RefreshCw, 
   LayoutDashboard, Activity, Leaf, ShieldAlert, HeartPulse,
   Info, AlertCircle, XCircle,
-  Maximize, Box, Layers, Lightbulb, Wind, Thermometer, FlaskConical // <-- Ikon Tambahan untuk Desain Baru
+  Maximize, Box, Layers, Lightbulb, Wind, Thermometer, FlaskConical
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
@@ -32,7 +32,7 @@ import {
   AquariumDictionary
 } from "./aquarium-helpers";
 
-// --- 3. DEFINISI TIPE (INTERFACES) ---
+// --- 3. DEFINISI TIPE ---
 interface DetailDictionary {
   back: string;
   edit: string;
@@ -57,7 +57,7 @@ interface TabItem {
 }
 
 export default function AquariumDetail() {
-  // --- 4. HOOKS & STATES AWAL ---
+  // --- 4. HOOKS & STATES ---
   const { dict, language } = useLanguage();
   const { role } = useAuth(); 
   
@@ -76,9 +76,8 @@ export default function AquariumDetail() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [healthResult, setHealthResult] = useState<HealthAnalysisResult | null>(null);
 
-  // --- 5. SETUP KAMUS (DICTIONARY) ---
+  // --- 5. KAMUS ---
   const rootDict = dict as { aquarium?: { detail?: DetailDictionary }, formOptions?: any };
-  
   const detailDict: DetailDictionary = rootDict?.aquarium?.detail || {
     back: lang === 'id' ? "Kembali ke Dashboard" : "Back to Dashboard",
     edit: lang === 'id' ? "Edit" : "Edit",
@@ -101,33 +100,13 @@ export default function AquariumDetail() {
     { id: "ai", label: detailDict.aiDiagnose, icon: ShieldAlert },
   ];
 
-  // --- 6. FUNGSI PEMETAAN ---
+  // --- 6. PEMETAAN TRANSLASI ---
   const getParamText = (val: string | null | undefined) => {
     if (!val) return "-";
     const lower = val.toLowerCase();
     if (lower === 'low') return rootDict?.formOptions?.paramLow || val;
     if (lower === 'medium') return rootDict?.formOptions?.paramMed || val;
     if (lower === 'high') return rootDict?.formOptions?.paramHigh || val;
-    return val;
-  };
-
-  const getDifficultyText = (val: string | null | undefined) => {
-    if (!val) return "-";
-    const lower = val.toLowerCase();
-    if (lower === 'easy') return rootDict?.formOptions?.diffEasy || val;
-    if (lower === 'medium') return rootDict?.formOptions?.diffMedium || val;
-    if (lower === 'hard') return rootDict?.formOptions?.diffHard || val;
-    return val;
-  };
-
-  const getPlacementText = (val: string | null | undefined) => {
-    if (!val) return "-";
-    const lower = val.toLowerCase();
-    if (lower === 'foreground') return rootDict?.formOptions?.placeFore || val;
-    if (lower === 'midground') return rootDict?.formOptions?.placeMid || val;
-    if (lower === 'background') return rootDict?.formOptions?.placeBack || val;
-    if (lower === 'floating') return rootDict?.formOptions?.placeFloat || val;
-    if (lower === 'epiphyte') return rootDict?.formOptions?.placeEpi || val;
     return val;
   };
 
@@ -259,7 +238,7 @@ export default function AquariumDetail() {
   return (
     <div className="w-full pb-24 animate-in fade-in duration-700">
       
-      {/* --- BAGIAN: TOP STATIC NAVIGATION --- */}
+      {/* --- HERO NAVIGATION --- */}
       <div className="w-full bg-transparent px-4 sm:px-8 pt-4 pb-2 max-w-[1400px] mx-auto">
         <Button 
           onClick={() => router.push("/dashboard/my-aquarium")}
@@ -270,7 +249,7 @@ export default function AquariumDetail() {
         </Button>
       </div>
 
-      {/* --- BAGIAN: HERO HEADER (BENTO STYLE) --- */}
+      {/* --- HERO HEADER --- */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-8">
         <div className="relative w-full min-h-[40vh] flex flex-col bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800">
           {aquarium.image_url && !imgError ? (
@@ -308,7 +287,7 @@ export default function AquariumDetail() {
         </div>
       </div>
 
-      {/* --- BAGIAN: MAIN CONTENT TABS --- */}
+      {/* --- MAIN CONTENT TABS --- */}
       <div className="max-w-[1400px] mx-auto p-4 sm:p-8 mt-4 relative z-20">
         
         <div className="flex items-center justify-start sm:justify-between bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 mb-6 p-2 overflow-x-auto no-scrollbar">
@@ -322,15 +301,12 @@ export default function AquariumDetail() {
         </div>
 
         <div className="min-h-[40vh]">
-          
-          {/* TAB: OVERVIEW */}
           {activeTab === "overview" && (
             <div className="flex flex-col gap-5 animate-in slide-in-from-bottom-4 duration-500">
               
-              {/* KOTAK: HEALTH SCORE PANEL */}
+              {/* HEALTH SCORE PANEL */}
               {healthResult && (
                 <div className={`w-full bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-md border-t-8 border-x border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center gap-8 ${getHealthBorder(healthResult.status)}`}>
-                  
                   <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
                     <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                       <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" className="text-slate-100 dark:text-slate-800" />
@@ -350,7 +326,6 @@ export default function AquariumDetail() {
                         <p className="text-sm font-medium text-slate-500">Berdasarkan kalkulasi beban biologis dan parameter air terakhir.</p>
                       </div>
                     </div>
-
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                         <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" /> System Alerts</h4>
@@ -363,7 +338,6 @@ export default function AquariumDetail() {
                           ))}
                         </ul>
                       </div>
-
                       <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                         <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-1.5"><HeartPulse className="w-3.5 h-3.5" /> Action Required</h4>
                         <ul className="space-y-2">
@@ -380,17 +354,15 @@ export default function AquariumDetail() {
                 </div>
               )}
 
-              {/* KOTAK: BENTO GRID STATISTIK BAWAH (DESAIN BARU MEWAH) */}
+              {/* BENTO GRID PREMIUM */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch mt-2">
                 
                 {/* 1. KOTAK DIMENSI & SPESIFIKASI */}
                 <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-900/50 p-6 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-800 flex flex-col h-full relative overflow-hidden group">
                   <Maximize className="absolute -bottom-4 -right-4 w-24 h-24 text-slate-100 dark:text-slate-800/50 transition-transform duration-700 group-hover:scale-110" />
-                  
                   <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-6 flex items-center gap-2 relative z-10">
                     <CalendarDays className="w-5 h-5 text-indigo-500" /> {detailDict.dimensions}
                   </h3>
-                  
                   <div className="space-y-4 relative z-10 flex-1 flex flex-col justify-center">
                     <div className="flex items-center gap-4">
                       <div className="w-11 h-11 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0"><CalendarDays className="w-5 h-5"/></div>
@@ -400,7 +372,6 @@ export default function AquariumDetail() {
                         <p className="text-[10px] text-slate-500 font-medium">Setup: {aquarium.setup_date}</p>
                       </div>
                     </div>
-                    
                     <div className="flex items-center gap-4">
                       <div className="w-11 h-11 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0"><Box className="w-5 h-5"/></div>
                       <div>
@@ -409,57 +380,60 @@ export default function AquariumDetail() {
                         <p className="text-[10px] text-slate-500 font-medium">{aquarium.length_cm} x {aquarium.width_cm} x {aquarium.height_cm} cm</p>
                       </div>
                     </div>
-
                     <div className="flex items-center gap-4">
                       <div className="w-11 h-11 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0"><Layers className="w-5 h-5"/></div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Substrate</p>
-                        <p className="font-black text-slate-800 dark:text-slate-100 leading-tight line-clamp-1">{getSubstrateDesc(aquarium.substrate_type, lang)}</p>
+                        {/* Bebas Wrap ke bawah */}
+                        <p className="font-black text-slate-800 dark:text-slate-100 leading-tight">{getSubstrateDesc(aquarium.substrate_type, lang)}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* 2. KOTAK PERALATAN CONFIG */}
+                {/* 2. KOTAK PERALATAN CONFIG (DIKEMBALIKAN KE GRID 2 KOLOM AGAR PADAT TAPI BISA WRAP) */}
                 <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-900/50 p-6 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-800 flex flex-col h-full relative overflow-hidden group">
                   <Settings2 className="absolute -bottom-4 -right-4 w-24 h-24 text-slate-100 dark:text-slate-800/50 transition-transform duration-700 group-hover:rotate-45" />
-                  
                   <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-6 flex items-center gap-2 relative z-10">
                     <Settings2 className="w-5 h-5 text-teal-500" /> {detailDict.equipment}
                   </h3>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3 relative z-10 flex-1">
-                    <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center transition-colors hover:border-cyan-200 dark:hover:border-cyan-900">
-                      <div className="flex items-center gap-2 mb-1.5">
+                  {/* Grid 2x2 yang compact namun fleksibel memanjang ke bawah */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3 relative z-10 flex-1 content-start">
+                    
+                    <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-start transition-colors hover:border-cyan-200 dark:hover:border-cyan-900 h-full">
+                      <div className="flex items-center gap-2 mb-1.5 shrink-0">
                         <div className="p-1.5 bg-cyan-100 dark:bg-cyan-900/50 rounded-lg text-cyan-600 dark:text-cyan-400"><Activity className="w-3.5 h-3.5"/></div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{lang === 'id' ? "Filtrasi" : "Filtration"}</span>
                       </div>
-                      <p className="font-black text-sm text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug">{getFilterDesc(aquarium.filter_type, lang)}</p>
+                      {/* Teks bebas turun baris otomatis */}
+                      <p className="font-black text-[13px] text-slate-800 dark:text-slate-100 leading-snug">{getFilterDesc(aquarium.filter_type, lang)}</p>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center transition-colors hover:border-yellow-200 dark:hover:border-yellow-900">
-                      <div className="flex items-center gap-2 mb-1.5">
+                    <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-start transition-colors hover:border-yellow-200 dark:hover:border-yellow-900 h-full">
+                      <div className="flex items-center gap-2 mb-1.5 shrink-0">
                         <div className="p-1.5 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg text-yellow-600 dark:text-yellow-400"><Lightbulb className="w-3.5 h-3.5"/></div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{lang === 'id' ? "Cahaya" : "Lighting"}</span>
                       </div>
-                      <p className="font-black text-sm text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug">{getParamText(aquarium.light_type)}</p>
+                      <p className="font-black text-[13px] text-slate-800 dark:text-slate-100 leading-snug">{getParamText(aquarium.light_type)}</p>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center transition-colors hover:border-emerald-200 dark:hover:border-emerald-900">
-                      <div className="flex items-center gap-2 mb-1.5">
+                    <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-start transition-colors hover:border-emerald-200 dark:hover:border-emerald-900 h-full">
+                      <div className="flex items-center gap-2 mb-1.5 shrink-0">
                         <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg text-emerald-600 dark:text-emerald-400"><Wind className="w-3.5 h-3.5"/></div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{lang === 'id' ? "CO2" : "CO2 Supply"}</span>
                       </div>
-                      <p className="font-black text-sm text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug">{getParamText(aquarium.co2_type)}</p>
+                      <p className="font-black text-[13px] text-slate-800 dark:text-slate-100 leading-snug">{getParamText(aquarium.co2_type)}</p>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center transition-colors hover:border-orange-200 dark:hover:border-orange-900">
-                      <div className="flex items-center gap-2 mb-1.5">
+                    <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-start transition-colors hover:border-orange-200 dark:hover:border-orange-900 h-full">
+                      <div className="flex items-center gap-2 mb-1.5 shrink-0">
                         <div className="p-1.5 bg-orange-100 dark:bg-orange-900/50 rounded-lg text-orange-600 dark:text-orange-400"><Thermometer className="w-3.5 h-3.5"/></div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{lang === 'id' ? "Suhu" : "Thermal"}</span>
                       </div>
-                      <p className="font-black text-sm text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug">{aquarium.heater_enabled ? (lang === 'id' ? "Heater Aktif" : "Heater Active") : (lang === 'id' ? "Tanpa Heater" : "No Heater")}</p>
+                      <p className="font-black text-[13px] text-slate-800 dark:text-slate-100 leading-snug">{aquarium.heater_enabled ? (lang === 'id' ? "Heater Aktif" : "Heater Active") : (lang === 'id' ? "Tanpa Heater" : "No Heater")}</p>
                     </div>
+
                   </div>
                 </div>
 
@@ -472,9 +446,7 @@ export default function AquariumDetail() {
                   </h3>
                   
                   <div className="space-y-4 relative z-10 flex-1 flex flex-col justify-center">
-                    
-                    {/* Kartu Khusus Ganti Air (Menonjol/Highlight) */}
-                    <div className="p-5 rounded-2xl bg-blue-500 text-white shadow-lg shadow-blue-500/30 flex-1 flex flex-col justify-center relative overflow-hidden group/wc hover:bg-blue-600 transition-colors">
+                    <div className="p-5 rounded-2xl bg-blue-500 text-white shadow-lg shadow-blue-500/30 flex-1 flex flex-col justify-center relative overflow-hidden group/wc hover:bg-blue-600 transition-colors min-h-[100px]">
                       <Droplets className="absolute -right-4 -bottom-4 w-32 h-32 opacity-10 group-hover/wc:scale-110 transition-transform duration-700" />
                       <p className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-1.5 relative z-10">{lang === 'id' ? "Ganti Air (Water Change)" : "Water Change"}</p>
                       <div className="flex items-baseline gap-2 relative z-10">
@@ -485,14 +457,14 @@ export default function AquariumDetail() {
                       </div>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 transition-colors hover:border-emerald-200 dark:hover:border-emerald-900">
+                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 transition-colors hover:border-emerald-200 dark:hover:border-emerald-900 min-h-[80px]">
                       <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0"><FlaskConical className="w-6 h-6"/></div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{lang === 'id' ? "Jadwal Pupuk" : "Fertilizer Regimen"}</p>
-                        <p className="font-black text-sm text-slate-800 dark:text-slate-100 leading-tight">{getFertilizerDesc(aquarium.fertilizer_type, lang)}</p>
+                        {/* Bebas Wrap ke bawah */}
+                        <p className="font-black text-sm text-slate-800 dark:text-slate-100 leading-snug">{getFertilizerDesc(aquarium.fertilizer_type, lang)}</p>
                       </div>
                     </div>
-
                   </div>
                 </div>
 
