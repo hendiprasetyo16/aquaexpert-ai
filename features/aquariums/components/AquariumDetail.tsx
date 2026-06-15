@@ -110,6 +110,48 @@ export default function AquariumDetail() {
     return val;
   };
 
+  // --- TRANSLATOR UNTUK HEALTH ENGINE ALERTS (HARDCODED TRANSLATION) ---
+  const translateHealthAlert = (text: string, isEn: boolean) => {
+    if (!isEn) return text; // Jika ID, kembalikan apa adanya (karena engine berbahasa ID)
+    
+    // Kamus statis untuk menerjemahkan output health-engine
+    if (text.includes("Kondisi ekosistem stabil")) return "Stable ecosystem conditions.";
+    if (text.includes("Tidak ada log parameter air")) return "No water parameter logs found.";
+    if (text.includes("Tidak ada tanaman hidup untuk menyerap nitrat")) return "No live plants to absorb nitrate.";
+    if (text.includes("pH terlalu asam")) return "pH is too acidic (below 5.5). Risk of acidosis.";
+    if (text.includes("pH terlalu basa")) return "pH is too alkaline (above 8.0). Ammonia becomes more toxic.";
+    if (text.includes("Suhu air terlalu panas")) return "Water temperature is too high. Dissolved oxygen will drop sharply.";
+    if (text.includes("Suhu terlalu dingin")) return "Temperature is too cold. Ensure heater is functioning.";
+    if (text.includes("Peringatan: Nitrit mulai terdeteksi")) return "Warning: Nitrite is beginning to be detected.";
+    
+    // Terjemahan dinamis dengan Regex
+    let translated = text;
+    translated = translated.replace("Bahaya: Amonia terdeteksi", "Danger: Ammonia detected");
+    translated = translated.replace("Kritis: Kadar Nitrit tinggi", "Critical: High Nitrite levels");
+    translated = translated.replace("Kadar Nitrat tinggi", "High Nitrate levels");
+    translated = translated.replace("memicu ledakan alga", "can trigger algae blooms");
+    translated = translated.replace("Overstocking:", "Overstocking:");
+    translated = translated.replace("ekor ikan di dalam", "fishes inside");
+    translated = translated.replace("Liter air.", "Liters of water.");
+    return translated;
+  };
+
+  const translateHealthRec = (text: string, isEn: boolean) => {
+    if (!isEn) return text;
+    
+    if (text.includes("Lanjutkan rutinitas perawatan (water change & pupuk) seperti biasa")) return "Continue routine maintenance (water change & fertilizer) as usual.";
+    if (text.includes("Segera uji air Anda")) return "Test your water immediately (especially pH and Ammonia) to prevent mass fish death.";
+    if (text.includes("Pertimbangkan menambah tanaman hidup")) return "Consider adding live plants (like Anubias or stem plants) for natural filtration.";
+    if (text.includes("Kurangi jumlah ikan atau tingkatkan kapasitas filter")) return "Reduce fish count or increase filter capacity and water change frequency.";
+    if (text.includes("Segera lakukan water change 50% dan tambahkan bakteri starter")) return "Immediately perform a 50% water change and add starter bacteria.";
+    if (text.includes("Siklus nitrogen belum stabil")) return "Nitrogen cycle is unstable. Change 30% water and fast the fishes.";
+    if (text.includes("Lakukan jadwal ganti air lebih sering")) return "Increase water change frequency. Clean mechanical filter media.";
+    if (text.includes("Cek sumber air atau periksa benda yang menurunkan pH")) return "Check water source or items lowering pH (like excessive driftwood or catappa leaves).";
+    if (text.includes("Kurangi penggunaan bebatuan kapur")) return "Reduce limestone usage unless it is an African cichlid tank.";
+    if (text.includes("Tambahkan kipas")) return "Add a cooling fan or maximize aeration.";
+    return text;
+  };
+
   // --- 7. LOAD DATA ---
   useEffect(() => {
     async function fetchAllData() {
@@ -158,11 +200,11 @@ export default function AquariumDetail() {
     const newStatus = !aquarium.is_active;
     const res = await updateAquariumAction(aquariumId, { is_active: newStatus });
     if (res.success) {
-      toast.success(newStatus ? "Akuarium dipulihkan." : "Akuarium diarsipkan.");
+      toast.success(newStatus ? (lang === 'id' ? "Akuarium dipulihkan." : "Aquarium restored.") : (lang === 'id' ? "Akuarium diarsipkan." : "Aquarium archived."));
       setAquarium({ ...aquarium, is_active: newStatus });
       setShowArchiveModal(false);
     } else {
-      toast.error(res.error || "Gagal.");
+      toast.error(res.error || (lang === 'id' ? "Gagal." : "Failed."));
     }
     setLoading(false);
   };
@@ -171,10 +213,10 @@ export default function AquariumDetail() {
     setLoading(true);
     const res = await deleteAquariumAction(aquariumId);
     if (res.success) {
-      toast.success("Akuarium dihapus.");
+      toast.success(lang === 'id' ? "Akuarium dihapus." : "Aquarium deleted.");
       router.push("/dashboard/my-aquarium");
     } else {
-      toast.error(res.error || "Gagal.");
+      toast.error(res.error || (lang === 'id' ? "Gagal." : "Failed."));
       setLoading(false);
     }
   };
@@ -215,7 +257,7 @@ export default function AquariumDetail() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <Loader2 className="h-10 w-10 animate-spin text-teal-600 mb-4" />
-        <p className="text-slate-500 font-medium animate-pulse">Memuat Mesin Pakar...</p>
+        <p className="text-slate-500 font-medium animate-pulse">{lang === 'id' ? "Memuat Mesin Pakar..." : "Loading Expert Engine..."}</p>
       </div>
     );
   }
@@ -226,7 +268,7 @@ export default function AquariumDetail() {
         <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-red-700 mb-2">Error 404</h2>
         <p className="text-red-600 mb-6">{error}</p>
-        <Button onClick={() => router.push("/dashboard/my-aquarium")} variant="outline">Kembali</Button>
+        <Button onClick={() => router.push("/dashboard/my-aquarium")} variant="outline">{detailDict.back}</Button>
       </div>
     );
   }
@@ -323,7 +365,7 @@ export default function AquariumDetail() {
                       <div className={`p-2 rounded-xl text-white ${getHealthBg(healthResult.status)} shadow-lg`}><HeartPulse className="w-6 h-6" /></div>
                       <div>
                         <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">Ecosystem Health: <span className={getHealthColor(healthResult.status)}>{healthResult.status.toUpperCase()}</span></h3>
-                        <p className="text-sm font-medium text-slate-500">Berdasarkan kalkulasi beban biologis dan parameter air terakhir.</p>
+                        <p className="text-sm font-medium text-slate-500">{lang === 'id' ? "Berdasarkan kalkulasi beban biologis dan parameter air terakhir." : "Based on biological load calculation and latest water parameters."}</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -333,7 +375,7 @@ export default function AquariumDetail() {
                           {healthResult.alerts.map((alert, i) => (
                             <li key={i} className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-2">
                               {healthResult.status === 'Critical' || alert.includes('Bahaya') ? <XCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5"/> : <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />}
-                              {alert}
+                              {translateHealthAlert(alert, lang === 'en')}
                             </li>
                           ))}
                         </ul>
@@ -344,7 +386,7 @@ export default function AquariumDetail() {
                           {healthResult.recommendations.map((rec, i) => (
                             <li key={i} className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-2">
                               <div className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0 mt-1.5" />
-                              {rec}
+                              {translateHealthRec(rec, lang === 'en')}
                             </li>
                           ))}
                         </ul>
@@ -384,21 +426,19 @@ export default function AquariumDetail() {
                       <div className="w-11 h-11 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0"><Layers className="w-5 h-5"/></div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Substrate</p>
-                        {/* Bebas Wrap ke bawah */}
                         <p className="font-black text-slate-800 dark:text-slate-100 leading-tight">{getSubstrateDesc(aquarium.substrate_type, lang)}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* 2. KOTAK PERALATAN CONFIG (DIKEMBALIKAN KE GRID 2 KOLOM AGAR PADAT TAPI BISA WRAP) */}
+                {/* 2. KOTAK PERALATAN CONFIG */}
                 <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-900/50 p-6 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-800 flex flex-col h-full relative overflow-hidden group">
                   <Settings2 className="absolute -bottom-4 -right-4 w-24 h-24 text-slate-100 dark:text-slate-800/50 transition-transform duration-700 group-hover:rotate-45" />
                   <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-6 flex items-center gap-2 relative z-10">
                     <Settings2 className="w-5 h-5 text-teal-500" /> {detailDict.equipment}
                   </h3>
                   
-                  {/* Grid 2x2 yang compact namun fleksibel memanjang ke bawah */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3 relative z-10 flex-1 content-start">
                     
                     <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-start transition-colors hover:border-cyan-200 dark:hover:border-cyan-900 h-full">
@@ -406,7 +446,6 @@ export default function AquariumDetail() {
                         <div className="p-1.5 bg-cyan-100 dark:bg-cyan-900/50 rounded-lg text-cyan-600 dark:text-cyan-400"><Activity className="w-3.5 h-3.5"/></div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{lang === 'id' ? "Filtrasi" : "Filtration"}</span>
                       </div>
-                      {/* Teks bebas turun baris otomatis */}
                       <p className="font-black text-[13px] text-slate-800 dark:text-slate-100 leading-snug">{getFilterDesc(aquarium.filter_type, lang)}</p>
                     </div>
 
@@ -457,11 +496,10 @@ export default function AquariumDetail() {
                       </div>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 transition-colors hover:border-emerald-200 dark:hover:border-emerald-900 min-h-[80px]">
+                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4 transition-colors hover:border-emerald-200 dark:hover:border-emerald-900 min-h-[80px]">
                       <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0"><FlaskConical className="w-6 h-6"/></div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{lang === 'id' ? "Jadwal Pupuk" : "Fertilizer Regimen"}</p>
-                        {/* Bebas Wrap ke bawah */}
                         <p className="font-black text-sm text-slate-800 dark:text-slate-100 leading-snug">{getFertilizerDesc(aquarium.fertilizer_type, lang)}</p>
                       </div>
                     </div>
@@ -505,10 +543,10 @@ export default function AquariumDetail() {
             </p>
             <div className="flex flex-col gap-3">
               <Button onClick={handleArchiveToggle} disabled={loading} className={`w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg text-white transition-colors ${isArchived ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "bg-amber-600 hover:bg-amber-700 shadow-amber-500/20"}`}>
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Confirm Action"}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : (lang === 'id' ? "KONFIRMASI" : "CONFIRM ACTION")}
               </Button>
               <Button variant="ghost" onClick={() => setShowArchiveModal(false)} disabled={loading} className="w-full h-12 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
-                Cancel
+                {lang === 'id' ? "Batal" : "Cancel"}
               </Button>
             </div>
           </div>
