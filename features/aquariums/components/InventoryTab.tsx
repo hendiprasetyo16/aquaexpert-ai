@@ -172,11 +172,18 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {fishes.map((item) => {
+            {fishes.map((item, idx) => {
               const fishName = lang === 'id' ? item.fish?.name_id || "" : item.fish?.name_en || "";
               return (
-              <div key={item.id} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:border-blue-300 hover:shadow-md transition-all group">
-                <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 relative border-2 border-transparent group-hover:border-blue-200">
+              <div key={item.id} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:border-blue-300 hover:shadow-md transition-all group relative overflow-hidden pl-5">
+                
+                {/* NOMOR INDEKS */}
+                <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-blue-500" />
+                <div className="absolute top-0 left-0 bg-blue-500 text-white text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-br-lg shadow-sm z-10">
+                  {idx + 1}
+                </div>
+
+                <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 relative border-2 border-transparent group-hover:border-blue-200 ml-1">
                   {item.fish?.image_url ? (
                     <img src={item.fish.image_url} alt="fish" className="w-full h-full object-cover" />
                   ) : <FishIcon className="w-6 h-6 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-300" />}
@@ -221,11 +228,18 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {plants.map((item) => {
+            {plants.map((item, idx) => {
               const plantName = lang === 'id' ? item.plant?.name_id || "" : item.plant?.name_en || "";
               return (
-              <div key={item.id} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all group">
-                <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 relative border-2 border-transparent group-hover:border-emerald-200">
+              <div key={item.id} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all group relative overflow-hidden pl-5">
+                
+                {/* NOMOR INDEKS */}
+                <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-emerald-500" />
+                <div className="absolute top-0 left-0 bg-emerald-500 text-white text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-br-lg shadow-sm z-10">
+                  {idx + 1}
+                </div>
+
+                <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 relative border-2 border-transparent group-hover:border-emerald-200 ml-1">
                   {item.plant?.image_url ? (
                     <img src={item.plant.image_url} alt="plant" className="w-full h-full object-cover" />
                   ) : <Leaf className="w-6 h-6 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-300" />}
