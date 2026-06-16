@@ -24,10 +24,16 @@ import toast from "react-hot-toast";
 import ParameterTab from "./ParameterTab";
 import InventoryTab from "./InventoryTab"; 
 import MaintenanceTab from "./MaintenanceTab"; 
+
+// PERBAIKAN: Hapus import tipe dari Action layer
 import { getParametersAction } from "../actions/parameter.actions";
-import { AquariumParameterLog } from "../types/parameter.types"; // <-- IMPORT TIPE YANG BENAR
-import { getTankInventoryAction, TankFish, TankPlant } from "../actions/inventory.actions";
+import { getTankInventoryAction } from "../actions/inventory.actions";
 import { getMaintenanceDashboardAction } from "../actions/maintenance.actions";
+
+// PERBAIKAN: Gunakan import tipe langsung dari Types layer (Single Source of Truth)
+import type { AquariumParameterLog } from "../types/parameter.types";
+import type { TankFish, TankPlant } from "../types/inventory.types";
+
 import { analyzeAquariumHealth, HealthAnalysisResult } from "../utils/health-engine";
 import { 
   calculateTankAge, getTankTypeDesc, getSubstrateDesc, 
