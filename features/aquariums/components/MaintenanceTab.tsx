@@ -211,11 +211,10 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
     }
   };
 
-  // HELPER: Bantuan Pengisian Dinamis Berdasarkan Tipe Tugas yang Dipilih di Form Log
+  // HELPER: Rekomendasi Pengisian Dinamis Berdasarkan Tipe Tugas yang Dipilih di Form Log
   const getLogHelperText = (taskId: string, currentType: MaintenanceType) => {
     let effectiveType = currentType;
     
-    // Jika user memilih tugas dari jadwal, temukan tipe tugas aslinya
     if (taskId) {
         const selectedTask = tasksStatus.find(ts => ts.task.id === taskId);
         if (selectedTask) effectiveType = selectedTask.task.task_type;
@@ -224,25 +223,24 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
     if (lang === 'id') {
         switch(effectiveType) {
             case 'water_change':
-                return "Tugas ini Kuantitatif. Isi Nilai dengan persentase air yang diganti (Misal: 30) dan Satuan dengan '%' atau 'Liter'.";
+                return "Saran: Tugas ini biasanya Kuantitatif. Isi Nilai (Misal: 30) dan Satuan (Misal: %).";
             case 'fertilizer':
-                return "Tugas ini Kuantitatif. Isi Nilai dengan takaran pupuk (Misal: 5) dan Satuan dengan 'ml' atau 'tetes'.";
+                return "Saran: Tugas ini biasanya Kuantitatif. Isi Nilai (Misal: 5) dan Satuan (Misal: ml atau tetes).";
             case 'co2_refill':
-                return "Tugas ini Kuantitatif (opsional). Anda bisa mengisi Nilai (Misal: 5) dan Satuan (Misal: kg), atau biarkan kosong jika hanya isi ulang biasa.";
+                return "Saran: Tugas ini opsional Kuantitatif. Anda bisa isi Nilai (Misal: 5) dan Satuan (Misal: kg), atau kosongkan.";
             default:
-                // Untuk tugas fisik seperti filter_cleaning, glass_cleaning, equipment_check
-                return "Tugas ini Kualitatif (fisik). Biarkan Nilai & Satuan KOSONG. Anda cukup mengisi kolom 'Catatan' jika ada kondisi khusus (Misal: Busa sudah sangat kotor).";
+                return "Saran: Tugas ini biasanya Kualitatif (fisik). Biarkan Nilai & Satuan KOSONG. Cukup gunakan kolom Catatan jika perlu.";
         }
     } else {
         switch(effectiveType) {
             case 'water_change':
-                return "This is a Quantitative task. Enter Value for water replaced (e.g., 30) and Unit as '%' or 'Liters'.";
+                return "Tip: This is usually a Quantitative task. Enter Value (e.g., 30) and Unit (e.g., %).";
             case 'fertilizer':
-                return "This is a Quantitative task. Enter Value for dosage (e.g., 5) and Unit as 'ml' or 'drops'.";
+                return "Tip: This is usually a Quantitative task. Enter Value (e.g., 5) and Unit (e.g., ml or drops).";
             case 'co2_refill':
-                return "This is a Quantitative task (optional). Enter Value (e.g., 5) and Unit (e.g., kg), or leave blank.";
+                return "Tip: This is an optional Quantitative task. Enter Value (e.g., 5) and Unit (e.g., kg), or leave blank.";
             default:
-                return "This is a Qualitative (physical) task. Leave Value & Unit BLANK. Add details in 'Notes' if needed (e.g., Sponge was very dirty).";
+                return "Tip: This is usually a Qualitative (physical) task. Leave Value & Unit BLANK. Use Notes if necessary.";
         }
     }
   };
@@ -460,20 +458,34 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
               <div className="pt-2">
                 <div className="flex gap-4 mb-4">
                   <div className="flex-1">
-                    <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">{lang === 'id' ? "Nilai" : "Value"}</label>
+                    <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">{lang === 'id' ? "Nilai (Opsional)" : "Value"}</label>
                     <input type="number" value={logForm.value} onChange={e => setLogForm({...logForm, value: e.target.value})} placeholder={lang === 'id' ? "Misal: 30" : "E.g., 30"} className="w-full h-12 px-4 rounded-xl border-2 mt-1.5 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none transition-colors" />
                   </div>
                   <div className="flex-1">
-                    <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">{lang === 'id' ? "Satuan" : "Unit"}</label>
+                    <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">{lang === 'id' ? "Satuan (Opsional)" : "Unit"}</label>
                     <input type="text" value={logForm.unit} onChange={e => setLogForm({...logForm, unit: e.target.value})} placeholder={lang === 'id' ? "Misal: %" : "E.g., %"} className="w-full h-12 px-4 rounded-xl border-2 mt-1.5 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none transition-colors" />
                   </div>
                 </div>
 
-                {/* HELPER TEXT DINAMIS BERDASARKAN TIPE TUGAS */}
+                {/* INFO BOX PANDUAN AWAM (GABUNGAN STATIS & DINAMIS) */}
                 <div className="flex items-start gap-2.5 bg-blue-50 dark:bg-blue-950/30 p-4 rounded-xl border border-blue-100 dark:border-blue-900/50">
                   <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                  <div className="text-[11px] font-medium text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {getLogHelperText(logForm.taskId, logForm.type)}
+                  <div className="text-[11px] font-medium text-slate-600 dark:text-slate-400 space-y-2 leading-relaxed">
+                    <p>
+                      {lang === 'id' 
+                        ? <><strong className="text-blue-700 dark:text-blue-400">Pekerjaan Kuantitatif:</strong> Contohnya "Ganti Air" (Nilai: 30, Satuan: %) atau "Beri Pupuk Cair" (Nilai: 5, Satuan: ml). AI butuh angka ini untuk mengukur batas aman.</>
+                        : <><strong className="text-blue-700 dark:text-blue-400">Quantitative tasks:</strong> E.g., "Water Change" (Value: 30, Unit: %) or "Liquid Fertilizer" (Value: 5, Unit: ml). AI needs this to measure safety limits.</>
+                      }
+                    </p>
+                    <p>
+                      {lang === 'id'
+                        ? <><strong className="text-blue-700 dark:text-blue-400">Pekerjaan Fisik (Kualitatif):</strong> Contohnya "Ganti Busa", "Bersihkan Kaca". Pekerjaan ini tidak ada angkanya. Jadi biarkan Nilai & Satuan KOSONG, dan tulis di kolom Catatan jika perlu.</>
+                        : <><strong className="text-blue-700 dark:text-blue-400">Physical tasks (Qualitative):</strong> E.g., "Change Sponge", "Clean Glass". Leave Value & Unit BLANK, and use the Notes column if needed.</>
+                      }
+                    </p>
+                    <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800/50 text-blue-700 dark:text-blue-400 font-bold italic">
+                      {getLogHelperText(logForm.taskId, logForm.type)}
+                    </div>
                   </div>
                 </div>
               </div>
