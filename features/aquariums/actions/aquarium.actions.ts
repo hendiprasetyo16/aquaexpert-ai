@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { 
   getUserAquariums, 
-  getAquariumById, 
   createAquarium, 
   updateAquarium, 
   deleteAquarium, 
@@ -21,21 +20,27 @@ export async function getUserAquariumsAction() {
 
     const data = await getUserAquariums(supabase, user.id);
     return { success: true, data };
-  // REFAKTOR: Mengganti any menjadi unknown
   } catch (error: unknown) {
     return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }
 
+// PERBAIKAN: Fungsi ini sekarang memakai query langsung agar RLS Supabase
+// bisa otomatis membedakan mana user biasa dan mana superadmin.
 export async function getAquariumByIdAction(id: string) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    const data = await getAquariumById(supabase, id, user.id);
+    const { data, error } = await supabase
+      .from("my_aquariums")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) throw new Error(error.message);
     return { success: true, data };
-  // REFAKTOR: Mengganti any menjadi unknown
   } catch (error: unknown) {
     return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
@@ -51,13 +56,10 @@ export async function createAquariumAction(payload: CreateAquariumInput) {
       await clearPrimaryAquarium(supabase, user.id);
     }
 
-    // Hanya properti dari CreateAquariumInput yang akan masuk ke DB, mem-block user_id spoofing
     const data = await createAquarium(supabase, { ...payload, user_id: user.id });
     revalidatePath("/dashboard/my-aquarium");
     return { success: true, data };
-  // REFAKTOR: Mengganti any menjadi unknown dan casting khusus untuk error Database
   } catch (error: unknown) {
-    // Tangkap error unique index database jika terjadi race condition
     const dbError = error as { code?: string; message?: string };
     if (dbError?.code === '23505') { 
       return { success: false, error: "A primary aquarium already exists. Please refresh." };
@@ -80,7 +82,6 @@ export async function updateAquariumAction(id: string, payload: UpdateAquariumIn
     revalidatePath("/dashboard/my-aquarium");
     revalidatePath(`/dashboard/my-aquarium/${id}`);
     return { success: true, data };
-  // REFAKTOR: Mengganti any menjadi unknown dan casting khusus untuk error Database
   } catch (error: unknown) {
     const dbError = error as { code?: string; message?: string };
     if (dbError?.code === '23505') { 
@@ -99,7 +100,6 @@ export async function deleteAquariumAction(id: string) {
     await deleteAquarium(supabase, id, user.id);
     revalidatePath("/dashboard/my-aquarium");
     return { success: true };
-  // REFAKTOR: Mengganti any menjadi unknown
   } catch (error: unknown) {
     return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
@@ -116,8 +116,29 @@ export async function setPrimaryAquariumAction(id: string) {
     
     revalidatePath("/dashboard/my-aquarium");
     return { success: true, data };
-  // REFAKTOR: Mengganti any menjadi unknown
   } catch (error: unknown) {
     return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
+  }
+}
+
+// PERBAIKAN: Fungsi ini dikembalikan karena sebelumnya tidak sengaja terhapus
+// FITUR KHUSUS SUPERADMIN: Mengambil semua akuarium di database
+export async function getAdminAllAquariumsAction() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    const { data, error } = await supabase
+      .from("my_aquariums")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    return { success: true, data };
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Gagal mengambil data seluruh akuarium." };
   }
 }

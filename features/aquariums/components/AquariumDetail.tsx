@@ -21,7 +21,6 @@ import toast from "react-hot-toast";
 import ParameterTab from "./ParameterTab";
 import InventoryTab from "./InventoryTab"; 
 import MaintenanceTab from "./MaintenanceTab"; 
-// IMPORT ORKESTRATOR HEALTH UI YANG BARU DIBUAT
 import HealthDashboard from "./health/HealthDashboard"; 
 
 import { getParametersAction } from "../actions/parameter.actions";
@@ -63,7 +62,8 @@ export default function AquariumDetail() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [healthResult, setHealthResult] = useState<HealthAnalysisResult | null>(null);
 
-  const rootDict = dict as { aquarium?: { detail?: DetailDictionary }, formOptions?: any };
+  // PERBAIKAN: Mengganti formOptions?: any menjadi formOptions?: Record<string, string>
+  const rootDict = dict as { aquarium?: { detail?: DetailDictionary }, formOptions?: Record<string, string> };
   const detailDict: DetailDictionary = rootDict?.aquarium?.detail || {
     back: lang === 'id' ? "Kembali ke Dashboard" : "Back to Dashboard",
     edit: lang === 'id' ? "Edit" : "Edit",
@@ -384,11 +384,47 @@ export default function AquariumDetail() {
       </div>
 
       {showArchiveModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300"> ... </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
+          <div className={`w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 ${isArchived ? 'border-emerald-500' : 'border-amber-500'}`}>
+            <div className={`flex items-center gap-3 mb-5 ${isArchived ? 'text-emerald-500' : 'text-amber-500'}`}>
+              <RefreshCw className="w-8 h-8" />
+              <h3 className="text-2xl font-black uppercase tracking-tight">{isArchived ? (lang === 'id' ? "Pulihkan?" : "Restore?") : (lang === 'id' ? "Arsipkan?" : "Archive?")}</h3>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed font-medium">
+              {isArchived ? (lang === 'id' ? "Data akuarium akan kembali aktif di Dashboard utama." : "Aquarium data will be reactivated on the main Dashboard.") : (lang === 'id' ? "Data akan disembunyikan tapi riwayat tetap aman tersimpan." : "Data will be hidden but history remains safely stored.")}
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button onClick={handleArchiveToggle} disabled={loading} className={`w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg text-white transition-colors ${isArchived ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "bg-amber-600 hover:bg-amber-700 shadow-amber-500/20"}`}>
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : (lang === 'id' ? "KONFIRMASI" : "CONFIRM ACTION")}
+              </Button>
+              <Button variant="ghost" onClick={() => setShowArchiveModal(false)} disabled={loading} className="w-full h-12 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
+                {lang === 'id' ? "Batal" : "Cancel"}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showDeleteModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300"> ... </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600">
+            <div className="flex items-center gap-3 mb-5 text-red-600">
+              <ShieldAlert className="h-8 w-8" />
+              <h3 className="text-2xl font-black uppercase tracking-tight">{lang === 'id' ? "Hapus Total" : "Purge Data"}</h3>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed font-medium">
+              Peringatan: Tindakan ini akan <strong className="text-red-500">menghapus permanen</strong> <span className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{aquarium.name}</span> beserta seluruh log yang pernah dicatat. Tidak bisa dibatalkan.
+            </p>
+            <div className="flex flex-col gap-3">
+                <Button onClick={handleDelete} disabled={loading} className="bg-red-600 hover:bg-red-700 w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 text-white transition-colors">
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : (lang === 'id' ? "YA, HAPUS SEKARANG" : "YES, DELETE NOW")}
+                </Button>
+                <Button variant="ghost" onClick={() => setShowDeleteModal(false)} disabled={loading} className="w-full h-12 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
+                    {lang === 'id' ? "Batal" : "Cancel"}
+                </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
