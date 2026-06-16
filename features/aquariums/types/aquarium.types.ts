@@ -41,6 +41,14 @@ export interface Aquarium {
   // RELASI (Digunakan untuk menghitung jumlah di UI Dashboard/Detail)
   aquarium_plants?: { id: string }[];
   aquarium_fishes?: { id: string }[];
+
+  // Tambahkan ini di bagian bawah interface Aquarium:
+  owner?: {
+    id: string;
+    email: string;
+    full_name: string | null;
+    last_login_at: string | null;
+  };
 }
 
 // ----------------------------------------------------
