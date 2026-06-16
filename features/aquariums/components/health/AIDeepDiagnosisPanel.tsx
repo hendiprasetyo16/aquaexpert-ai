@@ -1,10 +1,10 @@
 // features/aquariums/components/health/AIDeepDiagnosisPanel.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getDeepDiagnosisAction } from "../../actions/deep-diagnosis.actions";
-import { DeepDiagnosisResult } from "../../utils/deep-diagnosis";
-import { ShieldAlert, Sparkles, Loader2, AlertTriangle, CheckCircle, Clock, Activity, Flame, RefreshCw } from "lucide-react";
+import { DeepDiagnosisResult, RiskLevel } from "../../utils/deep-diagnosis";
+import { ShieldAlert, Sparkles, Loader2, AlertTriangle, CheckCircle2, Clock, Activity, AlertOctagon, ListTodo, Stethoscope, RefreshCw, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -17,28 +17,32 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
   const [result, setResult] = useState<DeepDiagnosisResult | null>(null);
   const [error, setError] = useState("");
 
+  // FITUR BARU: Memori Sesi (Mencegah data hilang saat pindah tab)
+  useEffect(() => {
+    const cachedDiagnosis = sessionStorage.getItem(`aquaexpert_diagnosis_${aquariumId}`);
+    if (cachedDiagnosis) {
+      try {
+        setResult(JSON.parse(cachedDiagnosis));
+      } catch (err) {
+        console.error("Gagal membaca memori diagnosis:", err);
+      }
+    }
+  }, [aquariumId]);
+
   const handleRunDiagnosis = async () => {
     setLoading(true);
     setError("");
     const res = await getDeepDiagnosisAction(aquariumId, lang);
     if (res.success && res.diagnosis) {
       setResult(res.diagnosis as DeepDiagnosisResult);
+      // Simpan hasil ke dalam memori sesi browser
+      sessionStorage.setItem(`aquaexpert_diagnosis_${aquariumId}`, JSON.stringify(res.diagnosis));
     } else {
       setError(res.error || "Gagal memproses diagnosis.");
     }
     setTimeout(() => setLoading(false), 800); 
   };
 
-  const getRiskBadge = (level: string) => {
-    switch (level) {
-      case "CRITICAL": return "bg-rose-600 text-white shadow-rose-600/20";
-      case "HIGH": return "bg-red-500 text-white shadow-red-500/20";
-      case "MEDIUM": return "bg-amber-500 text-white shadow-amber-500/20";
-      default: return "bg-teal-500 text-white shadow-teal-500/20";
-    }
-  };
-
-  // FUNGSI BARU: Menerjemahkan level risiko ke bahasa UI
   const getRiskLevelText = (level: string) => {
     if (lang === 'en') return level;
     switch (level) {
@@ -50,9 +54,9 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
   };
 
   const getSeverityColor = (sev: string) => {
-    if (sev === "high") return "text-red-600 bg-red-100 dark:bg-red-900/40";
-    if (sev === "medium") return "text-amber-600 bg-amber-100 dark:bg-amber-900/40";
-    return "text-teal-600 bg-teal-100 dark:bg-teal-900/40";
+    if (sev === "high") return "bg-rose-500 text-white shadow-md shadow-rose-500/30 border-rose-600";
+    if (sev === "medium") return "bg-amber-500 text-white shadow-md shadow-amber-500/30 border-amber-600";
+    return "bg-teal-500 text-white shadow-md shadow-teal-500/30 border-teal-600";
   };
 
   const formatDateTime = (isoString: string) => {
@@ -60,138 +64,204 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     return date.toLocaleTimeString(lang === 'id' ? 'id-ID' : 'en-US', { hour: '2-digit', minute: '2-digit' }) + ", " + date.toLocaleDateString();
   };
 
+  const RiskMeter = ({ currentRisk }: { currentRisk: RiskLevel }) => {
+    const levels = [
+      { id: "LOW", color: "bg-teal-500" },
+      { id: "MEDIUM", color: "bg-amber-400" },
+      { id: "HIGH", color: "bg-orange-500" },
+      { id: "CRITICAL", color: "bg-rose-600" }
+    ];
+    
+    const activeIndex = levels.findIndex(l => l.id === currentRisk);
+
+    return (
+      <div className="w-full flex items-center gap-1.5 mt-3">
+        {levels.map((level, idx) => (
+          <div key={level.id} className="flex-1 flex flex-col gap-1.5 group/meter">
+            <div className={`h-3 rounded-full transition-all duration-700 ${idx <= activeIndex ? level.color : 'bg-slate-200 dark:bg-slate-800'} ${idx === activeIndex ? 'shadow-[0_0_10px_rgba(0,0,0,0.2)] scale-y-110' : 'opacity-60'}`} />
+            {idx === activeIndex && (
+              <span className={`text-[10px] font-black uppercase tracking-widest text-center mt-1 ${level.color.replace('bg-', 'text-')}`}>
+                {getRiskLevelText(level.id)}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 mt-4">
-      {/* TOMBOL PEMICU AWAL / LOADING PANEL */}
+      
+      {/* ----------------------------------------------------
+          TOMBOL PEMICU AWAL / LOADING PANEL
+      ---------------------------------------------------- */}
       {!result && !loading && (
-        <div className="flex flex-col items-center justify-center p-12 bg-indigo-50/40 dark:bg-indigo-950/10 rounded-3xl border border-dashed border-indigo-200 dark:border-indigo-900/50 shadow-inner text-center">
-          <Activity className="w-16 h-16 text-indigo-500/60 mb-4 animate-pulse" />
-          <h4 className="text-2xl font-black text-indigo-800 dark:text-indigo-200 mb-2">Deep Diagnosis Engine</h4>
-          <p className="text-sm font-medium text-slate-500 max-w-md leading-relaxed mb-6">
+        <div className="flex flex-col items-center justify-center p-12 bg-indigo-50 dark:bg-indigo-950/20 rounded-[2rem] border-2 border-dashed border-indigo-200 dark:border-indigo-800 shadow-sm text-center">
+          <Stethoscope className="w-16 h-16 text-indigo-500 mb-4 animate-bounce drop-shadow-sm" />
+          <h4 className="text-2xl font-black text-indigo-900 dark:text-indigo-200 mb-2">Expert Diagnostic Engine</h4>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-400 max-w-md leading-relaxed mb-6">
             {lang === 'id' 
-              ? "Orkestrasikan seluruh parameter, bioload, dan catatan perawatan Anda ke dalam Expert Engine kami untuk mendeteksi akar masalah secara real-time."
-              : "Orchestrate your variables into our Expert Engine to trace precise ecosystem anomalies."}
+              ? "Sistem pakar kami akan menganalisis matriks parameter air, populasi bioload, dan rekam jejak pemeliharaan untuk menemukan akar masalah ekosistem Anda."
+              : "Our expert system will analyze water parameters, bioload matrix, and maintenance logs to trace ecosystem root causes."}
           </p>
-          <Button onClick={handleRunDiagnosis} className="bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 h-12 rounded-xl shadow-lg shadow-indigo-500/20 tracking-wide">
-            <Activity className="w-4 h-4 mr-2" /> {lang === 'id' ? "MULAI DIAGNOSIS SISTEM" : "START DIAGNOSIS"}
+          <Button onClick={handleRunDiagnosis} className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 h-14 rounded-xl shadow-xl shadow-indigo-500/20 tracking-wide transition-all active:scale-95 border border-indigo-500">
+            <Activity className="w-5 h-5 mr-2" /> {lang === 'id' ? "MULAI DIAGNOSIS SISTEM" : "START DIAGNOSIS"}
           </Button>
         </div>
       )}
 
-      {/* ANIMASI MEMPROSES */}
       {loading && (
-        <div className="flex flex-col items-center justify-center p-20 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-indigo-600 mb-4" />
-          <h4 className="text-lg font-black text-slate-800 dark:text-slate-100 animate-pulse">
-            {lang === 'id' ? "Mengeksekusi Algoritma Diagnosis..." : "Executing Diagnostic Rules..."}
+        <div className="flex flex-col items-center justify-center p-20 bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-slate-100 dark:border-slate-800 shadow-xl text-center">
+          <Loader2 className="w-14 h-14 animate-spin text-indigo-600 mb-4" />
+          <h4 className="text-xl font-black text-slate-800 dark:text-slate-100 animate-pulse">
+            {lang === 'id' ? "Memindai Anomali Sistem..." : "Scanning for Anomalies..."}
           </h4>
         </div>
       )}
 
       {error && (
-        <div className="p-5 bg-red-50 text-red-600 border border-red-200 rounded-2xl flex items-start gap-3 font-bold text-sm">
-          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" /> <p>{error}</p>
+        <div className="p-5 bg-red-50 text-red-600 border-2 border-red-200 rounded-2xl flex items-start gap-3 font-bold text-sm shadow-sm">
+          <AlertTriangle className="w-6 h-6 shrink-0" /> <p className="mt-0.5">{error}</p>
         </div>
       )}
 
-      {/* DASHBOARD HASIL ANALISIS */}
+      {/* ----------------------------------------------------
+          DASHBOARD HASIL ANALISIS (KONTRAST TINGGI)
+      ---------------------------------------------------- */}
       {result && !loading && (
-        <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
           
-          {/* BANNER ATAS: SUMMARY + RISK LEVEL */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-stretch">
-            <div className="md:col-span-3 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-md flex flex-col justify-center">
-              <h5 className="text-[10px] font-black uppercase text-indigo-600 tracking-widest mb-1.5 flex items-center gap-1">
-                <Activity className="w-3.5 h-3.5" /> {lang === 'id' ? "Ringkasan Diagnosis" : "Diagnostic Summary"}
-              </h5>
-              <p className="text-slate-700 dark:text-slate-300 font-bold text-base leading-relaxed">
+          {/* BANNER ATAS: SUMMARY & VISUAL RISK METER */}
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[2rem] border-2 border-slate-200 dark:border-slate-800 shadow-xl flex flex-col md:flex-row gap-8 items-center relative overflow-hidden">
+            <div className="absolute -right-10 -bottom-10 opacity-[0.03] dark:opacity-5 pointer-events-none">
+              <Activity className="w-64 h-64 text-indigo-900" />
+            </div>
+            
+            <div className="flex-1 relative z-10 w-full">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400 rounded-lg text-[10px] font-black uppercase tracking-widest mb-3 border border-indigo-200 dark:border-indigo-800 shadow-sm">
+                <Stethoscope className="w-3 h-3" /> {lang === 'id' ? "Hasil Diagnosa" : "Diagnostic Verdict"}
+              </div>
+              <p className="text-slate-800 dark:text-slate-200 font-extrabold text-lg sm:text-xl leading-relaxed">
                 {result.summary}
               </p>
             </div>
-            
-            <div className={`p-6 rounded-3xl border flex flex-col items-center justify-center text-center shadow-md relative overflow-hidden group ${getRiskBadge(result.riskLevel)}`}>
-              <Flame className="absolute -right-4 -bottom-4 w-24 h-24 opacity-10 transform group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">{lang === 'id' ? "Tingkat Risiko" : "Risk Level"}</span>
-              <span className="text-2xl lg:text-3xl font-black drop-shadow-md uppercase tracking-wider">
-                {getRiskLevelText(result.riskLevel)}
-              </span>
+
+            <div className="w-full md:w-72 shrink-0 bg-slate-50 dark:bg-slate-950/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner relative z-10">
+              <div className="flex justify-between items-end mb-2">
+                <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">{lang === 'id' ? "Indikator Risiko" : "Risk Indicator"}</span>
+                <AlertOctagon className={`w-5 h-5 ${result.riskLevel === 'CRITICAL' || result.riskLevel === 'HIGH' ? 'text-rose-500 animate-pulse' : 'text-slate-400'}`} />
+              </div>
+              <RiskMeter currentRisk={result.riskLevel} />
             </div>
           </div>
 
-          {/* DUAL COMPONENT: ROOT CAUSES & NEXT ACTIONS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          {/* ASYMMETRICAL BENTO GRID: KIRI (Finding/Saran) vs KANAN (Action Plan) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
             
-            {/* PANEL AKAR MASALAH */}
-            <div className="bg-rose-50/30 dark:bg-rose-950/10 p-6 rounded-3xl border border-rose-100 dark:border-rose-900/40 shadow-sm relative overflow-hidden group">
-              <AlertTriangle className="absolute -right-6 -bottom-6 w-32 h-32 text-rose-500/5 -rotate-12" />
-              <h4 className="text-sm font-black uppercase text-rose-600 dark:text-rose-400 tracking-widest mb-4 flex items-center gap-2 relative z-10">
-                <ShieldAlert className="w-5 h-5" /> {lang === 'id' ? "Akar Masalah Utama" : "Root Causes Identified"}
+            {/* KOLOM KIRI (Lebar 2/3): Root Causes & Recommendations */}
+            <div className="lg:col-span-2 space-y-6 flex flex-col">
+              
+              {/* ROOT CAUSES CARDS */}
+              <div className="bg-rose-50 dark:bg-rose-950/20 p-6 sm:p-8 rounded-[2rem] border-2 border-rose-200 dark:border-rose-900/50 shadow-md flex-1 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                  <AlertTriangle className="w-32 h-32 text-rose-600 -rotate-12" />
+                </div>
+                
+                <h4 className="text-sm font-black uppercase text-rose-700 dark:text-rose-400 tracking-widest mb-5 flex items-center gap-2 relative z-10">
+                  <ShieldAlert className="w-5 h-5" /> 
+                  {lang === 'id' ? "Akar Masalah Terdeteksi" : "Detected Root Causes"}
+                </h4>
+                
+                {result.rootCauses.length === 0 ? (
+                  <div className="p-8 text-center bg-white/60 dark:bg-slate-900/60 border-2 border-dashed border-rose-200 dark:border-rose-800/50 rounded-2xl relative z-10">
+                    <CheckCircle2 className="w-10 h-10 text-teal-500 mx-auto mb-3 opacity-80" />
+                    <p className="text-sm text-slate-600 dark:text-slate-400 font-bold">{lang === 'id' ? "Tidak ditemukan anomali kritikal." : "No critical anomalies found."}</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
+                    {result.rootCauses.map((cause, i) => (
+                      <div key={i} className="p-5 rounded-2xl border-2 border-rose-100 dark:border-slate-800 bg-white dark:bg-slate-950/80 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <h5 className="font-extrabold text-slate-800 dark:text-slate-200 text-sm leading-tight">{cause.title}</h5>
+                          <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-lg shrink-0 border ${getSeverityColor(cause.severity)}`}>
+                            {cause.severity}
+                          </span>
+                        </div>
+                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">{cause.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* RECOMMENDATIONS */}
+              <div className="bg-teal-50 dark:bg-teal-950/20 p-6 sm:p-8 rounded-[2rem] border-2 border-teal-200 dark:border-teal-900/40 shadow-md relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                  <Sparkles className="w-32 h-32 text-teal-600" />
+                </div>
+
+                <h4 className="text-sm font-black uppercase text-teal-800 dark:text-teal-400 tracking-widest mb-5 flex items-center gap-2 relative z-10">
+                  <CheckCircle2 className="w-5 h-5" /> 
+                  {lang === 'id' ? "Saran Jangka Panjang" : "Long-term Maintenance Advice"}
+                </h4>
+                
+                {result.recommendations.length === 0 ? (
+                  <p className="text-sm text-slate-600 dark:text-slate-400 font-bold relative z-10">{lang === 'id' ? "Pertahankan jadwal saat ini." : "Maintain current schedule."}</p>
+                ) : (
+                  <ul className="space-y-3 relative z-10">
+                    {result.recommendations.map((rec, i) => (
+                      <li key={i} className="flex items-start gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-teal-100 dark:border-teal-800/50 shadow-sm">
+                        <CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0 mt-0.5" />
+                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-snug">{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+            </div>
+
+            {/* KOLOM KANAN (Lebar 1/3): Action Plan Timeline */}
+            <div className="lg:col-span-1 bg-amber-50 dark:bg-amber-950/20 p-6 sm:p-8 rounded-[2rem] border-2 border-amber-200 dark:border-amber-900/40 shadow-md flex flex-col relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-10">
+                <ListTodo className="w-32 h-32 text-amber-600 -rotate-6" />
+              </div>
+
+              <h4 className="text-sm font-black uppercase text-amber-800 dark:text-amber-400 tracking-widest mb-6 flex items-center gap-2 relative z-10">
+                <Clock className="w-5 h-5" /> 
+                {lang === 'id' ? "Rencana Eksekusi" : "Action Plan"}
               </h4>
               
-              {result.rootCauses.length === 0 ? (
-                <p className="text-sm text-slate-500 font-medium italic relative z-10">{lang === 'id' ? "Tidak ada masalah mendesak terdeteksi." : "No critical issues found."}</p>
-              ) : (
-                <ul className="space-y-4 relative z-10">
-                  {result.rootCauses.map((cause, i) => (
-                    <li key={i} className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${getSeverityColor(cause.severity)}`}>
-                          {cause.severity}
-                        </span>
-                        <span className="font-black text-slate-800 dark:text-slate-200 text-sm">{cause.title}</span>
+              <div className="relative flex-1 z-10">
+                {/* Garis vertikal timeline yang lebih tegas */}
+                <div className="absolute left-4 top-2 bottom-4 w-1 bg-amber-200 dark:bg-amber-800/50 rounded-full"></div>
+                
+                <div className="space-y-6 relative z-10">
+                  {result.nextActions.map((action, i) => (
+                    <div key={i} className="flex items-start gap-4 group/step">
+                      <div className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 border-4 border-amber-400 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-sm shrink-0 shadow-md z-10">
+                        {i + 1}
                       </div>
-                      <p className="text-xs font-semibold text-slate-500 pl-1 leading-snug">{cause.description}</p>
-                    </li>
+                      <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border-2 border-amber-100 dark:border-amber-800/50 flex-1 shadow-sm transition-colors mt-[-4px]">
+                        <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-snug">{action}</p>
+                      </div>
+                    </div>
                   ))}
-                </ul>
-              )}
-            </div>
-
-            {/* PANEL URUTAN EKSEKUSI JANGKA PENDEK */}
-            <div className="bg-amber-50/30 dark:bg-amber-950/10 p-6 rounded-3xl border border-amber-100 dark:border-amber-900/40 shadow-sm relative overflow-hidden group">
-              <Activity className="absolute -right-6 -bottom-6 w-32 h-32 text-amber-500/5" />
-              <h4 className="text-sm font-black uppercase text-amber-600 dark:text-amber-400 tracking-widest mb-4 flex items-center gap-2 relative z-10">
-                <Clock className="w-5 h-5" /> {lang === 'id' ? "Langkah Tindakan Instan" : "Immediate Next Actions"}
-              </h4>
-              <ul className="space-y-3.5 relative z-10">
-                {result.nextActions.map((action, i) => (
-                  <li key={i} className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-start gap-3 leading-snug">
-                    <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0 mt-1.5 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
-                    <span>{action}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-          </div>
-
-          {/* PANEL REKOMENDASI JANGKA PANJANG */}
-          <div className="bg-teal-50/30 dark:bg-teal-950/10 p-6 rounded-3xl border border-teal-100 dark:border-teal-900/40 shadow-sm relative overflow-hidden group">
-            <CheckCircle className="absolute -right-6 -bottom-6 w-32 h-32 text-teal-500/5" />
-            <h4 className="text-sm font-black uppercase text-teal-600 dark:text-teal-400 tracking-widest mb-4 flex items-center gap-2 relative z-10">
-              <Sparkles className="w-5 h-5" /> {lang === 'id' ? "Saran Pemeliharaan Sistem" : "System Recommendations"}
-            </h4>
-            
-            {result.recommendations.length === 0 ? (
-               <p className="text-sm text-slate-500 font-medium italic relative z-10">{lang === 'id' ? "Lanjutkan jadwal perawatan reguler Anda." : "Keep up the good work."}</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
-                {result.recommendations.map((rec, i) => (
-                  <div key={i} className="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-xl border border-teal-50/50 dark:border-teal-950/50 flex items-start gap-3 shadow-sm font-semibold text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                    <CheckCircle className="w-4 h-4 text-teal-500 shrink-0 mt-0.5" />
-                    <span>{rec}</span>
-                  </div>
-                ))}
+                </div>
               </div>
-            )}
+              
+              {/* TOMBOL REFRESH */}
+              <Button onClick={handleRunDiagnosis} className="mt-8 relative z-10 w-full bg-white dark:bg-slate-900 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-400 font-black rounded-xl h-14 border-2 border-amber-200 dark:border-amber-800 transition-colors shadow-sm flex items-center justify-center gap-2">
+                <RefreshCw className="w-5 h-5" /> {lang === 'id' ? "PERBARUI ANALISIS" : "REFRESH ANALYSIS"}
+              </Button>
+            </div>
+
           </div>
 
-          {/* LOG DATA REFRESH BUTTON */}
-          <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">
-            <span>{lang === 'id' ? 'DIHITUNG PADA:' : 'COMPUTED:'} {formatDateTime(result.generatedAt)}</span>
-            <button onClick={handleRunDiagnosis} className="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 transition-colors">
-              <RefreshCw className="w-3 h-3" /> {lang === 'id' ? "Analisis Ulang" : "Re-Diagnose"}
-            </button>
+          {/* TIMESTAMP FOOTER */}
+          <div className="text-center text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest pt-4 pb-2">
+            {lang === 'id' ? 'LAPORAN DIHASILKAN PADA:' : 'REPORT GENERATED AT:'} {formatDateTime(result.generatedAt)}
           </div>
 
         </div>
