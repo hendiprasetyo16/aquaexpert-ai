@@ -22,7 +22,6 @@ import ParameterTab from "./ParameterTab";
 import InventoryTab from "./InventoryTab"; 
 import MaintenanceTab from "./MaintenanceTab"; 
 import HealthDashboard from "./health/HealthDashboard"; 
-// IMPORT KOMPONEN DIAGNOSIS BARU
 import AIDeepDiagnosisPanel from "./health/AIDeepDiagnosisPanel";
 
 import { getParametersAction } from "../actions/parameter.actions";
@@ -67,12 +66,10 @@ export default function AquariumDetail() {
   const rootDict = dict as { aquarium?: { detail?: DetailDictionary }, formOptions?: Record<string, string> };
   
   const isSuperAdmin = role === 'super_admin';
-  const dynamicBackText = isSuperAdmin 
-    ? (lang === 'id' ? "Kembali ke Admin Panel" : "Back to Admin Panel") 
-    : (lang === 'id' ? "Kembali ke Dashboard" : "Back to Dashboard");
 
   const detailDict: DetailDictionary = rootDict?.aquarium?.detail || {
-    back: dynamicBackText,
+    // Teks diubah menjadi general karena akan kembali ke halaman sebelumnya secara dinamis
+    back: lang === 'id' ? "Kembali" : "Go Back",
     edit: lang === 'id' ? "Edit" : "Edit",
     archive: lang === 'id' ? "Arsipkan" : "Archive",
     restore: lang === 'id' ? "Pulihkan" : "Restore",
@@ -145,9 +142,11 @@ export default function AquariumDetail() {
     window.history.replaceState(null, '', `#${tabId}`);
   };
 
+  // PERBAIKAN: Gunakan router.back() agar selalu kembali ke halaman sumber yang benar!
+  // Jika tidak ada history (buka link baru), arahkan ke dashboard.
   const handleGoBack = () => {
-    if (isSuperAdmin) {
-      router.push("/dashboard/admin-panel/aquariums");
+    if (window.history.length > 2) {
+      router.back();
     } else {
       router.push("/dashboard/my-aquarium");
     }
@@ -173,11 +172,7 @@ export default function AquariumDetail() {
     const res = await deleteAquariumAction(aquariumId);
     if (res.success) {
       toast.success(lang === 'id' ? "Akuarium dihapus." : "Aquarium deleted.");
-      if (isSuperAdmin) {
-        router.push("/dashboard/admin-panel/aquariums");
-      } else {
-        router.push("/dashboard/my-aquarium");
-      }
+      handleGoBack(); // Gunakan handleGoBack untuk menghapus dengan benar
     } else {
       toast.error(res.error || "Gagal.");
       setLoading(false);
@@ -199,7 +194,7 @@ export default function AquariumDetail() {
         <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-red-700 mb-2">Error 404</h2>
         <p className="text-red-600 mb-6">{error}</p>
-        <Button onClick={handleGoBack} variant="outline">{dynamicBackText}</Button>
+        <Button onClick={handleGoBack} variant="outline">{detailDict.back}</Button>
       </div>
     );
   }
@@ -214,7 +209,7 @@ export default function AquariumDetail() {
       {/* HERO NAVIGATION */}
       <div className="w-full bg-transparent px-4 sm:px-8 pt-4 pb-2 max-w-[1400px] mx-auto">
         <Button onClick={handleGoBack} variant="ghost" className="text-slate-500 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/30 pl-2 pr-4 font-bold">
-          <ArrowLeft className="w-5 h-5 mr-2" /> {dynamicBackText}
+          <ArrowLeft className="w-5 h-5 mr-2" /> {detailDict.back}
         </Button>
       </div>
 
