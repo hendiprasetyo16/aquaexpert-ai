@@ -24,7 +24,8 @@ import toast from "react-hot-toast";
 import ParameterTab from "./ParameterTab";
 import InventoryTab from "./InventoryTab"; 
 import MaintenanceTab from "./MaintenanceTab"; 
-import { getParametersAction, AquariumParameterLog } from "../actions/parameter.actions";
+import { getParametersAction } from "../actions/parameter.actions";
+import { AquariumParameterLog } from "../types/parameter.types"; // <-- IMPORT TIPE YANG BENAR
 import { getTankInventoryAction, TankFish, TankPlant } from "../actions/inventory.actions";
 import { getMaintenanceDashboardAction } from "../actions/maintenance.actions";
 import { analyzeAquariumHealth, HealthAnalysisResult } from "../utils/health-engine";
