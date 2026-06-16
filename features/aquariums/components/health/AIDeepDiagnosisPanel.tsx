@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { getDeepDiagnosisAction } from "../../actions/deep-diagnosis.actions";
 import { DeepDiagnosisResult, RiskLevel } from "../../utils/deep-diagnosis";
-import { ShieldAlert, Sparkles, Loader2, AlertTriangle, CheckCircle2, Clock, Activity, AlertOctagon, ListTodo, Stethoscope, RefreshCw, ChevronRight } from "lucide-react";
+import { ShieldAlert, Sparkles, Loader2, AlertTriangle, CheckCircle2, Clock, Activity, AlertOctagon, ListTodo, Stethoscope, RefreshCw, Flame, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -17,7 +17,6 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
   const [result, setResult] = useState<DeepDiagnosisResult | null>(null);
   const [error, setError] = useState("");
 
-  // FITUR: Memori Sesi (Mencegah data hilang saat pindah tab)
   useEffect(() => {
     const cachedDiagnosis = sessionStorage.getItem(`aquaexpert_diagnosis_${aquariumId}`);
     if (cachedDiagnosis) {
@@ -64,53 +63,39 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
   };
 
   // =========================================================================
-  // KOMPONEN BARU: VERTICAL RISK THERMOMETER (Visual Premium, Anti Monoton)
+  // KOMPONEN BARU: HUD RADAR CORE (Visual AI Futuristis)
   // =========================================================================
-  const RiskMeter = ({ currentRisk }: { currentRisk: RiskLevel }) => {
-    // Urutan dari Kritis (Atas) ke Rendah (Bawah)
-    const levels = [
-      { id: "CRITICAL", color: "from-rose-600 to-rose-400", dot: "bg-rose-500", text: "text-rose-600 dark:text-rose-400" },
-      { id: "HIGH", color: "from-orange-500 to-amber-400", dot: "bg-orange-500", text: "text-orange-600 dark:text-orange-400" },
-      { id: "MEDIUM", color: "from-amber-400 to-yellow-300", dot: "bg-amber-400", text: "text-amber-600 dark:text-amber-400" },
-      { id: "LOW", color: "from-teal-500 to-emerald-400", dot: "bg-teal-500", text: "text-teal-600 dark:text-teal-400" }
-    ];
+  const RiskRadarCore = ({ currentRisk }: { currentRisk: RiskLevel }) => {
+    const config = {
+      CRITICAL: { color: "text-rose-600 dark:text-rose-500", bg: "bg-rose-600", border: "border-rose-500", glow: "shadow-[0_0_30px_rgba(244,63,94,0.5)]", icon: AlertOctagon },
+      HIGH: { color: "text-orange-600 dark:text-orange-500", bg: "bg-orange-500", border: "border-orange-500", glow: "shadow-[0_0_30px_rgba(249,115,22,0.5)]", icon: Flame },
+      MEDIUM: { color: "text-amber-600 dark:text-amber-500", bg: "bg-amber-500", border: "border-amber-500", glow: "shadow-[0_0_30px_rgba(245,158,11,0.5)]", icon: AlertTriangle },
+      LOW: { color: "text-teal-600 dark:text-teal-500", bg: "bg-teal-500", border: "border-teal-500", glow: "shadow-[0_0_30px_rgba(20,184,166,0.5)]", icon: ShieldCheck }
+    }[currentRisk];
     
-    const activeIdx = levels.findIndex(l => l.id === currentRisk);
-    
-    // Kalkulasi ketinggian cairan (fill) berdasarkan status
-    const fillHeight = currentRisk === 'CRITICAL' ? '100%' : currentRisk === 'HIGH' ? '75%' : currentRisk === 'MEDIUM' ? '50%' : '25%';
-    
+    const Icon = config.icon;
+
     return (
-      <div className="flex mt-6 gap-6 items-center w-full">
-        {/* Batang Tabung Reaksi (Thermometer) */}
-        <div className="relative w-5 h-44 bg-slate-200 dark:bg-slate-800 rounded-full shadow-inner overflow-hidden flex shrink-0 border border-slate-300 dark:border-slate-700">
-           {/* Cairan Indikator */}
-           <div 
-             className={`absolute bottom-0 w-full rounded-full transition-all duration-1000 ease-out bg-gradient-to-t ${levels[activeIdx].color}`}
-             style={{ height: fillHeight }}
-           />
-           {/* Garis-garis penggaris kaca */}
-           <div className="absolute inset-0 flex flex-col justify-between py-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="w-full h-0.5 bg-white/60 dark:bg-slate-900/60" />
-              ))}
-           </div>
+      <div className="relative flex flex-col items-center justify-center py-8 w-full">
+        {/* Cincin Radar Berputar (Animasi) */}
+        <div className={`absolute inset-0 m-auto w-40 h-40 rounded-full border-4 border-dashed ${config.border} opacity-20 animate-[spin_10s_linear_infinite]`} />
+        <div className={`absolute inset-0 m-auto w-32 h-32 rounded-full border-4 border-dotted ${config.border} opacity-40 animate-[spin_7s_linear_infinite_reverse]`} />
+        
+        {/* Inti Reaktor (Core) */}
+        <div className={`relative z-10 w-24 h-24 rounded-full flex flex-col items-center justify-center bg-white dark:bg-slate-900 border-4 ${config.border} ${config.glow} transition-all duration-700 scale-110`}>
+          <Icon className={`w-8 h-8 ${config.color} mb-1 animate-pulse`} />
+          <span className={`text-[10px] font-black uppercase tracking-widest ${config.color}`}>{getRiskLevelText(currentRisk)}</span>
         </div>
         
-        {/* Label Teks dan Penunjuk Aktif */}
-        <div className="flex flex-col justify-between h-44 py-2 w-full">
-          {levels.map((lvl, idx) => {
-            const isActive = idx === activeIdx;
-            return (
-              <div key={lvl.id} className={`flex items-center gap-3 transition-all duration-500 ${isActive ? 'translate-x-2 scale-110' : 'opacity-40 grayscale'}`}>
-                <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isActive ? `${lvl.dot} animate-pulse shadow-[0_0_10px_currentColor]` : 'bg-slate-400 dark:bg-slate-600'}`} />
-                <span className={`text-[11px] font-black uppercase tracking-widest ${isActive ? lvl.text : 'text-slate-500 dark:text-slate-400'}`}>
-                  {getRiskLevelText(lvl.id)}
-                </span>
-                {isActive && <ChevronRight className={`w-4 h-4 ml-auto ${lvl.text} animate-pulse`} />}
-              </div>
-            )
-          })}
+        {/* Legend Titik di Bawah */}
+        <div className="flex gap-2 mt-10 relative z-10 bg-slate-100/50 dark:bg-slate-800/50 p-2.5 rounded-full border border-slate-200 dark:border-slate-700">
+          {['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map((level) => (
+            <div 
+              key={level} 
+              className={`w-3 h-3 rounded-full transition-all duration-500 ${level === currentRisk ? `${config.bg} scale-125 shadow-md` : 'bg-slate-300 dark:bg-slate-600'}`} 
+              title={level} 
+            />
+          ))}
         </div>
       </div>
     );
@@ -139,7 +124,11 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
 
       {loading && (
         <div className="flex flex-col items-center justify-center p-20 bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-slate-100 dark:border-slate-800 shadow-xl text-center">
-          <Loader2 className="w-14 h-14 animate-spin text-indigo-600 mb-4" />
+          <div className="relative w-16 h-16 mb-6">
+            <div className="absolute inset-0 rounded-full border-4 border-dashed border-indigo-500 opacity-20 animate-[spin_3s_linear_infinite]" />
+            <div className="absolute inset-2 rounded-full border-4 border-dotted border-indigo-600 opacity-40 animate-[spin_2s_linear_infinite_reverse]" />
+            <Activity className="absolute inset-0 m-auto w-6 h-6 text-indigo-600 animate-pulse" />
+          </div>
           <h4 className="text-xl font-black text-slate-800 dark:text-slate-100 animate-pulse">
             {lang === 'id' ? "Memindai Anomali Sistem..." : "Scanning for Anomalies..."}
           </h4>
@@ -153,14 +142,14 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
       )}
 
       {/* ----------------------------------------------------
-          DASHBOARD HASIL ANALISIS (KONTRAST TINGGI)
+          DASHBOARD HASIL ANALISIS
       ---------------------------------------------------- */}
       {result && !loading && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
           
-          {/* BANNER ATAS: SUMMARY & VISUAL RISK METER VERTIKAL */}
+          {/* BANNER ATAS: SUMMARY & VISUAL RADAR CORE */}
           <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[2rem] border-2 border-slate-200 dark:border-slate-800 shadow-xl flex flex-col md:flex-row gap-8 items-center relative overflow-hidden">
-            <div className="absolute -right-10 -bottom-10 opacity-[0.03] dark:opacity-5 pointer-events-none">
+            <div className="absolute -left-10 -top-10 opacity-[0.03] dark:opacity-5 pointer-events-none">
               <Activity className="w-64 h-64 text-indigo-900" />
             </div>
             
@@ -173,12 +162,12 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
               </p>
             </div>
 
-            <div className="w-full md:w-80 shrink-0 bg-slate-50 dark:bg-slate-950/50 p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-inner relative z-10 flex flex-col">
-              <div className="flex justify-between items-end mb-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+            <div className="w-full md:w-80 shrink-0 bg-slate-50 dark:bg-slate-950/50 p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-inner relative z-10 flex flex-col items-center">
+              <div className="w-full flex justify-between items-center mb-2 border-b border-slate-200 dark:border-slate-800 pb-3">
                 <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">{lang === 'id' ? "Indikator Risiko" : "Risk Indicator"}</span>
-                <AlertOctagon className={`w-5 h-5 ${result.riskLevel === 'CRITICAL' || result.riskLevel === 'HIGH' ? 'text-rose-500 animate-pulse' : 'text-slate-400'}`} />
+                <Sparkles className="w-4 h-4 text-slate-400" />
               </div>
-              <RiskMeter currentRisk={result.riskLevel} />
+              <RiskRadarCore currentRisk={result.riskLevel} />
             </div>
           </div>
 
@@ -237,7 +226,7 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
                 ) : (
                   <ul className="space-y-3 relative z-10">
                     {result.recommendations.map((rec, i) => (
-                      <li key={i} className="flex items-start gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border-2 border-teal-100 dark:border-teal-800/50 shadow-sm">
+                      <li key={i} className="flex items-start gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-teal-100 dark:border-teal-800/50 shadow-sm">
                         <CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0 mt-0.5" />
                         <span className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-snug">{rec}</span>
                       </li>
