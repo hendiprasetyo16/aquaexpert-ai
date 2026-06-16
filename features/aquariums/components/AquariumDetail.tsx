@@ -22,6 +22,8 @@ import ParameterTab from "./ParameterTab";
 import InventoryTab from "./InventoryTab"; 
 import MaintenanceTab from "./MaintenanceTab"; 
 import HealthDashboard from "./health/HealthDashboard"; 
+// IMPORT KOMPONEN DIAGNOSIS BARU
+import AIDeepDiagnosisPanel from "./health/AIDeepDiagnosisPanel";
 
 import { getParametersAction } from "../actions/parameter.actions";
 import { getTankInventoryAction } from "../actions/inventory.actions";
@@ -64,7 +66,6 @@ export default function AquariumDetail() {
 
   const rootDict = dict as { aquarium?: { detail?: DetailDictionary }, formOptions?: Record<string, string> };
   
-  // PERBAIKAN UX: Teks tombol Back dibuat Dinamis tergantung Role (User biasa vs Superadmin)
   const isSuperAdmin = role === 'super_admin';
   const dynamicBackText = isSuperAdmin 
     ? (lang === 'id' ? "Kembali ke Admin Panel" : "Back to Admin Panel") 
@@ -144,7 +145,6 @@ export default function AquariumDetail() {
     window.history.replaceState(null, '', `#${tabId}`);
   };
 
-  // PERBAIKAN UX: Logika Tombol Back yang Dinamis
   const handleGoBack = () => {
     if (isSuperAdmin) {
       router.push("/dashboard/admin-panel/aquariums");
@@ -173,7 +173,6 @@ export default function AquariumDetail() {
     const res = await deleteAquariumAction(aquariumId);
     if (res.success) {
       toast.success(lang === 'id' ? "Akuarium dihapus." : "Aquarium deleted.");
-      // Setelah dihapus, arahkan ke rute yang benar
       if (isSuperAdmin) {
         router.push("/dashboard/admin-panel/aquariums");
       } else {
@@ -386,20 +385,14 @@ export default function AquariumDetail() {
           {activeTab === "parameters" && <div className="animate-in slide-in-from-right-4 duration-500"><ParameterTab aquariumId={aquariumId} /></div>}
           {activeTab === "flora" && <div className="animate-in slide-in-from-right-4 duration-500"><InventoryTab aquariumId={aquariumId} /></div>}
           {activeTab === "maintenance" && <div className="animate-in slide-in-from-right-4 duration-500"><MaintenanceTab aquariumId={aquariumId} /></div>}
+          
+          {/* TAB AI DEEP DIAGNOSIS YANG BARU */}
           {activeTab === "ai" && (
-            <div className="flex flex-col items-center justify-center p-16 bg-teal-50/50 dark:bg-teal-950/20 rounded-3xl border border-teal-200 dark:border-teal-900/50 animate-in zoom-in-95 duration-500 mt-4 shadow-inner">
-               <ShieldAlert className="w-20 h-20 text-teal-500/50 mb-6 drop-shadow-md" />
-               <h4 className="text-2xl font-black text-teal-800 dark:text-teal-200 mb-2">AI Deep Diagnosis</h4>
-               <p className="text-sm font-medium text-teal-600/70 dark:text-teal-400/70 text-center max-w-md leading-relaxed">
-                 {lang === 'id' 
-                  ? "AI akan menganalisis tren parameter air Anda selama 30 hari terakhir untuk memberikan saran pencegahan alga dan penyakit."
-                  : "AI will analyze your water parameter trends over the last 30 days to provide algae and disease prevention advice."}
-               </p>
-               <Button variant="outline" className="mt-6 border-teal-300 dark:border-teal-800 text-teal-700 dark:text-teal-400 bg-white/50 dark:bg-slate-900/50 rounded-xl font-bold hover:bg-teal-600 hover:text-white transition-all shadow-sm">
-                 {lang === 'id' ? "Mulai Analisis (Segera)" : "Start Analysis (Soon)"}
-               </Button>
+            <div className="animate-in slide-in-from-right-4 duration-500">
+              <AIDeepDiagnosisPanel aquariumId={aquariumId} lang={lang} />
             </div>
           )}
+
         </div>
       </div>
 
