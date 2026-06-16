@@ -68,14 +68,16 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
 
           {/* INFORMASI TEKS DI ATAS GAMBAR */}
           <div className="absolute bottom-3 left-4 right-4 text-white">
-            <h3 className="text-xl font-black leading-tight drop-shadow-md truncate mb-1" title={aquarium.name}>
+            <h3 className="text-xl font-black leading-tight drop-shadow-md truncate mb-1.5" title={aquarium.name}>
               {aquarium.name}
             </h3>
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-200 drop-shadow truncate">
-              <span className="flex items-center gap-1 bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-md">
+            
+            {/* PERBAIKAN: Memisahkan label tipe tank dan liter air, serta dibikin wrap/turun ke bawah kalau layarnya sempit */}
+            <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-200 drop-shadow">
+              <span className="flex items-center gap-1 bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-md shrink-0">
                 <Container className="w-3 h-3" /> {tankType}
               </span>
-              <span className="flex items-center gap-1 bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-md">
+              <span className="flex items-center gap-1 bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-md shrink-0">
                 <Droplets className="w-3 h-3 text-blue-300" /> {aquarium.volume_liters}L
               </span>
             </div>
