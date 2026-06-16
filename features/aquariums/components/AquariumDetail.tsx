@@ -23,6 +23,7 @@ import toast from "react-hot-toast";
 // --- 2. IMPORTS KOMPONEN & MESIN PAKAR ---
 import ParameterTab from "./ParameterTab";
 import InventoryTab from "./InventoryTab"; 
+import MaintenanceTab from "./MaintenanceTab"; // <-- IMPORT TAB BARU KITA
 import { getParametersAction, AquariumParameterLog } from "../actions/parameter.actions";
 import { getTankInventoryAction, TankFish, TankPlant } from "../actions/inventory.actions";
 import { analyzeAquariumHealth, HealthAnalysisResult } from "../utils/health-engine";
@@ -48,7 +49,8 @@ interface DetailDictionary {
   dimensions: string;
 }
 
-type TabId = "overview" | "parameters" | "flora" | "ai";
+// Tambahkan "maintenance" ke dalam TabId
+type TabId = "overview" | "parameters" | "flora" | "maintenance" | "ai";
 
 interface TabItem {
   id: TabId;
@@ -97,6 +99,7 @@ export default function AquariumDetail() {
     { id: "overview", label: detailDict.overview, icon: LayoutDashboard },
     { id: "parameters", label: detailDict.parameters, icon: Activity },
     { id: "flora", label: detailDict.floraFauna, icon: Leaf },
+    { id: "maintenance", label: detailDict.maintenance, icon: RefreshCw }, // <-- MENU TAB BARU
     { id: "ai", label: detailDict.aiDiagnose, icon: ShieldAlert },
   ];
 
@@ -181,7 +184,8 @@ export default function AquariumDetail() {
 
     if (typeof window !== "undefined") {
       const hash = window.location.hash.replace("#", "") as TabId;
-      if (["overview", "parameters", "flora", "ai"].includes(hash)) setActiveTab(hash);
+      // Jangan lupa tambahkan "maintenance" di validator hash ini
+      if (["overview", "parameters", "flora", "maintenance", "ai"].includes(hash)) setActiveTab(hash);
     }
     fetchAllData();
   }, [aquariumId]);
@@ -525,6 +529,8 @@ export default function AquariumDetail() {
           {/* --- BAGIAN: TAB LAINNYA --- */}
           {activeTab === "parameters" && <div className="animate-in slide-in-from-right-4 duration-500"><ParameterTab aquariumId={aquariumId} /></div>}
           {activeTab === "flora" && <div className="animate-in slide-in-from-right-4 duration-500"><InventoryTab aquariumId={aquariumId} /></div>}
+          {/* TAB MAINTENANCE BARU KITA */}
+          {activeTab === "maintenance" && <div className="animate-in slide-in-from-right-4 duration-500"><MaintenanceTab aquariumId={aquariumId} /></div>}
           {activeTab === "ai" && (
             <div className="flex flex-col items-center justify-center p-16 bg-teal-50/50 dark:bg-teal-950/20 rounded-3xl border border-teal-200 dark:border-teal-900/50 animate-in zoom-in-95 duration-500 mt-4 shadow-inner">
                <ShieldAlert className="w-20 h-20 text-teal-500/50 mb-6 drop-shadow-md" />
