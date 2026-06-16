@@ -19,8 +19,6 @@ export default function AquariumDashboard() {
   
   const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
 
-  // REFAKTOR: Menghindari penggunaan as any saat memanggil dictionary. 
-  // Kita casting dict root-nya menjadi struktur yang memiliki properti aquarium
   const dictRoot = dict as { aquarium?: AquariumDictionary };
   const aqDict: AquariumDictionary = dictRoot?.aquarium || {
     dashboard: {
@@ -51,7 +49,6 @@ export default function AquariumDashboard() {
         } else {
           setError(res.error || "Failed to load aquariums");
         }
-      // REFAKTOR: Mengganti catch (err: any) menjadi catch (err: unknown)
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Terjadi kesalahan sistem");
       } finally {
@@ -153,7 +150,8 @@ export default function AquariumDashboard() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 flex-1 content-start">
+          /* PERBAIKAN: Mengubah class grid agar sama ukurannya dengan Admin (grid-cols-1 md:grid-cols-2 xl:grid-cols-3) */
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 flex-1 content-start">
             {filteredAquariums.map((aq) => (
               <div key={aq.id} className={`animate-in fade-in zoom-in-95 duration-500 fill-mode-both ${activeTab === 'archived' ? 'grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all' : ''}`} style={{ animationDelay: '100ms' }}>
                 <AquariumCard 
