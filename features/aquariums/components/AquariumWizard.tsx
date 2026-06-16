@@ -9,7 +9,6 @@ import { useLanguage } from "@/providers/LanguageProvider";
 import { createAquariumAction, updateAquariumAction } from "../actions/aquarium.actions";
 import { CreateAquariumInput, Aquarium } from "../types/aquarium.types";
 import { createAquariumSchema } from "../validations/aquarium.schema";
-// Hapus import z from "zod" karena kita tidak memerlukannya lagi untuk pengecekan
 import { 
   TANK_TYPES, SUBSTRATE_TYPES, FILTER_TYPES, 
   LIGHT_TYPES, CO2_TYPES, FERTILIZER_TYPES 
@@ -30,6 +29,61 @@ interface AquariumWizardProps {
   mode?: "create" | "edit";
   initialData?: Aquarium | null;
 }
+
+// =========================================================================
+// HELPER KOMPRESI GAMBAR (HTML5 CANVAS)
+// Mengompres gambar dari sisi client agar enteng sebelum dikirim ke Supabase
+// =========================================================================
+const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        
+        if (!ctx) {
+          reject(new Error("Failed to get canvas context"));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert canvas kembali ke file JPEG dengan kualitas yang diatur
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else {
+              reject(new Error("Canvas to Blob failed"));
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
 
 export default function AquariumWizard({ mode = "create", initialData }: AquariumWizardProps) {
   const { dict, language } = useLanguage();
@@ -154,27 +208,45 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
     }
   };
 
-  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-      if (!validTypes.includes(file.type)) { setError("Format foto harus JPG, PNG, atau WEBP."); return; }
-      if (file.size > 3 * 1024 * 1024) { setError("Ukuran maksimal foto 3MB."); return; }
-      setError("");
-      setCoverFile(file);
-      setCoverPreview(URL.createObjectURL(file));
+      const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/heic"];
+      if (!validTypes.includes(file.type)) { 
+        setError("Format foto harus JPG, PNG, WEBP, atau HEIC."); 
+        return; 
+      }
+      // Menaikkan batas ukuran sebelum kompresi menjadi 10MB (Kamera HP modern)
+      if (file.size > 10 * 1024 * 1024) { 
+        setError("Ukuran foto maksimal 10MB sebelum kompresi."); 
+        return; 
+      }
+      
+      try {
+        setError("");
+        // Tampilkan preview instan versi asli (untuk UI yang cepat)
+        setCoverPreview(URL.createObjectURL(file));
+
+        // Proses kompresi gambar di background (max width 1200px, quality 70%)
+        const compressedFile = await compressImage(file, 1200, 0.7);
+        setCoverFile(compressedFile);
+
+        // Update preview dengan versi compressed (lebih ringan)
+        setCoverPreview(URL.createObjectURL(compressedFile));
+      } catch (err) {
+        setError("Gagal memproses dan mengompres gambar.");
+        console.error("Compression error:", err);
+      }
     }
   };
 
   const extractErrorMessage = (err: unknown): string | null => {
     if (!err) return null;
     
-    // Check if it's an object with an 'errors' array (Zod format)
     if (typeof err === 'object' && 'errors' in err) {
       const errObj = err as { errors: unknown };
       if (Array.isArray(errObj.errors) && errObj.errors.length > 0) {
         const firstError = errObj.errors[0];
-        // Parse JSON string inside the array if Zod threw a stringified array
         if (typeof firstError === 'string') {
            try {
              const parsed = JSON.parse(firstError);
@@ -192,7 +264,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
       }
     }
     
-    // Check if err itself is a stringified JSON array from Zod
     if (typeof err === 'string' && err.startsWith('[') && err.includes('"message"')) {
        try {
           const parsed = JSON.parse(err);
@@ -203,7 +274,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
     }
 
     if (err instanceof Error) {
-       // Kadang Zod membungkus JSON di dalam err.message
        if (err.message.startsWith('[') && err.message.includes('"message"')) {
          try {
             const parsed = JSON.parse(err.message);
@@ -232,7 +302,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
       setError("");
       setStep(s => Math.min(4, s + 1));
     } catch (err: unknown) {
-      // PERBAIKAN PENCEGAHAN JSON MERAH: Ekstrak pesan bersih
       const cleanError = extractErrorMessage(err);
       if (cleanError) {
         setError(cleanError);
@@ -252,8 +321,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
       
       if (coverFile) {
         const supabase = createClient();
-        const fileExt = coverFile.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.jpg`; // Selalu save sebagai jpg setelah kompresi
         const filePath = `covers/${fileName}`;
 
         const { error: uploadError } = await supabase.storage.from("aquariums").upload(filePath, coverFile);
@@ -283,7 +351,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
         setLoading(false);
       }
     } catch (err: unknown) {
-      // PERBAIKAN PENCEGAHAN JSON MERAH: Ekstrak pesan bersih
       const cleanError = extractErrorMessage(err);
       if (cleanError) {
         setError(cleanError);
@@ -350,7 +417,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
               
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Foto Akuarium (Opsional)</label>
-                <input id="cover-image" type="file" accept="image/jpeg, image/png, image/webp" onChange={handleCoverChange} className="hidden" />
+                <input id="cover-image" type="file" accept="image/jpeg, image/png, image/webp, image/heic" onChange={handleCoverChange} className="hidden" />
                 <label htmlFor="cover-image" className="cursor-pointer block">
                   <div className="overflow-hidden rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-500 transition-all group bg-slate-50 dark:bg-slate-950/50">
                     {coverPreview ? (
@@ -364,7 +431,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
                       <div className="flex h-48 flex-col items-center justify-center text-slate-500 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
                         <ImagePlus className="h-10 w-10 mb-2" />
                         <span className="text-sm font-bold">Upload Foto</span>
-                        <span className="text-xs mt-1">JPG, PNG, WEBP (Max 3MB)</span>
+                        <span className="text-xs mt-1">Otomatis Terkompresi (Max 10MB)</span>
                       </div>
                     )}
                   </div>
