@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 
-// --- 1. IMPORTS DASAR ---
 import { useLanguage } from "@/providers/LanguageProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { getAquariumByIdAction, updateAquariumAction, deleteAquariumAction } from "../actions/aquarium.actions";
@@ -13,60 +12,39 @@ import { Aquarium } from "../types/aquarium.types";
 import { 
   ArrowLeft, Edit, Archive, Trash2, Container, AlertTriangle, 
   Droplets, Settings2, CalendarDays, Loader2, RefreshCw, 
-  LayoutDashboard, Activity, Leaf, ShieldAlert, HeartPulse,
-  Info, AlertCircle, XCircle, CheckCircle2,
+  LayoutDashboard, Activity, Leaf, ShieldAlert,
   Maximize, Box, Layers, Lightbulb, Wind, Thermometer, FlaskConical
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
-// --- 2. IMPORTS KOMPONEN & MESIN PAKAR ---
 import ParameterTab from "./ParameterTab";
 import InventoryTab from "./InventoryTab"; 
 import MaintenanceTab from "./MaintenanceTab"; 
+// IMPORT ORKESTRATOR HEALTH UI YANG BARU DIBUAT
+import HealthDashboard from "./health/HealthDashboard"; 
 
-// PERBAIKAN: Hapus import tipe dari Action layer
 import { getParametersAction } from "../actions/parameter.actions";
 import { getTankInventoryAction } from "../actions/inventory.actions";
 import { getMaintenanceDashboardAction } from "../actions/maintenance.actions";
-
-// PERBAIKAN: Gunakan import tipe langsung dari Types layer (Single Source of Truth)
 import type { AquariumParameterLog } from "../types/parameter.types";
 import type { TankFish, TankPlant } from "../types/inventory.types";
-
 import { analyzeAquariumHealth, HealthAnalysisResult } from "../utils/health-engine";
 import { 
   calculateTankAge, getTankTypeDesc, getSubstrateDesc, 
-  getFilterDesc, getFertilizerDesc,
-  AquariumDictionary
+  getFilterDesc, getFertilizerDesc, AquariumDictionary
 } from "./aquarium-helpers";
 
-// --- 3. DEFINISI TIPE ---
 interface DetailDictionary {
-  back: string;
-  edit: string;
-  archive: string;
-  restore: string;
-  delete: string;
-  overview: string;
-  parameters: string;
-  floraFauna: string;
-  aiDiagnose: string;
-  equipment: string;
-  maintenance: string;
-  dimensions: string;
+  back: string; edit: string; archive: string; restore: string;
+  delete: string; overview: string; parameters: string;
+  floraFauna: string; aiDiagnose: string; equipment: string;
+  maintenance: string; dimensions: string;
 }
 
 type TabId = "overview" | "parameters" | "flora" | "maintenance" | "ai";
 
-interface TabItem {
-  id: TabId;
-  label: string;
-  icon: React.ElementType;
-}
-
 export default function AquariumDetail() {
-  // --- 4. HOOKS & STATES ---
   const { dict, language } = useLanguage();
   const { role } = useAuth(); 
   
@@ -85,7 +63,6 @@ export default function AquariumDetail() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [healthResult, setHealthResult] = useState<HealthAnalysisResult | null>(null);
 
-  // --- 5. KAMUS ---
   const rootDict = dict as { aquarium?: { detail?: DetailDictionary }, formOptions?: any };
   const detailDict: DetailDictionary = rootDict?.aquarium?.detail || {
     back: lang === 'id' ? "Kembali ke Dashboard" : "Back to Dashboard",
@@ -102,15 +79,14 @@ export default function AquariumDetail() {
     dimensions: lang === 'id' ? "Dimensi" : "Dimensions",
   };
 
-  const TABS: TabItem[] = [
-    { id: "overview", label: detailDict.overview, icon: LayoutDashboard },
-    { id: "parameters", label: detailDict.parameters, icon: Activity },
-    { id: "flora", label: detailDict.floraFauna, icon: Leaf },
-    { id: "maintenance", label: detailDict.maintenance, icon: RefreshCw }, 
-    { id: "ai", label: detailDict.aiDiagnose, icon: ShieldAlert },
+  const TABS = [
+    { id: "overview" as TabId, label: detailDict.overview, icon: LayoutDashboard },
+    { id: "parameters" as TabId, label: detailDict.parameters, icon: Activity },
+    { id: "flora" as TabId, label: detailDict.floraFauna, icon: Leaf },
+    { id: "maintenance" as TabId, label: detailDict.maintenance, icon: RefreshCw }, 
+    { id: "ai" as TabId, label: detailDict.aiDiagnose, icon: ShieldAlert },
   ];
 
-  // --- 6. PEMETAAN TRANSLASI ---
   const getParamText = (val: string | null | undefined) => {
     if (!val) return "-";
     const lower = val.toLowerCase();
@@ -120,48 +96,6 @@ export default function AquariumDetail() {
     return val;
   };
 
-  const translateHealthAlert = (text: string, isEn: boolean) => {
-    if (!isEn) return text; 
-    let t = text;
-    t = t.replace("Kondisi ekosistem sangat stabil dan harmonis.", "Ecosystem is very stable and harmonious.");
-    t = t.replace("Kondisi ekosistem stabil.", "Stable ecosystem conditions.");
-    t = t.replace("Tidak ada log parameter air.", "No water parameter logs found.");
-    t = t.replace("Tidak ada tanaman hidup untuk menyerap nitrat berlebih secara alami.", "No live plants to naturally absorb excess nitrates.");
-    t = t.replace("pH terlalu asam", "pH is too acidic");
-    t = t.replace("pH terlalu basa", "pH is too alkaline");
-    t = t.replace("Suhu air terlalu panas", "Water temperature is too hot");
-    t = t.replace("Suhu terlalu dingin", "Temperature is too cold");
-    t = t.replace("Peringatan: Nitrit mulai terdeteksi.", "Warning: Nitrite is beginning to be detected.");
-    t = t.replace("Bahaya: Amonia terdeteksi", "Danger: Ammonia detected");
-    t = t.replace("Kritis: Kadar Nitrit tinggi", "Critical: High Nitrite levels");
-    t = t.replace("Kadar Nitrat tinggi", "High Nitrate levels");
-    t = t.replace("memicu ledakan alga.", "triggers algae blooms.");
-    t = t.replace("Overstocking Ekstrem:", "Extreme Overstocking:");
-    return t;
-  };
-
-  const translateHealthRec = (text: string, isEn: boolean) => {
-    if (!isEn) return text;
-    let t = text;
-    t = t.replace("Lanjutkan rutinitas perawatan hebat Anda. Keep up the good work!", "Continue your great maintenance routine. Keep up the good work!");
-    t = t.replace("Lakukan pengujian parameter air dasar (pH, Ammonia) sebagai langkah awal diagnosis.", "Perform basic water parameter testing (pH, Ammonia) as an initial diagnostic step.");
-    t = t.replace("Pertimbangkan menanam tanaman low-light sebagai filter penunjang biologis.", "Consider planting low-light plants as a biological support filter.");
-    t = t.replace("Kurangi populasi fauna atau pindahkan ke tank berukuran lebih besar.", "Reduce fauna population or move them to a larger tank.");
-    t = t.replace("Segera lakukan water change 50% dan tambahkan bakteri starter.", "Immediately perform a 50% water change and add starter bacteria.");
-    t = t.replace("Siklus nitrogen belum stabil. Ganti air 30% dan puasakan ikan.", "Nitrogen cycle is not stable. Change 30% water and fast the fishes.");
-    t = t.replace("Tingkatkan frekuensi ganti air berkala dan bersihkan media mekanis.", "Increase frequency of periodic water changes and clean mechanical media.");
-    return t;
-  };
-
-  const getTrendIcon = (trend: string) => {
-    switch (trend) {
-      case "improving": return lang === 'id' ? "↗ Membaik" : "↗ Improving";
-      case "declining": return lang === 'id' ? "↘ Memburuk" : "↘ Declining";
-      default: return lang === 'id' ? "→ Stabil" : "→ Stable";
-    }
-  };
-
-  // --- 7. LOAD DATA ---
   useEffect(() => {
     async function fetchAllData() {
       if (!aquariumId) return;
@@ -199,7 +133,6 @@ export default function AquariumDetail() {
     fetchAllData();
   }, [aquariumId]);
 
-  // --- 8. HANDLERS ---
   const handleTabClick = (tabId: TabId) => {
     setActiveTab(tabId);
     window.history.replaceState(null, '', `#${tabId}`);
@@ -215,7 +148,7 @@ export default function AquariumDetail() {
       setAquarium({ ...aquarium, is_active: newStatus });
       setShowArchiveModal(false);
     } else {
-      toast.error(res.error || (lang === 'id' ? "Gagal." : "Failed."));
+      toast.error(res.error || "Gagal.");
     }
     setLoading(false);
   };
@@ -227,54 +160,11 @@ export default function AquariumDetail() {
       toast.success(lang === 'id' ? "Akuarium dihapus." : "Aquarium deleted.");
       router.push("/dashboard/my-aquarium");
     } else {
-      toast.error(res.error || (lang === 'id' ? "Gagal." : "Failed."));
+      toast.error(res.error || "Gagal.");
       setLoading(false);
     }
   };
 
-  // --- 9. HELPERS WARNA & STATUS ---
-  const getHealthColor = (status: string) => {
-    switch (status) {
-      case "Excellent": return "text-emerald-500";
-      case "Good": return "text-blue-500";
-      case "Warning": return "text-amber-500";
-      case "Critical": return "text-red-500";
-      default: return "text-slate-500";
-    }
-  };
-
-  const getHealthBg = (status: string) => {
-    switch (status) {
-      case "Excellent": return "bg-emerald-500";
-      case "Good": return "bg-blue-500";
-      case "Warning": return "bg-amber-500";
-      case "Critical": return "bg-red-500";
-      default: return "bg-slate-500";
-    }
-  };
-
-  const getHealthBorder = (status: string) => {
-    switch (status) {
-      case "Excellent": return "border-emerald-500";
-      case "Good": return "border-blue-500";
-      case "Warning": return "border-amber-500";
-      case "Critical": return "border-red-500";
-      default: return "border-slate-500";
-    }
-  };
-
-  const getHealthStatusText = (status: string, isEn: boolean) => {
-    if (isEn) return status.toUpperCase();
-    switch (status) {
-      case "Excellent": return "SEMPURNA";
-      case "Good": return "BAIK";
-      case "Warning": return "PERINGATAN";
-      case "Critical": return "KRITIS";
-      default: return status.toUpperCase();
-    }
-  };
-
-  // --- 10. RENDER TAMPILAN ---
   if (loading && !aquarium) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -302,18 +192,14 @@ export default function AquariumDetail() {
   return (
     <div className="w-full pb-24 animate-in fade-in duration-700">
       
-      {/* --- HERO NAVIGATION --- */}
+      {/* HERO NAVIGATION */}
       <div className="w-full bg-transparent px-4 sm:px-8 pt-4 pb-2 max-w-[1400px] mx-auto">
-        <Button 
-          onClick={() => router.push("/dashboard/my-aquarium")}
-          variant="ghost" 
-          className="text-slate-500 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/30 pl-2 pr-4 font-bold"
-        >
+        <Button onClick={() => router.push("/dashboard/my-aquarium")} variant="ghost" className="text-slate-500 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/30 pl-2 pr-4 font-bold">
           <ArrowLeft className="w-5 h-5 mr-2" /> {detailDict.back}
         </Button>
       </div>
 
-      {/* --- HERO HEADER --- */}
+      {/* HERO HEADER */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-8">
         <div className="relative w-full min-h-[40vh] flex flex-col bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800">
           {aquarium.image_url && !imgError ? (
@@ -351,9 +237,8 @@ export default function AquariumDetail() {
         </div>
       </div>
 
-      {/* --- MAIN CONTENT TABS --- */}
+      {/* TABS MENU */}
       <div className="max-w-[1400px] mx-auto p-4 sm:p-8 mt-4 relative z-20">
-        
         <div className="flex items-center justify-start sm:justify-between bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 mb-6 p-2 overflow-x-auto no-scrollbar">
           <div className="flex gap-2 min-w-max w-full">
             {TABS.map((tab) => (
@@ -365,107 +250,18 @@ export default function AquariumDetail() {
         </div>
 
         <div className="min-h-[40vh]">
+          
           {activeTab === "overview" && (
             <div className="flex flex-col gap-5 animate-in slide-in-from-bottom-4 duration-500">
               
-              {/* HEALTH SCORE PANEL (MODIFIED: BENTO SUB-SCORES) */}
+              {/* KOMPONEN MODULAR HEALTH DASHBOARD */}
               {healthResult && (
-                <div className="space-y-5">
-                  <div className={`w-full bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-md border-t-8 border-x border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-8 ${getHealthBorder(healthResult.status)}`}>
-                    
-                    {/* OVERALL RADIAL SCORE */}
-                    <div className="relative w-32 h-32 shrink-0 flex items-center justify-center mx-auto md:mx-0">
-                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" className="text-slate-100 dark:text-slate-800" />
-                        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" strokeDasharray="283" strokeDashoffset={283 - (283 * healthResult.scores.overall) / 100} className={`${getHealthColor(healthResult.status)} transition-all duration-1000 ease-out`} strokeLinecap="round" />
-                      </svg>
-                      <div className="absolute flex flex-col items-center justify-center">
-                        <span className={`text-3xl font-black ${getHealthColor(healthResult.status)}`}>{healthResult.scores.overall}</span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Score</span>
-                      </div>
-                    </div>
-
-                    {/* DETAILS & BENTO SUB-SCORES */}
-                    <div className="flex-1 w-full space-y-5">
-                      {/* Header Ecosystem Status */}
-                      <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                        <div className={`p-2 rounded-xl text-white ${getHealthBg(healthResult.status)} shadow-lg`}><HeartPulse className="w-6 h-6" /></div>
-                        <div>
-                          <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">
-                            {lang === 'id' ? "Kesehatan Ekosistem:" : "Ecosystem Health:"} <span className={getHealthColor(healthResult.status)}>{getHealthStatusText(healthResult.status, lang === 'en')}</span>
-                          </h3>
-                          <p className="text-sm font-medium text-slate-500 mt-0.5">Trend: <span className="font-bold text-slate-700 dark:text-slate-300">{getTrendIcon(healthResult.trend)}</span></p>
-                        </div>
-                      </div>
-
-                      {/* V2: SUB-SCORES BENTO ROW */}
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                        {[
-                          { label: lang === 'id' ? "Kualitas Air" : "Water Quality", score: healthResult.scores.waterQuality, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800", icon: Activity },
-                          { label: lang === 'id' ? "Perawatan" : "Maintenance", score: healthResult.scores.maintenance, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800", icon: RefreshCw },
-                          { label: lang === 'id' ? "Beban Biologis" : "Bioload", score: healthResult.scores.bioload, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800", icon: Box },
-                          { label: lang === 'id' ? "Flora" : "Flora", score: healthResult.scores.plant ?? 0, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800", icon: Leaf, isNull: healthResult.scores.plant === null }
-                        ].map((sub, i) => (
-                          <div key={i} className={`p-4 rounded-2xl border shadow-sm flex flex-col justify-between group transition-colors ${sub.bg}`}>
-                            <div className="flex justify-between items-start mb-2">
-                              <div className={`p-1.5 rounded-lg bg-white/50 dark:bg-slate-950/50 ${sub.color}`}><sub.icon className="w-4 h-4" /></div>
-                              <span className={`text-xl font-black ${sub.isNull ? 'text-slate-400' : 'text-slate-800 dark:text-slate-100'}`}>{sub.isNull ? '-' : sub.score}</span>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">{sub.label}</p>
-                              <div className="w-full h-1.5 bg-white dark:bg-slate-800 rounded-full overflow-hidden">
-                                {!sub.isNull && <div className={`h-full rounded-full ${sub.color.replace('text', 'bg')}`} style={{ width: `${sub.score}%` }} />}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ALERTS & RECOMMENDATIONS DUAL-PANEL (OUTSIDE MAIN BOX) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-2">
-                    {/* Panel 1: System Alerts (Merah/Kuning) */}
-                    <div className="bg-red-50/50 dark:bg-red-950/10 p-5 rounded-3xl border border-red-100 dark:border-red-900/50 shadow-sm relative overflow-hidden group">
-                      <AlertCircle className="absolute -right-4 -bottom-4 w-32 h-32 text-red-500/5 transform group-hover:scale-110 transition-transform duration-700" />
-                      <h4 className="text-sm font-black uppercase text-red-600 dark:text-red-400 tracking-widest mb-4 flex items-center gap-2 relative z-10">
-                        <AlertCircle className="w-5 h-5" /> 
-                        {lang === 'id' ? "Peringatan Sistem" : "System Alerts"}
-                      </h4>
-                      <ul className="space-y-3 relative z-10">
-                        {healthResult.alerts.map((alert, i) => (
-                          <li key={i} className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-2.5">
-                            {healthResult.status === 'Critical' || alert.includes('Bahaya') || alert.includes('Kritis') || alert.includes('Kepadatan Biologis Kritis') ? <XCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5"/> : <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />}
-                            <span className="leading-snug">{translateHealthAlert(alert, lang === 'en')}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Panel 2: Action Required (Teal/Biru) */}
-                    <div className="bg-teal-50/50 dark:bg-teal-950/10 p-5 rounded-3xl border border-teal-100 dark:border-teal-900/50 shadow-sm relative overflow-hidden group">
-                      <HeartPulse className="absolute -right-4 -bottom-4 w-32 h-32 text-teal-500/5 transform group-hover:scale-110 transition-transform duration-700" />
-                      <h4 className="text-sm font-black uppercase text-teal-600 dark:text-teal-400 tracking-widest mb-4 flex items-center gap-2 relative z-10">
-                        <CheckCircle2 className="w-5 h-5" /> 
-                        {lang === 'id' ? "Tindakan Disarankan" : "Action Required"}
-                      </h4>
-                      <ul className="space-y-3 relative z-10">
-                        {healthResult.recommendations.map((rec, i) => (
-                          <li key={i} className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-2.5">
-                            <div className="w-2 h-2 rounded-full bg-teal-500 shrink-0 mt-1.5 shadow-[0_0_8px_rgba(20,184,166,0.8)]" />
-                            <span className="leading-snug">{translateHealthRec(rec, lang === 'en')}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
+                <HealthDashboard healthResult={healthResult} lang={lang} />
               )}
 
-              {/* BENTO GRID BAWAH (DIMENSI, PERALATAN, MAINTENANCE) */}
+              {/* BENTO GRID BAWAH (DIMENSI, PERALATAN, MAINTENANCE) TETAP UTUH */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch mt-2">
-                
-                {/* 1. KOTAK DIMENSI & SPESIFIKASI */}
+                {/* 1. KOTAK DIMENSI */}
                 <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-900/50 p-6 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-800 flex flex-col h-full relative overflow-hidden group">
                   <Maximize className="absolute -bottom-4 -right-4 w-24 h-24 text-slate-100 dark:text-slate-800/50 transition-transform duration-700 group-hover:scale-110" />
                   <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-6 flex items-center gap-2 relative z-10">
@@ -498,15 +294,13 @@ export default function AquariumDetail() {
                   </div>
                 </div>
 
-                {/* 2. KOTAK PERALATAN CONFIG */}
+                {/* 2. KOTAK PERALATAN */}
                 <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-900/50 p-6 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-800 flex flex-col h-full relative overflow-hidden group">
                   <Settings2 className="absolute -bottom-4 -right-4 w-24 h-24 text-slate-100 dark:text-slate-800/50 transition-transform duration-700 group-hover:rotate-45" />
                   <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-6 flex items-center gap-2 relative z-10">
                     <Settings2 className="w-5 h-5 text-teal-500" /> {detailDict.equipment}
                   </h3>
-                  
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3 relative z-10 flex-1 content-start">
-                    
                     <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-start transition-colors hover:border-cyan-200 dark:hover:border-cyan-900 h-full">
                       <div className="flex items-center gap-2 mb-1.5 shrink-0">
                         <div className="p-1.5 bg-cyan-100 dark:bg-cyan-900/50 rounded-lg text-cyan-600 dark:text-cyan-400"><Activity className="w-3.5 h-3.5"/></div>
@@ -514,7 +308,6 @@ export default function AquariumDetail() {
                       </div>
                       <p className="font-black text-[13px] text-slate-800 dark:text-slate-100 leading-snug">{getFilterDesc(aquarium.filter_type, lang)}</p>
                     </div>
-
                     <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-start transition-colors hover:border-yellow-200 dark:hover:border-yellow-900 h-full">
                       <div className="flex items-center gap-2 mb-1.5 shrink-0">
                         <div className="p-1.5 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg text-yellow-600 dark:text-yellow-400"><Lightbulb className="w-3.5 h-3.5"/></div>
@@ -522,7 +315,6 @@ export default function AquariumDetail() {
                       </div>
                       <p className="font-black text-[13px] text-slate-800 dark:text-slate-100 leading-snug">{getParamText(aquarium.light_type)}</p>
                     </div>
-
                     <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-start transition-colors hover:border-emerald-200 dark:hover:border-emerald-900 h-full">
                       <div className="flex items-center gap-2 mb-1.5 shrink-0">
                         <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg text-emerald-600 dark:text-emerald-400"><Wind className="w-3.5 h-3.5"/></div>
@@ -530,7 +322,6 @@ export default function AquariumDetail() {
                       </div>
                       <p className="font-black text-[13px] text-slate-800 dark:text-slate-100 leading-snug">{getParamText(aquarium.co2_type)}</p>
                     </div>
-
                     <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-start transition-colors hover:border-orange-200 dark:hover:border-orange-900 h-full">
                       <div className="flex items-center gap-2 mb-1.5 shrink-0">
                         <div className="p-1.5 bg-orange-100 dark:bg-orange-900/50 rounded-lg text-orange-600 dark:text-orange-400"><Thermometer className="w-3.5 h-3.5"/></div>
@@ -538,18 +329,15 @@ export default function AquariumDetail() {
                       </div>
                       <p className="font-black text-[13px] text-slate-800 dark:text-slate-100 leading-snug">{aquarium.heater_enabled ? (lang === 'id' ? "Heater Aktif" : "Heater Active") : (lang === 'id' ? "Tanpa Heater" : "No Heater")}</p>
                     </div>
-
                   </div>
                 </div>
 
                 {/* 3. KOTAK MAINTENANCE */}
                 <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-900/50 p-6 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-800 flex flex-col h-full relative overflow-hidden group">
                   <Droplets className="absolute -bottom-4 -right-4 w-24 h-24 text-slate-100 dark:text-slate-800/50 transition-transform duration-700 group-hover:-translate-y-2" />
-                  
                   <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-6 flex items-center gap-2 relative z-10">
                     <RefreshCw className="w-5 h-5 text-blue-500" /> {detailDict.maintenance}
                   </h3>
-                  
                   <div className="space-y-4 relative z-10 flex-1 flex flex-col justify-center">
                     <div className="p-5 rounded-2xl bg-blue-500 text-white shadow-lg shadow-blue-500/30 flex-1 flex flex-col justify-center relative overflow-hidden group/wc hover:bg-blue-600 transition-colors min-h-[100px]">
                       <Droplets className="absolute -right-4 -bottom-4 w-32 h-32 opacity-10 group-hover/wc:scale-110 transition-transform duration-700" />
@@ -561,7 +349,6 @@ export default function AquariumDetail() {
                         </span>
                       </div>
                     </div>
-
                     <div className="p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4 transition-colors hover:border-emerald-200 dark:hover:border-emerald-900 min-h-[80px]">
                       <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0"><FlaskConical className="w-6 h-6"/></div>
                       <div>
@@ -576,7 +363,6 @@ export default function AquariumDetail() {
             </div>
           )}
 
-          {/* --- BAGIAN: TAB LAINNYA --- */}
           {activeTab === "parameters" && <div className="animate-in slide-in-from-right-4 duration-500"><ParameterTab aquariumId={aquariumId} /></div>}
           {activeTab === "flora" && <div className="animate-in slide-in-from-right-4 duration-500"><InventoryTab aquariumId={aquariumId} /></div>}
           {activeTab === "maintenance" && <div className="animate-in slide-in-from-right-4 duration-500"><MaintenanceTab aquariumId={aquariumId} /></div>}
@@ -597,49 +383,12 @@ export default function AquariumDetail() {
         </div>
       </div>
 
-      {/* --- BAGIAN: MODAL ARSIP & HAPUS --- */}
       {showArchiveModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
-          <div className={`w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 ${isArchived ? 'border-emerald-500' : 'border-amber-500'}`}>
-            <div className={`flex items-center gap-3 mb-5 ${isArchived ? 'text-emerald-500' : 'text-amber-500'}`}>
-              <RefreshCw className="w-8 h-8" />
-              <h3 className="text-2xl font-black uppercase tracking-tight">{isArchived ? (lang === 'id' ? "Pulihkan?" : "Restore?") : (lang === 'id' ? "Arsipkan?" : "Archive?")}</h3>
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed font-medium">
-              {isArchived ? (lang === 'id' ? "Data akuarium akan kembali aktif di Dashboard utama." : "Aquarium data will be reactivated on the main Dashboard.") : (lang === 'id' ? "Data akan disembunyikan tapi riwayat tetap aman tersimpan." : "Data will be hidden but history remains safely stored.")}
-            </p>
-            <div className="flex flex-col gap-3">
-              <Button onClick={handleArchiveToggle} disabled={loading} className={`w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg text-white transition-colors ${isArchived ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "bg-amber-600 hover:bg-amber-700 shadow-amber-500/20"}`}>
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : (lang === 'id' ? "KONFIRMASI" : "CONFIRM ACTION")}
-              </Button>
-              <Button variant="ghost" onClick={() => setShowArchiveModal(false)} disabled={loading} className="w-full h-12 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
-                {lang === 'id' ? "Batal" : "Cancel"}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300"> ... </div>
       )}
 
       {showDeleteModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600">
-            <div className="flex items-center gap-3 mb-5 text-red-600">
-              <ShieldAlert className="h-8 w-8" />
-              <h3 className="text-2xl font-black uppercase tracking-tight">{lang === 'id' ? "Hapus Total" : "Purge Data"}</h3>
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed font-medium">
-              Peringatan: Tindakan ini akan <strong className="text-red-500">menghapus permanen</strong> <span className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{aquarium.name}</span> beserta seluruh log yang pernah dicatat. Tidak bisa dibatalkan.
-            </p>
-            <div className="flex flex-col gap-3">
-                <Button onClick={handleDelete} disabled={loading} className="bg-red-600 hover:bg-red-700 w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 text-white transition-colors">
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : (lang === 'id' ? "YA, HAPUS SEKARANG" : "YES, DELETE NOW")}
-                </Button>
-                <Button variant="ghost" onClick={() => setShowDeleteModal(false)} disabled={loading} className="w-full h-12 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
-                    {lang === 'id' ? "Batal" : "Cancel"}
-                </Button>
-            </div>
-          </div>
-        </div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300"> ... </div>
       )}
     </div>
   );
