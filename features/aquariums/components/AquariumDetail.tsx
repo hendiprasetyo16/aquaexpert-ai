@@ -14,7 +14,7 @@ import {
   ArrowLeft, Edit, Archive, Trash2, Container, AlertTriangle, 
   Droplets, Settings2, CalendarDays, Loader2, RefreshCw, 
   LayoutDashboard, Activity, Leaf, ShieldAlert, HeartPulse,
-  Info, AlertCircle, XCircle,
+  Info, AlertCircle, XCircle, CheckCircle2,
   Maximize, Box, Layers, Lightbulb, Wind, Thermometer, FlaskConical
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,13 +23,14 @@ import toast from "react-hot-toast";
 // --- 2. IMPORTS KOMPONEN & MESIN PAKAR ---
 import ParameterTab from "./ParameterTab";
 import InventoryTab from "./InventoryTab"; 
-import MaintenanceTab from "./MaintenanceTab"; // <-- IMPORT TAB BARU KITA
+import MaintenanceTab from "./MaintenanceTab"; 
 import { getParametersAction, AquariumParameterLog } from "../actions/parameter.actions";
 import { getTankInventoryAction, TankFish, TankPlant } from "../actions/inventory.actions";
+import { getMaintenanceDashboardAction } from "../actions/maintenance.actions";
 import { analyzeAquariumHealth, HealthAnalysisResult } from "../utils/health-engine";
 import { 
   calculateTankAge, getTankTypeDesc, getSubstrateDesc, 
-  getFilterDesc, getLightDesc, getCO2Desc, getFertilizerDesc,
+  getFilterDesc, getFertilizerDesc,
   AquariumDictionary
 } from "./aquarium-helpers";
 
@@ -49,7 +50,6 @@ interface DetailDictionary {
   dimensions: string;
 }
 
-// Tambahkan "maintenance" ke dalam TabId
 type TabId = "overview" | "parameters" | "flora" | "maintenance" | "ai";
 
 interface TabItem {
@@ -99,7 +99,7 @@ export default function AquariumDetail() {
     { id: "overview", label: detailDict.overview, icon: LayoutDashboard },
     { id: "parameters", label: detailDict.parameters, icon: Activity },
     { id: "flora", label: detailDict.floraFauna, icon: Leaf },
-    { id: "maintenance", label: detailDict.maintenance, icon: RefreshCw }, // <-- MENU TAB BARU
+    { id: "maintenance", label: detailDict.maintenance, icon: RefreshCw }, 
     { id: "ai", label: detailDict.aiDiagnose, icon: ShieldAlert },
   ];
 
@@ -113,44 +113,45 @@ export default function AquariumDetail() {
     return val;
   };
 
-  // --- TRANSLATOR UNTUK HEALTH ENGINE ALERTS (HARDCODED TRANSLATION) ---
   const translateHealthAlert = (text: string, isEn: boolean) => {
     if (!isEn) return text; 
-    
-    if (text.includes("Kondisi ekosistem stabil")) return "Stable ecosystem conditions.";
-    if (text.includes("Tidak ada log parameter air")) return "No water parameter logs found.";
-    if (text.includes("Tidak ada tanaman hidup untuk menyerap nitrat")) return "No live plants to absorb nitrate.";
-    if (text.includes("pH terlalu asam")) return "pH is too acidic (below 5.5). Risk of acidosis.";
-    if (text.includes("pH terlalu basa")) return "pH is too alkaline (above 8.0). Ammonia becomes more toxic.";
-    if (text.includes("Suhu air terlalu panas")) return "Water temperature is too high. Dissolved oxygen will drop sharply.";
-    if (text.includes("Suhu terlalu dingin")) return "Temperature is too cold. Ensure heater is functioning.";
-    if (text.includes("Peringatan: Nitrit mulai terdeteksi")) return "Warning: Nitrite is beginning to be detected.";
-    
-    let translated = text;
-    translated = translated.replace("Bahaya: Amonia terdeteksi", "Danger: Ammonia detected");
-    translated = translated.replace("Kritis: Kadar Nitrit tinggi", "Critical: High Nitrite levels");
-    translated = translated.replace("Kadar Nitrat tinggi", "High Nitrate levels");
-    translated = translated.replace("memicu ledakan alga", "can trigger algae blooms");
-    translated = translated.replace("Overstocking:", "Overstocking:");
-    translated = translated.replace("ekor ikan di dalam", "fishes inside");
-    translated = translated.replace("Liter air.", "Liters of water.");
-    return translated;
+    let t = text;
+    t = t.replace("Kondisi ekosistem sangat stabil dan harmonis.", "Ecosystem is very stable and harmonious.");
+    t = t.replace("Kondisi ekosistem stabil.", "Stable ecosystem conditions.");
+    t = t.replace("Tidak ada log parameter air.", "No water parameter logs found.");
+    t = t.replace("Tidak ada tanaman hidup untuk menyerap nitrat berlebih secara alami.", "No live plants to naturally absorb excess nitrates.");
+    t = t.replace("pH terlalu asam", "pH is too acidic");
+    t = t.replace("pH terlalu basa", "pH is too alkaline");
+    t = t.replace("Suhu air terlalu panas", "Water temperature is too hot");
+    t = t.replace("Suhu terlalu dingin", "Temperature is too cold");
+    t = t.replace("Peringatan: Nitrit mulai terdeteksi.", "Warning: Nitrite is beginning to be detected.");
+    t = t.replace("Bahaya: Amonia terdeteksi", "Danger: Ammonia detected");
+    t = t.replace("Kritis: Kadar Nitrit tinggi", "Critical: High Nitrite levels");
+    t = t.replace("Kadar Nitrat tinggi", "High Nitrate levels");
+    t = t.replace("memicu ledakan alga.", "triggers algae blooms.");
+    t = t.replace("Overstocking Ekstrem:", "Extreme Overstocking:");
+    return t;
   };
 
   const translateHealthRec = (text: string, isEn: boolean) => {
     if (!isEn) return text;
-    
-    if (text.includes("Lanjutkan rutinitas perawatan (water change & pupuk) seperti biasa")) return "Continue routine maintenance (water change & fertilizer) as usual.";
-    if (text.includes("Segera uji air Anda")) return "Test your water immediately (especially pH and Ammonia) to prevent mass fish death.";
-    if (text.includes("Pertimbangkan menambah tanaman hidup")) return "Consider adding live plants (like Anubias or stem plants) for natural filtration.";
-    if (text.includes("Kurangi jumlah ikan atau tingkatkan kapasitas filter")) return "Reduce fish count or increase filter capacity and water change frequency.";
-    if (text.includes("Segera lakukan water change 50% dan tambahkan bakteri starter")) return "Immediately perform a 50% water change and add starter bacteria.";
-    if (text.includes("Siklus nitrogen belum stabil")) return "Nitrogen cycle is unstable. Change 30% water and fast the fishes.";
-    if (text.includes("Lakukan jadwal ganti air lebih sering")) return "Increase water change frequency. Clean mechanical filter media.";
-    if (text.includes("Cek sumber air atau periksa benda yang menurunkan pH")) return "Check water source or items lowering pH (like excessive driftwood or catappa leaves).";
-    if (text.includes("Kurangi penggunaan bebatuan kapur")) return "Reduce limestone usage unless it is an African cichlid tank.";
-    if (text.includes("Tambahkan kipas")) return "Add a cooling fan or maximize aeration.";
-    return text;
+    let t = text;
+    t = t.replace("Lanjutkan rutinitas perawatan hebat Anda. Keep up the good work!", "Continue your great maintenance routine. Keep up the good work!");
+    t = t.replace("Lakukan pengujian parameter air dasar (pH, Ammonia) sebagai langkah awal diagnosis.", "Perform basic water parameter testing (pH, Ammonia) as an initial diagnostic step.");
+    t = t.replace("Pertimbangkan menanam tanaman low-light sebagai filter penunjang biologis.", "Consider planting low-light plants as a biological support filter.");
+    t = t.replace("Kurangi populasi fauna atau pindahkan ke tank berukuran lebih besar.", "Reduce fauna population or move them to a larger tank.");
+    t = t.replace("Segera lakukan water change 50% dan tambahkan bakteri starter.", "Immediately perform a 50% water change and add starter bacteria.");
+    t = t.replace("Siklus nitrogen belum stabil. Ganti air 30% dan puasakan ikan.", "Nitrogen cycle is not stable. Change 30% water and fast the fishes.");
+    t = t.replace("Tingkatkan frekuensi ganti air berkala dan bersihkan media mekanis.", "Increase frequency of periodic water changes and clean mechanical media.");
+    return t;
+  };
+
+  const getTrendIcon = (trend: string) => {
+    switch (trend) {
+      case "improving": return lang === 'id' ? "↗ Membaik" : "↗ Improving";
+      case "declining": return lang === 'id' ? "↘ Memburuk" : "↘ Declining";
+      default: return lang === 'id' ? "→ Stabil" : "→ Stable";
+    }
   };
 
   // --- 7. LOAD DATA ---
@@ -162,9 +163,10 @@ export default function AquariumDetail() {
         if (!aqRes.success || !aqRes.data) throw new Error(aqRes.error || "Akuarium tidak ditemukan.");
         setAquarium(aqRes.data);
 
-        const [paramRes, invRes] = await Promise.all([
+        const [paramRes, invRes, maintRes] = await Promise.all([
           getParametersAction(aquariumId),
-          getTankInventoryAction(aquariumId)
+          getTankInventoryAction(aquariumId),
+          getMaintenanceDashboardAction(aquariumId)
         ]);
 
         const result = analyzeAquariumHealth({
@@ -172,6 +174,7 @@ export default function AquariumDetail() {
           parameters: paramRes.success ? (paramRes.data as AquariumParameterLog[]) : [],
           plants: invRes.success ? (invRes.plants as TankPlant[]) : [],
           fishes: invRes.success ? (invRes.fishes as TankFish[]) : [],
+          maintenanceStatus: maintRes.success ? maintRes.tasksStatus : []
         });
         
         setHealthResult(result);
@@ -184,7 +187,6 @@ export default function AquariumDetail() {
 
     if (typeof window !== "undefined") {
       const hash = window.location.hash.replace("#", "") as TabId;
-      // Jangan lupa tambahkan "maintenance" di validator hash ini
       if (["overview", "parameters", "flora", "maintenance", "ai"].includes(hash)) setActiveTab(hash);
     }
     fetchAllData();
@@ -359,60 +361,101 @@ export default function AquariumDetail() {
           {activeTab === "overview" && (
             <div className="flex flex-col gap-5 animate-in slide-in-from-bottom-4 duration-500">
               
-              {/* HEALTH SCORE PANEL */}
+              {/* HEALTH SCORE PANEL (MODIFIED: BENTO SUB-SCORES) */}
               {healthResult && (
-                <div className={`w-full bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-md border-t-8 border-x border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center gap-8 ${getHealthBorder(healthResult.status)}`}>
-                  <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
-                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" className="text-slate-100 dark:text-slate-800" />
-                      <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" strokeDasharray="283" strokeDashoffset={283 - (283 * healthResult.score) / 100} className={`${getHealthColor(healthResult.status)} transition-all duration-1000 ease-out`} strokeLinecap="round" />
-                    </svg>
-                    <div className="absolute flex flex-col items-center justify-center">
-                      <span className={`text-3xl font-black ${getHealthColor(healthResult.status)}`}>{healthResult.score}</span>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Score</span>
+                <div className="space-y-5">
+                  <div className={`w-full bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-md border-t-8 border-x border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-8 ${getHealthBorder(healthResult.status)}`}>
+                    
+                    {/* OVERALL RADIAL SCORE */}
+                    <div className="relative w-32 h-32 shrink-0 flex items-center justify-center mx-auto md:mx-0">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" className="text-slate-100 dark:text-slate-800" />
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" strokeDasharray="283" strokeDashoffset={283 - (283 * healthResult.scores.overall) / 100} className={`${getHealthColor(healthResult.status)} transition-all duration-1000 ease-out`} strokeLinecap="round" />
+                      </svg>
+                      <div className="absolute flex flex-col items-center justify-center">
+                        <span className={`text-3xl font-black ${getHealthColor(healthResult.status)}`}>{healthResult.scores.overall}</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Score</span>
+                      </div>
+                    </div>
+
+                    {/* DETAILS & BENTO SUB-SCORES */}
+                    <div className="flex-1 w-full space-y-5">
+                      {/* Header Ecosystem Status */}
+                      <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <div className={`p-2 rounded-xl text-white ${getHealthBg(healthResult.status)} shadow-lg`}><HeartPulse className="w-6 h-6" /></div>
+                        <div>
+                          <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">
+                            {lang === 'id' ? "Kesehatan Ekosistem:" : "Ecosystem Health:"} <span className={getHealthColor(healthResult.status)}>{getHealthStatusText(healthResult.status, lang === 'en')}</span>
+                          </h3>
+                          <p className="text-sm font-medium text-slate-500 mt-0.5">Trend: <span className="font-bold text-slate-700 dark:text-slate-300">{getTrendIcon(healthResult.trend)}</span></p>
+                        </div>
+                      </div>
+
+                      {/* V2: SUB-SCORES BENTO ROW */}
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        {[
+                          { label: lang === 'id' ? "Kualitas Air" : "Water Quality", score: healthResult.scores.waterQuality, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800", icon: Activity },
+                          { label: lang === 'id' ? "Perawatan" : "Maintenance", score: healthResult.scores.maintenance, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800", icon: RefreshCw },
+                          { label: lang === 'id' ? "Beban Biologis" : "Bioload", score: healthResult.scores.bioload, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800", icon: Box },
+                          { label: lang === 'id' ? "Flora" : "Flora", score: healthResult.scores.plant ?? 0, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800", icon: Leaf, isNull: healthResult.scores.plant === null }
+                        ].map((sub, i) => (
+                          <div key={i} className={`p-4 rounded-2xl border shadow-sm flex flex-col justify-between group transition-colors ${sub.bg}`}>
+                            <div className="flex justify-between items-start mb-2">
+                              <div className={`p-1.5 rounded-lg bg-white/50 dark:bg-slate-950/50 ${sub.color}`}><sub.icon className="w-4 h-4" /></div>
+                              <span className={`text-xl font-black ${sub.isNull ? 'text-slate-400' : 'text-slate-800 dark:text-slate-100'}`}>{sub.isNull ? '-' : sub.score}</span>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">{sub.label}</p>
+                              <div className="w-full h-1.5 bg-white dark:bg-slate-800 rounded-full overflow-hidden">
+                                {!sub.isNull && <div className={`h-full rounded-full ${sub.color.replace('text', 'bg')}`} style={{ width: `${sub.score}%` }} />}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex-1 w-full space-y-4">
-                    <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-                      <div className={`p-2 rounded-xl text-white ${getHealthBg(healthResult.status)} shadow-lg`}><HeartPulse className="w-6 h-6" /></div>
-                      <div>
-                        {/* TRANSLASI STATUS */}
-                        <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">
-                          {lang === 'id' ? "Kesehatan Ekosistem:" : "Ecosystem Health:"} <span className={getHealthColor(healthResult.status)}>{getHealthStatusText(healthResult.status, lang === 'en')}</span>
-                        </h3>
-                        <p className="text-sm font-medium text-slate-500">{lang === 'id' ? "Berdasarkan kalkulasi beban biologis dan parameter air terakhir." : "Based on biological load calculation and latest water parameters."}</p>
-                      </div>
+                  {/* ALERTS & RECOMMENDATIONS DUAL-PANEL (OUTSIDE MAIN BOX) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-2">
+                    {/* Panel 1: System Alerts (Merah/Kuning) */}
+                    <div className="bg-red-50/50 dark:bg-red-950/10 p-5 rounded-3xl border border-red-100 dark:border-red-900/50 shadow-sm relative overflow-hidden group">
+                      <AlertCircle className="absolute -right-4 -bottom-4 w-32 h-32 text-red-500/5 transform group-hover:scale-110 transition-transform duration-700" />
+                      <h4 className="text-sm font-black uppercase text-red-600 dark:text-red-400 tracking-widest mb-4 flex items-center gap-2 relative z-10">
+                        <AlertCircle className="w-5 h-5" /> 
+                        {lang === 'id' ? "Peringatan Sistem" : "System Alerts"}
+                      </h4>
+                      <ul className="space-y-3 relative z-10">
+                        {healthResult.alerts.map((alert, i) => (
+                          <li key={i} className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-2.5">
+                            {healthResult.status === 'Critical' || alert.includes('Bahaya') || alert.includes('Kritis') || alert.includes('Kepadatan Biologis Kritis') ? <XCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5"/> : <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />}
+                            <span className="leading-snug">{translateHealthAlert(alert, lang === 'en')}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                        <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" /> System Alerts</h4>
-                        <ul className="space-y-2">
-                          {healthResult.alerts.map((alert, i) => (
-                            <li key={i} className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-2">
-                              {healthResult.status === 'Critical' || alert.includes('Bahaya') ? <XCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5"/> : <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />}
-                              {translateHealthAlert(alert, lang === 'en')}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                        <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-1.5"><HeartPulse className="w-3.5 h-3.5" /> Action Required</h4>
-                        <ul className="space-y-2">
-                          {healthResult.recommendations.map((rec, i) => (
-                            <li key={i} className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0 mt-1.5" />
-                              {translateHealthRec(rec, lang === 'en')}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+
+                    {/* Panel 2: Action Required (Teal/Biru) */}
+                    <div className="bg-teal-50/50 dark:bg-teal-950/10 p-5 rounded-3xl border border-teal-100 dark:border-teal-900/50 shadow-sm relative overflow-hidden group">
+                      <HeartPulse className="absolute -right-4 -bottom-4 w-32 h-32 text-teal-500/5 transform group-hover:scale-110 transition-transform duration-700" />
+                      <h4 className="text-sm font-black uppercase text-teal-600 dark:text-teal-400 tracking-widest mb-4 flex items-center gap-2 relative z-10">
+                        <CheckCircle2 className="w-5 h-5" /> 
+                        {lang === 'id' ? "Tindakan Disarankan" : "Action Required"}
+                      </h4>
+                      <ul className="space-y-3 relative z-10">
+                        {healthResult.recommendations.map((rec, i) => (
+                          <li key={i} className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-2.5">
+                            <div className="w-2 h-2 rounded-full bg-teal-500 shrink-0 mt-1.5 shadow-[0_0_8px_rgba(20,184,166,0.8)]" />
+                            <span className="leading-snug">{translateHealthRec(rec, lang === 'en')}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* BENTO GRID PREMIUM */}
+              {/* BENTO GRID BAWAH (DIMENSI, PERALATAN, MAINTENANCE) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch mt-2">
                 
                 {/* 1. KOTAK DIMENSI & SPESIFIKASI */}
@@ -529,7 +572,6 @@ export default function AquariumDetail() {
           {/* --- BAGIAN: TAB LAINNYA --- */}
           {activeTab === "parameters" && <div className="animate-in slide-in-from-right-4 duration-500"><ParameterTab aquariumId={aquariumId} /></div>}
           {activeTab === "flora" && <div className="animate-in slide-in-from-right-4 duration-500"><InventoryTab aquariumId={aquariumId} /></div>}
-          {/* TAB MAINTENANCE BARU KITA */}
           {activeTab === "maintenance" && <div className="animate-in slide-in-from-right-4 duration-500"><MaintenanceTab aquariumId={aquariumId} /></div>}
           {activeTab === "ai" && (
             <div className="flex flex-col items-center justify-center p-16 bg-teal-50/50 dark:bg-teal-950/20 rounded-3xl border border-teal-200 dark:border-teal-900/50 animate-in zoom-in-95 duration-500 mt-4 shadow-inner">
@@ -579,7 +621,7 @@ export default function AquariumDetail() {
               <h3 className="text-2xl font-black uppercase tracking-tight">{lang === 'id' ? "Hapus Total" : "Purge Data"}</h3>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed font-medium">
-              Peringatan: Tindakan ini akan <strong className="text-red-500">menghapus permanen</strong> <span className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{aquarium.name}</span> beserta seluruh log parameter yang pernah dicatat. Tidak bisa dibatalkan.
+              Peringatan: Tindakan ini akan <strong className="text-red-500">menghapus permanen</strong> <span className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{aquarium.name}</span> beserta seluruh log yang pernah dicatat. Tidak bisa dibatalkan.
             </p>
             <div className="flex flex-col gap-3">
                 <Button onClick={handleDelete} disabled={loading} className="bg-red-600 hover:bg-red-700 w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 text-white transition-colors">

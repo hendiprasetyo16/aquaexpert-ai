@@ -1,12 +1,25 @@
 // features/aquariums/utils/health-engine.ts
 
-import { Aquarium } from "../types/aquarium.types";
-import { AquariumParameterLog } from "../actions/parameter.actions";
-import { TankFish, TankPlant } from "../actions/inventory.actions";
+import type { Aquarium } from "../types/aquarium.types";
+import type { MaintenanceDashboardStatus } from "../types/maintenance.types";
+import type { AquariumParameterLog } from "../types/parameter.types"; 
+import type { TankFish, TankPlant } from "../types/inventory.types"; 
+
+export type HealthStatus = "Excellent" | "Good" | "Warning" | "Critical";
+export type HealthTrend = "improving" | "stable" | "declining"; 
+
+export interface HealthScores {
+  waterQuality: number;
+  maintenance: number;
+  bioload: number;
+  plant: number | null; 
+  overall: number;
+}
 
 export interface HealthAnalysisResult {
-  score: number;
-  status: "Excellent" | "Good" | "Warning" | "Critical";
+  scores: HealthScores;
+  status: HealthStatus;
+  trend: HealthTrend; 
   alerts: string[];
   recommendations: string[];
 }
@@ -16,6 +29,47 @@ interface AnalyzeProps {
   parameters: AquariumParameterLog[];
   plants: TankPlant[];
   fishes: TankFish[];
+  maintenanceStatus?: MaintenanceDashboardStatus[];
+}
+
+// Helper untuk konsistensi rentang nilai 0-100
+function clampScore(score: number): number {
+  return Math.max(0, Math.min(100, Math.floor(score)));
+}
+
+function getStatusFromScore(score: number): HealthStatus {
+  if (score >= 90) return "Excellent";
+  if (score >= 75) return "Good";
+  if (score >= 60) return "Warning";
+  return "Critical";
+}
+
+// Helper Moving Average yang 100% Type-Safe menggunakan Extractor Pattern
+function getAverage(
+  params: AquariumParameterLog[], 
+  extractor: (p: AquariumParameterLog) => number | null | undefined, 
+  maxLogs: number = 5, 
+  maxDays: number = 14
+): number | null {
+  const now = new Date().getTime();
+  const validValues: number[] = [];
+
+  for (const p of params) {
+    if (validValues.length >= maxLogs) break;
+    
+    // TODO: Replace created_at with recorded_at/measured_at when parameter schema supports measurement timestamps.
+    const pDate = p.created_at ? new Date(p.created_at).getTime() : now;
+    const daysDiff = (now - pDate) / (1000 * 60 * 60 * 24);
+    const val = extractor(p);
+    
+    if (daysDiff <= maxDays && val !== null && val !== undefined) {
+      validValues.push(val);
+    }
+  }
+
+  if (validValues.length === 0) return null;
+  const sum = validValues.reduce((a, b) => a + b, 0);
+  return sum / validValues.length;
 }
 
 export function analyzeAquariumHealth({
@@ -23,121 +77,226 @@ export function analyzeAquariumHealth({
   parameters,
   plants,
   fishes,
+  maintenanceStatus = [],
 }: AnalyzeProps): HealthAnalysisResult {
   
-  let score = 100;
   const alerts: string[] = [];
   const recommendations: string[] = [];
   
-  // 1. ANALISIS PARAMETER AIR (PRIORITAS TERTINGGI)
-  const latestParam = parameters.length > 0 ? parameters[0] : null; // Parameter terbaru
+  // ==========================================
+  // 1. WATER QUALITY SCORE (0-100)
+  // ==========================================
+  let waterScore = 100;
+  const latestParam = parameters.length > 0 ? parameters[0] : null;
 
   if (latestParam) {
-    // Amonia (Sangat Mematikan)
-    if (latestParam.ammonia !== null && latestParam.ammonia !== undefined) {
-      if (latestParam.ammonia > 0) {
-        score -= 30; // Penalti sangat besar
-        alerts.push(`Bahaya: Amonia terdeteksi (${latestParam.ammonia} ppm)`);
-        recommendations.push("Segera lakukan water change 50% dan tambahkan bakteri starter.");
-      }
+    // 1A. FRESHNESS CHECK
+    const paramDate = latestParam.created_at ? new Date(latestParam.created_at) : new Date();
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - paramDate.getTime());
+    const daysSinceLastParameter = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (daysSinceLastParameter > 60) {
+      waterScore -= 40;
+      alerts.push(`Kritis: Data parameter air sangat usang (${daysSinceLastParameter} hari).`);
+      recommendations.push("Segera uji parameter air secara menyeluruh.");
+    } else if (daysSinceLastParameter > 30) {
+      waterScore -= 25;
+      alerts.push(`Peringatan: Log parameter air belum diperbarui > 1 bulan.`);
+      recommendations.push("Jadwalkan pengujian air minggu ini.");
+    } else if (daysSinceLastParameter > 14) {
+      waterScore -= 10;
+      alerts.push(`Info: Data parameter air sudah melewati 14 hari.`);
+      recommendations.push("Sebaiknya lakukan tes air ringan (Amonia/pH) dalam waktu dekat.");
     }
 
-    // Nitrit (Mematikan)
-    if (latestParam.nitrite !== null && latestParam.nitrite !== undefined) {
+    // 1B. LAYER 1: HISTORICAL SCORE (Menggunakan Rata-Rata untuk Meredam Anomali)
+    const avgAmmonia = getAverage(parameters, p => p.ammonia);
+    const avgNitrite = getAverage(parameters, p => p.nitrite);
+    const avgNitrate = getAverage(parameters, p => p.nitrate);
+    const avgPh = getAverage(parameters, p => p.ph);
+    const avgTemp = getAverage(parameters, p => p.temperature);
+
+    if (avgAmmonia !== null && avgAmmonia > 0) waterScore -= Math.min(60, avgAmmonia * 30);
+    if (avgNitrite !== null && avgNitrite > 0) waterScore -= Math.min(50, avgNitrite * 25);
+    if (avgNitrate !== null && avgNitrate > 20) waterScore -= Math.min(30, (avgNitrate - 20) * 0.5);
+    
+    if (avgPh !== null && (avgPh < 5.5 || avgPh > 8.0)) waterScore -= 15;
+    if (avgTemp !== null && (avgTemp > 32 || (avgTemp < 22 && aquarium.heater_enabled))) waterScore -= 15;
+
+    // 1C. LAYER 2: EMERGENCY OVERRIDE (Keselamatan Mutlak Berdasarkan Data Terbaru)
+    if (latestParam.ammonia !== null && latestParam.ammonia > 0) {
+      alerts.push(`Bahaya: Amonia terdeteksi (${latestParam.ammonia} ppm)`);
+      recommendations.push("Segera lakukan water change 50% dan tambahkan bakteri starter.");
+      if (latestParam.ammonia >= 1.0) waterScore = Math.min(waterScore, 40); 
+    }
+
+    if (latestParam.nitrite !== null && latestParam.nitrite > 0) {
       if (latestParam.nitrite > 0.25) {
-        score -= 25;
         alerts.push(`Kritis: Kadar Nitrit tinggi (${latestParam.nitrite} ppm)`);
         recommendations.push("Siklus nitrogen belum stabil. Ganti air 30% dan puasakan ikan.");
-      } else if (latestParam.nitrite > 0) {
-        score -= 10;
+        waterScore = Math.min(waterScore, 40);
+      } else {
         alerts.push("Peringatan: Nitrit mulai terdeteksi.");
       }
     }
 
-    // Nitrat (Beracun dalam jumlah besar)
-    if (latestParam.nitrate !== null && latestParam.nitrate !== undefined) {
+    if (latestParam.nitrate !== null && latestParam.nitrate > 20) {
       if (latestParam.nitrate > 40) {
-        score -= 15;
         alerts.push(`Kadar Nitrat tinggi (${latestParam.nitrate} ppm) memicu ledakan alga.`);
-        recommendations.push("Lakukan jadwal ganti air lebih sering. Bersihkan media filter mekanis.");
-      } else if (latestParam.nitrate > 20) {
-        score -= 5;
+        recommendations.push("Tingkatkan frekuensi ganti air berkala dan bersihkan media mekanis.");
       }
     }
 
-    // pH Ekstrem
-    if (latestParam.ph !== null && latestParam.ph !== undefined) {
+    if (latestParam.ph !== null) {
       if (latestParam.ph < 5.5) {
-        score -= 10;
-        alerts.push("pH terlalu asam (di bawah 5.5). Risiko asidosis.");
-        recommendations.push("Cek sumber air atau periksa benda yang menurunkan pH (seperti kayu atau daun ketapang berlebih).");
+        alerts.push("pH terlalu asam (di bawah 5.5). Risiko asidosis fatal pada fauna.");
+        waterScore = Math.min(waterScore, 50); 
       } else if (latestParam.ph > 8.0) {
-        score -= 10;
         alerts.push("pH terlalu basa (di atas 8.0). Amonia akan menjadi lebih beracun.");
-        recommendations.push("Kurangi penggunaan bebatuan kapur (limestone) jika bukan tank cichlid Afrika.");
+        waterScore = Math.min(waterScore, 50); 
       }
     }
 
-    // Suhu Ekstrem
-    if (latestParam.temperature !== null && latestParam.temperature !== undefined) {
+    if (latestParam.temperature !== null) {
       if (latestParam.temperature > 32) {
-        score -= 10;
-        alerts.push("Suhu air terlalu panas. Oksigen terlarut akan drop tajam.");
+        alerts.push("Suhu air terlalu panas. Oksigen terlarut drop tajam.");
         recommendations.push("Tambahkan kipas (cooling fan) atau nyalakan aerasi maksimal.");
+        waterScore = Math.min(waterScore, 50); 
       } else if (latestParam.temperature < 22 && aquarium.heater_enabled) {
-        score -= 5;
         alerts.push("Suhu terlalu dingin. Pastikan heater berfungsi.");
+        waterScore = Math.min(waterScore, 50);
       }
     }
   } else {
-    // Belum ada data parameter sama sekali
-    score -= 15;
+    waterScore = 50;
     alerts.push("Tidak ada log parameter air.");
-    recommendations.push("Segera uji air Anda (khususnya pH dan Amonia) untuk mencegah kematian massal ikan.");
+    recommendations.push("Lakukan pengujian parameter air dasar (pH, Ammonia) sebagai langkah awal diagnosis.");
   }
+  waterScore = clampScore(waterScore);
 
-  // 2. ANALISIS BEBAN BIOLOGIS (OVERSTOCKING CHECK)
-  const totalFishQuantity = fishes.reduce((acc, curr) => acc + curr.quantity, 0);
-  const totalPlantQuantity = plants.reduce((acc, curr) => acc + curr.quantity, 0);
-  
-  // Aturan kasar: 1 Liter air aman untuk ~1.5 ekor ikan kecil
-  // (Nanti bisa lebih akurat jika kita memakai panjang ikan/cm dari tabel fishes)
-  if (aquarium.volume_liters > 0) {
-    const maxFishEstimation = aquarium.volume_liters * 1.5; 
-    if (totalFishQuantity > maxFishEstimation) {
-      score -= 15;
-      alerts.push(`Overstocking: ${totalFishQuantity} ekor ikan di dalam ${aquarium.volume_liters} Liter air.`);
-      recommendations.push("Kurangi jumlah ikan atau tingkatkan kapasitas filter dan frekuensi water change.");
+  // ==========================================
+  // 2. MAINTENANCE SCORE (0-100)
+  // ==========================================
+  let maintenanceScore = 100;
+  if (maintenanceStatus.length > 0) {
+    let criticalCount = 0;
+    let warningCount = 0;
+
+    maintenanceStatus.forEach(status => {
+      if (status.urgencyLevel === "critical") criticalCount++;
+      else if (status.urgencyLevel === "warning" && status.isOverdue) warningCount++;
+    });
+
+    const totalMaintenancePenalty = (criticalCount * 30) + (warningCount * 10);
+    maintenanceScore -= totalMaintenancePenalty;
+    
+    if (totalMaintenancePenalty > 0) {
+      alerts.push(`Penundaan perawatan: ${criticalCount} Kritis, ${warningCount} Peringatan.`);
+      recommendations.push("Selesaikan sisa tunggakan pemeliharaan fisik untuk menghindari kelelahan ekosistem.");
     }
   }
+  maintenanceScore = clampScore(maintenanceScore);
 
-  // 3. ANALISIS PENYARING ALAMI (FLORA)
-  if (totalFishQuantity > 5 && totalPlantQuantity === 0) {
-    score -= 5;
-    alerts.push("Tidak ada tanaman hidup untuk menyerap nitrat.");
-    recommendations.push("Pertimbangkan menambah tanaman hidup (seperti Anubias atau stem plants) untuk sistem filtrasi alami.");
+  // ==========================================
+  // 3. BIOLOAD SCORE (0-100)
+  // ==========================================
+  let bioloadScore = 100;
+  const totalFishQuantity = fishes.reduce((acc, curr) => acc + curr.quantity, 0);
+  
+  if (totalFishQuantity > 0 && aquarium.volume_liters > 0) {
+    const estimatedTotalLengthCm = fishes.reduce((acc, curr) => {
+      const adultSize = curr.estimated_adult_size_cm ?? 4; 
+      return acc + (curr.quantity * adultSize);
+    }, 0);
+    
+    const bioloadRatio = estimatedTotalLengthCm / aquarium.volume_liters;
+
+    if (bioloadRatio > 1.5) {
+      bioloadScore -= 60;
+      alerts.push(`Overstocking Ekstrem: Rasio ${bioloadRatio.toFixed(2)} cm ikan / Liter (Batas 1.0).`);
+      recommendations.push("Segera pindahkan ikan ke tank lain. Risiko amonia spike sangat tinggi.");
+    } else if (bioloadRatio > 1.0) {
+      bioloadScore -= 30;
+      alerts.push("Beban biologis (Bioload) hampir melampaui batas aman kapasitas tampung.");
+      recommendations.push("Tingkatkan filtrasi biologis dan pertahankan disiplin jadwal ganti air.");
+    }
+  }
+  bioloadScore = clampScore(bioloadScore);
+
+  // ==========================================
+  // 4. PLANT SCORE (0-100 atau null)
+  // ==========================================
+  let plantScore: number | null = null;
+  const totalPlantQuantity = plants.reduce((acc, curr) => acc + curr.quantity, 0);
+
+  if (totalPlantQuantity > 0 && aquarium.volume_liters > 0) {
+    const density = totalPlantQuantity / aquarium.volume_liters; 
+    if (density < 0.03) plantScore = 40; 
+    else if (density < 0.08) plantScore = 80; 
+    else if (density <= 0.15) plantScore = 100; 
+    else if (density <= 0.25) plantScore = 80; 
+    else {
+      plantScore = 60; 
+      alerts.push(`Overcrowded Plants: Kepadatan tanaman terlalu tinggi.`);
+      recommendations.push("Lakukan pemangkasan untuk mencegah dead-spots sirkulasi dan busuk daun.");
+    }
+  } else if (totalFishQuantity > 5) {
+    alerts.push("Tidak ada tanaman hidup untuk menyerap nitrat berlebih secara alami.");
+    recommendations.push("Pertimbangkan menanam tanaman low-light sebagai filter penunjang biologis.");
   }
 
-  // VALIDASI SKOR AKHIR DAN PENENTUAN STATUS
-  score = Math.max(0, Math.min(100, score)); // Pastikan skor selalu di rentang 0-100
-
-  let status: "Excellent" | "Good" | "Warning" | "Critical" = "Good";
-  if (score >= 90) status = "Excellent";
-  else if (score >= 70) status = "Good";
-  else if (score >= 50) status = "Warning";
-  else status = "Critical";
-
-  // Pesan bawaan jika tidak ada alert
-  if (alerts.length === 0) {
-    alerts.push("Kondisi ekosistem stabil.");
+  // ==========================================
+  // 5. OVERALL HEALTH SCORE & TREND
+  // ==========================================
+  let overallScore = 0;
+  if (plantScore !== null) {
+    overallScore = (waterScore * 0.40) + (maintenanceScore * 0.25) + (bioloadScore * 0.25) + (plantScore * 0.10);
+  } else {
+    overallScore = (waterScore * 0.45) + (maintenanceScore * 0.25) + (bioloadScore * 0.30);
   }
-  if (recommendations.length === 0) {
-    recommendations.push("Lanjutkan rutinitas perawatan (water change & pupuk) seperti biasa.");
+  overallScore = clampScore(overallScore);
+
+  // 6. EMERGENCY OVERALL OVERRIDE (The "Weakest Link" Rule)
+  // Jika parameter penopang nyawa kritis, paksa ekosistem ke status kritis agar UI tidak menampilkan "Good" palsu.
+ if (waterScore <= 40) {
+  overallScore = Math.min(overallScore, waterScore);
+  alerts.push(
+    "Kondisi Keseluruhan Kritis: Kualitas air yang buruk mengancam stabilitas seluruh ekosistem."
+  );
+}
+if (bioloadScore <= 40) {
+  overallScore = Math.min(overallScore, bioloadScore);
+}
+overallScore = clampScore(overallScore);
+
+  // IMPORTANT:
+  // parameters must be sorted DESC by created_at (or recorded_at) for this trend logic to be accurate.
+  let healthTrend: HealthTrend = "stable";
+  if (parameters.length > 1) {
+    const currentParam = parameters[0];
+    const previousParam = parameters[1];
+    
+    const currentToxinLoad = (currentParam.ammonia ?? 0) + (currentParam.nitrite ?? 0) + ((currentParam.nitrate ?? 0) * 0.1);
+    const previousToxinLoad = (previousParam.ammonia ?? 0) + (previousParam.nitrite ?? 0) + ((previousParam.nitrate ?? 0) * 0.1);
+
+    if (currentToxinLoad > previousToxinLoad) healthTrend = "declining";
+    else if (currentToxinLoad < previousToxinLoad) healthTrend = "improving";
   }
+
+  if (alerts.length === 0) alerts.push("Kondisi ekosistem sangat stabil dan harmonis.");
+  if (recommendations.length === 0) recommendations.push("Lanjutkan rutinitas perawatan hebat Anda!");
 
   return {
-    score,
-    status,
+    scores: {
+      waterQuality: waterScore,
+      maintenance: maintenanceScore,
+      bioload: bioloadScore,
+      plant: plantScore,
+      overall: overallScore
+    },
+    status: getStatusFromScore(overallScore),
+    trend: healthTrend,
     alerts,
     recommendations
   };
