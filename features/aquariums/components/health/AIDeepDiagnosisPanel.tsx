@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { getDeepDiagnosisAction } from "../../actions/deep-diagnosis.actions";
 import { DeepDiagnosisResult, RiskLevel } from "../../utils/deep-diagnosis";
-import { ShieldAlert, Sparkles, Loader2, AlertTriangle, CheckCircle2, Clock, Activity, AlertOctagon, ListTodo, Stethoscope, RefreshCw, Flame } from "lucide-react";
+import { ShieldAlert, Sparkles, Loader2, AlertTriangle, CheckCircle2, Clock, Activity, AlertOctagon, ListTodo, Stethoscope, RefreshCw, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -17,7 +17,7 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
   const [result, setResult] = useState<DeepDiagnosisResult | null>(null);
   const [error, setError] = useState("");
 
-  // FITUR BARU: Memori Sesi (Mencegah data hilang saat pindah tab)
+  // FITUR: Memori Sesi (Mencegah data hilang saat pindah tab)
   useEffect(() => {
     const cachedDiagnosis = sessionStorage.getItem(`aquaexpert_diagnosis_${aquariumId}`);
     if (cachedDiagnosis) {
@@ -35,7 +35,6 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     const res = await getDeepDiagnosisAction(aquariumId, lang);
     if (res.success && res.diagnosis) {
       setResult(res.diagnosis as DeepDiagnosisResult);
-      // Simpan hasil ke dalam memori sesi browser
       sessionStorage.setItem(`aquaexpert_diagnosis_${aquariumId}`, JSON.stringify(res.diagnosis));
     } else {
       setError(res.error || "Gagal memproses diagnosis.");
@@ -64,28 +63,55 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     return date.toLocaleTimeString(lang === 'id' ? 'id-ID' : 'en-US', { hour: '2-digit', minute: '2-digit' }) + ", " + date.toLocaleDateString();
   };
 
+  // =========================================================================
+  // KOMPONEN BARU: VERTICAL RISK THERMOMETER (Visual Premium, Anti Monoton)
+  // =========================================================================
   const RiskMeter = ({ currentRisk }: { currentRisk: RiskLevel }) => {
+    // Urutan dari Kritis (Atas) ke Rendah (Bawah)
     const levels = [
-      { id: "LOW", color: "bg-teal-500" },
-      { id: "MEDIUM", color: "bg-amber-400" },
-      { id: "HIGH", color: "bg-orange-500" },
-      { id: "CRITICAL", color: "bg-rose-600" }
+      { id: "CRITICAL", color: "from-rose-600 to-rose-400", dot: "bg-rose-500", text: "text-rose-600 dark:text-rose-400" },
+      { id: "HIGH", color: "from-orange-500 to-amber-400", dot: "bg-orange-500", text: "text-orange-600 dark:text-orange-400" },
+      { id: "MEDIUM", color: "from-amber-400 to-yellow-300", dot: "bg-amber-400", text: "text-amber-600 dark:text-amber-400" },
+      { id: "LOW", color: "from-teal-500 to-emerald-400", dot: "bg-teal-500", text: "text-teal-600 dark:text-teal-400" }
     ];
     
-    const activeIndex = levels.findIndex(l => l.id === currentRisk);
-
+    const activeIdx = levels.findIndex(l => l.id === currentRisk);
+    
+    // Kalkulasi ketinggian cairan (fill) berdasarkan status
+    const fillHeight = currentRisk === 'CRITICAL' ? '100%' : currentRisk === 'HIGH' ? '75%' : currentRisk === 'MEDIUM' ? '50%' : '25%';
+    
     return (
-      <div className="w-full flex items-center gap-1.5 mt-3">
-        {levels.map((level, idx) => (
-          <div key={level.id} className="flex-1 flex flex-col gap-1.5 group/meter">
-            <div className={`h-3 rounded-full transition-all duration-700 ${idx <= activeIndex ? level.color : 'bg-slate-200 dark:bg-slate-800'} ${idx === activeIndex ? 'shadow-[0_0_10px_rgba(0,0,0,0.2)] scale-y-110' : 'opacity-60'}`} />
-            {idx === activeIndex && (
-              <span className={`text-[10px] font-black uppercase tracking-widest text-center mt-1 ${level.color.replace('bg-', 'text-')}`}>
-                {getRiskLevelText(level.id)}
-              </span>
-            )}
-          </div>
-        ))}
+      <div className="flex mt-6 gap-6 items-center w-full">
+        {/* Batang Tabung Reaksi (Thermometer) */}
+        <div className="relative w-5 h-44 bg-slate-200 dark:bg-slate-800 rounded-full shadow-inner overflow-hidden flex shrink-0 border border-slate-300 dark:border-slate-700">
+           {/* Cairan Indikator */}
+           <div 
+             className={`absolute bottom-0 w-full rounded-full transition-all duration-1000 ease-out bg-gradient-to-t ${levels[activeIdx].color}`}
+             style={{ height: fillHeight }}
+           />
+           {/* Garis-garis penggaris kaca */}
+           <div className="absolute inset-0 flex flex-col justify-between py-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="w-full h-0.5 bg-white/60 dark:bg-slate-900/60" />
+              ))}
+           </div>
+        </div>
+        
+        {/* Label Teks dan Penunjuk Aktif */}
+        <div className="flex flex-col justify-between h-44 py-2 w-full">
+          {levels.map((lvl, idx) => {
+            const isActive = idx === activeIdx;
+            return (
+              <div key={lvl.id} className={`flex items-center gap-3 transition-all duration-500 ${isActive ? 'translate-x-2 scale-110' : 'opacity-40 grayscale'}`}>
+                <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isActive ? `${lvl.dot} animate-pulse shadow-[0_0_10px_currentColor]` : 'bg-slate-400 dark:bg-slate-600'}`} />
+                <span className={`text-[11px] font-black uppercase tracking-widest ${isActive ? lvl.text : 'text-slate-500 dark:text-slate-400'}`}>
+                  {getRiskLevelText(lvl.id)}
+                </span>
+                {isActive && <ChevronRight className={`w-4 h-4 ml-auto ${lvl.text} animate-pulse`} />}
+              </div>
+            )
+          })}
+        </div>
       </div>
     );
   };
@@ -132,23 +158,23 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
       {result && !loading && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
           
-          {/* BANNER ATAS: SUMMARY & VISUAL RISK METER */}
+          {/* BANNER ATAS: SUMMARY & VISUAL RISK METER VERTIKAL */}
           <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[2rem] border-2 border-slate-200 dark:border-slate-800 shadow-xl flex flex-col md:flex-row gap-8 items-center relative overflow-hidden">
             <div className="absolute -right-10 -bottom-10 opacity-[0.03] dark:opacity-5 pointer-events-none">
               <Activity className="w-64 h-64 text-indigo-900" />
             </div>
             
-            <div className="flex-1 relative z-10 w-full">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400 rounded-lg text-[10px] font-black uppercase tracking-widest mb-3 border border-indigo-200 dark:border-indigo-800 shadow-sm">
-                <Stethoscope className="w-3 h-3" /> {lang === 'id' ? "Hasil Diagnosa" : "Diagnostic Verdict"}
+            <div className="flex-1 relative z-10 w-full flex flex-col justify-center">
+              <div className="inline-flex items-center self-start gap-2 px-3 py-1 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400 rounded-lg text-[10px] font-black uppercase tracking-widest mb-4 border border-indigo-200 dark:border-indigo-800 shadow-sm">
+                <Stethoscope className="w-3 h-3" /> {lang === 'id' ? "Hasil Diagnosa Utama" : "Diagnostic Verdict"}
               </div>
-              <p className="text-slate-800 dark:text-slate-200 font-extrabold text-lg sm:text-xl leading-relaxed">
+              <p className="text-slate-800 dark:text-slate-200 font-extrabold text-lg sm:text-xl md:text-2xl leading-relaxed">
                 {result.summary}
               </p>
             </div>
 
-            <div className="w-full md:w-72 shrink-0 bg-slate-50 dark:bg-slate-950/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner relative z-10">
-              <div className="flex justify-between items-end mb-2">
+            <div className="w-full md:w-80 shrink-0 bg-slate-50 dark:bg-slate-950/50 p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-800 shadow-inner relative z-10 flex flex-col">
+              <div className="flex justify-between items-end mb-2 border-b border-slate-200 dark:border-slate-800 pb-3">
                 <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">{lang === 'id' ? "Indikator Risiko" : "Risk Indicator"}</span>
                 <AlertOctagon className={`w-5 h-5 ${result.riskLevel === 'CRITICAL' || result.riskLevel === 'HIGH' ? 'text-rose-500 animate-pulse' : 'text-slate-400'}`} />
               </div>
@@ -211,7 +237,7 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
                 ) : (
                   <ul className="space-y-3 relative z-10">
                     {result.recommendations.map((rec, i) => (
-                      <li key={i} className="flex items-start gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-teal-100 dark:border-teal-800/50 shadow-sm">
+                      <li key={i} className="flex items-start gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border-2 border-teal-100 dark:border-teal-800/50 shadow-sm">
                         <CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0 mt-0.5" />
                         <span className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-snug">{rec}</span>
                       </li>
