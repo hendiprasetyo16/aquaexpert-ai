@@ -55,7 +55,7 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
             </div>
           )}
           
-          {/* GRADIENT OVERLAY (Diperhalus agar teks lebih mudah dibaca) */}
+          {/* GRADIENT OVERLAY */}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/30 to-transparent"></div>
 
           {/* PRIMARY BADGE */}
@@ -66,19 +66,15 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
             </div>
           )}
 
-          {/* INFORMASI TEKS DI ATAS GAMBAR */}
+          {/* INFORMASI TEKS DI ATAS GAMBAR (Tanpa Info Liter/Volume) */}
           <div className="absolute bottom-3 left-4 right-4 text-white">
             <h3 className="text-xl font-black leading-tight drop-shadow-md truncate mb-1.5" title={aquarium.name}>
               {aquarium.name}
             </h3>
             
-            {/* PERBAIKAN: Memisahkan label tipe tank dan liter air, serta dibikin wrap/turun ke bawah kalau layarnya sempit */}
             <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-200 drop-shadow">
               <span className="flex items-center gap-1 bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-md shrink-0">
                 <Container className="w-3 h-3" /> {tankType}
-              </span>
-              <span className="flex items-center gap-1 bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-md shrink-0">
-                <Droplets className="w-3 h-3 text-blue-300" /> {aquarium.volume_liters}L
               </span>
             </div>
           </div>

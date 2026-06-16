@@ -62,10 +62,16 @@ export default function AquariumDetail() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [healthResult, setHealthResult] = useState<HealthAnalysisResult | null>(null);
 
-  // PERBAIKAN: Mengganti formOptions?: any menjadi formOptions?: Record<string, string>
   const rootDict = dict as { aquarium?: { detail?: DetailDictionary }, formOptions?: Record<string, string> };
+  
+  // PERBAIKAN UX: Teks tombol Back dibuat Dinamis tergantung Role (User biasa vs Superadmin)
+  const isSuperAdmin = role === 'super_admin';
+  const dynamicBackText = isSuperAdmin 
+    ? (lang === 'id' ? "Kembali ke Admin Panel" : "Back to Admin Panel") 
+    : (lang === 'id' ? "Kembali ke Dashboard" : "Back to Dashboard");
+
   const detailDict: DetailDictionary = rootDict?.aquarium?.detail || {
-    back: lang === 'id' ? "Kembali ke Dashboard" : "Back to Dashboard",
+    back: dynamicBackText,
     edit: lang === 'id' ? "Edit" : "Edit",
     archive: lang === 'id' ? "Arsipkan" : "Archive",
     restore: lang === 'id' ? "Pulihkan" : "Restore",
@@ -138,6 +144,15 @@ export default function AquariumDetail() {
     window.history.replaceState(null, '', `#${tabId}`);
   };
 
+  // PERBAIKAN UX: Logika Tombol Back yang Dinamis
+  const handleGoBack = () => {
+    if (isSuperAdmin) {
+      router.push("/dashboard/admin-panel/aquariums");
+    } else {
+      router.push("/dashboard/my-aquarium");
+    }
+  };
+
   const handleArchiveToggle = async () => {
     if (!aquarium) return;
     setLoading(true);
@@ -158,7 +173,12 @@ export default function AquariumDetail() {
     const res = await deleteAquariumAction(aquariumId);
     if (res.success) {
       toast.success(lang === 'id' ? "Akuarium dihapus." : "Aquarium deleted.");
-      router.push("/dashboard/my-aquarium");
+      // Setelah dihapus, arahkan ke rute yang benar
+      if (isSuperAdmin) {
+        router.push("/dashboard/admin-panel/aquariums");
+      } else {
+        router.push("/dashboard/my-aquarium");
+      }
     } else {
       toast.error(res.error || "Gagal.");
       setLoading(false);
@@ -180,7 +200,7 @@ export default function AquariumDetail() {
         <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-red-700 mb-2">Error 404</h2>
         <p className="text-red-600 mb-6">{error}</p>
-        <Button onClick={() => router.push("/dashboard/my-aquarium")} variant="outline">{detailDict.back}</Button>
+        <Button onClick={handleGoBack} variant="outline">{dynamicBackText}</Button>
       </div>
     );
   }
@@ -194,8 +214,8 @@ export default function AquariumDetail() {
       
       {/* HERO NAVIGATION */}
       <div className="w-full bg-transparent px-4 sm:px-8 pt-4 pb-2 max-w-[1400px] mx-auto">
-        <Button onClick={() => router.push("/dashboard/my-aquarium")} variant="ghost" className="text-slate-500 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/30 pl-2 pr-4 font-bold">
-          <ArrowLeft className="w-5 h-5 mr-2" /> {detailDict.back}
+        <Button onClick={handleGoBack} variant="ghost" className="text-slate-500 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/30 pl-2 pr-4 font-bold">
+          <ArrowLeft className="w-5 h-5 mr-2" /> {dynamicBackText}
         </Button>
       </div>
 
@@ -230,7 +250,7 @@ export default function AquariumDetail() {
               <div className="flex flex-wrap items-center gap-3 shrink-0">
                 <Button onClick={() => router.push(`/dashboard/my-aquarium/${aquariumId}/edit`)} className="bg-white/10 hover:bg-white text-white hover:text-slate-900 border border-white/20 transition-all backdrop-blur-md h-11 px-5 rounded-xl font-bold"><Edit className="w-4 h-4 mr-2" /> {detailDict.edit}</Button>
                 <Button onClick={() => setShowArchiveModal(true)} className={`h-11 px-5 rounded-xl font-bold border text-white transition-all backdrop-blur-md ${isArchived ? "bg-emerald-600/80 hover:bg-emerald-500 border-emerald-500/50" : "bg-amber-600/80 hover:bg-amber-500 border-amber-500/50"}`}>{isArchived ? <RefreshCw className="w-4 h-4 mr-2" /> : <Archive className="w-4 h-4 mr-2" />} {isArchived ? detailDict.restore : detailDict.archive}</Button>
-                {role === 'super_admin' && <Button onClick={() => setShowDeleteModal(true)} className="bg-red-600/80 hover:bg-red-500 text-white border border-red-500/50 backdrop-blur-md h-11 px-5 rounded-xl font-bold transition-all"><Trash2 className="w-4 h-4 mr-2" /> {detailDict.delete}</Button>}
+                {isSuperAdmin && <Button onClick={() => setShowDeleteModal(true)} className="bg-red-600/80 hover:bg-red-500 text-white border border-red-500/50 backdrop-blur-md h-11 px-5 rounded-xl font-bold transition-all"><Trash2 className="w-4 h-4 mr-2" /> {detailDict.delete}</Button>}
               </div>
             </div>
           </div>
@@ -413,7 +433,7 @@ export default function AquariumDetail() {
               <h3 className="text-2xl font-black uppercase tracking-tight">{lang === 'id' ? "Hapus Total" : "Purge Data"}</h3>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed font-medium">
-              Peringatan: Tindakan ini akan <strong className="text-red-500">menghapus permanen</strong> <span className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{aquarium.name}</span> beserta seluruh log yang pernah dicatat. Tidak bisa dibatalkan.
+              {lang === 'id' ? "Peringatan: Tindakan ini akan " : "Warning: This action will "} <strong className="text-red-500">{lang === 'id' ? "menghapus permanen" : "permanently delete"}</strong> <span className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{aquarium.name}</span> {lang === 'id' ? "beserta seluruh log yang pernah dicatat. Tidak bisa dibatalkan." : "along with all recorded logs. Cannot be undone."}
             </p>
             <div className="flex flex-col gap-3">
                 <Button onClick={handleDelete} disabled={loading} className="bg-red-600 hover:bg-red-700 w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 text-white transition-colors">
