@@ -207,8 +207,9 @@ export default function AdminAquariumList() {
                       )}
                     </div>
 
-                    {/* FUNGSI ADMIN: TOMBOL HAPUS & ARSIP ELEGANT */}
-                    <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-[-10px] group-hover:translate-y-0">
+                    {/* FUNGSI ADMIN: TOMBOL HAPUS & ARSIP - HYBRID RESPONSIVE */}
+                    {/* Tampil permanen di HP (opacity-100), menjadi efek "Hover" di layar menengah-keatas (md:opacity-0 md:group-hover:opacity-100) */}
+                    <div className="absolute top-3 right-3 flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 md:-translate-y-2 md:group-hover:translate-y-0">
                       <Button 
                         size="icon" 
                         className="h-8 w-8 bg-white/90 backdrop-blur-md border border-white/30 text-amber-600 hover:bg-amber-500 hover:text-white hover:border-amber-500 rounded-lg shadow-lg transition-colors"
