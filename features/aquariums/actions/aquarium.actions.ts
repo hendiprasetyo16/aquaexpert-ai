@@ -120,6 +120,9 @@ export async function setPrimaryAquariumAction(id: string) {
 }
 
 // FITUR KHUSUS SUPERADMIN: Mengambil semua akuarium beserta info pemiliknya secara manual
+// ... (fungsi lain di atas tetap sama)
+
+// FITUR KHUSUS SUPERADMIN: Mengambil semua akuarium beserta info pemilik, jumlah ikan, & tanaman
 export async function getAdminAllAquariumsAction() {
   try {
     const supabase = await createClient();
@@ -127,10 +130,10 @@ export async function getAdminAllAquariumsAction() {
     
     if (!user) return { success: false, error: "Unauthorized" };
 
-    // 1. Ambil data akuarium murni (Tanpa JOIN yang bikin error)
+    // 1. Ambil data akuarium sekaligus menghitung jumlah baris relasi ikan & tanaman
     const { data: aquariums, error: aqError } = await supabase
       .from("my_aquariums")
-      .select("*")
+      .select("*, aquarium_fishes(id), aquarium_plants(id)")
       .order("created_at", { ascending: false });
 
     if (aqError) throw new Error(aqError.message);

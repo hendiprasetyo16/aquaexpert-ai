@@ -14,7 +14,7 @@ import {
 import { Aquarium } from "@/features/aquariums/types/aquarium.types";
 import { 
   ArrowLeft, Search, Loader2, Container, Archive, CheckCircle2, 
-  Eye, Droplets, CalendarDays, ShieldAlert, Clock, User, Trash2, X
+  Eye, Droplets, CalendarDays, ShieldAlert, Clock, User, Trash2, X, Scaling, Fish, Leaf
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
@@ -207,7 +207,7 @@ export default function AdminAquariumList() {
                       )}
                     </div>
 
-                    {/* FUNGSI ADMIN: TOMBOL HAPUS & ARSIP ELEGANT (GLASSMORPHISM) */}
+                    {/* FUNGSI ADMIN: TOMBOL HAPUS & ARSIP ELEGANT */}
                     <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-[-10px] group-hover:translate-y-0">
                       <Button 
                         size="icon" 
@@ -238,7 +238,6 @@ export default function AdminAquariumList() {
                     
                     {/* INFO PEMILIK (USER) - DESAIN PREMIUM GRADIENT */}
                     <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/40 dark:to-blue-900/20 p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-800/50 mb-4 relative overflow-hidden group/owner shadow-inner">
-                      {/* Ikon Background Transparan */}
                       <div className="absolute -right-3 -top-3 text-indigo-500/5 dark:text-indigo-400/5 transition-transform duration-500 group-hover/owner:scale-110">
                         <User className="w-20 h-20" />
                       </div>
@@ -254,9 +253,17 @@ export default function AdminAquariumList() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs font-bold text-slate-500 mb-4">
+                    {/* BARIS INFO 1: JENIS & VOLUME */}
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-500 mb-2 flex-wrap">
                       <span className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700/50 shadow-sm"><Container className="w-3.5 h-3.5 text-indigo-500" /> {aq.tank_type || "Custom"}</span>
                       <span className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700/50 shadow-sm"><Droplets className="w-3.5 h-3.5 text-blue-500" /> {aq.volume_liters || 0} L</span>
+                    </div>
+
+                    {/* BARIS INFO 2: DIMENSI, IKAN, FLORA */}
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-500 mb-4 flex-wrap">
+                      <span className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-slate-700 text-[11px]"><Scaling className="w-3 h-3 text-slate-400" /> {aq.length_cm}x{aq.width_cm}x{aq.height_cm} cm</span>
+                      <span className="flex items-center gap-1.5 bg-sky-50 dark:bg-sky-900/30 px-2 py-1 rounded-md border border-sky-100 dark:border-sky-800 text-[11px] text-sky-700 dark:text-sky-400"><Fish className="w-3 h-3" /> {aq.aquarium_fishes?.length || 0} Spesies</span>
+                      <span className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded-md border border-emerald-100 dark:border-emerald-800 text-[11px] text-emerald-700 dark:text-emerald-400"><Leaf className="w-3 h-3" /> {aq.aquarium_plants?.length || 0} Spesies</span>
                     </div>
 
                     <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-3">
@@ -324,7 +331,6 @@ export default function AdminAquariumList() {
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
           <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600 relative overflow-hidden">
             
-            {/* Background Icon Detail */}
             <Trash2 className="absolute -right-4 -bottom-4 w-32 h-32 text-red-500/5 -rotate-12" />
 
             <button onClick={() => {setDeleteTarget(null); setDeleteConfirmation("");}} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-full bg-slate-100 dark:bg-slate-800 transition-colors z-10">
