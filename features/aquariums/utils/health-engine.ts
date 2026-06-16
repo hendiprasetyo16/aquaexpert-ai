@@ -205,20 +205,20 @@ export function analyzeAquariumHealth({
   const totalFishQuantity = fishes.reduce((acc, curr) => acc + curr.quantity, 0);
   
   if (totalFishQuantity > 0 && aquarium.volume_liters > 0) {
-    const estimatedTotalLengthCm = fishes.reduce((acc, curr) => {
-      // FIX: Kombinasi ukuran fisik (cm) dikali faktor pengali limbah (bioload_factor)
+    // FIX: Menggunakan nomenklatur Domain-Driven Design ("Bioload Units" alih-alih "Length Cm")
+    const totalBioloadUnits = fishes.reduce((acc, curr) => {
       const adultSize = curr.fish?.estimated_adult_size_cm ?? 4; 
       const wasteMultiplier = curr.fish?.bioload_factor ?? 1.0; 
       
-      // Ikan sapu-sapu 10cm dengan faktor 2.0 akan dihitung setara dengan 20cm ikan normal
+      // Ikan sapu-sapu 10cm dengan faktor 2.0 akan menghasilkan 20 Unit Bioload
       return acc + (curr.quantity * adultSize * wasteMultiplier);
     }, 0);
     
-    const bioloadRatio = estimatedTotalLengthCm / aquarium.volume_liters;
+    const bioloadRatio = totalBioloadUnits / aquarium.volume_liters;
 
     if (bioloadRatio > 1.5) {
       bioloadScore -= 60;
-      alerts.push(`Overstocking Ekstrem: Rasio ${bioloadRatio.toFixed(2)} cm ikan / Liter (Batas 1.0).`);
+      alerts.push(`Overstocking Ekstrem: Rasio ${bioloadRatio.toFixed(2)} Unit Bioload / Liter (Batas 1.0).`);
       recommendations.push("Segera pindahkan ikan ke tank lain. Risiko amonia spike sangat tinggi.");
     } else if (bioloadRatio > 1.0) {
       bioloadScore -= 30;
