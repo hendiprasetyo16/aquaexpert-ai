@@ -4,7 +4,6 @@
 import { useState } from "react";
 import { getDeepDiagnosisAction } from "../../actions/deep-diagnosis.actions";
 import { DeepDiagnosisResult } from "../../utils/deep-diagnosis";
-// PERBAIKAN: Menambahkan RefreshCw pada import lucide-react
 import { ShieldAlert, Sparkles, Loader2, AlertTriangle, CheckCircle, Clock, Activity, Flame, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -21,14 +20,12 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
   const handleRunDiagnosis = async () => {
     setLoading(true);
     setError("");
-    // PANGGIL LOCAL ENGINE ACTION
     const res = await getDeepDiagnosisAction(aquariumId, lang);
     if (res.success && res.diagnosis) {
       setResult(res.diagnosis as DeepDiagnosisResult);
     } else {
       setError(res.error || "Gagal memproses diagnosis.");
     }
-    // Timeout buatan kecil agar ada sensasi "AI sedang berpikir" meski prosesnya instan
     setTimeout(() => setLoading(false), 800); 
   };
 
@@ -38,6 +35,17 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
       case "HIGH": return "bg-red-500 text-white shadow-red-500/20";
       case "MEDIUM": return "bg-amber-500 text-white shadow-amber-500/20";
       default: return "bg-teal-500 text-white shadow-teal-500/20";
+    }
+  };
+
+  // FUNGSI BARU: Menerjemahkan level risiko ke bahasa UI
+  const getRiskLevelText = (level: string) => {
+    if (lang === 'en') return level;
+    switch (level) {
+      case "CRITICAL": return "KRITIS";
+      case "HIGH": return "TINGGI";
+      case "MEDIUM": return "SEDANG";
+      default: return "RENDAH";
     }
   };
 
@@ -94,7 +102,7 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-stretch">
             <div className="md:col-span-3 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-md flex flex-col justify-center">
               <h5 className="text-[10px] font-black uppercase text-indigo-600 tracking-widest mb-1.5 flex items-center gap-1">
-                <Activity className="w-3.5 h-3.5" /> Diagnostic Summary
+                <Activity className="w-3.5 h-3.5" /> {lang === 'id' ? "Ringkasan Diagnosis" : "Diagnostic Summary"}
               </h5>
               <p className="text-slate-700 dark:text-slate-300 font-bold text-base leading-relaxed">
                 {result.summary}
@@ -104,22 +112,24 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
             <div className={`p-6 rounded-3xl border flex flex-col items-center justify-center text-center shadow-md relative overflow-hidden group ${getRiskBadge(result.riskLevel)}`}>
               <Flame className="absolute -right-4 -bottom-4 w-24 h-24 opacity-10 transform group-hover:scale-110 transition-transform" />
               <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">{lang === 'id' ? "Tingkat Risiko" : "Risk Level"}</span>
-              <span className="text-2xl lg:text-3xl font-black drop-shadow-md uppercase tracking-wider">{result.riskLevel}</span>
+              <span className="text-2xl lg:text-3xl font-black drop-shadow-md uppercase tracking-wider">
+                {getRiskLevelText(result.riskLevel)}
+              </span>
             </div>
           </div>
 
           {/* DUAL COMPONENT: ROOT CAUSES & NEXT ACTIONS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             
-            {/* PANEL AKAR MASALAH (OBJECT RENDER) */}
+            {/* PANEL AKAR MASALAH */}
             <div className="bg-rose-50/30 dark:bg-rose-950/10 p-6 rounded-3xl border border-rose-100 dark:border-rose-900/40 shadow-sm relative overflow-hidden group">
               <AlertTriangle className="absolute -right-6 -bottom-6 w-32 h-32 text-rose-500/5 -rotate-12" />
               <h4 className="text-sm font-black uppercase text-rose-600 dark:text-rose-400 tracking-widest mb-4 flex items-center gap-2 relative z-10">
-                <ShieldAlert className="w-5 h-5" /> {lang === 'id' ? "Akar Masalah (Root Causes)" : "Root Causes Identified"}
+                <ShieldAlert className="w-5 h-5" /> {lang === 'id' ? "Akar Masalah Utama" : "Root Causes Identified"}
               </h4>
               
               {result.rootCauses.length === 0 ? (
-                <p className="text-sm text-slate-500 font-medium italic relative z-10">{lang === 'id' ? "Tidak ditemukan masalah kritikal." : "No critical issues found."}</p>
+                <p className="text-sm text-slate-500 font-medium italic relative z-10">{lang === 'id' ? "Tidak ada masalah mendesak terdeteksi." : "No critical issues found."}</p>
               ) : (
                 <ul className="space-y-4 relative z-10">
                   {result.rootCauses.map((cause, i) => (
@@ -141,7 +151,7 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
             <div className="bg-amber-50/30 dark:bg-amber-950/10 p-6 rounded-3xl border border-amber-100 dark:border-amber-900/40 shadow-sm relative overflow-hidden group">
               <Activity className="absolute -right-6 -bottom-6 w-32 h-32 text-amber-500/5" />
               <h4 className="text-sm font-black uppercase text-amber-600 dark:text-amber-400 tracking-widest mb-4 flex items-center gap-2 relative z-10">
-                <Clock className="w-5 h-5" /> {lang === 'id' ? "Urutan Tindakan Instan" : "Immediate Next Actions"}
+                <Clock className="w-5 h-5" /> {lang === 'id' ? "Langkah Tindakan Instan" : "Immediate Next Actions"}
               </h4>
               <ul className="space-y-3.5 relative z-10">
                 {result.nextActions.map((action, i) => (
@@ -159,11 +169,11 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
           <div className="bg-teal-50/30 dark:bg-teal-950/10 p-6 rounded-3xl border border-teal-100 dark:border-teal-900/40 shadow-sm relative overflow-hidden group">
             <CheckCircle className="absolute -right-6 -bottom-6 w-32 h-32 text-teal-500/5" />
             <h4 className="text-sm font-black uppercase text-teal-600 dark:text-teal-400 tracking-widest mb-4 flex items-center gap-2 relative z-10">
-              <Sparkles className="w-5 h-5" /> {lang === 'id' ? "Rekomendasi Sistem" : "System Recommendations"}
+              <Sparkles className="w-5 h-5" /> {lang === 'id' ? "Saran Pemeliharaan Sistem" : "System Recommendations"}
             </h4>
             
             {result.recommendations.length === 0 ? (
-               <p className="text-sm text-slate-500 font-medium italic relative z-10">{lang === 'id' ? "Pertahankan performa yang baik ini." : "Keep up the good work."}</p>
+               <p className="text-sm text-slate-500 font-medium italic relative z-10">{lang === 'id' ? "Lanjutkan jadwal perawatan reguler Anda." : "Keep up the good work."}</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
                 {result.recommendations.map((rec, i) => (
@@ -178,8 +188,8 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
 
           {/* LOG DATA REFRESH BUTTON */}
           <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">
-            <span>Computed: {formatDateTime(result.generatedAt)}</span>
-            <button onClick={handleRunDiagnosis} className="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+            <span>{lang === 'id' ? 'DIHITUNG PADA:' : 'COMPUTED:'} {formatDateTime(result.generatedAt)}</span>
+            <button onClick={handleRunDiagnosis} className="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 transition-colors">
               <RefreshCw className="w-3 h-3" /> {lang === 'id' ? "Analisis Ulang" : "Re-Diagnose"}
             </button>
           </div>
