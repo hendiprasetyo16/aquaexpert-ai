@@ -5,14 +5,16 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { createClient } from "@/lib/supabase/client";
+
+// PERBAIKAN IMPORT: Pisahkan impor fungsi (actions) dan impor tipe (types)
 import { 
   getTankInventoryAction, 
   addFishToTankAction, 
   addPlantToTankAction, 
-  removeInventoryItemAction, 
-  TankFish, 
-  TankPlant 
+  removeInventoryItemAction 
 } from "../actions/inventory.actions";
+import type { TankFish, TankPlant } from "../types/inventory.types"; // <-- IMPORT TIPE YANG BENAR
+
 import { Plus, Trash2, Loader2, Leaf, Fish as FishIcon, Search, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
