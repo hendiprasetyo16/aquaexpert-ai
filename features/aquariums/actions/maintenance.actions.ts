@@ -13,7 +13,7 @@ import {
   updateTaskSchedule,
   getUpcomingTasks,
   getMaintenanceLogs,
-  getLatestLogByTaskId // <-- getMaintenanceLogById sudah resmi dihapus dari sini
+  getLatestLogByTaskId 
 } from "../repositories/maintenance.repository";
 import { MaintenanceDashboardStatus } from "../types/maintenance.types";
 
@@ -59,6 +59,13 @@ function formatError(error: unknown): string {
     return error.issues.map((issue: ZodIssue) => issue.message).join(", ");
   }
   return error instanceof Error ? error.message : "Unknown error";
+}
+
+// Helper komparasi stempel waktu (ISO string) untuk menghindari variasi format milidetik
+function isSameDate(dateStr1: string | null | undefined, dateStr2: string | null | undefined): boolean {
+  if (!dateStr1 && !dateStr2) return true;
+  if (!dateStr1 || !dateStr2) return false;
+  return new Date(dateStr1).getTime() === new Date(dateStr2).getTime();
 }
 
 // ==========================================
@@ -134,7 +141,9 @@ export async function removeTaskAction(taskId: string, aquariumId: string) {
 export async function logMaintenanceAction(payload: z.infer<typeof createLogSchema>) {
   try {
     const validatedData = createLogSchema.parse(payload);
-    const safePerformedAt = validatedData.performed_at || new Date().toISOString();
+    
+    // Proteksi Layer Backend: Deterministic fallback jika data performed_at null/undefined
+    const safePerformedAt = validatedData.performed_at ?? new Date().toISOString();
     
     const newLog = await createMaintenanceLog({
       aquarium_id: validatedData.aquarium_id,
@@ -172,7 +181,7 @@ export async function removeLogAction(logId: string, aquariumId: string, taskId?
     // 1. Eksekusi Hapus Log Terlebih Dahulu (Mengubah State Database)
     await deleteMaintenanceLog(logId);
 
-    // 2. Post-Delete Absolute Sync: Cek kondisi mutakhir database jika log ini terikat jadwal
+    // 2. Post-Delete Absolute Sync: Ambil kondisi mutakhir database jika log terikat jadwal tugas
     if (taskId) {
       const task = await getMaintenanceTaskById(taskId);
       if (task) {
@@ -183,27 +192,20 @@ export async function removeLogAction(logId: string, aquariumId: string, taskId?
         let newNextDueAt: string;
 
         if (currentLatestLog) {
-          // Ada sisa riwayat, sinkronkan dengan riwayat tersebut
           const latestDate = new Date(currentLatestLog.performed_at);
           newLastCompletedAt = latestDate.toISOString();
           newNextDueAt = calculateNextDueDate(latestDate, task.interval_days).toISOString();
         } else {
-          // Tidak ada riwayat tersisa, reset kembali ke titik nol (created_at)
           const createdDate = new Date(task.created_at);
           newNextDueAt = calculateNextDueDate(createdDate, task.interval_days).toISOString();
         }
 
-        // PENCEGAH RACE CONDITION: 
-        // Jika hasil kalkulasi berbeda dengan data yang ada di tabel Task saat ini, update!
-        // Jika sama (misal karena User B menimpa di saat bersamaan), hemat koneksi DB.
-        if (
-            task.last_completed_at !== newLastCompletedAt ||
-            task.next_due_at !== newNextDueAt
-        ) {
-            await updateTaskSchedule(task.id, {
+        // FIX: Menggunakan isSameDate untuk komparasi stempel waktu demi menghindari variasi milidetik string ISO
+        if (!isSameDate(task.last_completed_at, newLastCompletedAt) || !isSameDate(task.next_due_at, newNextDueAt)) {
+          await updateTaskSchedule(task.id, {
             last_completed_at: newLastCompletedAt,
             next_due_at: newNextDueAt
-        });
+          });
         }
       }
     }

@@ -57,7 +57,7 @@ export interface CreateLogPayload {
   notes?: string | null;
 }
 
-// REVISI POIN 1: last_completed_at sekarang mendukung tipe null secara aman
+// FIX: last_completed_at mendukung tipe null secara aman sesuai arsitektur Actions
 export interface TaskScheduleUpdate {
   last_completed_at: string | null; 
   next_due_at: string;

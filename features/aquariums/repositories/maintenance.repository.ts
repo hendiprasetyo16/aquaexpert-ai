@@ -107,7 +107,6 @@ export async function getMaintenanceLogs(aquariumId: string, limit: number = 50)
   return (data ?? []) as AquariumMaintenanceLog[];
 }
 
-// REVISI POIN 2: Menambahkan fungsi pencarian log tunggal berdasarkan ID
 export async function getMaintenanceLogById(id: string): Promise<AquariumMaintenanceLog | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
