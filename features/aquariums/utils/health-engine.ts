@@ -206,9 +206,12 @@ export function analyzeAquariumHealth({
   
   if (totalFishQuantity > 0 && aquarium.volume_liters > 0) {
     const estimatedTotalLengthCm = fishes.reduce((acc, curr) => {
-      // FIX: Baca data dari relasi fish. Jika kosong baru fallback ke 4cm
+      // FIX: Kombinasi ukuran fisik (cm) dikali faktor pengali limbah (bioload_factor)
       const adultSize = curr.fish?.estimated_adult_size_cm ?? 4; 
-      return acc + (curr.quantity * adultSize);
+      const wasteMultiplier = curr.fish?.bioload_factor ?? 1.0; 
+      
+      // Ikan sapu-sapu 10cm dengan faktor 2.0 akan dihitung setara dengan 20cm ikan normal
+      return acc + (curr.quantity * adultSize * wasteMultiplier);
     }, 0);
     
     const bioloadRatio = estimatedTotalLengthCm / aquarium.volume_liters;

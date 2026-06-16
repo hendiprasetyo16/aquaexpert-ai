@@ -28,7 +28,8 @@ export interface TankFish {
     name_en: string; 
     image_url: string; 
     fish_type: string; 
-    // Field penentu nasib Bioload
     estimated_adult_size_cm?: number | null; 
+    // Field penentu limbah ekstra
+    bioload_factor?: number | null; 
   } | null;
 }

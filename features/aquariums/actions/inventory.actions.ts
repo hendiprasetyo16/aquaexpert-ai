@@ -6,35 +6,31 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { TankPlant, TankFish } from "../types/inventory.types";
 
-// Zod Schema untuk Tanaman
 const plantSchema = z.object({
   aquarium_id: z.string().uuid(),
   plant_id: z.string().uuid(),
   quantity: z.number().min(1).default(1),
 });
 
-// Zod Schema untuk Ikan
 const fishSchema = z.object({
   aquarium_id: z.string().uuid(),
   fish_id: z.string().uuid(),
   quantity: z.number().min(1).default(1),
 });
 
-// MENGAMBIL DATA INVENTORI
 export async function getTankInventoryAction(aquariumId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return { success: false, error: "Unauthorized" };
 
-  // FIX: Tarik 'estimated_adult_size_cm' dari tabel fishes agar Bioload Health Engine akurat
+  // FIX: Tarik estimated_adult_size_cm & bioload_factor dari tabel fishes
   const { data: fishes, error: errFish } = await supabase
     .from("aquarium_fishes")
-    .select("*, fish:fishes(id, name_id, name_en, image_url, fish_type, estimated_adult_size_cm)")
+    .select("*, fish:fishes(id, name_id, name_en, image_url, fish_type, estimated_adult_size_cm, bioload_factor)")
     .eq("aquarium_id", aquariumId)
     .order("added_at", { ascending: false });
 
-  // Fetch Tanaman
   const { data: plants, error: errPlant } = await supabase
     .from("aquarium_plants")
     .select("*, plant:plants(id, name_id, name_en, image_url, placement)")
@@ -50,7 +46,6 @@ export async function getTankInventoryAction(aquariumId: string) {
   };
 }
 
-// MENAMBAH TANAMAN (Smart Update Quantity)
 export async function addPlantToTankAction(payload: z.infer<typeof plantSchema>) {
   const supabase = await createClient();
   const validated = plantSchema.parse(payload);
@@ -77,7 +72,6 @@ export async function addPlantToTankAction(payload: z.infer<typeof plantSchema>)
   return { success: true };
 }
 
-// MENAMBAH IKAN (Smart Update Quantity)
 export async function addFishToTankAction(payload: z.infer<typeof fishSchema>) {
   const supabase = await createClient();
   const validated = fishSchema.parse(payload);
@@ -104,7 +98,6 @@ export async function addFishToTankAction(payload: z.infer<typeof fishSchema>) {
   return { success: true };
 }
 
-// MENGHAPUS ITEM
 export async function removeInventoryItemAction(table: "aquarium_fishes" | "aquarium_plants", id: string, aquariumId: string) {
   const supabase = await createClient();
   const { error } = await supabase.from(table).delete().eq("id", id);
