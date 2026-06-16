@@ -206,7 +206,8 @@ export function analyzeAquariumHealth({
   
   if (totalFishQuantity > 0 && aquarium.volume_liters > 0) {
     const estimatedTotalLengthCm = fishes.reduce((acc, curr) => {
-      const adultSize = curr.estimated_adult_size_cm ?? 4; 
+      // FIX: Baca data dari relasi fish. Jika kosong baru fallback ke 4cm
+      const adultSize = curr.fish?.estimated_adult_size_cm ?? 4; 
       return acc + (curr.quantity * adultSize);
     }, 0);
     
@@ -258,17 +259,14 @@ export function analyzeAquariumHealth({
   overallScore = clampScore(overallScore);
 
   // 6. EMERGENCY OVERALL OVERRIDE (The "Weakest Link" Rule)
-  // Jika parameter penopang nyawa kritis, paksa ekosistem ke status kritis agar UI tidak menampilkan "Good" palsu.
- if (waterScore <= 40) {
-  overallScore = Math.min(overallScore, waterScore);
-  alerts.push(
-    "Kondisi Keseluruhan Kritis: Kualitas air yang buruk mengancam stabilitas seluruh ekosistem."
-  );
-}
-if (bioloadScore <= 40) {
-  overallScore = Math.min(overallScore, bioloadScore);
-}
-overallScore = clampScore(overallScore);
+  if (waterScore <= 40) {
+    overallScore = Math.min(overallScore, waterScore);
+    alerts.push("Kondisi Keseluruhan Kritis: Kualitas air yang buruk mengancam stabilitas seluruh ekosistem.");
+  }
+  if (bioloadScore <= 40) {
+    overallScore = Math.min(overallScore, bioloadScore);
+  }
+  overallScore = clampScore(overallScore);
 
   // IMPORTANT:
   // parameters must be sorted DESC by created_at (or recorded_at) for this trend logic to be accurate.

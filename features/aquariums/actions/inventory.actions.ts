@@ -4,6 +4,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import type { TankPlant, TankFish } from "../types/inventory.types";
 
 // Zod Schema untuk Tanaman
 const plantSchema = z.object({
@@ -12,32 +13,12 @@ const plantSchema = z.object({
   quantity: z.number().min(1).default(1),
 });
 
-// Zod Schema untuk Ikan (Sudah menggunakan fish_id wajib, tanpa species_name)
+// Zod Schema untuk Ikan
 const fishSchema = z.object({
   aquarium_id: z.string().uuid(),
   fish_id: z.string().uuid(),
   quantity: z.number().min(1).default(1),
 });
-
-// TYPES (Bebas ANY)
-export interface TankPlant {
-  id: string;
-  aquarium_id: string;
-  plant_id: string;
-  quantity: number;
-  status: string;
-  added_at: string;
-  plant?: { id: string; name_id: string; name_en: string; image_url: string; placement: string } | null;
-}
-
-export interface TankFish {
-  id: string;
-  aquarium_id: string;
-  fish_id: string;
-  quantity: number;
-  added_at: string;
-  fish?: { id: string; name_id: string; name_en: string; image_url: string; fish_type: string } | null;
-}
 
 // MENGAMBIL DATA INVENTORI
 export async function getTankInventoryAction(aquariumId: string) {
@@ -46,14 +27,14 @@ export async function getTankInventoryAction(aquariumId: string) {
 
   if (!user) return { success: false, error: "Unauthorized" };
 
-  // Fetch Ikan (Join dengan tabel fishes master)
+  // FIX: Tarik 'estimated_adult_size_cm' dari tabel fishes agar Bioload Health Engine akurat
   const { data: fishes, error: errFish } = await supabase
     .from("aquarium_fishes")
-    .select("*, fish:fishes(id, name_id, name_en, image_url, fish_type)")
+    .select("*, fish:fishes(id, name_id, name_en, image_url, fish_type, estimated_adult_size_cm)")
     .eq("aquarium_id", aquariumId)
     .order("added_at", { ascending: false });
 
-  // Fetch Tanaman (Join dengan tabel plants master)
+  // Fetch Tanaman
   const { data: plants, error: errPlant } = await supabase
     .from("aquarium_plants")
     .select("*, plant:plants(id, name_id, name_en, image_url, placement)")
