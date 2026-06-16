@@ -205,12 +205,9 @@ export function analyzeAquariumHealth({
   const totalFishQuantity = fishes.reduce((acc, curr) => acc + curr.quantity, 0);
   
   if (totalFishQuantity > 0 && aquarium.volume_liters > 0) {
-    // FIX: Menggunakan nomenklatur Domain-Driven Design ("Bioload Units" alih-alih "Length Cm")
     const totalBioloadUnits = fishes.reduce((acc, curr) => {
       const adultSize = curr.fish?.estimated_adult_size_cm ?? 4; 
       const wasteMultiplier = curr.fish?.bioload_factor ?? 1.0; 
-      
-      // Ikan sapu-sapu 10cm dengan faktor 2.0 akan menghasilkan 20 Unit Bioload
       return acc + (curr.quantity * adultSize * wasteMultiplier);
     }, 0);
     
@@ -268,6 +265,7 @@ export function analyzeAquariumHealth({
   }
   if (bioloadScore <= 40) {
     overallScore = Math.min(overallScore, bioloadScore);
+    alerts.push("Kondisi Keseluruhan Kritis: Kepadatan biologis melebihi kapasitas ekosistem."); // <-- FIX: Penambahan Alert
   }
   overallScore = clampScore(overallScore);
 
