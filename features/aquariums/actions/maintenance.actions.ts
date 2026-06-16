@@ -1,7 +1,7 @@
 // features/aquariums/actions/maintenance.actions.ts
 "use server";
 
-import { z, ZodIssue } from "zod"; // <-- Tambahkan ZodIssue
+import { z, ZodIssue } from "zod";
 import { revalidatePath } from "next/cache";
 import { 
   createMaintenanceTask, 
@@ -12,7 +12,8 @@ import {
   getMaintenanceTaskById,
   updateTaskSchedule,
   getUpcomingTasks,
-  getMaintenanceLogs
+  getMaintenanceLogs,
+  getLatestLogByTaskId // <-- getMaintenanceLogById sudah resmi dihapus dari sini
 } from "../repositories/maintenance.repository";
 import { MaintenanceDashboardStatus } from "../types/maintenance.types";
 
@@ -42,7 +43,7 @@ const createLogSchema = z.object({
   task_id: z.string().uuid().nullable().optional(),
   maintenance_type: maintenanceTypeEnum,
   performed_at: z.string().nullable().optional(), 
-  value: z.number().nullable().optional(),
+  value: z.number().min(0, "Nilai tidak boleh negatif").nullable().optional(),
   unit: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
 });
@@ -53,7 +54,6 @@ function calculateNextDueDate(baseDate: Date, intervalDays: number): Date {
   return nextDue;
 }
 
-// ---> FUNGSI YANG SUDAH DIPERBAIKI (ZOD v4 COMPATIBLE) <---
 function formatError(error: unknown): string {
   if (error instanceof z.ZodError) {
     return error.issues.map((issue: ZodIssue) => issue.message).join(", ");
@@ -78,9 +78,6 @@ export async function addTaskAction(payload: z.infer<typeof createTaskSchema>) {
     revalidatePath(`/dashboard/my-aquarium/${validatedData.aquarium_id}`);
     return { success: true };
   } catch (error: unknown) {
-    console.error("\n[DEBUG] === ADD TASK ERROR ===");
-    console.error(error);
-    console.error("==============================\n");
     return { success: false, error: formatError(error) };
   }
 }
@@ -137,8 +134,6 @@ export async function removeTaskAction(taskId: string, aquariumId: string) {
 export async function logMaintenanceAction(payload: z.infer<typeof createLogSchema>) {
   try {
     const validatedData = createLogSchema.parse(payload);
-    
-    // Memastikan string valid (sekarang) masuk ke repository
     const safePerformedAt = validatedData.performed_at || new Date().toISOString();
     
     const newLog = await createMaintenanceLog({
@@ -168,20 +163,50 @@ export async function logMaintenanceAction(payload: z.infer<typeof createLogSche
     revalidatePath(`/dashboard/my-aquarium/${validatedData.aquarium_id}`);
     return { success: true, data: newLog };
   } catch (error: unknown) {
-    console.error("\n[DEBUG] === LOG MAINTENANCE ERROR ===");
-    console.error(error);
-    console.error("=====================================\n");
     return { success: false, error: formatError(error) };
   }
 }
 
-export async function removeLogAction(logId: string, aquariumId: string) {
+export async function removeLogAction(logId: string, aquariumId: string, taskId?: string) {
   try {
+    // 1. Eksekusi Hapus Log Terlebih Dahulu (Mengubah State Database)
     await deleteMaintenanceLog(logId);
-    
-    // TODO: 
-    // Saat log dihapus, recalculate last_completed_at dan next_due_at 
-    // berdasarkan log terbaru yang tersisa. (Akan dikerjakan di sprint mendatang).
+
+    // 2. Post-Delete Absolute Sync: Cek kondisi mutakhir database jika log ini terikat jadwal
+    if (taskId) {
+      const task = await getMaintenanceTaskById(taskId);
+      if (task) {
+        // Tarik log apa pun yang SEKARANG menduduki posisi teratas setelah penghapusan
+        const currentLatestLog = await getLatestLogByTaskId(taskId);
+        
+        let newLastCompletedAt: string | null = null;
+        let newNextDueAt: string;
+
+        if (currentLatestLog) {
+          // Ada sisa riwayat, sinkronkan dengan riwayat tersebut
+          const latestDate = new Date(currentLatestLog.performed_at);
+          newLastCompletedAt = latestDate.toISOString();
+          newNextDueAt = calculateNextDueDate(latestDate, task.interval_days).toISOString();
+        } else {
+          // Tidak ada riwayat tersisa, reset kembali ke titik nol (created_at)
+          const createdDate = new Date(task.created_at);
+          newNextDueAt = calculateNextDueDate(createdDate, task.interval_days).toISOString();
+        }
+
+        // PENCEGAH RACE CONDITION: 
+        // Jika hasil kalkulasi berbeda dengan data yang ada di tabel Task saat ini, update!
+        // Jika sama (misal karena User B menimpa di saat bersamaan), hemat koneksi DB.
+        if (
+            task.last_completed_at !== newLastCompletedAt ||
+            task.next_due_at !== newNextDueAt
+        ) {
+            await updateTaskSchedule(task.id, {
+            last_completed_at: newLastCompletedAt,
+            next_due_at: newNextDueAt
+        });
+        }
+      }
+    }
 
     revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
     return { success: true };

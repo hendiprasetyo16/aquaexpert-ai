@@ -9,10 +9,6 @@ import {
   TaskScheduleUpdate
 } from "../types/maintenance.types";
 
-// ==========================================
-// REPOSITORY: TASKS
-// ==========================================
-
 export async function getMaintenanceTasks(aquariumId: string): Promise<MaintenanceTask[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -98,10 +94,6 @@ export async function deleteMaintenanceTask(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-// ==========================================
-// REPOSITORY: LOGS
-// ==========================================
-
 export async function getMaintenanceLogs(aquariumId: string, limit: number = 50): Promise<AquariumMaintenanceLog[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -115,17 +107,40 @@ export async function getMaintenanceLogs(aquariumId: string, limit: number = 50)
   return (data ?? []) as AquariumMaintenanceLog[];
 }
 
+// REVISI POIN 2: Menambahkan fungsi pencarian log tunggal berdasarkan ID
+export async function getMaintenanceLogById(id: string): Promise<AquariumMaintenanceLog | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("aquarium_maintenance_logs")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data ? (data as AquariumMaintenanceLog) : null;
+}
+
+export async function getLatestLogByTaskId(taskId: string): Promise<AquariumMaintenanceLog | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("aquarium_maintenance_logs")
+    .select("*")
+    .eq("task_id", taskId)
+    .order("performed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data ? (data as AquariumMaintenanceLog) : null;
+}
+
 export async function createMaintenanceLog(payload: CreateLogPayload): Promise<AquariumMaintenanceLog> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) throw new Error("Unauthorized");
 
-  const insertData = {
-      ...payload,
-      completed_by: user.id
-  };
-
+  const insertData = { ...payload, completed_by: user.id };
   const { data, error } = await supabase
     .from("aquarium_maintenance_logs")
     .insert([insertData])

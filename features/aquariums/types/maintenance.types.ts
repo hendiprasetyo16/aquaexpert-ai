@@ -45,9 +45,7 @@ export interface CreateTaskPayload {
   next_due_at?: string | null;
 }
 
-export interface UpdateTaskPayload extends Partial<CreateTaskPayload> {
-  // Hanya memastikan tidak ada field id yang masuk ke update payload secara tak sengaja
-}
+export interface UpdateTaskPayload extends Partial<CreateTaskPayload> {}
 
 export interface CreateLogPayload {
   aquarium_id: string;
@@ -59,8 +57,9 @@ export interface CreateLogPayload {
   notes?: string | null;
 }
 
+// REVISI POIN 1: last_completed_at sekarang mendukung tipe null secara aman
 export interface TaskScheduleUpdate {
-  last_completed_at: string;
+  last_completed_at: string | null; 
   next_due_at: string;
 }
 
