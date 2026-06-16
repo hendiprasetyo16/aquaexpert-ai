@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { createPortal } from "react-dom"; // <-- Ditambahkan untuk merender Modal
+import { createPortal } from "react-dom"; 
 import { useLanguage } from "@/providers/LanguageProvider";
 import { 
   getAdminAllAquariumsAction, 
@@ -36,7 +36,7 @@ export default function AdminAquariumList() {
   // STATE UNTUK CUSTOM MODALS
   const [archiveTarget, setArchiveTarget] = useState<{ id: string, name: string, is_active: boolean } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string, name: string } | null>(null);
-  const [deleteConfirmation, setDeleteConfirmation] = useState(""); // Untuk fitur keamanan (Ketik nama)
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
 
   const fetchData = async () => {
     setLoading(true);
@@ -52,6 +52,7 @@ export default function AdminAquariumList() {
   useEffect(() => {
     setMounted(true);
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const executeToggleArchive = async () => {
@@ -121,6 +122,7 @@ export default function AdminAquariumList() {
   return (
     <div className="w-full max-w-[1400px] mx-auto p-4 sm:p-8 animate-in fade-in duration-500 pb-20">
       
+      {/* HEADER & BACK BUTTON */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <Button 
@@ -152,6 +154,7 @@ export default function AdminAquariumList() {
       ) : (
         <div className="space-y-6">
           
+          {/* STATS & FILTER BAR */}
           <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0 no-scrollbar">
               <button onClick={() => setFilter("all")} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${filter === 'all' ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400'}`}>
@@ -177,6 +180,7 @@ export default function AdminAquariumList() {
             </div>
           </div>
 
+          {/* GRID KARTU AKUARIUM */}
           {filteredAquariums.length === 0 ? (
             <div className="text-center p-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl text-slate-400 bg-slate-50/50 dark:bg-slate-900/50 font-medium">
               {lang === 'id' ? "Tidak ada akuarium yang cocok dengan pencarian." : "No aquariums match your search."}
@@ -186,6 +190,7 @@ export default function AdminAquariumList() {
               {filteredAquariums.map(aq => (
                 <div key={aq.id} className={`group flex flex-col bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border shadow-sm transition-all hover:shadow-xl hover:-translate-y-1 ${!aq.is_active ? 'border-amber-200 dark:border-amber-900/50 opacity-80' : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700'}`}>
                   
+                  {/* Gambar Cover */}
                   <div className="relative h-48 w-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                     {aq.image_url ? (
                       <Image src={aq.image_url} alt={aq.name || "Aquarium"} fill className={`object-cover transition-transform duration-700 group-hover:scale-105 ${!aq.is_active && 'grayscale'}`} unoptimized />
@@ -202,11 +207,11 @@ export default function AdminAquariumList() {
                       )}
                     </div>
 
-                    <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* FUNGSI ADMIN: TOMBOL HAPUS & ARSIP ELEGANT (GLASSMORPHISM) */}
+                    <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-[-10px] group-hover:translate-y-0">
                       <Button 
                         size="icon" 
-                        variant="secondary" 
-                        className="h-8 w-8 bg-white/90 hover:bg-amber-100 text-amber-600 rounded-lg shadow-sm backdrop-blur-sm"
+                        className="h-8 w-8 bg-white/90 backdrop-blur-md border border-white/30 text-amber-600 hover:bg-amber-500 hover:text-white hover:border-amber-500 rounded-lg shadow-lg transition-colors"
                         onClick={() => setArchiveTarget({ id: aq.id, name: aq.name || "Unnamed", is_active: aq.is_active })}
                         disabled={actionLoading === aq.id}
                         title={lang === 'id' ? "Ubah Status Arsip" : "Toggle Archive"}
@@ -215,8 +220,7 @@ export default function AdminAquariumList() {
                       </Button>
                       <Button 
                         size="icon" 
-                        variant="destructive" 
-                        className="h-8 w-8 bg-red-500/90 hover:bg-red-600 rounded-lg shadow-sm backdrop-blur-sm"
+                        className="h-8 w-8 bg-white/90 backdrop-blur-md border border-white/30 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 rounded-lg shadow-lg transition-colors"
                         onClick={() => setDeleteTarget({ id: aq.id, name: aq.name || "Unnamed" })}
                         disabled={actionLoading === aq.id}
                         title={lang === 'id' ? "Hapus Permanen" : "Delete Permanently"}
@@ -226,23 +230,33 @@ export default function AdminAquariumList() {
                     </div>
                   </div>
 
+                  {/* Info Meta */}
                   <div className="p-5 flex-1 flex flex-col">
                     <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 truncate mb-1">
                       {aq.name || (lang === "id" ? "Akuarium Tanpa Nama" : "Unnamed Aquarium")}
                     </h3>
                     
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 mb-4">
-                      <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200 mb-1 truncate">
-                        <User className="w-4 h-4 text-slate-400" /> {aq.owner?.full_name || aq.owner?.email || "Unknown User"}
+                    {/* INFO PEMILIK (USER) - DESAIN PREMIUM GRADIENT */}
+                    <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/40 dark:to-blue-900/20 p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-800/50 mb-4 relative overflow-hidden group/owner shadow-inner">
+                      {/* Ikon Background Transparan */}
+                      <div className="absolute -right-3 -top-3 text-indigo-500/5 dark:text-indigo-400/5 transition-transform duration-500 group-hover/owner:scale-110">
+                        <User className="w-20 h-20" />
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] font-semibold text-slate-400 pl-6">
-                        {lang === 'id' ? "Login Terakhir:" : "Last Login:"} {formatDateTime(aq.owner?.last_login_at)}
+                      
+                      <div className="relative z-10 flex items-center gap-2.5 text-sm font-black text-indigo-900 dark:text-indigo-100 mb-1.5 truncate">
+                        <div className="p-1.5 bg-indigo-500 text-white rounded-lg shadow-sm shadow-indigo-500/30">
+                          <User className="w-3.5 h-3.5" />
+                        </div>
+                        {aq.owner?.full_name || aq.owner?.email || "Unknown User"}
+                      </div>
+                      <div className="relative z-10 flex items-center gap-1.5 text-[10px] font-bold text-indigo-600/80 dark:text-indigo-300/80 pl-[34px]">
+                        {lang === 'id' ? "Login Terakhir:" : "Last Login:"} <span className="text-indigo-700 dark:text-indigo-300">{formatDateTime(aq.owner?.last_login_at)}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3 text-xs font-bold text-slate-500 mb-4">
-                      <span className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md"><Container className="w-3.5 h-3.5 text-indigo-500" /> {aq.tank_type || "Custom"}</span>
-                      <span className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md"><Droplets className="w-3.5 h-3.5 text-blue-500" /> {aq.volume_liters || 0} L</span>
+                      <span className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700/50 shadow-sm"><Container className="w-3.5 h-3.5 text-indigo-500" /> {aq.tank_type || "Custom"}</span>
+                      <span className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700/50 shadow-sm"><Droplets className="w-3.5 h-3.5 text-blue-500" /> {aq.volume_liters || 0} L</span>
                     </div>
 
                     <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-3">
@@ -257,7 +271,7 @@ export default function AdminAquariumList() {
                         </div>
                         <Button 
                           onClick={() => router.push(`/dashboard/my-aquarium/${aq.id}`)}
-                          className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/60 dark:text-indigo-300 rounded-xl h-10 px-4 text-xs font-bold transition-colors shrink-0"
+                          className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/60 dark:text-indigo-300 rounded-xl h-10 px-4 text-xs font-bold transition-colors shadow-sm shrink-0"
                         >
                           <Eye className="w-4 h-4 mr-1.5" /> {lang === 'id' ? "Lihat Detail" : "View"}
                         </Button>
@@ -308,27 +322,30 @@ export default function AdminAquariumList() {
       ========================================================= */}
       {mounted && deleteTarget && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600 relative overflow-hidden">
             
-            <button onClick={() => {setDeleteTarget(null); setDeleteConfirmation("");}} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-full bg-slate-100 dark:bg-slate-800">
+            {/* Background Icon Detail */}
+            <Trash2 className="absolute -right-4 -bottom-4 w-32 h-32 text-red-500/5 -rotate-12" />
+
+            <button onClick={() => {setDeleteTarget(null); setDeleteConfirmation("");}} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-full bg-slate-100 dark:bg-slate-800 transition-colors z-10">
               <X className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center gap-3 mb-5 text-red-600">
+            <div className="flex items-center gap-3 mb-5 text-red-600 relative z-10">
               <ShieldAlert className="h-8 w-8" />
               <h3 className="text-2xl font-black uppercase tracking-tight">{lang === 'id' ? "Hapus Total" : "Purge Data"}</h3>
             </div>
             
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed font-medium">
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed font-medium relative z-10">
               {lang === 'id' ? "Peringatan! Akuarium ini dan seluruh datanya (ikan, tanaman, parameter) akan " : "Warning! This aquarium and all its data will be "}
               <strong className="text-red-500">{lang === 'id' ? "TERHAPUS PERMANEN" : "PERMANENTLY DELETED"}</strong>.
             </p>
 
-            <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-xl border border-red-100 dark:border-red-900/30 mb-6">
+            <div className="bg-red-50 dark:bg-red-950/30 p-4 rounded-xl border border-red-100 dark:border-red-900/50 mb-6 relative z-10 shadow-inner">
               <label className="text-xs font-bold text-red-700 dark:text-red-400 mb-2 block">
                 {lang === 'id' ? "Ketik nama akuarium di bawah untuk konfirmasi:" : "Type the aquarium name below to confirm:"}
               </label>
-              <div className="text-sm font-black text-slate-800 dark:text-slate-200 mb-3 bg-white dark:bg-slate-900 px-3 py-2 rounded border border-slate-200 dark:border-slate-700 text-center select-all">
+              <div className="text-sm font-black text-slate-800 dark:text-slate-200 mb-3 bg-white dark:bg-slate-900 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-center select-all shadow-sm">
                 {deleteTarget.name}
               </div>
               <input 
@@ -336,11 +353,11 @@ export default function AdminAquariumList() {
                 value={deleteConfirmation}
                 onChange={(e) => setDeleteConfirmation(e.target.value)}
                 placeholder={deleteTarget.name}
-                className="w-full h-10 px-3 rounded-lg border-2 border-red-200 focus:border-red-500 outline-none text-sm text-center font-bold"
+                className="w-full h-11 px-3 rounded-lg border-2 border-red-200 focus:border-red-500 bg-white dark:bg-slate-900 outline-none text-sm text-center font-bold transition-colors placeholder:font-medium placeholder:text-slate-300"
               />
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 relative z-10">
               <Button 
                 onClick={executeDelete} 
                 disabled={actionLoading === deleteTarget.id || deleteConfirmation !== deleteTarget.name} 
