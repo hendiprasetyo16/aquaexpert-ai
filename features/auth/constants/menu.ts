@@ -35,7 +35,7 @@ export const MENU_BY_ROLE = {
     { title: "Algae Expert AI", href: "/dashboard/algae-expert", icon: Cpu, color: AI_COLORS.algae }, 
     
     { title: "Fish Expert", href: "/dashboard/fishes", icon: Fish },
-    { title: "Fish Expert AI", href: "/dashboard/fish-expert", icon: Cpu, color: AI_COLORS.fishes },
+    { title: "Fish Expert AI", href: "/dashboard/fish-expert/engine", icon: Cpu, color: AI_COLORS.fishes },
     
     { title: "Disease Expert", href: "/dashboard/diseases", icon: Activity },
     { title: "Disease Expert AI", href: "/dashboard/disease-expert", icon: Cpu, color: AI_COLORS.diseases },
@@ -59,7 +59,7 @@ export const MENU_BY_ROLE = {
     { title: "Algae Expert AI", href: "/dashboard/algae-expert", icon: Cpu, color: AI_COLORS.algae }, 
     
     { title: "Fish Expert", href: "/dashboard/fishes", icon: Fish },
-    { title: "Fish Expert AI", href: "/dashboard/fish-expert", icon: Cpu, color: AI_COLORS.fishes },
+    { title: "Fish Expert AI", href: "/dashboard/fish-expert/engine", icon: Cpu, color: AI_COLORS.fishes },
     
     { title: "Disease Expert", href: "/dashboard/diseases", icon: Activity },
     { title: "Disease Expert AI", href: "/dashboard/disease-expert", icon: Cpu, color: AI_COLORS.diseases },
@@ -81,7 +81,7 @@ export const MENU_BY_ROLE = {
     { title: "Algae Expert AI", href: "/dashboard/algae-expert", icon: Cpu, color: AI_COLORS.algae }, 
     
     { title: "Fish Expert", href: "/dashboard/fishes", icon: Fish },
-    { title: "Fish Expert AI", href: "/dashboard/fish-expert", icon: Cpu, color: AI_COLORS.fishes },
+    { title: "Fish Expert AI", href: "/dashboard/fish-expert/engine", icon: Cpu, color: AI_COLORS.fishes },
     
     { title: "Disease Expert", href: "/dashboard/diseases", icon: Activity },
     { title: "Disease Expert AI", href: "/dashboard/disease-expert", icon: Cpu, color: AI_COLORS.diseases },

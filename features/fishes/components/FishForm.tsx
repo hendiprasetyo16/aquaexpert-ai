@@ -24,6 +24,8 @@ interface FishFormProps {
   fish?: FishType;
 }
 
+const TANK_STYLES_OPTIONS = ["Nature", "Dutch", "Iwagumi", "Biotope", "Blackwater", "Community", "Predator"];
+
 // DEFINISI TYPE-SAFE UNTUK KAMUS FISH FORM
 interface FishFormDict {
   fishForm?: {
@@ -77,13 +79,20 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
     water_layer: "Middle", // Kolom Baru
     origin_region: "Asia", // Kolom Baru
     adult_behavior: "Schooling", // Kolom Baru
+    activity_level: "Medium", // Kolom Baru (Mengganti feeding_frequency)
     schooling: false, 
     min_group_size: "", 
     max_group_size: "", // Kolom Baru
     fish_type: "Tetra", 
     difficulty: "Easy",
     estimated_adult_size_cm: "", 
-    bioload_factor: ""
+    bioload_factor: "",
+    shrimp_safe: true,
+    plant_safe: true,
+    recommended_tank_styles: [] as string[],
+    breeding_difficulty: "Medium",
+    is_egg_layer: false,
+    is_livebearer: false
   });
 
   useEffect(() => {
@@ -106,13 +115,20 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
         water_layer: fish.water_layer || "Middle", // Kolom Baru
         origin_region: fish.origin_region || "Asia", // Kolom Baru
         adult_behavior: fish.adult_behavior || "Schooling", // Kolom Baru
+        activity_level: fish.activity_level || "Medium", // Kolom Baru
         schooling: fish.schooling || false,
         min_group_size: fish.min_group_size != null ? fish.min_group_size.toString() : "",
         max_group_size: fish.max_group_size != null ? fish.max_group_size.toString() : "", // Kolom Baru
         fish_type: fish.fish_type || "Tetra",
         difficulty: fish.difficulty || "Easy",
         estimated_adult_size_cm: fish.estimated_adult_size_cm != null ? fish.estimated_adult_size_cm.toString() : "",
-        bioload_factor: fish.bioload_factor != null ? fish.bioload_factor.toString() : ""
+        bioload_factor: fish.bioload_factor != null ? fish.bioload_factor.toString() : "",
+        shrimp_safe: fish.shrimp_safe ?? true,
+        plant_safe: fish.plant_safe ?? true,
+        recommended_tank_styles: fish.recommended_tank_styles || [],
+        breeding_difficulty: fish.breeding_difficulty || "Medium",
+        is_egg_layer: fish.is_egg_layer || false,
+        is_livebearer: fish.is_livebearer || false
       });
 
       if (fish.image_url) setCoverPreview(fish.image_url);
@@ -122,11 +138,19 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     const { name, value, type } = e.target;
-    let finalValue: string | number | boolean = value;
+    let finalValue: string | number | boolean | string[] = value;
     if (type === "checkbox") finalValue = (e.target as HTMLInputElement).checked;
     else if (type === "number") finalValue = value === "" ? "" : Number(value);
     
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
+  }
+
+  function handleStyleToggle(style: string) {
+    setFormData(prev => {
+      const exists = prev.recommended_tank_styles.includes(style);
+      if (exists) return { ...prev, recommended_tank_styles: prev.recommended_tank_styles.filter(s => s !== style) };
+      return { ...prev, recommended_tank_styles: [...prev.recommended_tank_styles, style] };
+    });
   }
 
   function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -162,6 +186,25 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
   }
   function removeNewGallery(index: number) { setNewGallery(prev => prev.filter((_, i) => i !== index)); }
 
+  // VALIDASI BIOLOGIS SEBELUM SUBMIT
+  function validateBiologicalData() {
+    if (formData.ideal_ph_min && formData.ideal_ph_max && Number(formData.ideal_ph_min) > Number(formData.ideal_ph_max)) {
+      throw new Error("Validasi Gagal: pH Minimum tidak boleh lebih besar dari pH Maksimum.");
+    }
+    if (formData.ideal_temp_min && formData.ideal_temp_max && Number(formData.ideal_temp_min) > Number(formData.ideal_temp_max)) {
+      throw new Error("Validasi Gagal: Suhu Minimum tidak boleh lebih besar dari Suhu Maksimum.");
+    }
+    if (formData.hardness_min && formData.hardness_max && Number(formData.hardness_min) > Number(formData.hardness_max)) {
+      throw new Error("Validasi Gagal: GH (Hardness) Minimum tidak boleh lebih besar dari GH Maksimum.");
+    }
+    if (formData.min_group_size && formData.max_group_size && Number(formData.min_group_size) > Number(formData.max_group_size)) {
+      throw new Error("Validasi Gagal: Group Size Minimum tidak boleh melebihi Group Size Maksimum.");
+    }
+    if (formData.min_tank_size && Number(formData.min_tank_size) < 0) {
+      throw new Error("Validasi Gagal: Volume Tangki tidak boleh minus.");
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
@@ -170,6 +213,8 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
 
     try {
       setLoading(true); setError(null);
+      validateBiologicalData(); // Panggil fungsi validasi di sini
+      
       const supabase = createClient();
       const cleanNameId = formData.name_id.trim();
 
@@ -203,26 +248,33 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
         expert_notes_id: formData.expert_notes_id,
         expert_notes_en: formData.expert_notes_en,
         scientific_name: formData.scientific_name,
-        min_tank_size: formData.min_tank_size ? parseInt(formData.min_tank_size) : null,
-        ideal_ph_min: formData.ideal_ph_min ? parseFloat(formData.ideal_ph_min) : null,
-        ideal_ph_max: formData.ideal_ph_max ? parseFloat(formData.ideal_ph_max) : null,
-        ideal_temp_min: formData.ideal_temp_min ? parseFloat(formData.ideal_temp_min) : null,
-        ideal_temp_max: formData.ideal_temp_max ? parseFloat(formData.ideal_temp_max) : null,
-        hardness_min: formData.hardness_min ? parseFloat(formData.hardness_min) : null, // Kolom Baru
-        hardness_max: formData.hardness_max ? parseFloat(formData.hardness_max) : null, // Kolom Baru
-        lifespan_years: formData.lifespan_years ? parseInt(formData.lifespan_years) : null, // Kolom Baru
+        min_tank_size: formData.min_tank_size ? parseInt(formData.min_tank_size.toString()) : null,
+        ideal_ph_min: formData.ideal_ph_min ? parseFloat(formData.ideal_ph_min.toString()) : null,
+        ideal_ph_max: formData.ideal_ph_max ? parseFloat(formData.ideal_ph_max.toString()) : null,
+        ideal_temp_min: formData.ideal_temp_min ? parseFloat(formData.ideal_temp_min.toString()) : null,
+        ideal_temp_max: formData.ideal_temp_max ? parseFloat(formData.ideal_temp_max.toString()) : null,
+        hardness_min: formData.hardness_min ? parseFloat(formData.hardness_min.toString()) : null, // Kolom Baru
+        hardness_max: formData.hardness_max ? parseFloat(formData.hardness_max.toString()) : null, // Kolom Baru
+        lifespan_years: formData.lifespan_years ? parseInt(formData.lifespan_years.toString()) : null, // Kolom Baru
         compatibility: formData.compatibility,
-        temperament_score: formData.temperament_score ? parseInt(formData.temperament_score) : null, // Kolom Baru
+        temperament_score: formData.temperament_score ? parseInt(formData.temperament_score.toString()) : null, // Kolom Baru
         water_layer: formData.water_layer, // Kolom Baru
         origin_region: formData.origin_region, // Kolom Baru
         adult_behavior: formData.adult_behavior, // Kolom Baru
+        activity_level: formData.activity_level, // Kolom Baru (Mengganti feeding_frequency)
         schooling: formData.schooling,
-        min_group_size: formData.min_group_size ? parseInt(formData.min_group_size) : null,
-        max_group_size: formData.max_group_size ? parseInt(formData.max_group_size) : null, // Kolom Baru
+        min_group_size: formData.min_group_size ? parseInt(formData.min_group_size.toString()) : null,
+        max_group_size: formData.max_group_size ? parseInt(formData.max_group_size.toString()) : null, // Kolom Baru
         fish_type: formData.fish_type,
         difficulty: formData.difficulty,
-        estimated_adult_size_cm: formData.estimated_adult_size_cm ? parseFloat(formData.estimated_adult_size_cm) : null,
-        bioload_factor: formData.bioload_factor ? parseFloat(formData.bioload_factor) : null,
+        estimated_adult_size_cm: formData.estimated_adult_size_cm ? parseFloat(formData.estimated_adult_size_cm.toString()) : null,
+        bioload_factor: formData.bioload_factor ? parseFloat(formData.bioload_factor.toString()) : null,
+        shrimp_safe: formData.shrimp_safe,
+        plant_safe: formData.plant_safe,
+        recommended_tank_styles: formData.recommended_tank_styles,
+        breeding_difficulty: formData.breeding_difficulty,
+        is_egg_layer: formData.is_egg_layer,
+        is_livebearer: formData.is_livebearer,
         image_url: finalCoverUrl,
         gallery_urls: finalGalleryUrls,
       };
@@ -342,7 +394,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               </div>
             </div>
 
-            {/* BAGIAN 2: IDENTITAS & ASAL-USUL (Ditambahkan Asal dan Umur) */}
+            {/* BAGIAN 2: IDENTITAS & ASAL-USUL */}
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-4 md:col-span-2 bg-slate-50 dark:bg-slate-950/30 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800">
                 <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-2">{formDict.identitasSection}</h3>
@@ -397,7 +449,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               </div>
             </div>
 
-            {/* BAGIAN 3: PARAMETER LINGKUNGAN (Ditambahkan GH) */}
+            {/* BAGIAN 3: PARAMETER LINGKUNGAN */}
             <div className="bg-slate-50 dark:bg-slate-950/30 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 space-y-6">
               <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-2">{formDict.waterParamSection}</h3>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
@@ -422,9 +474,9 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                 </div>
             </div>
 
-            {/* BAGIAN 4: FISH EXPERT SYSTEM (Ditambahkan Temperament Score & Perilaku Dewasa) */}
+            {/* BAGIAN 4: FISH EXPERT SYSTEM KUSTOMISASI KETAT */}
             <div className="bg-blue-50/50 dark:bg-blue-950/20 p-4 sm:p-6 rounded-xl border border-blue-200 dark:border-blue-900/50 space-y-6">
-              <h3 className="text-lg font-bold text-blue-800 dark:text-blue-400 border-b border-blue-200 dark:border-blue-900/50 pb-2">{formDict.expertEngineSection}</h3>
+              <h3 className="text-lg font-bold text-blue-800 dark:text-blue-400 border-b border-blue-200 dark:border-blue-900/50 pb-2">Kalkulasi Fish Expert V2</h3>
               
               <div className="grid gap-5 md:grid-cols-3">
                 <div className="space-y-2"><Label>{formDict.minTankSize}</Label><Input type="number" name="min_tank_size" value={formData.min_tank_size} onChange={handleChange} className="bg-white dark:bg-slate-950" /></div>
@@ -467,7 +519,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               <div className="grid gap-5 md:grid-cols-3">
                 <div className="flex items-center gap-3 bg-white dark:bg-slate-950 p-3 rounded-md border border-slate-200 dark:border-slate-800">
                   <input type="checkbox" name="schooling" checked={formData.schooling} onChange={handleChange} className="w-5 h-5 accent-blue-600 rounded" />
-                  <Label>{formDict.schoolingFish}</Label>
+                  <Label>Ikan Kawanan (Schooling Fish)</Label>
                 </div>
                 <div className={`space-y-2 ${!formData.schooling ? 'opacity-50 pointer-events-none' : ''}`}>
                   <Label>Group Size Minimum</Label>
@@ -479,39 +531,69 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>{formDict.difficultyLabel}</Label>
-                <select name="difficulty" value={formData.difficulty} onChange={handleChange} className="h-10 w-full rounded-md border border-blue-300 dark:border-blue-800/50 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500">
-                  <option value="Easy">{getDifficultyDesc("Easy", language)}</option>
-                  <option value="Medium">{getDifficultyDesc("Medium", language)}</option>
-                  <option value="Hard">{getDifficultyDesc("Hard", language)}</option>
-                </select>
+              <div className="grid gap-5 md:grid-cols-2 pt-4 border-t border-blue-200 dark:border-blue-900/50">
+                 <div className="flex flex-col gap-3 p-4 bg-white dark:bg-slate-950 rounded-xl border shadow-sm">
+                   <Label className="text-blue-800 dark:text-blue-400 font-bold border-b pb-2">Aman Untuk Fauna Lain?</Label>
+                   <label className="flex items-center gap-3 cursor-pointer">
+                     <input type="checkbox" name="shrimp_safe" checked={formData.shrimp_safe} onChange={handleChange} className="w-5 h-5 accent-emerald-600 rounded" />
+                     <span className="font-semibold">Shrimp Safe (Aman untuk Udang)</span>
+                   </label>
+                   <label className="flex items-center gap-3 cursor-pointer">
+                     <input type="checkbox" name="plant_safe" checked={formData.plant_safe} onChange={handleChange} className="w-5 h-5 accent-teal-600 rounded" />
+                     <span className="font-semibold">Plant Safe (Aman untuk Tanaman)</span>
+                   </label>
+                 </div>
+                 
+                 <div className="flex flex-col gap-2 p-4 bg-white dark:bg-slate-950 rounded-xl border shadow-sm">
+                   <Label className="text-blue-800 dark:text-blue-400 font-bold border-b pb-2">Rekomendasi Tema Tank (Aquascape Style)</Label>
+                   <div className="flex flex-wrap gap-2 pt-2">
+                     {TANK_STYLES_OPTIONS.map(style => (
+                       <button
+                         key={style} type="button"
+                         onClick={() => handleStyleToggle(style)}
+                         className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors border ${formData.recommended_tank_styles.includes(style) ? "bg-blue-600 text-white border-blue-600" : "bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800"}`}
+                       >
+                         {style}
+                       </button>
+                     ))}
+                   </div>
+                 </div>
               </div>
 
-              <div className="grid gap-6 md:grid-cols-2 pt-2">
-                <div className="space-y-2">
-                  <Label className="text-blue-700 dark:text-blue-400 flex items-center gap-2"><Brain className="h-4 w-4" /> {formDict.expertNotesId}</Label>
-                  <textarea name="expert_notes_id" rows={3} value={formData.expert_notes_id} onChange={handleChange} className="w-full rounded-md border border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20 p-3 outline-none resize-y focus:border-blue-500 text-blue-900 dark:text-slate-100" placeholder={formDict.expertNotesIdPlaceholder} />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-blue-700 dark:text-blue-400 flex items-center gap-2"><Brain className="h-4 w-4" /> {formDict.expertNotesEn}</Label>
-                  <textarea name="expert_notes_en" rows={3} value={formData.expert_notes_en} onChange={handleChange} className="w-full rounded-md border border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20 p-3 outline-none resize-y focus:border-blue-500 text-blue-900 dark:text-slate-100" placeholder={formDict.expertNotesEnPlaceholder} />
-                </div>
+              <div className="grid gap-5 md:grid-cols-3 pt-4 border-t border-blue-200 dark:border-blue-900/50">
+                 <div className="space-y-2"><Label>Kesulitan Pemijahan (Breeding)</Label>
+                  <select name="breeding_difficulty" value={formData.breeding_difficulty} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500">
+                    <option value="Easy">Mudah</option><option value="Medium">Sedang</option><option value="Hard">Sulit/Butuh Perlakuan Khusus</option>
+                  </select>
+                 </div>
+                 <div className="space-y-2"><Label>Tipe Reproduksi</Label>
+                    <div className="flex gap-4 mt-2">
+                      <label className="flex items-center gap-2"><input type="checkbox" name="is_egg_layer" checked={formData.is_egg_layer} onChange={handleChange} className="w-4 h-4 accent-blue-600" /> Bertelur (Egg Layer)</label>
+                      <label className="flex items-center gap-2"><input type="checkbox" name="is_livebearer" checked={formData.is_livebearer} onChange={handleChange} className="w-4 h-4 accent-blue-600" /> Beranak (Livebearer)</label>
+                    </div>
+                 </div>
+                 <div className="space-y-2"><Label>Tingkat Aktivitas (Activity Level)</Label>
+                    <select name="activity_level" value={formData.activity_level} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500">
+                      <option value="Low">Low (Berdiam diri/Lambat)</option>
+                      <option value="Medium">Medium (Normal)</option>
+                      <option value="High">High (Perenang Cepat/Hiperaktif)</option>
+                    </select>
+                 </div>
               </div>
             </div>
 
-            {error && <div className="rounded-md bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 p-4 text-sm text-red-600 dark:text-red-400">{error}</div>}
+            {error && <div className="rounded-md bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 p-4 text-sm text-red-600 dark:text-red-400 font-bold flex items-center"><AlertTriangle className="w-5 h-5 mr-2"/> {error}</div>}
 
             {/* ACTION BUTTONS UTAMA */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200 dark:border-slate-800">
               <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
                 {mode === "edit" && fish && (
                   <>
-                    <button type="button" onClick={triggerArchiveModal} disabled={loading} className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-semibold bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 flex items-center justify-center transition-colors">
+                    <button type="button" onClick={triggerArchiveModal} disabled={loading} className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-semibold bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 transition-colors">
                       <Archive className="mr-2 h-4 w-4" /> {formDict.btnArchive}
                     </button>
                     {role === "super_admin" && (
-                      <button type="button" onClick={triggerHardDeleteModal} disabled={loading} className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-semibold bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-900 text-red-700 dark:text-red-400 flex items-center justify-center transition-colors">
+                      <button type="button" onClick={triggerHardDeleteModal} disabled={loading} className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-semibold bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-900 text-red-700 dark:text-red-400 transition-colors">
                         <Trash2 className="mr-2 h-4 w-4" /> {formDict.btnHardDelete}
                       </button>
                     )}
@@ -519,7 +601,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                 )}
               </div>
               <div className="flex flex-col-reverse sm:flex-row gap-3 w-full sm:w-auto">
-                <button type="button" onClick={() => router.back()} disabled={loading} className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-semibold bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 flex items-center justify-center transition-colors">
+                <button type="button" onClick={() => router.back()} disabled={loading} className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-semibold bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 transition-colors">
                   {formDict.btnCancel}
                 </button>
                 <button type="submit" disabled={loading} className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center transition-colors">
