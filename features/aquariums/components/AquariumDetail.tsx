@@ -13,7 +13,8 @@ import {
   ArrowLeft, Edit, Archive, Trash2, Container, AlertTriangle, 
   Droplets, Settings2, CalendarDays, Loader2, RefreshCw, 
   LayoutDashboard, Activity, Leaf, ShieldAlert,
-  Maximize, Box, Layers, Lightbulb, Wind, Thermometer, FlaskConical
+  Maximize, Box, Layers, Lightbulb, Wind, Thermometer, FlaskConical,
+  Stethoscope // Tambahan Icon untuk Diagnosis
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
@@ -42,6 +43,7 @@ interface DetailDictionary {
   maintenance: string; dimensions: string;
 }
 
+// PERBAIKAN UX: Tab AI dikembalikan menjadi modul mandiri
 type TabId = "overview" | "parameters" | "flora" | "maintenance" | "ai";
 
 export default function AquariumDetail() {
@@ -68,7 +70,6 @@ export default function AquariumDetail() {
   const isSuperAdmin = role === 'super_admin';
 
   const detailDict: DetailDictionary = rootDict?.aquarium?.detail || {
-    // Teks diubah menjadi general karena akan kembali ke halaman sebelumnya secara dinamis
     back: lang === 'id' ? "Kembali" : "Go Back",
     edit: lang === 'id' ? "Edit" : "Edit",
     archive: lang === 'id' ? "Arsipkan" : "Archive",
@@ -77,7 +78,7 @@ export default function AquariumDetail() {
     overview: lang === 'id' ? "Ringkasan" : "Overview",
     parameters: lang === 'id' ? "Parameter Air" : "Water Parameters",
     floraFauna: lang === 'id' ? "Tanaman & Ikan" : "Flora & Fauna",
-    aiDiagnose: lang === 'id' ? "Diagnosa AI" : "AI Diagnose",
+    aiDiagnose: lang === 'id' ? "Diagnosa AI" : "AI Diagnosis", // Label Tab AI
     equipment: lang === 'id' ? "Peralatan" : "Equipment",
     maintenance: lang === 'id' ? "Perawatan" : "Maintenance",
     dimensions: lang === 'id' ? "Dimensi" : "Dimensions",
@@ -88,7 +89,7 @@ export default function AquariumDetail() {
     { id: "parameters" as TabId, label: detailDict.parameters, icon: Activity },
     { id: "flora" as TabId, label: detailDict.floraFauna, icon: Leaf },
     { id: "maintenance" as TabId, label: detailDict.maintenance, icon: RefreshCw }, 
-    { id: "ai" as TabId, label: detailDict.aiDiagnose, icon: ShieldAlert },
+    { id: "ai" as TabId, label: detailDict.aiDiagnose, icon: Stethoscope }, // Icon Dokter Pakar
   ];
 
   const getParamText = (val: string | null | undefined) => {
@@ -142,8 +143,6 @@ export default function AquariumDetail() {
     window.history.replaceState(null, '', `#${tabId}`);
   };
 
-  // PERBAIKAN: Gunakan router.back() agar selalu kembali ke halaman sumber yang benar!
-  // Jika tidak ada history (buka link baru), arahkan ke dashboard.
   const handleGoBack = () => {
     if (window.history.length > 2) {
       router.back();
@@ -172,7 +171,7 @@ export default function AquariumDetail() {
     const res = await deleteAquariumAction(aquariumId);
     if (res.success) {
       toast.success(lang === 'id' ? "Akuarium dihapus." : "Aquarium deleted.");
-      handleGoBack(); // Gunakan handleGoBack untuk menghapus dengan benar
+      handleGoBack(); 
     } else {
       toast.error(res.error || "Gagal.");
       setLoading(false);
@@ -183,7 +182,7 @@ export default function AquariumDetail() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <Loader2 className="h-10 w-10 animate-spin text-teal-600 mb-4" />
-        <p className="text-slate-500 font-medium animate-pulse">{lang === 'id' ? "Memuat Mesin Pakar..." : "Loading Expert Engine..."}</p>
+        <p className="text-slate-500 font-medium animate-pulse">{lang === 'id' ? "Memuat Ekosistem..." : "Loading Ecosystem..."}</p>
       </div>
     );
   }
@@ -266,14 +265,14 @@ export default function AquariumDetail() {
         <div className="min-h-[40vh]">
           
           {activeTab === "overview" && (
-            <div className="flex flex-col gap-5 animate-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-500">
               
               {/* KOMPONEN MODULAR HEALTH DASHBOARD */}
               {healthResult && (
                 <HealthDashboard healthResult={healthResult} lang={lang} />
               )}
 
-              {/* BENTO GRID BAWAH (DIMENSI, PERALATAN, MAINTENANCE) TETAP UTUH */}
+              {/* BENTO GRID BAWAH (DIMENSI, PERALATAN, MAINTENANCE) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch mt-2">
                 {/* 1. KOTAK DIMENSI */}
                 <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-900/50 p-6 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-800 flex flex-col h-full relative overflow-hidden group">
@@ -381,7 +380,7 @@ export default function AquariumDetail() {
           {activeTab === "flora" && <div className="animate-in slide-in-from-right-4 duration-500"><InventoryTab aquariumId={aquariumId} /></div>}
           {activeTab === "maintenance" && <div className="animate-in slide-in-from-right-4 duration-500"><MaintenanceTab aquariumId={aquariumId} /></div>}
           
-          {/* TAB AI DEEP DIAGNOSIS YANG BARU */}
+          {/* TAB AI DIAGNOSIS DIKEMBALIKAN KE TAB MANDIRI */}
           {activeTab === "ai" && (
             <div className="animate-in slide-in-from-right-4 duration-500">
               <AIDeepDiagnosisPanel aquariumId={aquariumId} lang={lang} />
