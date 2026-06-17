@@ -13,12 +13,17 @@ import enPlants from '@/dictionaries/en/plants.json';
 import idAlgae from '@/dictionaries/id/algae.json';
 import enAlgae from '@/dictionaries/en/algae.json';
 
+// IMPORT FISHES DICTIONARIES
+import idFishes from '@/dictionaries/id/fishes.json';
+import enFishes from '@/dictionaries/en/fishes.json';
+
 // GABUNGKAN SECARA OTOMATIS
 // Menggabungkan object dari berbagai file ke dalam 1 object raksasa secara "On the Fly"
 // Dengan cara ini, UI lama Bapak (seperti dict.plantForm, dict.dashboard) tetap bekerja tanpa perlu refactoring komponen sama sekali!
 // Kita bungkus idAlgae ke dalam key "algaeExpert" agar aman dan rapi
-const id = { ...idCommon, ...idPlants, algaeExpert: idAlgae };
-const en = { ...enCommon, ...enPlants, algaeExpert: enAlgae };
+// PERBAIKAN: Fishes dibongkar menggunakan spread operator (...) agar TypeScript langsung mengenali dict.fishForm, dict.fishList, dll.
+const id = { ...idCommon, ...idPlants, algaeExpert: idAlgae, ...idFishes };
+const en = { ...enCommon, ...enPlants, algaeExpert: enAlgae, ...enFishes };
 
 type Language = 'id' | 'en';
 // Mengambil struktur data dari penggabungan objek agar TypeScript (IntelliSense) mendeteksi otomatis

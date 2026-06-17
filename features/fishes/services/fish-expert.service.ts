@@ -8,7 +8,7 @@ export interface UserFishAnswers {
   currentPH: number;
   currentTemp: number;
   wantSchoolingFish: boolean;
-  fishTypePref: string; // "Community", "Semi-Aggressive", "Aggressive", dll
+  fishTypePref: string; // "Community Tank", "Semi-Aggressive", "Species Only"
 }
 
 export interface RecommendedFish extends Fish {
@@ -42,16 +42,41 @@ export function generateFishRecommendations(
     let score = 0;
     let reasons: string[] = [];
 
-    // TAHAP A: HARD FILTERS (Sangat ketat, jika tidak muat tank = gugur)
+    // ==========================================
+    // TAHAP A: HARD FILTERS (PENYISIHAN MUTLAK)
+    // ==========================================
+    
+    // 1. Minimum Tank Size
     if (fish.min_tank_size && answers.tankVolumeLiters < fish.min_tank_size) {
       isEligible = false; 
     }
 
+    // 2. Jika Ikan Predator (Aggressive) masuk ke tangki Damai (Community)
+    if (answers.fishTypePref === "Community Tank" && fish.compatibility === "Aggressive") {
+      isEligible = false;
+    }
+
+    // 3. Toleransi pH Ekstrem (Jika meleset lebih dari 1.5, gugur)
+    if (fish.ideal_ph_min && fish.ideal_ph_max) {
+      if (answers.currentPH < fish.ideal_ph_min - 1.5 || answers.currentPH > fish.ideal_ph_max + 1.5) {
+        isEligible = false;
+      }
+    }
+
+    // 4. Overstocking / Bioload Check
+    // Asumsi: Ikan Schooling butuh volume ekstra karena bergerombol
+    const requiredVolume = fish.schooling ? (fish.bioload_factor || 1) * (fish.min_group_size || 6) * 5 : (fish.bioload_factor || 1) * 10;
+    if (answers.tankVolumeLiters < requiredVolume) {
+       isEligible = false;
+    }
+
     if (!isEligible) continue;
 
-    // TAHAP B: SOFT SCORING
+    // ==========================================
+    // TAHAP B: SOFT SCORING (PENILAIAN)
+    // ==========================================
 
-    // 1. TANK SIZE MARGIN (Beri nilai lebih jika akuariumnya jauh lebih luas)
+    // 1. TANK SIZE MARGIN (Nilai lebih jika tangki sangat luas)
     if (fish.min_tank_size && answers.tankVolumeLiters >= fish.min_tank_size * 2) {
       score += 20;
       reasons.push(dictEE.reasonTankSizeOK);
@@ -59,24 +84,25 @@ export function generateFishRecommendations(
       score += 10;
     }
 
-    // 2. pH WATER MATCH
+    // 2. pH WATER MATCH (Sempurna di dalam rentang)
     if (fish.ideal_ph_min && fish.ideal_ph_max) {
       if (answers.currentPH >= fish.ideal_ph_min && answers.currentPH <= fish.ideal_ph_max) {
-        score += 20;
+        score += 15;
         reasons.push(dictEE.reasonPHMatch);
       } else {
-        score -= 20;
+        score -= 10; // Tidak gugur, tapi nilai turun karena kurang optimal
         reasons.push(dictEE.reasonPHMismatch);
       }
     }
 
-    // 3. TEMPERATURE MATCH
+    // 3. TEMPERATURE MATCH (Sempurna di dalam rentang)
     if (fish.ideal_temp_min && fish.ideal_temp_max) {
       if (answers.currentTemp >= fish.ideal_temp_min && answers.currentTemp <= fish.ideal_temp_max) {
         score += 15;
         reasons.push(dictEE.reasonTempMatch);
       } else {
         score -= 15;
+        reasons.push(dictEE.reasonTempMismatch);
       }
     }
 
@@ -86,11 +112,13 @@ export function generateFishRecommendations(
         score += 25;
         reasons.push(dictEE.reasonBeginnerFriendly);
       } else if (fish.difficulty === "Hard") {
-        score -= 30;
+        score -= 30; // Pemula sangat dilarang pegang ikan Hard
       }
     } else if (answers.experience === "Mahir" && fish.difficulty === "Hard") {
       score += 15;
       reasons.push(dictEE.reasonExpertOnly);
+    } else if (fish.difficulty === "Medium") {
+      score += 10;
     }
 
     // 5. SCHOOLING PREFERENCE
@@ -98,19 +126,27 @@ export function generateFishRecommendations(
       score += 20;
       reasons.push(`${dictEE.reasonSchooling} (Min: ${fish.min_group_size || 6})`);
     } else if (!answers.wantSchoolingFish && fish.schooling) {
-      score -= 10; // Kurangi poin jika user tidak mau beli banyak tapi ikannya harus schooling
+      score -= 15; // User tidak mau repot beli kawanan, jadi kurangi nilai ikan schooling
     }
 
-    // 6. COMPATIBILITY TYPE
-    if (answers.fishTypePref !== "Bebas" && fish.compatibility === answers.fishTypePref) {
-      score += 15;
+    // 6. COMPATIBILITY / ECOSYSTEM PREFERENCE
+    if (answers.fishTypePref === "Community Tank" && fish.compatibility === "Peaceful") {
+      score += 20;
+      reasons.push(dictEE.reasonCompatibility);
+    } else if (answers.fishTypePref === "Semi-Aggressive" && fish.compatibility === "Semi-Aggressive") {
+      score += 20;
+      reasons.push(dictEE.reasonCompatibility);
+    } else if (answers.fishTypePref === "Species Only" && fish.compatibility === "Species Only") {
+      score += 20;
       reasons.push(dictEE.reasonCompatibility);
     }
 
+    // Masukkan ke array evaluasi
     rawEvaluations.push({ item: fish, rawScore: score, reasons });
   }
 
-  const processedResults = processExpertResults(rawEvaluations, 20);
+  // Proses dan standarisasi skor dengan Expert Engine Core
+  const processedResults = processExpertResults(rawEvaluations, 25);
 
   return processedResults.map(result => ({
     ...result.item,
