@@ -2,7 +2,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { Fish } from "../types/fish.types";
 
-// Sesuaikan persis dengan Schema DB Bapak
 const FISH_COLUMNS = `
   id,
   slug,
@@ -31,7 +30,15 @@ const FISH_COLUMNS = `
   created_by,
   updated_by,
   estimated_adult_size_cm,
-  bioload_factor
+  bioload_factor,
+  temperament_score,
+  water_layer,
+  origin_region,
+  adult_behavior,
+  hardness_min,
+  hardness_max,
+  lifespan_years,
+  max_group_size
 `;
 
 export async function getFishes(): Promise<Fish[]> {

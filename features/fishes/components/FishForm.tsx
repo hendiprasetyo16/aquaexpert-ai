@@ -70,9 +70,20 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
     min_tank_size: "", 
     ideal_ph_min: "", ideal_ph_max: "",
     ideal_temp_min: "", ideal_temp_max: "",
-    compatibility: "Peaceful", schooling: false, min_group_size: "",
-    fish_type: "Tetra", difficulty: "Easy",
-    estimated_adult_size_cm: "", bioload_factor: ""
+    hardness_min: "", hardness_max: "", // Kolom Baru
+    lifespan_years: "", // Kolom Baru
+    compatibility: "Peaceful",
+    temperament_score: "2", // Kolom Baru
+    water_layer: "Middle", // Kolom Baru
+    origin_region: "Asia", // Kolom Baru
+    adult_behavior: "Schooling", // Kolom Baru
+    schooling: false, 
+    min_group_size: "", 
+    max_group_size: "", // Kolom Baru
+    fish_type: "Tetra", 
+    difficulty: "Easy",
+    estimated_adult_size_cm: "", 
+    bioload_factor: ""
   });
 
   useEffect(() => {
@@ -87,9 +98,17 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
         ideal_ph_max: fish.ideal_ph_max != null ? fish.ideal_ph_max.toString() : "",
         ideal_temp_min: fish.ideal_temp_min != null ? fish.ideal_temp_min.toString() : "",
         ideal_temp_max: fish.ideal_temp_max != null ? fish.ideal_temp_max.toString() : "",
+        hardness_min: fish.hardness_min != null ? fish.hardness_min.toString() : "", // Kolom Baru
+        hardness_max: fish.hardness_max != null ? fish.hardness_max.toString() : "", // Kolom Baru
+        lifespan_years: fish.lifespan_years != null ? fish.lifespan_years.toString() : "", // Kolom Baru
         compatibility: fish.compatibility || "Peaceful",
+        temperament_score: fish.temperament_score != null ? fish.temperament_score.toString() : "2", // Kolom Baru
+        water_layer: fish.water_layer || "Middle", // Kolom Baru
+        origin_region: fish.origin_region || "Asia", // Kolom Baru
+        adult_behavior: fish.adult_behavior || "Schooling", // Kolom Baru
         schooling: fish.schooling || false,
         min_group_size: fish.min_group_size != null ? fish.min_group_size.toString() : "",
+        max_group_size: fish.max_group_size != null ? fish.max_group_size.toString() : "", // Kolom Baru
         fish_type: fish.fish_type || "Tetra",
         difficulty: fish.difficulty || "Easy",
         estimated_adult_size_cm: fish.estimated_adult_size_cm != null ? fish.estimated_adult_size_cm.toString() : "",
@@ -189,9 +208,17 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
         ideal_ph_max: formData.ideal_ph_max ? parseFloat(formData.ideal_ph_max) : null,
         ideal_temp_min: formData.ideal_temp_min ? parseFloat(formData.ideal_temp_min) : null,
         ideal_temp_max: formData.ideal_temp_max ? parseFloat(formData.ideal_temp_max) : null,
+        hardness_min: formData.hardness_min ? parseFloat(formData.hardness_min) : null, // Kolom Baru
+        hardness_max: formData.hardness_max ? parseFloat(formData.hardness_max) : null, // Kolom Baru
+        lifespan_years: formData.lifespan_years ? parseInt(formData.lifespan_years) : null, // Kolom Baru
         compatibility: formData.compatibility,
+        temperament_score: formData.temperament_score ? parseInt(formData.temperament_score) : null, // Kolom Baru
+        water_layer: formData.water_layer, // Kolom Baru
+        origin_region: formData.origin_region, // Kolom Baru
+        adult_behavior: formData.adult_behavior, // Kolom Baru
         schooling: formData.schooling,
         min_group_size: formData.min_group_size ? parseInt(formData.min_group_size) : null,
+        max_group_size: formData.max_group_size ? parseInt(formData.max_group_size) : null, // Kolom Baru
         fish_type: formData.fish_type,
         difficulty: formData.difficulty,
         estimated_adult_size_cm: formData.estimated_adult_size_cm ? parseFloat(formData.estimated_adult_size_cm) : null,
@@ -315,7 +342,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               </div>
             </div>
 
-            {/* BAGIAN 2: IDENTITAS */}
+            {/* BAGIAN 2: IDENTITAS & ASAL-USUL (Ditambahkan Asal dan Umur) */}
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-4 md:col-span-2 bg-slate-50 dark:bg-slate-950/30 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800">
                 <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-2">{formDict.identitasSection}</h3>
@@ -342,24 +369,44 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label>{formDict.compatibilityLabel}</Label>
-                <select name="compatibility" value={formData.compatibility} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500">
-                  <option value="Peaceful">{getCompatibilityDesc("Peaceful", language)}</option>
-                  <option value="Semi-Aggressive">{getCompatibilityDesc("Semi-Aggressive", language)}</option>
-                  <option value="Aggressive">{getCompatibilityDesc("Aggressive", language)}</option>
-                  <option value="Species Only">{getCompatibilityDesc("Species Only", language)}</option>
+                <Label>Wilayah Asal (Origin Region)</Label>
+                <select name="origin_region" value={formData.origin_region} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500">
+                  <option value="South America">Amerika Selatan (Amazon)</option>
+                  <option value="Asia">Asia</option>
+                  <option value="Africa">Afrika</option>
+                  <option value="Central America">Amerika Tengah</option>
+                  <option value="North America">Amerika Utara</option>
+                  <option value="Australia">Australia & Oceania</option>
+                  <option value="Global (Bred)">Global (Hasil Budidaya)</option>
                 </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Zona Renang (Water Layer)</Label>
+                <select name="water_layer" value={formData.water_layer} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500">
+                  <option value="Top">Top (Atas)</option>
+                  <option value="Middle">Middle (Tengah)</option>
+                  <option value="Bottom">Bottom (Bawah)</option>
+                  <option value="All Levels">Semua Level</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Usia Maksimal (Lifespan dalam Tahun)</Label>
+                <Input type="number" name="lifespan_years" value={formData.lifespan_years} onChange={handleChange} className="bg-white dark:bg-slate-950" placeholder="Cth: 5" />
               </div>
             </div>
 
-            {/* BAGIAN 3: PARAMETER LINGKUNGAN */}
+            {/* BAGIAN 3: PARAMETER LINGKUNGAN (Ditambahkan GH) */}
             <div className="bg-slate-50 dark:bg-slate-950/30 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 space-y-6">
               <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-2">{formDict.waterParamSection}</h3>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
                 <div className="space-y-2"><Label>{formDict.tempMin}</Label><Input type="number" step="0.1" name="ideal_temp_min" value={formData.ideal_temp_min} onChange={handleChange} className="bg-white dark:bg-slate-950" /></div>
                 <div className="space-y-2"><Label>{formDict.tempMax}</Label><Input type="number" step="0.1" name="ideal_temp_max" value={formData.ideal_temp_max} onChange={handleChange} className="bg-white dark:bg-slate-950" /></div>
                 <div className="space-y-2"><Label>{formDict.phMin}</Label><Input type="number" step="0.1" name="ideal_ph_min" value={formData.ideal_ph_min} onChange={handleChange} className="bg-white dark:bg-slate-950" /></div>
                 <div className="space-y-2"><Label>{formDict.phMax}</Label><Input type="number" step="0.1" name="ideal_ph_max" value={formData.ideal_ph_max} onChange={handleChange} className="bg-white dark:bg-slate-950" /></div>
+                <div className="space-y-2"><Label>GH Min (Hardness)</Label><Input type="number" step="0.1" name="hardness_min" value={formData.hardness_min} onChange={handleChange} className="bg-white dark:bg-slate-950" /></div>
+                <div className="space-y-2"><Label>GH Max (Hardness)</Label><Input type="number" step="0.1" name="hardness_max" value={formData.hardness_max} onChange={handleChange} className="bg-white dark:bg-slate-950" /></div>
               </div>
             </div>
 
@@ -375,7 +422,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                 </div>
             </div>
 
-            {/* BAGIAN 4: FISH EXPERT SYSTEM */}
+            {/* BAGIAN 4: FISH EXPERT SYSTEM (Ditambahkan Temperament Score & Perilaku Dewasa) */}
             <div className="bg-blue-50/50 dark:bg-blue-950/20 p-4 sm:p-6 rounded-xl border border-blue-200 dark:border-blue-900/50 space-y-6">
               <h3 className="text-lg font-bold text-blue-800 dark:text-blue-400 border-b border-blue-200 dark:border-blue-900/50 pb-2">{formDict.expertEngineSection}</h3>
               
@@ -385,14 +432,50 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                 <div className="space-y-2"><Label>{formDict.bioloadFactor}</Label><Input type="number" step="0.1" name="bioload_factor" value={formData.bioload_factor} onChange={handleChange} className="bg-white dark:bg-slate-950" /></div>
               </div>
 
-              <div className="grid gap-5 md:grid-cols-2">
+              <div className="grid gap-5 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label>Skor Agresivitas (Temperament Score)</Label>
+                  <select name="temperament_score" value={formData.temperament_score} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500">
+                    <option value="1">1 - Very Peaceful (Sangat Damai)</option>
+                    <option value="2">2 - Peaceful (Damai)</option>
+                    <option value="3">3 - Semi-Aggressive (Teritorial)</option>
+                    <option value="4">4 - Aggressive (Pemarah)</option>
+                    <option value="5">5 - Predator (Memakan Ikan Lain)</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>{formDict.compatibilityLabel}</Label>
+                  <select name="compatibility" value={formData.compatibility} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500">
+                    <option value="Peaceful">{getCompatibilityDesc("Peaceful", language)}</option>
+                    <option value="Semi-Aggressive">{getCompatibilityDesc("Semi-Aggressive", language)}</option>
+                    <option value="Aggressive">{getCompatibilityDesc("Aggressive", language)}</option>
+                    <option value="Species Only">{getCompatibilityDesc("Species Only", language)}</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Gaya Hidup (Adult Behavior)</Label>
+                  <select name="adult_behavior" value={formData.adult_behavior} onChange={handleChange} className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500">
+                    <option value="Schooling">Schooling (Kawanan)</option>
+                    <option value="Pair">Pair (Sepasang)</option>
+                    <option value="Solitary">Solitary (Menyendiri)</option>
+                    <option value="Harem">Harem (1 Jantan Banyak Betina)</option>
+                    <option value="Colony">Colony (Koloni Besar)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-3">
                 <div className="flex items-center gap-3 bg-white dark:bg-slate-950 p-3 rounded-md border border-slate-200 dark:border-slate-800">
                   <input type="checkbox" name="schooling" checked={formData.schooling} onChange={handleChange} className="w-5 h-5 accent-blue-600 rounded" />
                   <Label>{formDict.schoolingFish}</Label>
                 </div>
                 <div className={`space-y-2 ${!formData.schooling ? 'opacity-50 pointer-events-none' : ''}`}>
-                  <Label>{formDict.minGroupSize}</Label>
+                  <Label>Group Size Minimum</Label>
                   <Input type="number" name="min_group_size" value={formData.min_group_size} onChange={handleChange} className="bg-white dark:bg-slate-950" />
+                </div>
+                <div className={`space-y-2 ${!formData.schooling ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <Label>Group Size Maksimum</Label>
+                  <Input type="number" name="max_group_size" value={formData.max_group_size} onChange={handleChange} className="bg-white dark:bg-slate-950" />
                 </div>
               </div>
 
