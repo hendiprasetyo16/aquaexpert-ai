@@ -23,20 +23,15 @@ const fishSchema = z.object({
   added_at: z.string().optional(),
 });
 
-// ==========================================
-// SECURITY LAYER: VALIDASI KEPEMILIKAN
-// ==========================================
-async function verifyAquariumOwnership(supabase: SupabaseClient, aquariumId: string, userId: string) {
+async function verifyAquariumOwnership(supabase: SupabaseClient, aquariumId: string, userId: string): Promise<boolean> {
   const { data, error } = await supabase
     .from("my_aquariums")
     .select("id")
     .eq("id", aquariumId)
     .eq("user_id", userId)
-    .maybeSingle(); // HARDENING: Menghindari error log PGRST116
+    .maybeSingle();
 
-  if (error || !data) {
-    throw new Error("Unauthorized access to this aquarium ecosystem.");
-  }
+  if (error || !data) throw new Error("Unauthorized access to this aquarium ecosystem.");
   return true;
 }
 
@@ -55,7 +50,13 @@ export async function getTankInventoryAction(aquariumId: string) {
         fish:fishes(
           id, name_id, name_en, image_url, fish_type, 
           estimated_adult_size_cm, bioload_factor,
-          activity_level, water_layer, temperament_score, shrimp_safe, plant_safe
+          activity_level, water_layer, temperament_score, shrimp_safe, plant_safe,
+          temperature_min, temperature_max, ph_min, ph_max,
+          min_school_size, fin_nipper, long_finned, minimum_tank_length_cm,
+          mouth_size_factor, compatibility_tags, territorial, predatory, activity_period,
+          compatibility_score, shrimp_predation_risk, native_biotope,
+          preferred_temperature, preferred_ph, preferred_gh, uproots_plants, preferred_aquascape_styles,
+          oxygen_requirement_score, current_preference, max_group_size, breeding_difficulty, lifespan_years
         )
       `)
       .eq("aquarium_id", aquariumId)
@@ -63,15 +64,23 @@ export async function getTankInventoryAction(aquariumId: string) {
 
     const { data: plants, error: errPlant } = await supabase
       .from("aquarium_plants")
-      .select("*, plant:plants(id, name_id, name_en, image_url, placement)")
+      .select(`
+        *, 
+        plant:plants(
+          id, name_id, name_en, image_url, placement, growth_rate, nitrate_consumption, 
+          oxygen_production, algae_resistance, difficulty, co2_mandatory, light_requirement, 
+          growth_speed_score, nutrient_consumption_score,
+          preferred_ph, preferred_temperature, preferred_gh, carpeting, epiphyte, floating, aquascape_style
+        )
+      `)
       .eq("aquarium_id", aquariumId)
       .order("added_at", { ascending: false });
 
     if (errFish || errPlant) throw new Error("Database error while fetching inventory.");
 
     return { success: true, fishes: fishes as TankFish[], plants: plants as TankPlant[] };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Unknown structural error" };
   }
 }
 
@@ -82,12 +91,9 @@ export async function addPlantToTankAction(payload: z.infer<typeof plantSchema>)
     if (!user) return { success: false, error: "Unauthorized" };
 
     const validated = plantSchema.parse(payload);
-    
     await verifyAquariumOwnership(supabase, validated.aquarium_id, user.id);
-
     const safeAddedAt = validated.added_at || new Date().toISOString().split('T')[0];
 
-    // HARDENING: maybeSingle() agar aman saat tanaman belum ada
     const { data: existing } = await supabase
       .from("aquarium_plants")
       .select("id, quantity")
@@ -110,8 +116,8 @@ export async function addPlantToTankAction(payload: z.infer<typeof plantSchema>)
 
     revalidatePath(`/dashboard/my-aquarium/${validated.aquarium_id}`);
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Process failed" };
   }
 }
 
@@ -122,12 +128,9 @@ export async function addFishToTankAction(payload: z.infer<typeof fishSchema>) {
     if (!user) return { success: false, error: "Unauthorized" };
 
     const validated = fishSchema.parse(payload);
-    
     await verifyAquariumOwnership(supabase, validated.aquarium_id, user.id);
-
     const safeAddedAt = validated.added_at || new Date().toISOString().split('T')[0];
 
-    // HARDENING: maybeSingle() agar aman saat ikan (batch tersebut) belum ada
     const { data: existing } = await supabase
       .from("aquarium_fishes")
       .select("id, quantity")
@@ -152,8 +155,8 @@ export async function addFishToTankAction(payload: z.infer<typeof fishSchema>) {
 
     revalidatePath(`/dashboard/my-aquarium/${validated.aquarium_id}`);
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Process failed" };
   }
 }
 
@@ -180,8 +183,8 @@ export async function updateFishInventoryAction(id: string, aquariumId: string, 
     
     revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Update failed" };
   }
 }
 
@@ -198,7 +201,7 @@ export async function removeInventoryItemAction(table: "aquarium_fishes" | "aqua
     
     revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Deletion failed" };
   }
 }
