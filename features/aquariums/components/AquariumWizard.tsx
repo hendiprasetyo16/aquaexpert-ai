@@ -30,9 +30,13 @@ interface AquariumWizardProps {
   initialData?: Aquarium | null;
 }
 
+// Opsi Hardcoded untuk Style Aquascape (Sesuai request)
+const AQUASCAPE_STYLES = [
+  "Bebas", "Nature", "Dutch", "Iwagumi", "Biotope", "Blackwater", "Jungle", "Minimalist"
+] as const;
+
 // =========================================================================
 // HELPER KOMPRESI GAMBAR (HTML5 CANVAS)
-// Mengompres gambar dari sisi client agar enteng sebelum dikirim ke Supabase
 // =========================================================================
 const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<File> => {
   return new Promise((resolve, reject) => {
@@ -55,29 +59,17 @@ const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<File
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         
-        if (!ctx) {
-          reject(new Error("Failed to get canvas context"));
-          return;
-        }
-
+        if (!ctx) { reject(new Error("Failed to get canvas context")); return; }
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Convert canvas kembali ke file JPEG dengan kualitas yang diatur
-        canvas.toBlob(
-          (blob) => {
+        canvas.toBlob((blob) => {
             if (blob) {
               const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
-                type: "image/jpeg",
-                lastModified: Date.now(),
+                type: "image/jpeg", lastModified: Date.now(),
               });
               resolve(compressedFile);
-            } else {
-              reject(new Error("Canvas to Blob failed"));
-            }
-          },
-          "image/jpeg",
-          quality
-        );
+            } else { reject(new Error("Canvas to Blob failed")); }
+          }, "image/jpeg", quality);
       };
       img.onerror = (err) => reject(err);
     };
@@ -104,13 +96,14 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
     btnCancel: lang === 'id' ? "Batal" : "Cancel", 
     labels: {
       name: lang === 'id' ? "Nama Akuarium" : "Aquarium Name",
-      tankType: lang === 'id' ? "Jenis Tema Akuarium" : "Aquascape Style",
+      tankType: lang === 'id' ? "Fokus Ekosistem" : "Ecosystem Focus",
+      aquascapeStyle: lang === 'id' ? "Tema / Style Aquascape" : "Aquascape Style", 
       setupDate: lang === 'id' ? "Tanggal Setup Awal" : "Initial Setup Date",
       isPrimary: lang === 'id' ? "Jadikan Tangki Utama" : "Set as Primary Tank",
       length: lang === 'id' ? "Panjang (cm)" : "Length (cm)",
       width: lang === 'id' ? "Lebar (cm)" : "Width (cm)",
       height: lang === 'id' ? "Tinggi (cm)" : "Height (cm)",
-      volume: lang === 'id' ? "Volume Estimasi (Liter)" : "Estimated Volume (Liters)",
+      volume: lang === 'id' ? "Volume Bersih Estimasi (Liter)" : "Estimated Net Volume (Liters)",
       filter: lang === 'id' ? "Sistem Filter" : "Filtration System",
       filterCapacity: lang === 'id' ? "Kapasitas Pompa (L/H)" : "Pump Flow Rate (L/H)",
       light: lang === 'id' ? "Jenis Lampu" : "Lighting Type",
@@ -127,12 +120,13 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
     },
     hints: {
       name: lang === 'id' ? "Beri nama unik (misal: Akuarium Ruang Tamu)." : "Give it a unique name.",
-      tankType: lang === 'id' ? "Pilih yang paling mirip. Sangat mempengaruhi saran dari AI." : "Choose the closest match. Influences AI advice.",
+      tankType: lang === 'id' ? "Pilih tujuan tangki Anda (Sangat mempengaruhi kecocokan ikan AI)." : "Choose tank purpose. Affects AI fish compatibility.",
+      aquascapeStyle: lang === 'id' ? "Pilih tema visual tangki Anda." : "Choose your visual tank theme.",
       setupDate: lang === 'id' ? "Kapan air pertama kali dimasukkan? Penting untuk analisis AI." : "When was water first added? Crucial for AI.",
       isPrimary: lang === 'id' ? "AI Assistant akan otomatis menggunakan tank ini saat Anda bertanya." : "AI Assistant uses this tank as the default.",
-      dimensions: lang === 'id' ? "Digunakan AI untuk menghitung kecocokan jumlah ikan." : "Used by AI to calculate fish capacity.",
-      filter: lang === 'id' ? "Pilih mekanisme yang paling sesuai. Kosongkan kapasitas pompa jika tidak tahu." : "Choose closest mechanism. Leave capacity empty if unsure.",
-      light: lang === 'id' ? "Jika pilih 'Kombinasi', isikan Daya Watt & Jam untuk lampu buatannya saja (saat malam)." : "If 'Mixed', only input Wattage & Hours for the artificial night light.",
+      dimensions: lang === 'id' ? "Otomatis dihitung sebagai 'Volume Netto' (dikurangi 15% untuk substrat, jarak bibir kaca, dll)." : "Automatically calculated as 'Net Volume' (minus 15% for substrate, clearance, etc).",
+      filter: lang === 'id' ? "Pilih mekanisme yang paling sesuai. Kosongkan kapasitas jika tidak tahu." : "Choose closest mechanism. Leave empty if unsure.",
+      light: lang === 'id' ? "Jika pilih 'Kombinasi', isikan Daya Watt & Jam untuk lampu utama." : "If 'Mixed', input Wattage for main light.",
       co2: lang === 'id' ? "Pilih jenis suplai CO2. Kosongkan Dosis BPS jika tidak tahu/tidak pakai." : "Select CO2 supply type. Leave BPS empty if unsure/unused.",
       substrate: lang === 'id' ? "Pilih material yang menutupi dasar akuarium Anda." : "Select the material covering your tank bottom.",
       maintenance: lang === 'id' ? "Data ini sangat penting bagi AI untuk mencari akar masalah alga/penyakit." : "Key metrics for AI to find root cause of algae/disease."
@@ -151,8 +145,8 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
   const [coverPreview, setCoverPreview] = useState("");
 
   const [formData, setFormData] = useState<CreateAquariumInput>({
-    name: "", tank_type: "Community", setup_date: new Date().toISOString().split('T')[0], is_primary: false,
-    length_cm: 60, width_cm: 30, height_cm: 36, volume_liters: 64.8, 
+    name: "", tank_type: "Community", aquascape_style: "Bebas", setup_date: new Date().toISOString().split('T')[0], is_primary: false,
+    length_cm: 60, width_cm: 30, height_cm: 36, volume_liters: 55, // Default volume netto 60x30x36
     substrate_type: "Sand", filter_type: "Hang on Back (HOB)", filter_capacity_lph: null,
     light_type: "White LED", light_wattage: null, photoperiod_hours: 8,
     co2_type: "None", co2_bps: null, heater_enabled: false,
@@ -164,12 +158,13 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
       setFormData({
         name: initialData.name || "",
         tank_type: (initialData.tank_type as CreateAquariumInput["tank_type"]) || "Community",
+        aquascape_style: initialData.aquascape_style || "Bebas",
         setup_date: initialData.setup_date || new Date().toISOString().split('T')[0],
         is_primary: initialData.is_primary || false,
         length_cm: initialData.length_cm || 60,
         width_cm: initialData.width_cm || 30,
         height_cm: initialData.height_cm || 36,
-        volume_liters: initialData.volume_liters || 64.8,
+        volume_liters: initialData.volume_liters || 55,
         substrate_type: (initialData.substrate_type as CreateAquariumInput["substrate_type"]) || "Sand",
         filter_type: (initialData.filter_type as CreateAquariumInput["filter_type"]) || "Hang on Back (HOB)",
         filter_capacity_lph: initialData.filter_capacity_lph || null,
@@ -190,12 +185,21 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
     }
   }, [mode, initialData]);
 
+  // ==========================================
+  // PERHITUNGAN VOLUME NETTO (15% Reduksi)
+  // ==========================================
   useEffect(() => {
-    if (formData.length_cm > 0 && formData.width_cm > 0 && formData.height_cm > 0) {
-      const volume = (formData.length_cm * formData.width_cm * formData.height_cm) / 1000;
-      setFormData(prev => ({ ...prev, volume_liters: Number(volume.toFixed(1)) }));
+    // Hindari perhitungan ulang jika sedang mode edit dan data awal baru di-load (agar tidak override volume asli)
+    if (mode === "edit" && initialData && formData.length_cm === initialData.length_cm && formData.width_cm === initialData.width_cm && formData.height_cm === initialData.height_cm) {
+        return; 
     }
-  }, [formData.length_cm, formData.width_cm, formData.height_cm]);
+
+    if (formData.length_cm > 0 && formData.width_cm > 0 && formData.height_cm > 0) {
+      const volumeBruto = (formData.length_cm * formData.width_cm * formData.height_cm) / 1000;
+      const volumeNetto = volumeBruto * 0.85; // Kurangi 15% untuk substrat, batu, kayu, jarak bibir air
+      setFormData(prev => ({ ...prev, volume_liters: Number(volumeNetto.toFixed(1)) }));
+    }
+  }, [formData.length_cm, formData.width_cm, formData.height_cm, mode, initialData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -211,38 +215,24 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
   const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/heic"];
-      if (!validTypes.includes(file.type)) { 
-        setError("Format foto harus JPG, PNG, WEBP, atau HEIC."); 
-        return; 
-      }
-      // Menaikkan batas ukuran sebelum kompresi menjadi 10MB (Kamera HP modern)
-      if (file.size > 10 * 1024 * 1024) { 
-        setError("Ukuran foto maksimal 10MB sebelum kompresi."); 
-        return; 
-      }
+      const validTypes = ["image/jpeg", "image/png", "image/webp", "image/heic"];
+      if (!validTypes.includes(file.type)) { setError("Format foto harus JPG, PNG, WEBP, atau HEIC."); return; }
+      if (file.size > 10 * 1024 * 1024) { setError("Ukuran foto maksimal 10MB sebelum kompresi."); return; }
       
       try {
         setError("");
-        // Tampilkan preview instan versi asli (untuk UI yang cepat)
         setCoverPreview(URL.createObjectURL(file));
-
-        // Proses kompresi gambar di background (max width 1200px, quality 70%)
         const compressedFile = await compressImage(file, 1200, 0.7);
         setCoverFile(compressedFile);
-
-        // Update preview dengan versi compressed (lebih ringan)
         setCoverPreview(URL.createObjectURL(compressedFile));
       } catch (err) {
         setError("Gagal memproses dan mengompres gambar.");
-        console.error("Compression error:", err);
       }
     }
   };
 
   const extractErrorMessage = (err: unknown): string | null => {
     if (!err) return null;
-    
     if (typeof err === 'object' && 'errors' in err) {
       const errObj = err as { errors: unknown };
       if (Array.isArray(errObj.errors) && errObj.errors.length > 0) {
@@ -250,41 +240,28 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
         if (typeof firstError === 'string') {
            try {
              const parsed = JSON.parse(firstError);
-             if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].message) {
-               return parsed[0].message;
-             }
+             if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].message) return parsed[0].message;
              if (parsed.message) return parsed.message;
-           } catch {
-             return firstError;
-           }
+           } catch { return firstError; }
         }
-        if (firstError && typeof firstError === 'object' && 'message' in firstError) {
-          return String((firstError as { message: unknown }).message);
-        }
+        if (firstError && typeof firstError === 'object' && 'message' in firstError) return String((firstError as { message: unknown }).message);
       }
     }
-    
     if (typeof err === 'string' && err.startsWith('[') && err.includes('"message"')) {
        try {
           const parsed = JSON.parse(err);
-          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].message) {
-             return parsed[0].message;
-          }
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].message) return parsed[0].message;
        } catch {}
     }
-
     if (err instanceof Error) {
        if (err.message.startsWith('[') && err.message.includes('"message"')) {
          try {
             const parsed = JSON.parse(err.message);
-            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].message) {
-               return parsed[0].message;
-            }
+            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].message) return parsed[0].message;
          } catch {}
        }
        return err.message;
     }
-
     return null;
   };
 
@@ -303,11 +280,8 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
       setStep(s => Math.min(4, s + 1));
     } catch (err: unknown) {
       const cleanError = extractErrorMessage(err);
-      if (cleanError) {
-        setError(cleanError);
-      } else {
-        setError(lang === "id" ? "Input tidak valid. Mohon periksa kembali form Anda." : "Invalid input. Please check your form.");
-      }
+      if (cleanError) setError(cleanError);
+      else setError(lang === "id" ? "Input tidak valid. Mohon periksa kembali form Anda." : "Invalid input. Please check your form.");
     }
   };
 
@@ -321,12 +295,10 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
       
       if (coverFile) {
         const supabase = createClient();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.jpg`; // Selalu save sebagai jpg setelah kompresi
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.jpg`; 
         const filePath = `covers/${fileName}`;
-
         const { error: uploadError } = await supabase.storage.from("aquariums").upload(filePath, coverFile);
         if (uploadError) throw new Error("Gagal mengupload foto: " + uploadError.message);
-        
         const { data: { publicUrl } } = supabase.storage.from("aquariums").getPublicUrl(filePath);
         finalImageUrl = publicUrl;
       }
@@ -334,17 +306,11 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
       const payloadToSave = { ...formData, image_url: finalImageUrl };
       
       let res;
-      if (mode === "edit" && initialData) {
-        res = await updateAquariumAction(initialData.id, payloadToSave);
-      } else {
-        res = await createAquariumAction(payloadToSave);
-      }
+      if (mode === "edit" && initialData) res = await updateAquariumAction(initialData.id, payloadToSave);
+      else res = await createAquariumAction(payloadToSave);
       
       if (res.success) {
-        toast.success(mode === "edit" 
-          ? (lang === 'id' ? "Akuarium diperbarui!" : "Aquarium updated!") 
-          : (lang === 'id' ? "Akuarium ditambahkan!" : "Aquarium added!")
-        );
+        toast.success(mode === "edit" ? (lang === 'id' ? "Akuarium diperbarui!" : "Aquarium updated!") : (lang === 'id' ? "Akuarium ditambahkan!" : "Aquarium added!"));
         router.push(mode === "edit" ? `/dashboard/my-aquarium/${initialData?.id}` : "/dashboard/my-aquarium");
       } else {
         setError(res.error || "Failed to save aquarium");
@@ -352,11 +318,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
       }
     } catch (err: unknown) {
       const cleanError = extractErrorMessage(err);
-      if (cleanError) {
-        setError(cleanError);
-      } else {
-        setError("Validation failed. Please check your inputs.");
-      }
+      if (cleanError) setError(cleanError); else setError("Validation failed. Please check your inputs.");
       setLoading(false);
     }
   };
@@ -377,26 +339,17 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
         
         <div className="flex items-center justify-between relative">
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-full z-0"></div>
-          <div 
-            className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-teal-500 rounded-full z-0 transition-all duration-500"
-            style={{ width: `${((step - 1) / 3) * 100}%` }}
-          ></div>
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-teal-500 rounded-full z-0 transition-all duration-500" style={{ width: `${((step - 1) / 3) * 100}%` }}></div>
           
           {STEPS.map((s) => {
             const isActive = step >= s.num;
             const isCurrent = step === s.num;
             return (
               <div key={s.num} className="relative z-10 flex flex-col items-center gap-2">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 transition-colors duration-300 ${
-                  isActive 
-                    ? "bg-teal-500 border-teal-100 dark:border-teal-900 text-white" 
-                    : "bg-slate-100 dark:bg-slate-800 border-white dark:border-slate-950 text-slate-400"
-                }`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 transition-colors duration-300 ${isActive ? "bg-teal-500 border-teal-100 dark:border-teal-900 text-white" : "bg-slate-100 dark:bg-slate-800 border-white dark:border-slate-950 text-slate-400"}`}>
                   {step > s.num ? <CheckCircle2 className="w-5 h-5" /> : s.num}
                 </div>
-                <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider absolute -bottom-6 whitespace-nowrap ${isCurrent ? "text-teal-600 dark:text-teal-400" : "text-slate-400 opacity-0 sm:opacity-100"}`}>
-                  {s.title}
-                </span>
+                <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider absolute -bottom-6 whitespace-nowrap ${isCurrent ? "text-teal-600 dark:text-teal-400" : "text-slate-400 opacity-0 sm:opacity-100"}`}>{s.title}</span>
               </div>
             );
           })}
@@ -452,11 +405,20 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
                   </select>
                   <p className="text-xs text-slate-500 flex items-start gap-1 mt-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.tankType}</p>
                 </div>
+                
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.setupDate} *</label>
-                  <input required type="date" name="setup_date" value={formData.setup_date} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none" />
-                  <p className="text-xs text-slate-500 flex items-start gap-1 mt-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.setupDate}</p>
+                  <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.aquascapeStyle}</label>
+                  <select name="aquascape_style" value={formData.aquascape_style || "Bebas"} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none">
+                    {AQUASCAPE_STYLES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <p className="text-xs text-slate-500 flex items-start gap-1 mt-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.aquascapeStyle}</p>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.setupDate} *</label>
+                <input required type="date" name="setup_date" value={formData.setup_date} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none" />
+                <p className="text-xs text-slate-500 flex items-start gap-1 mt-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.setupDate}</p>
               </div>
 
               <div className="p-4 bg-teal-50 dark:bg-teal-950/30 rounded-xl border border-teal-100 dark:border-teal-900 flex items-center gap-3">
@@ -515,7 +477,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.filterCapacity}</label>
-                  <input type="number" name="filter_capacity_lph" value={formData.filter_capacity_lph || ""} onChange={handleChange} placeholder="Contoh: 600 (Kosongkan jika tak tahu)" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
+                  <input type="number" name="filter_capacity_lph" value={formData.filter_capacity_lph || ""} onChange={handleChange} placeholder="Contoh: 600" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
                 </div>
                 <p className="text-xs text-slate-500 col-span-full flex items-start gap-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.filter}</p>
               </div>
@@ -529,11 +491,11 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.lightWatt}</label>
-                  <input type="number" name="light_wattage" value={formData.light_wattage || ""} onChange={handleChange} placeholder="Kosongkan jika tak tahu" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
+                  <input type="number" name="light_wattage" value={formData.light_wattage || ""} onChange={handleChange} placeholder="Daya" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.lightHours}</label>
-                  <input type="number" name="photoperiod_hours" value={formData.photoperiod_hours || ""} onChange={handleChange} placeholder="Contoh: 8 (jam)" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
+                  <input type="number" name="photoperiod_hours" value={formData.photoperiod_hours || ""} onChange={handleChange} placeholder="Durasi" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
                 </div>
                 <p className="text-xs text-slate-500 col-span-full flex items-start gap-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.light}</p>
               </div>
@@ -547,7 +509,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.co2Bps}</label>
-                  <input type="number" name="co2_bps" value={formData.co2_bps || ""} onChange={handleChange} placeholder="Dosis. Contoh: 2" disabled={formData.co2_type === 'None'} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none disabled:opacity-50" />
+                  <input type="number" name="co2_bps" value={formData.co2_bps || ""} onChange={handleChange} placeholder="BPS" disabled={formData.co2_type === 'None'} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none disabled:opacity-50" />
                 </div>
                 <div className="space-y-2 pt-8 pl-4">
                   <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700 dark:text-slate-300 text-sm">
@@ -610,14 +572,10 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
             variant="outline" 
             onClick={() => {
               if (step === 1) {
-                if (mode === "edit" && initialData) {
-                   router.push(`/dashboard/my-aquarium/${initialData.id}`);
-                } else {
-                   router.push("/dashboard/my-aquarium"); 
-                }
+                if (mode === "edit" && initialData) router.push(`/dashboard/my-aquarium/${initialData.id}`);
+                else router.push("/dashboard/my-aquarium"); 
               } else {
-                setError(""); 
-                setStep(s => Math.max(1, s - 1));
+                setError(""); setStep(s => Math.max(1, s - 1));
               }
             }}
             disabled={loading}

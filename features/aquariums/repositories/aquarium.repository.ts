@@ -11,8 +11,7 @@ export async function getUserAquariums(supabase: SupabaseClient, userId: string)
       aquarium_fishes(id)
     `)
     .eq("user_id", userId)
-    // .eq("is_active", true) // <--- HAPUS ATAU KOMENTARI BARIS INI
-    .order("is_primary", { ascending: false }) // Primary selalu di atas
+    .order("is_primary", { ascending: false }) 
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -35,8 +34,6 @@ export async function getAquariumById(supabase: SupabaseClient, id: string, user
   return data as Aquarium;
 }
 
-// ... (Fungsi createAquarium, updateAquarium, deleteAquarium, clearPrimaryAquarium tetap sama persis) ...
-
 export async function createAquarium(supabase: SupabaseClient, payload: Partial<Aquarium>) {
   const { data, error } = await supabase
     .from("my_aquariums")
@@ -53,7 +50,7 @@ export async function updateAquarium(supabase: SupabaseClient, id: string, userI
     .from("my_aquariums")
     .update(payload)
     .eq("id", id)
-    .eq("user_id", userId) // Keamanan ekstra
+    .eq("user_id", userId) 
     .select()
     .single();
 

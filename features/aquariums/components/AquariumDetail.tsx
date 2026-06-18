@@ -14,7 +14,7 @@ import {
   Droplets, Settings2, CalendarDays, Loader2, RefreshCw, 
   LayoutDashboard, Activity, Leaf, ShieldAlert,
   Maximize, Box, Layers, Lightbulb, Wind, Thermometer, FlaskConical,
-  Stethoscope // Tambahan Icon untuk Diagnosis
+  Stethoscope, Fish, HeartPulse // Tambahan Icon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
@@ -43,7 +43,6 @@ interface DetailDictionary {
   maintenance: string; dimensions: string;
 }
 
-// PERBAIKAN UX: Tab AI dikembalikan menjadi modul mandiri
 type TabId = "overview" | "parameters" | "flora" | "maintenance" | "ai";
 
 export default function AquariumDetail() {
@@ -63,7 +62,11 @@ export default function AquariumDetail() {
 
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  
+  // Data tambahan untuk Overview (Inventaris Realtime)
   const [healthResult, setHealthResult] = useState<HealthAnalysisResult | null>(null);
+  const [totalFishes, setTotalFishes] = useState(0);
+  const [totalPlants, setTotalPlants] = useState(0);
 
   const rootDict = dict as { aquarium?: { detail?: DetailDictionary }, formOptions?: Record<string, string> };
   
@@ -78,7 +81,7 @@ export default function AquariumDetail() {
     overview: lang === 'id' ? "Ringkasan" : "Overview",
     parameters: lang === 'id' ? "Parameter Air" : "Water Parameters",
     floraFauna: lang === 'id' ? "Tanaman & Ikan" : "Flora & Fauna",
-    aiDiagnose: lang === 'id' ? "Diagnosa AI" : "AI Diagnosis", // Label Tab AI
+    aiDiagnose: lang === 'id' ? "Diagnosa AI" : "AI Diagnosis", 
     equipment: lang === 'id' ? "Peralatan" : "Equipment",
     maintenance: lang === 'id' ? "Perawatan" : "Maintenance",
     dimensions: lang === 'id' ? "Dimensi" : "Dimensions",
@@ -89,7 +92,7 @@ export default function AquariumDetail() {
     { id: "parameters" as TabId, label: detailDict.parameters, icon: Activity },
     { id: "flora" as TabId, label: detailDict.floraFauna, icon: Leaf },
     { id: "maintenance" as TabId, label: detailDict.maintenance, icon: RefreshCw }, 
-    { id: "ai" as TabId, label: detailDict.aiDiagnose, icon: Stethoscope }, // Icon Dokter Pakar
+    { id: "ai" as TabId, label: detailDict.aiDiagnose, icon: Stethoscope }, 
   ];
 
   const getParamText = (val: string | null | undefined) => {
@@ -115,12 +118,21 @@ export default function AquariumDetail() {
           getMaintenanceDashboardAction(aquariumId)
         ]);
 
+        const paramData = paramRes.success ? (paramRes.data as AquariumParameterLog[]) : [];
+        const plantData = invRes.success ? (invRes.plants as TankPlant[]) : [];
+        const fishData = invRes.success ? (invRes.fishes as TankFish[]) : [];
+        const maintData = maintRes.success ? maintRes.tasksStatus : [];
+
+        // Hitung total kuantitas murni untuk UI Overview
+        setTotalFishes(fishData.reduce((acc, curr) => acc + curr.quantity, 0));
+        setTotalPlants(plantData.reduce((acc, curr) => acc + curr.quantity, 0));
+
         const result = analyzeAquariumHealth({
           aquarium: aqRes.data,
-          parameters: paramRes.success ? (paramRes.data as AquariumParameterLog[]) : [],
-          plants: invRes.success ? (invRes.plants as TankPlant[]) : [],
-          fishes: invRes.success ? (invRes.fishes as TankFish[]) : [],
-          maintenanceStatus: maintRes.success ? maintRes.tasksStatus : []
+          parameters: paramData,
+          plants: plantData,
+          fishes: fishData,
+          maintenanceStatus: maintData
         });
         
         setHealthResult(result);
@@ -202,6 +214,10 @@ export default function AquariumDetail() {
   const tankAge = calculateTankAge(aquarium.setup_date, {} as AquariumDictionary, lang);
   const tankType = getTankTypeDesc(aquarium.tank_type, lang);
 
+  // Kalkulasi persentase Bioload aktual (100 - Bioload Score)
+  const bioloadPercent = healthResult ? Math.max(0, 100 - healthResult.scores.bioload) : 0;
+  const bioloadColor = bioloadPercent < 50 ? "text-teal-500 bg-teal-50 dark:bg-teal-900/30" : bioloadPercent < 80 ? "text-amber-500 bg-amber-50 dark:bg-amber-900/30" : "text-rose-500 bg-rose-50 dark:bg-rose-900/30";
+
   return (
     <div className="w-full pb-24 animate-in fade-in duration-700">
       
@@ -267,6 +283,38 @@ export default function AquariumDetail() {
           {activeTab === "overview" && (
             <div className="flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-500">
               
+              {/* V4 INVENTORY QUICK STATS (NEW!) */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl text-blue-600 dark:text-blue-400"><Fish className="w-6 h-6" /></div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{lang === 'id' ? "Total Ikan" : "Fish Stock"}</p>
+                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5">{totalFishes} {lang === 'id' ? "Ekor" : "pcs"}</p>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className="bg-emerald-100 dark:bg-emerald-900/30 p-3 rounded-xl text-emerald-600 dark:text-emerald-400"><Leaf className="w-6 h-6" /></div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{lang === 'id' ? "Total Flora" : "Plants"}</p>
+                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5">{totalPlants} {lang === 'id' ? "Porsi" : "pts"}</p>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className="bg-cyan-100 dark:bg-cyan-900/30 p-3 rounded-xl text-cyan-600 dark:text-cyan-400"><Container className="w-6 h-6" /></div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{lang === 'id' ? "Volume Air" : "Capacity"}</p>
+                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5">{aquarium.volume_liters} L</p>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className={`p-3 rounded-xl ${bioloadColor}`}><Activity className="w-6 h-6" /></div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{lang === 'id' ? "Beban Ekosistem" : "Bioload"}</p>
+                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5">{bioloadPercent}%</p>
+                  </div>
+                </div>
+              </div>
+
               {/* KOMPONEN MODULAR HEALTH DASHBOARD */}
               {healthResult && (
                 <HealthDashboard healthResult={healthResult} lang={lang} />
@@ -380,7 +428,6 @@ export default function AquariumDetail() {
           {activeTab === "flora" && <div className="animate-in slide-in-from-right-4 duration-500"><InventoryTab aquariumId={aquariumId} /></div>}
           {activeTab === "maintenance" && <div className="animate-in slide-in-from-right-4 duration-500"><MaintenanceTab aquariumId={aquariumId} /></div>}
           
-          {/* TAB AI DIAGNOSIS DIKEMBALIKAN KE TAB MANDIRI */}
           {activeTab === "ai" && (
             <div className="animate-in slide-in-from-right-4 duration-500">
               <AIDeepDiagnosisPanel aquariumId={aquariumId} lang={lang} />
@@ -420,7 +467,7 @@ export default function AquariumDetail() {
               <h3 className="text-2xl font-black uppercase tracking-tight">{lang === 'id' ? "Hapus Total" : "Purge Data"}</h3>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed font-medium">
-              {lang === 'id' ? "Peringatan: Tindakan ini akan " : "Warning: This action will "} <strong className="text-red-500">{lang === 'id' ? "menghapus permanen" : "permanently delete"}</strong> <span className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{aquarium.name}</span> {lang === 'id' ? "beserta seluruh log yang pernah dicatat. Tidak bisa dibatalkan." : "along with all recorded logs. Cannot be undone."}
+              {lang === 'id' ? "Peringatan: Tindakan ini akan " : "Warning: This action will "} <strong className="text-red-500">{lang === 'id' ? "menghapus permanen" : "permanently delete"}</strong> <span className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{aquarium?.name}</span> {lang === 'id' ? "beserta seluruh log yang pernah dicatat. Tidak bisa dibatalkan." : "along with all recorded logs. Cannot be undone."}
             </p>
             <div className="flex flex-col gap-3">
                 <Button onClick={handleDelete} disabled={loading} className="bg-red-600 hover:bg-red-700 w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 text-white transition-colors">

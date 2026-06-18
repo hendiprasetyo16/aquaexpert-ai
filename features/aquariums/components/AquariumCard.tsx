@@ -66,7 +66,7 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
             </div>
           )}
 
-          {/* INFORMASI TEKS DI ATAS GAMBAR (Tanpa Info Liter/Volume) */}
+          {/* INFORMASI TEKS DI ATAS GAMBAR */}
           <div className="absolute bottom-3 left-4 right-4 text-white">
             <h3 className="text-xl font-black leading-tight drop-shadow-md truncate mb-1.5" title={aquarium.name}>
               {aquarium.name}
@@ -103,7 +103,7 @@ export default function AquariumCard({ aquarium, dict, lang }: AquariumCardProps
             </div>
           </div>
 
-          {/* AREA TAG/BADGE (DIMENSI, LAMPU, CO2) */}
+          {/* AREA TAG/BADGE */}
           <div className="flex flex-wrap gap-2 mt-auto">
             {aquarium.length_cm > 0 && (
               <span className="inline-flex items-center text-[10px] font-bold px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors hover:bg-slate-200 dark:hover:bg-slate-700">

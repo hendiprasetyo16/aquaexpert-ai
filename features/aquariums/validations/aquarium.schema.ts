@@ -5,8 +5,11 @@ import { TANK_TYPES, SUBSTRATE_TYPES, FILTER_TYPES, LIGHT_TYPES, CO2_TYPES, FERT
 export const createAquariumSchema = z.object({
   // Step 1: Identitas
   name: z.string().min(3, "Nama akuarium minimal 3 karakter").max(50, "Nama terlalu panjang"),
-  // REFAKTOR: Double casting (as unknown as ...) untuk mengubah readonly array (as const) menjadi tuple mutable yang diizinkan Zod
+  
+  // Pisahkan validasi tank_type dan aquascape_style
   tank_type: z.enum(TANK_TYPES as unknown as [string, ...string[]]),
+  aquascape_style: z.string().nullable().optional(), 
+  
   setup_date: z.string().refine((date) => new Date(date) <= new Date(), {
     message: "Tanggal setup tidak boleh di masa depan",
   }),

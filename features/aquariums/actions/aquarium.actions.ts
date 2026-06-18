@@ -10,6 +10,7 @@ import {
   deleteAquarium, 
   clearPrimaryAquarium 
 } from "../repositories/aquarium.repository";
+import { createMaintenanceTask } from "../repositories/maintenance.repository";
 import { Aquarium, CreateAquariumInput, UpdateAquariumInput } from "../types/aquarium.types";
 
 export async function getUserAquariumsAction() {
@@ -35,6 +36,7 @@ export async function getAquariumByIdAction(id: string) {
       .from("my_aquariums")
       .select("*")
       .eq("id", id)
+      .eq("user_id", user.id) // SECURITY FIX 1: Mencegah akses ke tank orang lain
       .single();
 
     if (error) throw new Error(error.message);
@@ -55,6 +57,41 @@ export async function createAquariumAction(payload: CreateAquariumInput) {
     }
 
     const data = await createAquarium(supabase, { ...payload, user_id: user.id });
+
+    // AUTO-GENERATE MAINTENANCE TASKS
+    const now = new Date();
+    
+    if (payload.water_change_interval_days && payload.water_change_interval_days > 0) {
+      const nextDue = new Date(now);
+      nextDue.setDate(nextDue.getDate() + payload.water_change_interval_days);
+      const wcPercent = payload.water_change_percent ? ` ${payload.water_change_percent}%` : "";
+      await createMaintenanceTask({
+        aquarium_id: data.id,
+        task_type: "water_change",
+        title: `Ganti Air${wcPercent}`,
+        interval_days: payload.water_change_interval_days,
+        is_active: true,
+        next_due_at: nextDue.toISOString()
+      }).catch(err => console.error("Gagal auto-generate WC task:", err));
+    }
+
+    if (payload.fertilizer_type && payload.fertilizer_type !== "None") {
+      let fertInterval = 7;
+      if (payload.fertilizer_type.includes("Daily") || payload.fertilizer_type === "Estimative Index (EI)" || payload.fertilizer_type === "PPS-Pro") {
+        fertInterval = 1;
+      }
+      const nextDueFert = new Date(now);
+      nextDueFert.setDate(nextDueFert.getDate() + fertInterval);
+      await createMaintenanceTask({
+        aquarium_id: data.id,
+        task_type: "fertilizer",
+        title: `Pemupukan (${payload.fertilizer_type})`,
+        interval_days: fertInterval,
+        is_active: true,
+        next_due_at: nextDueFert.toISOString()
+      }).catch(err => console.error("Gagal auto-generate Fert task:", err));
+    }
+
     revalidatePath("/dashboard/my-aquarium");
     return { success: true, data };
   } catch (error: unknown) {
@@ -119,18 +156,19 @@ export async function setPrimaryAquariumAction(id: string) {
   }
 }
 
-// FITUR KHUSUS SUPERADMIN: Mengambil semua akuarium beserta info pemiliknya secara manual
-// ... (fungsi lain di atas tetap sama)
+// =========================================================================
+// FITUR KHUSUS SUPERADMIN
+// =========================================================================
 
-// FITUR KHUSUS SUPERADMIN: Mengambil semua akuarium beserta info pemilik, jumlah ikan, & tanaman
 export async function getAdminAllAquariumsAction() {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    
     if (!user) return { success: false, error: "Unauthorized" };
 
-    // 1. Ambil data akuarium sekaligus menghitung jumlah baris relasi ikan & tanaman
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'super_admin') throw new Error("Forbidden: Super Admin only");
+
     const { data: aquariums, error: aqError } = await supabase
       .from("my_aquariums")
       .select("*, aquarium_fishes(id), aquarium_plants(id)")
@@ -139,20 +177,15 @@ export async function getAdminAllAquariumsAction() {
     if (aqError) throw new Error(aqError.message);
     if (!aquariums || aquariums.length === 0) return { success: true, data: [] };
 
-    // 2. Kumpulkan semua user_id yang unik dari akuarium-akuarium tersebut
     const userIds = [...new Set(aquariums.map(aq => aq.user_id))];
 
-    // 3. Tarik data profil hanya untuk user_id yang ada di daftar akuarium
     const { data: profiles, error: profileError } = await supabase
       .from("profiles")
       .select("id, email, full_name, last_login_at")
       .in("id", userIds);
 
-    if (profileError) {
-      console.warn("Gagal menarik data profil owner:", profileError.message);
-    }
+    if (profileError) console.warn("Gagal menarik data profil owner:", profileError.message);
 
-    // 4. Jodohkan (Stitch) data akuarium dengan data profilnya secara manual di server
     const enrichedData = aquariums.map(aq => {
       const ownerProfile = profiles?.find(p => p.id === aq.user_id);
       return {
@@ -172,10 +205,16 @@ export async function getAdminAllAquariumsAction() {
   }
 }
 
-// FUNGSI BARU UNTUK ADMIN: Hapus akuarium tanpa mengecek user_id pemilik
 export async function adminDeleteAquariumAction(id: string) {
   try {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    // SECURITY FIX 2: Validasi mutlak Super Admin
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'super_admin') throw new Error("Forbidden: Super Admin only");
+
     const { error } = await supabase.from("my_aquariums").delete().eq("id", id);
     if (error) throw new Error(error.message);
     revalidatePath("/dashboard/admin-panel/aquariums");
@@ -185,10 +224,16 @@ export async function adminDeleteAquariumAction(id: string) {
   }
 }
 
-// FUNGSI BARU UNTUK ADMIN: Toggle arsip tanpa mengecek user_id pemilik
 export async function adminToggleArchiveAquariumAction(id: string, currentStatus: boolean) {
   try {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    // SECURITY FIX 3: Validasi mutlak Super Admin
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'super_admin') throw new Error("Forbidden: Super Admin only");
+
     const { error } = await supabase.from("my_aquariums").update({ is_active: !currentStatus }).eq("id", id);
     if (error) throw new Error(error.message);
     revalidatePath("/dashboard/admin-panel/aquariums");

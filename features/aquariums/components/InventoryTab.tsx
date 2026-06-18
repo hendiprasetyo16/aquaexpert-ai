@@ -6,16 +6,16 @@ import { createPortal } from "react-dom";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { createClient } from "@/lib/supabase/client";
 
-// PERBAIKAN IMPORT: Pisahkan impor fungsi (actions) dan impor tipe (types)
 import { 
   getTankInventoryAction, 
   addFishToTankAction, 
   addPlantToTankAction, 
-  removeInventoryItemAction 
+  removeInventoryItemAction,
+  updateFishInventoryAction 
 } from "../actions/inventory.actions";
-import type { TankFish, TankPlant } from "../types/inventory.types"; // <-- IMPORT TIPE YANG BENAR
+import type { TankFish, TankPlant } from "../types/inventory.types"; 
 
-import { Plus, Trash2, Loader2, Leaf, Fish as FishIcon, Search, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Loader2, Leaf, Fish as FishIcon, Search, CheckCircle2, AlertTriangle, Edit2, ShieldAlert, HeartPulse, ArrowUpCircle, X, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
@@ -34,7 +34,6 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
   const { language } = useLanguage();
   const lang = language as "id" | "en";
 
-  // State untuk memastikan komponen sudah termuat di sisi Client (syarat createPortal)
   const [mounted, setMounted] = useState(false);
 
   // Data State
@@ -42,22 +41,27 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
   const [plants, setPlants] = useState<TankPlant[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Master Data untuk Dropdown Form
+  // Master Data
   const [masterFishes, setMasterFishes] = useState<MasterItem[]>([]);
   const [masterPlants, setMasterPlants] = useState<MasterItem[]>([]);
 
-  // Form UI State
+  // UI States
   const [showAddModal, setShowAddModal] = useState<"fish" | "plant" | null>(null);
+  const [showEditFishModal, setShowEditFishModal] = useState<TankFish | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Delete UI State
   const [deleteTarget, setDeleteTarget] = useState<{ id: string, table: "aquarium_fishes" | "aquarium_plants", name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Input Form
+  // Input Form States (Tambah / Edit)
   const [selectedItemId, setSelectedItemId] = useState("");
   const [quantity, setQuantity] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // STATE BARU: Untuk Status Kesehatan, Ukuran, & TANGGAL MASUK (added_at)
+  const [healthStatus, setHealthStatus] = useState<"Healthy" | "Sick" | "Quarantined">("Healthy");
+  const [sizeCategory, setSizeCategory] = useState<"Juvenile" | "Adult">("Adult");
+  const [addedAt, setAddedAt] = useState<string>(new Date().toISOString().split('T')[0]);
 
   const loadInventory = async () => {
     setLoading(true);
@@ -85,6 +89,19 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
     loadMasterData();
   }, [aquariumId]);
 
+  // RESET FORM
+  const resetForm = () => {
+    setShowAddModal(null);
+    setShowEditFishModal(null);
+    setSelectedItemId("");
+    setQuantity(1);
+    setSearchQuery("");
+    setHealthStatus("Healthy");
+    setSizeCategory("Adult");
+    setAddedAt(new Date().toISOString().split('T')[0]);
+  };
+
+  // HANDLER: TAMBAH DATA BARU
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedItemId) return toast.error(lang === 'id' ? "Pilih spesies dari daftar terlebih dahulu!" : "Please select a species from the list!");
@@ -93,17 +110,18 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
     let res;
 
     if (showAddModal === "fish") {
-      res = await addFishToTankAction({ aquarium_id: aquariumId, fish_id: selectedItemId, quantity });
+      res = await addFishToTankAction({ 
+        aquarium_id: aquariumId, fish_id: selectedItemId, quantity, 
+        health_status: healthStatus, size_category: sizeCategory,
+        added_at: addedAt
+      });
     } else {
-      res = await addPlantToTankAction({ aquarium_id: aquariumId, plant_id: selectedItemId, quantity });
+      res = await addPlantToTankAction({ aquarium_id: aquariumId, plant_id: selectedItemId, quantity, added_at: addedAt });
     }
 
     if (res?.success) {
       toast.success(lang === 'id' ? "Berhasil ditambahkan!" : "Successfully added!");
-      setShowAddModal(null);
-      setSelectedItemId("");
-      setQuantity(1);
-      setSearchQuery("");
+      resetForm();
       loadInventory();
     } else {
       toast.error(res?.error || "Gagal menambahkan data.");
@@ -111,51 +129,58 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
     setSubmitting(false);
   };
 
-  const triggerDelete = (table: "aquarium_fishes" | "aquarium_plants", id: string, name: string) => {
-    setDeleteTarget({ table, id, name });
+  // HANDLER: PERBARUI (EDIT) IKAN
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showEditFishModal) return;
+    
+    setSubmitting(true);
+    const res = await updateFishInventoryAction(showEditFishModal.id, aquariumId, {
+      quantity, health_status: healthStatus, size_category: sizeCategory, added_at: addedAt
+    });
+
+    if (res?.success) {
+      toast.success(lang === 'id' ? "Status diperbarui!" : "Status updated!");
+      resetForm();
+      loadInventory();
+    } else {
+      toast.error(res?.error || "Gagal memperbarui data.");
+    }
+    setSubmitting(false);
   };
 
+  // HANDLER: HAPUS
+  const triggerDelete = (table: "aquarium_fishes" | "aquarium_plants", id: string, name: string) => { setDeleteTarget({ table, id, name }); };
   const executeRemove = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
-    
     const res = await removeInventoryItemAction(deleteTarget.table, deleteTarget.id, aquariumId);
     if (res.success) {
       toast.success(lang === 'id' ? "Berhasil dihapus." : "Successfully removed.");
       loadInventory();
-    } else {
-      toast.error(lang === 'id' ? "Gagal menghapus." : "Failed to remove.");
-    }
-    
-    setIsDeleting(false);
-    setDeleteTarget(null);
+    } else { toast.error(lang === 'id' ? "Gagal menghapus." : "Failed to remove."); }
+    setIsDeleting(false); setDeleteTarget(null);
   };
 
-  // ==========================================
-  // PENCARIAN & PENGURUTAN ABJAD (BILINGUAL)
-  // ==========================================
-  const filteredMasterFishes = masterFishes
-    .filter(f => f.name_id.toLowerCase().includes(searchQuery.toLowerCase()) || f.name_en.toLowerCase().includes(searchQuery.toLowerCase()))
-    .sort((a, b) => {
-      const nameA = lang === 'id' ? a.name_id : a.name_en;
-      const nameB = lang === 'id' ? b.name_id : b.name_en;
-      return nameA.localeCompare(nameB); // Mengurutkan dari A ke Z
-    });
+  const getHealthBadge = (status: string | null | undefined) => {
+    if (status === "Sick") return <span className="flex items-center gap-1 bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400 px-2 py-0.5 rounded text-[10px] font-black uppercase"><ShieldAlert className="w-3 h-3"/> {lang === 'id' ? "Sakit" : "Sick"}</span>;
+    if (status === "Quarantined") return <span className="flex items-center gap-1 bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 px-2 py-0.5 rounded text-[10px] font-black uppercase"><AlertTriangle className="w-3 h-3"/> Karantina</span>;
+    return <span className="flex items-center gap-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 px-2 py-0.5 rounded text-[10px] font-black uppercase"><HeartPulse className="w-3 h-3"/> {lang === 'id' ? "Sehat" : "Healthy"}</span>;
+  };
 
-  const filteredMasterPlants = masterPlants
-    .filter(p => p.name_id.toLowerCase().includes(searchQuery.toLowerCase()) || p.name_en.toLowerCase().includes(searchQuery.toLowerCase()))
-    .sort((a, b) => {
-      const nameA = lang === 'id' ? a.name_id : a.name_en;
-      const nameB = lang === 'id' ? b.name_id : b.name_en;
-      return nameA.localeCompare(nameB); // Mengurutkan dari A ke Z
-    });
+  const formatAddedDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return "-";
+    return new Date(dateStr).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  // PENCARIAN & PENGURUTAN ABJAD (BILINGUAL)
+  const filteredMasterFishes = masterFishes.filter(f => f.name_id.toLowerCase().includes(searchQuery.toLowerCase()) || f.name_en.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => { const nameA = lang === 'id' ? a.name_id : a.name_en; const nameB = lang === 'id' ? b.name_id : b.name_en; return nameA.localeCompare(nameB); });
+  const filteredMasterPlants = masterPlants.filter(p => p.name_id.toLowerCase().includes(searchQuery.toLowerCase()) || p.name_en.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => { const nameA = lang === 'id' ? a.name_id : a.name_en; const nameB = lang === 'id' ? b.name_id : b.name_en; return nameA.localeCompare(nameB); });
 
   const currentList = showAddModal === 'fish' ? filteredMasterFishes : filteredMasterPlants;
   const isFish = showAddModal === 'fish';
 
-  if (loading) {
-    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-teal-600" /></div>;
-  }
+  if (loading) return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-teal-600" /></div>;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -172,7 +197,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
               <p className="text-sm font-medium text-slate-500">Total: {fishes.reduce((acc, curr) => acc + curr.quantity, 0)} {lang === 'id' ? "Ekor" : "Fishes"}</p>
             </div>
           </div>
-          <Button onClick={() => { setShowAddModal("fish"); setSelectedItemId(""); setSearchQuery(""); setQuantity(1); }} className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/20 h-11 px-5">
+          <Button onClick={() => { setShowAddModal("fish"); setSelectedItemId(""); setSearchQuery(""); setQuantity(1); setAddedAt(new Date().toISOString().split('T')[0]); }} className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/20 h-11 px-5">
             <Plus className="w-4 h-4 mr-2" /> {lang === 'id' ? "Tambah Ikan" : "Add Fish"}
           </Button>
         </div>
@@ -188,7 +213,6 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
               return (
               <div key={item.id} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:border-blue-300 hover:shadow-md transition-all group relative overflow-hidden pl-5">
                 
-                {/* NOMOR INDEKS */}
                 <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-blue-500" />
                 <div className="absolute top-0 left-0 bg-blue-500 text-white text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-br-lg shadow-sm z-10">
                   {idx + 1}
@@ -199,17 +223,41 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                     <img src={item.fish.image_url} alt="fish" className="w-full h-full object-cover" />
                   ) : <FishIcon className="w-6 h-6 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-300" />}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{fishName}</p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 font-black mt-0.5 bg-blue-50 dark:bg-blue-900/30 inline-block px-2 py-0.5 rounded-md">{item.quantity} {lang === 'id' ? "Ekor" : "pcs"}</p>
+                  
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                    <span className="text-[10px] font-black bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded">{item.quantity} {lang === 'id' ? "Ekor" : "pcs"}</span>
+                    {getHealthBadge(item.health_status)}
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">{item.size_category === "Juvenile" ? "Anakan" : "Dewasa"}</span>
+                  </div>
+                  
+                  {/* MENAMPILKAN TANGGAL DITAMBAHKAN */}
+                  <div className="flex items-center gap-1 mt-2 text-[10px] font-semibold text-slate-400">
+                    <Calendar className="w-3 h-3" /> Masuk: {formatAddedDate(item.added_at)}
+                  </div>
                 </div>
-                <button 
-                  onClick={() => triggerDelete("aquarium_fishes", item.id, fishName)} 
-                  className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors border border-transparent hover:border-red-200 dark:hover:border-red-800"
-                  title={lang === 'id' ? "Hapus" : "Delete"}
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
+
+                <div className="flex flex-col gap-1">
+                  <button 
+                    onClick={() => {
+                      setShowEditFishModal(item);
+                      setQuantity(item.quantity);
+                      setHealthStatus((item.health_status as any) || "Healthy");
+                      setSizeCategory((item.size_category as any) || "Adult");
+                      setAddedAt(item.added_at ? new Date(item.added_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+                    }} 
+                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors border border-transparent hover:border-blue-200" title={lang === 'id' ? "Edit Status" : "Edit Status"}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => triggerDelete("aquarium_fishes", item.id, fishName)} 
+                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors border border-transparent hover:border-red-200" title={lang === 'id' ? "Hapus" : "Delete"}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             )})}
           </div>
@@ -228,7 +276,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
               <p className="text-sm font-medium text-slate-500">Total: {plants.reduce((acc, curr) => acc + curr.quantity, 0)} {lang === 'id' ? "Porsi" : "Portions"}</p>
             </div>
           </div>
-          <Button onClick={() => { setShowAddModal("plant"); setSelectedItemId(""); setSearchQuery(""); setQuantity(1); }} className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/20 h-11 px-5">
+          <Button onClick={() => { setShowAddModal("plant"); setSelectedItemId(""); setSearchQuery(""); setQuantity(1); setAddedAt(new Date().toISOString().split('T')[0]); }} className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/20 h-11 px-5">
             <Plus className="w-4 h-4 mr-2" /> {lang === 'id' ? "Tambah Tanaman" : "Add Plant"}
           </Button>
         </div>
@@ -243,27 +291,20 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
               const plantName = lang === 'id' ? item.plant?.name_id || "" : item.plant?.name_en || "";
               return (
               <div key={item.id} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all group relative overflow-hidden pl-5">
-                
-                {/* NOMOR INDEKS */}
                 <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-emerald-500" />
-                <div className="absolute top-0 left-0 bg-emerald-500 text-white text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-br-lg shadow-sm z-10">
-                  {idx + 1}
-                </div>
+                <div className="absolute top-0 left-0 bg-emerald-500 text-white text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-br-lg shadow-sm z-10">{idx + 1}</div>
 
                 <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 relative border-2 border-transparent group-hover:border-emerald-200 ml-1">
-                  {item.plant?.image_url ? (
-                    <img src={item.plant.image_url} alt="plant" className="w-full h-full object-cover" />
-                  ) : <Leaf className="w-6 h-6 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-300" />}
+                  {item.plant?.image_url ? ( <img src={item.plant.image_url} alt="plant" className="w-full h-full object-cover" /> ) : <Leaf className="w-6 h-6 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-300" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{plantName}</p>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-black mt-0.5 bg-emerald-50 dark:bg-emerald-900/30 inline-block px-2 py-0.5 rounded-md">{item.quantity} {lang === 'id' ? "Porsi/Rumpun" : "Portions"}</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-black mt-0.5 bg-emerald-50 dark:bg-emerald-900/30 inline-block px-2 py-0.5 rounded-md mb-1">{item.quantity} {lang === 'id' ? "Porsi" : "Portions"}</p>
+                  <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-400">
+                    <Calendar className="w-3 h-3" /> Tanam: {formatAddedDate(item.added_at)}
+                  </div>
                 </div>
-                <button 
-                  onClick={() => triggerDelete("aquarium_plants", item.id, plantName)} 
-                  className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors border border-transparent hover:border-red-200 dark:hover:border-red-800"
-                  title={lang === 'id' ? "Hapus" : "Delete"}
-                >
+                <button onClick={() => triggerDelete("aquarium_plants", item.id, plantName)} className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors border border-transparent hover:border-red-200" title={lang === 'id' ? "Hapus" : "Delete"}>
                   <Trash2 className="w-5 h-5" />
                 </button>
               </div>
@@ -273,72 +314,40 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
       </div>
 
       {/* ========================================================
-          1. MODAL TAMBAH INVENTORY (VISUAL PICKER)
+          MODAL: TAMBAH DATA (VISUAL PICKER)
       ======================================================== */}
       {mounted && showAddModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
           <div className={`w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl bg-slate-50 dark:bg-slate-950 shadow-2xl border-t-8 overflow-hidden ${isFish ? 'border-blue-500' : 'border-emerald-500'}`}>
             
-            <div className="p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0">
-              <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">
-                {isFish ? (lang === 'id' ? "Pilih Fauna (Ikan)" : "Select Fauna") : (lang === 'id' ? "Pilih Flora (Tanaman)" : "Select Flora")}
-              </h3>
-              
-              <div className="relative mt-4">
-                <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input 
-                  type="text" 
-                  placeholder={lang === 'id' ? "Cari nama atau jenis..." : "Search by name..."}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full h-12 pl-12 pr-4 rounded-xl border-2 outline-none font-semibold transition-colors bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500 dark:border-blue-900/50' : 'border-emerald-100 focus:border-emerald-500 dark:border-emerald-900/50'}`}
-                />
+            <div className="p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 flex justify-between items-center">
+              <div>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">
+                  {isFish ? (lang === 'id' ? "Pilih Fauna (Ikan)" : "Select Fauna") : (lang === 'id' ? "Pilih Flora (Tanaman)" : "Select Flora")}
+                </h3>
+                <div className="relative mt-2">
+                  <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input type="text" placeholder={lang === 'id' ? "Cari nama atau jenis..." : "Search by name..."} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full h-12 pl-12 pr-4 rounded-xl border-2 outline-none font-semibold transition-colors bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
+                </div>
               </div>
+              <button onClick={resetForm} className="p-2 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-500 rounded-full transition-colors self-start"><X className="w-5 h-5"/></button>
             </div>
 
-            <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1 border-b border-slate-200 dark:border-slate-800">
               {currentList.length === 0 ? (
-                <div className="text-center p-10 text-slate-400 font-medium">
-                  {lang === 'id' ? "Spesies tidak ditemukan." : "Species not found."}
-                </div>
+                <div className="text-center p-10 text-slate-400 font-medium">{lang === 'id' ? "Spesies tidak ditemukan." : "Species not found."}</div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                   {currentList.map((item, idx) => {
                     const isSelected = selectedItemId === item.id;
                     return (
-                      <div 
-                        key={item.id}
-                        onClick={() => setSelectedItemId(item.id)}
-                        className={`relative cursor-pointer rounded-2xl border-2 p-3 flex flex-col items-center gap-3 transition-all duration-200 bg-white dark:bg-slate-900 group ${
-                          isSelected 
-                            ? (isFish ? "border-blue-500 ring-4 ring-blue-500/20" : "border-emerald-500 ring-4 ring-emerald-500/20") 
-                            : "border-slate-100 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-600"
-                        }`}
-                      >
-                        {/* INDEKS LIST (SESUAI URUTAN ABJAD SEKARANG) */}
-                        <div className="absolute top-2 left-2 w-5 h-5 flex items-center justify-center rounded-md bg-slate-100 dark:bg-slate-800 text-[9px] font-black text-slate-400">
-                          {idx + 1}
-                        </div>
-                        
-                        {isSelected && (
-                          <div className={`absolute top-2 right-2 rounded-full ${isFish ? 'text-blue-500' : 'text-emerald-500'}`}>
-                            <CheckCircle2 className="w-5 h-5 fill-white dark:fill-slate-900" />
-                          </div>
-                        )}
-
+                      <div key={item.id} onClick={() => setSelectedItemId(item.id)} className={`relative cursor-pointer rounded-2xl border-2 p-3 flex flex-col items-center gap-3 transition-all duration-200 bg-white dark:bg-slate-900 group ${isSelected ? (isFish ? "border-blue-500 ring-4 ring-blue-500/20" : "border-emerald-500 ring-4 ring-emerald-500/20") : "border-slate-100 hover:border-slate-300 dark:border-slate-800"}`}>
+                        <div className="absolute top-2 left-2 w-5 h-5 flex items-center justify-center rounded-md bg-slate-100 dark:bg-slate-800 text-[9px] font-black text-slate-400">{idx + 1}</div>
+                        {isSelected && (<div className={`absolute top-2 right-2 rounded-full ${isFish ? 'text-blue-500' : 'text-emerald-500'}`}><CheckCircle2 className="w-5 h-5 fill-white dark:fill-slate-900" /></div>)}
                         <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden shrink-0 relative transition-transform ${isSelected ? 'scale-105' : 'group-hover:scale-105'}`}>
-                           {item.image_url ? (
-                            <img src={item.image_url} alt="species" className="w-full h-full object-cover" />
-                           ) : (
-                            <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                              {isFish ? <FishIcon className="w-8 h-8 text-slate-300" /> : <Leaf className="w-8 h-8 text-slate-300" />}
-                            </div>
-                           )}
+                           {item.image_url ? ( <img src={item.image_url} alt="species" className="w-full h-full object-cover" /> ) : ( <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">{isFish ? <FishIcon className="w-8 h-8 text-slate-300" /> : <Leaf className="w-8 h-8 text-slate-300" />}</div> )}
                         </div>
-                        
-                        <p className={`text-xs sm:text-sm text-center font-bold line-clamp-2 leading-tight ${isSelected ? (isFish ? 'text-blue-700 dark:text-blue-400' : 'text-emerald-700 dark:text-emerald-400') : 'text-slate-700 dark:text-slate-300'}`}>
-                          {lang === 'id' ? item.name_id : item.name_en}
-                        </p>
+                        <p className={`text-xs sm:text-sm text-center font-bold line-clamp-2 leading-tight ${isSelected ? (isFish ? 'text-blue-700' : 'text-emerald-700') : 'text-slate-700 dark:text-slate-300'}`}>{lang === 'id' ? item.name_id : item.name_en}</p>
                       </div>
                     );
                   })}
@@ -346,26 +355,44 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
               )}
             </div>
 
-            <form onSubmit={handleAddSubmit} className="p-6 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shrink-0">
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="w-full sm:w-1/3 space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{lang === 'id' ? "Jumlah" : "Quantity"}</label>
-                  <input 
-                    required 
-                    type="number" 
-                    min="1" 
-                    value={quantity} 
-                    onChange={(e) => setQuantity(Number(e.target.value))}
-                    className={`w-full h-12 px-4 rounded-xl border-2 outline-none font-black text-lg bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`}
-                  />
-                </div>
+            <form onSubmit={handleAddSubmit} className="p-6 bg-white dark:bg-slate-900 shrink-0">
+              <div className="flex flex-col sm:flex-row gap-4 items-end">
                 
-                <div className="flex w-full sm:w-2/3 gap-3 mt-4 sm:mt-0 sm:pt-4">
-                  <Button type="button" variant="ghost" onClick={() => setShowAddModal(null)} className="flex-1 h-12 rounded-xl text-slate-500 font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700">
-                    {lang === 'id' ? "Batal" : "Cancel"}
-                  </Button>
+                <div className="w-full sm:w-24 space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{lang === 'id' ? "Jumlah" : "Qty"}</label>
+                  <input required type="number" min="1" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className={`w-full h-12 px-4 rounded-xl border-2 outline-none font-black text-lg bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
+                </div>
+
+                <div className="w-full sm:w-40 space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tanggal Masuk</label>
+                  <input required type="date" value={addedAt} onChange={(e) => setAddedAt(e.target.value)} className={`w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
+                </div>
+
+                {/* DROPDOWN KESEHATAN DAN UKURAN (HANYA MUNCUL JIKA IKAN) */}
+                {isFish && (
+                  <>
+                    <div className="w-full sm:w-40 space-y-1">
+                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kesehatan</label>
+                      <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value as any)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
+                        <option value="Healthy">Healthy (Sehat)</option>
+                        <option value="Sick">Sick (Sakit)</option>
+                        <option value="Quarantined">Quarantine</option>
+                      </select>
+                    </div>
+                    <div className="w-full sm:w-32 space-y-1">
+                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Ukuran</label>
+                      <select value={sizeCategory} onChange={(e) => setSizeCategory(e.target.value as any)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
+                        <option value="Juvenile">Juvenile</option>
+                        <option value="Adult">Adult</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+                
+                <div className="flex w-full sm:flex-1 gap-3">
+                  <Button type="button" variant="ghost" onClick={resetForm} className="flex-1 h-12 rounded-xl text-slate-500 font-bold uppercase bg-slate-100 hover:bg-slate-200 dark:bg-slate-800">{lang === 'id' ? "Batal" : "Cancel"}</Button>
                   <Button type="submit" disabled={submitting || !selectedItemId} className={`flex-1 h-12 rounded-xl text-white font-black uppercase tracking-wider shadow-lg ${isFish ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'}`}>
-                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (lang === 'id' ? "Simpan" : "Save")}
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Simpan"}
                   </Button>
                 </div>
               </div>
@@ -376,7 +403,68 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
       )}
 
       {/* ========================================================
-          2. MODAL KONFIRMASI HAPUS
+          MODAL: EDIT IKAN (STATUS KESEHATAN)
+      ======================================================== */}
+      {mounted && showEditFishModal && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-blue-500">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100">Update Status Ikan</h3>
+              <button onClick={resetForm} className="p-2 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-500 rounded-full transition-colors"><X className="w-5 h-5"/></button>
+            </div>
+
+            <div className="flex items-center gap-4 mb-6 p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-slate-200">
+                {showEditFishModal.fish?.image_url ? <img src={showEditFishModal.fish.image_url} alt="fish" className="w-full h-full object-cover" /> : <FishIcon className="w-full h-full p-2 text-slate-300" />}
+              </div>
+              <div>
+                <p className="font-bold text-slate-800 dark:text-slate-200 leading-none">{lang === 'id' ? showEditFishModal.fish?.name_id : showEditFishModal.fish?.name_en}</p>
+                <p className="text-xs text-slate-500 mt-1">Ubah data untuk kelompok ikan ini.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kesehatan Terkini</label>
+                <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value as any)} className="w-full h-12 px-4 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
+                  <option value="Healthy">Healthy (Sehat)</option>
+                  <option value="Sick">Sick (Sakit)</option>
+                  <option value="Quarantined">Quarantine (Diisolasi)</option>
+                </select>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="w-1/3 space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Ukuran</label>
+                  <select value={sizeCategory} onChange={(e) => setSizeCategory(e.target.value as any)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
+                    <option value="Juvenile">Juvenile</option>
+                    <option value="Adult">Adult</option>
+                  </select>
+                </div>
+                <div className="w-1/3 space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Jumlah (Ekor)</label>
+                  <input required type="number" min="1" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="w-full h-12 px-4 rounded-xl border-2 outline-none font-black text-lg bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500" />
+                </div>
+                <div className="w-1/3 space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tgl Masuk</label>
+                  <input required type="date" value={addedAt} onChange={(e) => setAddedAt(e.target.value)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-xs bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500" />
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <Button type="button" variant="ghost" onClick={resetForm} className="flex-1 h-12 rounded-xl text-slate-500 font-bold uppercase bg-slate-100 hover:bg-slate-200">Batal</Button>
+                <Button type="submit" disabled={submitting} className="flex-1 h-12 rounded-xl text-white font-black uppercase tracking-wider bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20">
+                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Perbarui"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ========================================================
+          MODAL: KONFIRMASI HAPUS
       ======================================================== */}
       {mounted && deleteTarget && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
@@ -387,15 +475,15 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed font-medium">
               {lang === 'id' 
-                ? <>Anda yakin ingin menghapus <strong className="text-red-500 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">{deleteTarget.name}</strong> dari akuarium ini?</>
-                : <>Are you sure you want to remove <strong className="text-red-500 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">{deleteTarget.name}</strong> from this aquarium?</>
+                ? <>Anda yakin ingin menghapus <strong className="text-red-500 bg-red-50 px-1.5 py-0.5 rounded">{deleteTarget.name}</strong> dari akuarium ini?</>
+                : <>Are you sure you want to remove <strong className="text-red-500 bg-red-50 px-1.5 py-0.5 rounded">{deleteTarget.name}</strong> from this aquarium?</>
               }
             </p>
             <div className="flex flex-col gap-3">
-              <Button onClick={executeRemove} disabled={isDeleting} className="bg-red-600 hover:bg-red-700 w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 text-white transition-colors">
+              <Button onClick={executeRemove} disabled={isDeleting} className="bg-red-600 hover:bg-red-700 w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 text-white">
                 {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : (lang === 'id' ? "YA, HAPUS" : "YES, REMOVE")}
               </Button>
-              <Button variant="ghost" onClick={() => setDeleteTarget(null)} disabled={isDeleting} className="w-full h-12 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
+              <Button variant="ghost" onClick={() => setDeleteTarget(null)} disabled={isDeleting} className="w-full h-12 rounded-xl text-slate-500 hover:bg-slate-100 font-bold uppercase tracking-wider">
                 {lang === 'id' ? "Batal" : "Cancel"}
               </Button>
             </div>

@@ -3,10 +3,33 @@
 export interface Disease {
   id: string;
   slug?: string;
-  
-  // -- BILINGUAL INFO --
+
+  // -- GENERAL --
   name_id: string;
   name_en: string;
+  disease_category?: string | null;
+  severity?: number | null;
+  difficulty?: string | null;
+  mortality_risk?: number | null;
+  urgency_level?: string | null; // Low, Medium, High, Critical
+
+  // -- EXPERT ENGINE & AI VISION TAGS --
+  symptom_tags?: string[] | null;
+  visual_tags?: string[] | null;       
+  water_trigger_tags?: string[] | null;
+  affected_body_parts?: string[] | null;
+  affected_species?: string[] | null;
+
+  // -- TREATMENT ENGINE & TRIAGE (FINAL) --
+  transmissible?: boolean | null;
+  quarantine_required?: boolean | null;
+  medication_tags?: string[] | null;
+  disease_stage?: string | null;               // Early, Moderate, Advanced
+  treatment_duration_days?: number | null;     // Durasi standar pengobatan
+  recovery_probability?: number | null;        // 1-100% peluang hidup
+  emergency_actions?: string[] | null;         // Triage / Tindakan darurat seketika
+
+  // -- CONTENT (BILINGUAL) --
   symptoms_id?: string | null;
   symptoms_en?: string | null;
   treatments_id?: string | null;
@@ -16,14 +39,6 @@ export interface Disease {
   expert_notes_id?: string | null;
   expert_notes_en?: string | null;
 
-  // -- EXPERT ENGINE CONFIGURATION --
-  severity?: number | null; // 1-5 (Seberapa parah secara umum)
-  difficulty?: string | null; // Kesulitan mengobati
-  mortality_risk?: number | null; // Kolom Baru: 1-5 (Risiko Kematian)
-  contagious?: boolean | null; // Kolom Baru: Apakah menular?
-  affected_species?: string[] | null; // Kolom Baru: Spesies yang rentan
-  diagnostic_tags?: string[] | null; // Kolom Baru: Gejala visual untuk AI Diagnosis
-
   // -- MEDIA --
   image_url?: string | null;
   gallery_urls?: string[] | null;
@@ -32,6 +47,4 @@ export interface Disease {
   is_active?: boolean;
   created_at: string;
   updated_at?: string | null;
-  created_by?: string | null;
-  updated_by?: string | null;
 }

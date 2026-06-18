@@ -2,10 +2,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom"; // <-- TAMBAHAN: Import createPortal
+import { createPortal } from "react-dom"; 
 import { useLanguage } from "@/providers/LanguageProvider";
 import { getParametersAction, addParameterAction, deleteParameterAction, AquariumParameterLog } from "../actions/parameter.actions";
-import { Plus, Trash2, Loader2, FlaskConical, Thermometer, Skull, Activity, Droplets, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Loader2, FlaskConical, Thermometer, Skull, Activity, Droplets, AlertTriangle, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import ParameterCharts from "./ParameterCharts";
@@ -24,20 +24,17 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
   const { language } = useLanguage();
   const lang = language as "id" | "en";
 
-  // State untuk memastikan Portal di-render hanya di sisi Client
   const [mounted, setMounted] = useState(false);
-
   const [parameters, setParameters] = useState<AquariumParameterLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  
   const [deleteLogId, setDeleteLogId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     record_date: getLocalDatetime(),
     temperature: "", ph: "", ammonia: "", nitrite: "", nitrate: "", 
-    tds: "", gh: "", kh: "", notes: ""
+    tds: "", gh: "", kh: "", test_method: "", notes: "" // <-- FIX: Tambahkan test_method
   });
 
   const loadData = async () => {
@@ -48,7 +45,7 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
   };
 
   useEffect(() => {
-    setMounted(true); // Pastikan komponen sudah di-mount sebelum memanggil portal
+    setMounted(true); 
     loadData();
   }, [aquariumId]);
 
@@ -68,6 +65,7 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
       tds: formData.tds ? Number(formData.tds) : null,
       gh: formData.gh ? Number(formData.gh) : null,
       kh: formData.kh ? Number(formData.kh) : null,
+      test_method: formData.test_method || null, // <-- FIX: Kirim data test_method
       notes: formData.notes || null,
     };
 
@@ -75,7 +73,7 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
     if (res.success) {
       toast.success(lang === 'id' ? "Parameter dicatat!" : "Parameters logged!");
       setShowForm(false);
-      setFormData({ record_date: getLocalDatetime(), temperature: "", ph: "", ammonia: "", nitrite: "", nitrate: "", tds: "", gh: "", kh: "", notes: "" });
+      setFormData({ record_date: getLocalDatetime(), temperature: "", ph: "", ammonia: "", nitrite: "", nitrate: "", tds: "", gh: "", kh: "", test_method: "", notes: "" });
       loadData();
     } else {
       toast.error(res.error || "Gagal menyimpan.");
@@ -83,9 +81,7 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
     setSubmitting(false);
   };
 
-  const triggerDelete = (id: string) => {
-    setDeleteLogId(id);
-  };
+  const triggerDelete = (id: string) => { setDeleteLogId(id); };
 
   const executeDelete = async () => {
     if (!deleteLogId) return;
@@ -95,16 +91,12 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
       toast.success(lang === 'id' ? "Catatan berhasil dihapus." : "Log deleted successfully.");
       setDeleteLogId(null);
       loadData();
-    } else {
-      // Jika muncul tulisan ini, berarti kolom 'is_deleted' belum ada di database Bapak.
-      toast.error(lang === 'id' ? "Gagal menghapus." : "Failed to delete.");
-    }
+    } else { toast.error(lang === 'id' ? "Gagal menghapus." : "Failed to delete."); }
     setSubmitting(false);
   };
 
   const getStatusColor = (val: number | null | undefined, type: "ammonia" | "nitrite" | "nitrate" | "ph") => {
     if (val === null || val === undefined) return "text-slate-500 bg-slate-50 dark:bg-slate-900 border-slate-200";
-    
     if (type === "ammonia" || type === "nitrite") {
       if (val === 0) return "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200";
       if (val > 0 && val <= 0.25) return "text-amber-500 bg-amber-50 dark:bg-amber-950/30 border-amber-200";
@@ -125,7 +117,6 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 relative">
-      
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -150,6 +141,12 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
                 <input required type="datetime-local" value={formData.record_date} onChange={(e) => setFormData({...formData, record_date: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
               </div>
               
+              {/* FIX: Input Metode Uji (Alat Tes) */}
+              <div className="space-y-1.5 col-span-2 sm:col-span-3 lg:col-span-1">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Alat Uji (Opsional)" : "Test Method (Optional)"}</label>
+                <input type="text" placeholder={lang === 'id' ? "Contoh: API Master Kit / Salifert" : "e.g., API Master Kit"} value={formData.test_method} onChange={(e) => setFormData({...formData, test_method: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
+              </div>
+
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest flex items-center gap-1"><Thermometer className="w-3 h-3"/> {lang === 'id' ? "Suhu" : "Temp"} (°C)</label>
                 <input type="number" step="0.1" placeholder="Ex: 26.5" value={formData.temperature} onChange={(e) => setFormData({...formData, temperature: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
@@ -176,7 +173,7 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
                 <input type="number" step="0.1" placeholder="Ex: 10" value={formData.nitrate} onChange={(e) => setFormData({...formData, nitrate: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
               </div>
               
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 col-span-2 sm:col-span-1">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">GH</label>
                   <input type="number" step="0.1" placeholder="Ex: 4" value={formData.gh} onChange={(e) => setFormData({...formData, gh: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
@@ -187,10 +184,12 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
                 </div>
               </div>
             </div>
+
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Catatan Khusus" : "Notes"}</label>
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Catatan Tambahan" : "Notes"}</label>
               <input type="text" placeholder={lang === 'id' ? "Misal: Setelah ganti air 50%" : "E.g., After 50% water change"} value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-medium outline-none focus:border-teal-500 transition-colors" />
             </div>
+
             <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-teal-100 dark:border-teal-900/30">
               <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="rounded-xl w-full sm:w-auto">{lang === 'id' ? "Batal" : "Cancel"}</Button>
               <Button type="submit" disabled={submitting} className="bg-teal-600 hover:bg-teal-500 text-white rounded-xl w-full sm:w-auto font-bold shadow-lg shadow-teal-600/20">
@@ -202,14 +201,12 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
         </div>
       )}
 
-      {/* GRAFIK TREN PARAMETER */}
       {!loading && parameters.length > 0 && (
         <div className="animate-in slide-in-from-bottom-4 duration-700">
           <ParameterCharts data={parameters} />
         </div>
       )}
 
-      {/* DAFTAR PARAMETER LOG */}
       {loading ? (
          <div className="flex justify-center p-10"><Loader2 className="w-8 h-8 animate-spin text-teal-500" /></div>
       ) : parameters.length === 0 ? (
@@ -234,6 +231,13 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
                     {new Date(log.record_date).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </p>
                   <p className="text-xs font-medium text-slate-500 mt-0.5">{log.notes || (lang === 'id' ? "Pengecekan rutin" : "Routine check")}</p>
+                  
+                  {/* FIX: Tampilkan Test Method jika ada */}
+                  {log.test_method && (
+                    <div className="flex items-center gap-1 mt-2 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase px-2 py-0.5 rounded-md w-fit">
+                      <Tag className="w-3 h-3" /> {log.test_method}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -302,7 +306,6 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
         </div>
       )}
 
-      {/* MENGGUNAKAN PORTAL AGAR MODAL TIDAK TERJEBAK ANIMASI TAB */}
       {mounted && deleteLogId && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
           <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-500">

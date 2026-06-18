@@ -20,6 +20,8 @@ export default function AquariumDashboard() {
   const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
 
   const dictRoot = dict as { aquarium?: AquariumDictionary };
+  
+  // FIX: Lengkapi properti sesuai AquariumDictionary yang baru diperbarui
   const aqDict: AquariumDictionary = dictRoot?.aquarium || {
     dashboard: {
       title: language === 'id' ? "Akuarium Saya" : "My Aquariums",
@@ -29,6 +31,8 @@ export default function AquariumDashboard() {
       emptyDesc: language === 'id' ? "Tambahkan profil akuarium pertama Anda untuk mulai menggunakan fitur AI tingkat lanjut." : "Add your first aquarium profile to unlock advanced AI features."
     },
     card: {
+      primary: language === 'id' ? "Utama" : "Primary", // Tambahkan ini
+      setup: language === 'id' ? "Setup Awal" : "Initial Setup", // Tambahkan ini
       volume: "Volume",
       age: language === 'id' ? "Umur" : "Age",
       plants: language === 'id' ? "Tanaman" : "Plants",
@@ -150,7 +154,6 @@ export default function AquariumDashboard() {
             )}
           </div>
         ) : (
-          /* PERBAIKAN: Mengubah class grid agar sama ukurannya dengan Admin (grid-cols-1 md:grid-cols-2 xl:grid-cols-3) */
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 flex-1 content-start">
             {filteredAquariums.map((aq) => (
               <div key={aq.id} className={`animate-in fade-in zoom-in-95 duration-500 fill-mode-both ${activeTab === 'archived' ? 'grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all' : ''}`} style={{ animationDelay: '100ms' }}>
@@ -164,7 +167,7 @@ export default function AquariumDashboard() {
           </div>
         )}
         
-        {/* SPACER BAWAH: Memberikan jarak agar tidak mepet layar */}
+        {/* SPACER BAWAH */}
         <div className="h-24 md:h-32 shrink-0 w-full pointer-events-none"></div>
 
       </div>

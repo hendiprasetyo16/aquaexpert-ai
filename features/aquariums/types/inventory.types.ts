@@ -21,6 +21,8 @@ export interface TankFish {
   aquarium_id: string;
   fish_id: string;
   quantity: number;
+  health_status?: string | null;
+  size_category?: string | null;
   added_at: string;
   fish?: { 
     id: string; 
@@ -29,7 +31,12 @@ export interface TankFish {
     image_url: string; 
     fish_type: string; 
     estimated_adult_size_cm?: number | null; 
-    // Field penentu limbah ekstra
     bioload_factor?: number | null; 
+    // TAMBAHAN WAJIB UNTUK DEEP DIAGNOSIS & EXPERT ENGINE
+    activity_level?: string | null;
+    water_layer?: string | null;
+    temperament_score?: number | null;
+    shrimp_safe?: boolean | null;
+    plant_safe?: boolean | null;
   } | null;
 }

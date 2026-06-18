@@ -7,6 +7,7 @@ export interface Aquarium {
   name: string;
   image_url?: string | null;
   tank_type: string;
+  aquascape_style?: string | null; // KOLOM BARU (Untuk Deep Diagnosis & Fish Expert)
   setup_date: string;
   is_primary: boolean;
 
@@ -38,11 +39,10 @@ export interface Aquarium {
   created_at?: string;
   updated_at?: string;
 
-  // RELASI (Digunakan untuk menghitung jumlah di UI Dashboard/Detail)
+  // RELASI
   aquarium_plants?: { id: string }[];
   aquarium_fishes?: { id: string }[];
 
-  // Tambahkan ini di bagian bawah interface Aquarium:
   owner?: {
     id: string;
     email: string;
@@ -57,6 +57,7 @@ export interface Aquarium {
 export interface CreateAquariumInput {
   name: string;
   tank_type: string;
+  aquascape_style?: string | null; // KOLOM BARU
   setup_date: string;
   
   length_cm: number;
@@ -86,19 +87,18 @@ export type UpdateAquariumInput = Partial<CreateAquariumInput> & {
   is_active?: boolean;
 };
 
-// ... (AquariumParameter, AquariumPlant, AquariumFish tetap sama seperti sebelumnya) ...
+// ... (Interface lainnya tetap) ...
 export interface AquariumParameter {
   id: string;
   aquarium_id: string;
-
   temperature?: number | null;
   ph?: number | null;
   tds?: number | null;
   gh?: number | null;
   kh?: number | null;
   ammonia?: number | null;
+  nitrite?: number | null; // Cek sinkronisasi: Saya tambahkan untuk keselamatan
   nitrate?: number | null;
-
   test_method?: string | null;
   parameter_source?: string | null;
   notes?: string | null;
@@ -120,5 +120,7 @@ export interface AquariumFish {
   fish_id?: string | null;
   species_name: string;
   quantity: number;
+  health_status?: string | null;
+  size_category?: string | null;
   added_at?: string;
 }

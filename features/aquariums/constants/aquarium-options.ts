@@ -2,13 +2,18 @@
 
 export const TANK_TYPES = [
   "Community",
+  "Species Only",
+  "Shrimp",
+  "Breeding",
+  "Paludarium"
+] as const;
+
+export const AQUASCAPE_STYLES = [
+  "Bebas",
   "Nature",
   "Dutch",
   "Iwagumi",
   "Biotope",
-  "Shrimp",
-  "Breeding",
-  "Paludarium",
   "Blackwater"
 ] as const;
 
@@ -37,7 +42,7 @@ export const LIGHT_TYPES = [
   "T5 / T8 Fluorescent",
   "Halogen",
   "Natural Sunlight",
-  "Mixed (Sunlight + Artificial)", // <--- OPSI BARU (KOMBINASI)
+  "Mixed (Sunlight + Artificial)", 
   "None"
 ] as const;
 
