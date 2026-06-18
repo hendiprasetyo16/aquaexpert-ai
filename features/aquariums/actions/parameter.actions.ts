@@ -2,6 +2,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
@@ -42,22 +43,46 @@ const parameterSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
+// ==========================================
+// SECURITY LAYER: VALIDASI KEPEMILIKAN
+// ==========================================
+async function verifyAquariumOwnership(supabase: SupabaseClient, aquariumId: string, userId: string) {
+  const { data, error } = await supabase
+    .from("my_aquariums")
+    .select("id")
+    .eq("id", aquariumId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error("Unauthorized access to this aquarium ecosystem.");
+  }
+  return true;
+}
+
 export async function getParametersAction(aquariumId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return { success: false, error: "Unauthorized" };
 
-  const { data, error } = await supabase
-    .from("aquarium_parameters")
-    .select("*")
-    .eq("aquarium_id", aquariumId)
-    .eq("is_deleted", false)
-    .order("record_date", { ascending: false })
-    .order("created_at", { ascending: false });
+  try {
+    // SECURITY FIX: Cegah IDOR dengan validasi kepemilikan mutlak
+    await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
-  if (error) return { success: false, error: error.message };
-  return { success: true, data: data as AquariumParameterLog[] };
+    const { data, error } = await supabase
+      .from("aquarium_parameters")
+      .select("*")
+      .eq("aquarium_id", aquariumId)
+      .eq("is_deleted", false)
+      .order("record_date", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return { success: true, data: data as AquariumParameterLog[] };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 }
 
 export async function addParameterAction(payload: z.infer<typeof parameterSchema>) {
@@ -68,38 +93,47 @@ export async function addParameterAction(payload: z.infer<typeof parameterSchema
 
   try {
     const validatedData = parameterSchema.parse(payload);
+    
+    // SECURITY FIX: Cegah Inject Parameter ke Tank Orang Lain
+    await verifyAquariumOwnership(supabase, validatedData.aquarium_id, user.id);
+
     const { error } = await supabase.from("aquarium_parameters").insert([validatedData]);
     if (error) throw new Error(error.message);
 
     revalidatePath(`/dashboard/my-aquarium/${payload.aquarium_id}`);
     return { success: true };
-  } catch (error: unknown) {
-    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 }
 
 // 3. HARD DELETE (HAPUS PERMANEN)
 export async function deleteParameterAction(id: string, aquariumId: string) {
   const supabase = await createClient();
-  
-  // Menggunakan .delete() untuk menghapus fisik dari database
-  const { data, error } = await supabase
-    .from("aquarium_parameters")
-    .delete() 
-    .eq("id", id)
-    .select();
-  
-  if (error) {
-    console.error("Supabase Delete Error:", error);
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: "Unauthorized" };
+
+  try {
+    // SECURITY FIX: Cegah Hapus Parameter Orang Lain
+    await verifyAquariumOwnership(supabase, aquariumId, user.id);
+
+    const { data, error } = await supabase
+      .from("aquarium_parameters")
+      .delete() 
+      .eq("id", id)
+      .eq("aquarium_id", aquariumId) // Double Check
+      .select();
+    
+    if (error) throw new Error(error.message);
+
+    if (!data || data.length === 0) {
+      throw new Error("Akses ditolak atau data tidak ditemukan.");
+    }
+
+    revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
+    return { success: true };
+  } catch (error: any) {
     return { success: false, error: error.message };
   }
-
-  // Jika RLS gagal/diblokir, Supabase mengembalikan array kosong []
-  if (!data || data.length === 0) {
-    console.error("Akses diblokir oleh RLS atau ID tidak ditemukan. ID:", id);
-    return { success: false, error: "Akses ditolak oleh RLS Database atau data tidak ditemukan." };
-  }
-
-  revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
-  return { success: true };
 }

@@ -1,5 +1,6 @@
 // features/aquariums/repositories/maintenance.repository.ts
 import { createClient } from "@/lib/supabase/server";
+import { SupabaseClient } from "@supabase/supabase-js";
 import { 
   MaintenanceTask, 
   AquariumMaintenanceLog, 
@@ -9,6 +10,53 @@ import {
   TaskScheduleUpdate
 } from "../types/maintenance.types";
 
+// features/aquariums/repositories/maintenance.repository.ts
+
+// ==========================================
+// SECURITY LAYER: BULLETPROOF HARDENING (TWO-STEP LOOKUP)
+// ==========================================
+export async function verifyAquariumOwnership(supabase: SupabaseClient, aquariumId: string, userId: string) {
+  const { data, error } = await supabase
+    .from("my_aquariums")
+    .select("id")
+    .eq("id", aquariumId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) throw new Error("Unauthorized access to this aquarium ecosystem.");
+  return true;
+}
+
+export async function verifyTaskOwnership(supabase: SupabaseClient, taskId: string, userId: string) {
+  // Tahap 1: Ambil aquarium_id langsung dari tabel task secara terisolasi
+  const { data: task, error: taskError } = await supabase
+    .from("maintenance_tasks")
+    .select("aquarium_id")
+    .eq("id", taskId)
+    .maybeSingle();
+
+  if (taskError || !task) {
+    throw new Error("Unauthorized access to this task.");
+  }
+
+  // Tahap 2: Lakukan validasi silang apakah aquarium tersebut milik user yang sah
+  const { data: aquarium, error: aqError } = await supabase
+    .from("my_aquariums")
+    .select("id")
+    .eq("id", task.aquarium_id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (aqError || !aquarium) {
+    throw new Error("Unauthorized access to this task.");
+  }
+
+  return true;
+}
+
+// ==========================================
+// REPOSITORIES
+// ==========================================
 export async function getMaintenanceTasks(aquariumId: string): Promise<MaintenanceTask[]> {
   const supabase = await createClient();
   const { data, error } = await supabase

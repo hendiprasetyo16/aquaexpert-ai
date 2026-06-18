@@ -3,6 +3,7 @@
 
 import { z, ZodIssue } from "zod";
 import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/supabase/server"; // IMPORT BARU: Untuk auth & verifikasi
 import { 
   createMaintenanceTask, 
   updateMaintenanceTask, 
@@ -13,7 +14,9 @@ import {
   updateTaskSchedule,
   getUpcomingTasks,
   getMaintenanceLogs,
-  getLatestLogByTaskId 
+  getLatestLogByTaskId,
+  verifyAquariumOwnership, // IMPORT BARU: Security helper
+  verifyTaskOwnership      // IMPORT BARU: Security helper
 } from "../repositories/maintenance.repository";
 import { MaintenanceDashboardStatus } from "../types/maintenance.types";
 
@@ -61,7 +64,6 @@ function formatError(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown error";
 }
 
-// Helper komparasi stempel waktu (ISO string) untuk menghindari variasi format milidetik
 function isSameDate(dateStr1: string | null | undefined, dateStr2: string | null | undefined): boolean {
   if (!dateStr1 && !dateStr2) return true;
   if (!dateStr1 || !dateStr2) return false;
@@ -74,7 +76,15 @@ function isSameDate(dateStr1: string | null | undefined, dateStr2: string | null
 
 export async function addTaskAction(payload: z.infer<typeof createTaskSchema>) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
     const validatedData = createTaskSchema.parse(payload);
+
+    // SECURITY FIX: Verifikasi kepemilikan Akuarium sebelum menambah Tugas
+    await verifyAquariumOwnership(supabase, validatedData.aquarium_id, user.id);
+
     const nextDue = calculateNextDueDate(new Date(), validatedData.interval_days);
 
     await createMaintenanceTask({
@@ -91,10 +101,17 @@ export async function addTaskAction(payload: z.infer<typeof createTaskSchema>) {
 
 export async function editTaskAction(payload: z.infer<typeof updateTaskSchema>) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
     const validatedData = updateTaskSchema.parse(payload);
     const { id, ...updateData } = validatedData;
     
     if (!id) throw new Error("ID Tugas diperlukan.");
+
+    // SECURITY FIX: Verifikasi bahwa Tugas ini benar milik User (via my_aquariums)
+    await verifyTaskOwnership(supabase, id, user.id);
 
     const existingTask = await getMaintenanceTaskById(id);
     if (!existingTask) throw new Error("Tugas tidak ditemukan.");
@@ -126,6 +143,14 @@ export async function editTaskAction(payload: z.infer<typeof updateTaskSchema>) 
 
 export async function removeTaskAction(taskId: string, aquariumId: string) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    // SECURITY FIX: Cek kepemilikan ganda (Task dan Akuarium)
+    await verifyAquariumOwnership(supabase, aquariumId, user.id);
+    await verifyTaskOwnership(supabase, taskId, user.id);
+
     await deleteMaintenanceTask(taskId);
     revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
     return { success: true };
@@ -140,9 +165,20 @@ export async function removeTaskAction(taskId: string, aquariumId: string) {
 
 export async function logMaintenanceAction(payload: z.infer<typeof createLogSchema>) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
     const validatedData = createLogSchema.parse(payload);
     
-    // Proteksi Layer Backend: Deterministic fallback jika data performed_at null/undefined
+    // SECURITY FIX: Pastikan Akuarium milik User
+    await verifyAquariumOwnership(supabase, validatedData.aquarium_id, user.id);
+    
+    // Jika log ini terikat dengan suatu Task, pastikan Task tersebut milik User
+    if (validatedData.task_id) {
+      await verifyTaskOwnership(supabase, validatedData.task_id, user.id);
+    }
+
     const safePerformedAt = validatedData.performed_at ?? new Date().toISOString();
     
     const newLog = await createMaintenanceLog({
@@ -178,14 +214,23 @@ export async function logMaintenanceAction(payload: z.infer<typeof createLogSche
 
 export async function removeLogAction(logId: string, aquariumId: string, taskId?: string) {
   try {
-    // 1. Eksekusi Hapus Log Terlebih Dahulu (Mengubah State Database)
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    // SECURITY FIX: Cek kepemilikan Akuarium
+    await verifyAquariumOwnership(supabase, aquariumId, user.id);
+
+    // SECURITY FIX: Jika Log berkaitan dengan Task, pastikan Task milik User
+    if (taskId) {
+      await verifyTaskOwnership(supabase, taskId, user.id);
+    }
+
     await deleteMaintenanceLog(logId);
 
-    // 2. Post-Delete Absolute Sync: Ambil kondisi mutakhir database jika log terikat jadwal tugas
     if (taskId) {
       const task = await getMaintenanceTaskById(taskId);
       if (task) {
-        // Tarik log apa pun yang SEKARANG menduduki posisi teratas setelah penghapusan
         const currentLatestLog = await getLatestLogByTaskId(taskId);
         
         let newLastCompletedAt: string | null = null;
@@ -200,7 +245,6 @@ export async function removeLogAction(logId: string, aquariumId: string, taskId?
           newNextDueAt = calculateNextDueDate(createdDate, task.interval_days).toISOString();
         }
 
-        // FIX: Menggunakan isSameDate untuk komparasi stempel waktu demi menghindari variasi milidetik string ISO
         if (!isSameDate(task.last_completed_at, newLastCompletedAt) || !isSameDate(task.next_due_at, newNextDueAt)) {
           await updateTaskSchedule(task.id, {
             last_completed_at: newLastCompletedAt,
@@ -223,6 +267,13 @@ export async function removeLogAction(logId: string, aquariumId: string, taskId?
 
 export async function getMaintenanceDashboardAction(aquariumId: string) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    // SECURITY FIX: Pastikan User yang mengambil data adalah pemilik sah
+    await verifyAquariumOwnership(supabase, aquariumId, user.id);
+
     const [tasks, logs] = await Promise.all([
       getUpcomingTasks(aquariumId),
       getMaintenanceLogs(aquariumId, 20)
