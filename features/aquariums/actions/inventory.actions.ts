@@ -32,7 +32,7 @@ async function verifyAquariumOwnership(supabase: SupabaseClient, aquariumId: str
     .select("id")
     .eq("id", aquariumId)
     .eq("user_id", userId)
-    .single();
+    .maybeSingle(); // HARDENING: Menghindari error log PGRST116
 
   if (error || !data) {
     throw new Error("Unauthorized access to this aquarium ecosystem.");
@@ -46,7 +46,6 @@ export async function getTankInventoryAction(aquariumId: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
-    // SECURITY FIX PRIORITAS A: Pastikan aquarium milik user yang sedang login
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
     const { data: fishes, error: errFish } = await supabase
@@ -84,18 +83,18 @@ export async function addPlantToTankAction(payload: z.infer<typeof plantSchema>)
 
     const validated = plantSchema.parse(payload);
     
-    // SECURITY FIX: Cek kepemilikan sebelum Insert
     await verifyAquariumOwnership(supabase, validated.aquarium_id, user.id);
 
     const safeAddedAt = validated.added_at || new Date().toISOString().split('T')[0];
 
+    // HARDENING: maybeSingle() agar aman saat tanaman belum ada
     const { data: existing } = await supabase
       .from("aquarium_plants")
       .select("id, quantity")
       .eq("aquarium_id", validated.aquarium_id)
       .eq("plant_id", validated.plant_id)
-      .eq("added_at", safeAddedAt) // BATCH LOGIC
-      .single();
+      .eq("added_at", safeAddedAt) 
+      .maybeSingle();
 
     if (existing) {
       const { error } = await supabase
@@ -124,11 +123,11 @@ export async function addFishToTankAction(payload: z.infer<typeof fishSchema>) {
 
     const validated = fishSchema.parse(payload);
     
-    // SECURITY FIX: Cek kepemilikan sebelum Insert
     await verifyAquariumOwnership(supabase, validated.aquarium_id, user.id);
 
     const safeAddedAt = validated.added_at || new Date().toISOString().split('T')[0];
 
+    // HARDENING: maybeSingle() agar aman saat ikan (batch tersebut) belum ada
     const { data: existing } = await supabase
       .from("aquarium_fishes")
       .select("id, quantity")
@@ -136,8 +135,8 @@ export async function addFishToTankAction(payload: z.infer<typeof fishSchema>) {
       .eq("fish_id", validated.fish_id)
       .eq("size_category", validated.size_category)
       .eq("health_status", validated.health_status)
-      .eq("added_at", safeAddedAt) // BATCH LOGIC
-      .single();
+      .eq("added_at", safeAddedAt) 
+      .maybeSingle();
 
     if (existing) {
       const { error } = await supabase
@@ -164,7 +163,6 @@ export async function updateFishInventoryAction(id: string, aquariumId: string, 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
-    // SECURITY FIX PRIORITAS B: Cek kepemilikan sebelum Update
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
     const { error } = await supabase
@@ -193,7 +191,6 @@ export async function removeInventoryItemAction(table: "aquarium_fishes" | "aqua
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: "Unauthorized" };
 
-    // SECURITY FIX PRIORITAS C: Cek kepemilikan sebelum Delete
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
     const { error } = await supabase.from(table).delete().eq("id", id).eq("aquarium_id", aquariumId);
