@@ -11,13 +11,14 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { 
   Loader2, Cpu, Filter, Info, CheckCircle2, Trophy, 
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target, Fish
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target, Fish,
+  Plus, X, FishSymbol
 } from "lucide-react";
 
-import { generateFishRecommendations, UserFishAnswers, RecommendedFish, FishExpertDictionary } from "@/features/fishes/services/fish-expert.service";
+import { generateFishRecommendations, UserFishAnswers, RecommendedFish, FishExpertDictionary, ExistingFishRecord } from "@/features/fishes/services/fish-expert.service";
 import { useLanguage } from "@/providers/LanguageProvider";
 
-const SESSION_KEY = "aquaexpert_fish_inference_v3";
+const SESSION_KEY = "aquaexpert_fish_inference_v4";
 const ITEMS_PAGE_1 = 11; 
 const ITEMS_PAGE_N = 10; 
 
@@ -44,19 +45,23 @@ export default function FishExpertEnginePage() {
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<RecommendedFish[] | null>(null);
 
-  // USER INPUT STATES (DENGAN TAMBAHAN DARI V3)
+  // USER INPUT STATES 
   const [experience, setExperience] = useState<ExperienceLevel>("Pemula");
   const [tankVolumeLiters, setTankVolumeLiters] = useState<number>(60);
-  const [tankLengthCm, setTankLengthCm] = useState<number>(60); // UPGRADE 1
+  const [tankLengthCm, setTankLengthCm] = useState<number>(60); 
   const [currentPH, setCurrentPH] = useState<number>(7.0);
   const [currentTemp, setCurrentTemp] = useState<number>(26.0);
   const [fishTypePref, setFishTypePref] = useState("Community Tank");
   const [wantSchoolingFish, setWantSchoolingFish] = useState(true);
   
-  const [hasShrimp, setHasShrimp] = useState(false); // UPGRADE 2
-  const [hasPlants, setHasPlants] = useState(true);  // UPGRADE 3
+  const [hasShrimp, setHasShrimp] = useState(false); 
+  const [hasPlants, setHasPlants] = useState(true);  
   const [aquascapeStyle, setAquascapeStyle] = useState("Bebas"); 
-  const [existingFishLayers, setExistingFishLayers] = useState<string[]>([]); // UPGRADE 4
+  
+  // V4 MY AQUARIUM SIMULATOR STATES
+  const [existingFishes, setExistingFishes] = useState<ExistingFishRecord[]>([]);
+  const [selectedFishId, setSelectedFishId] = useState("");
+  const [selectedQuantity, setSelectedQuantity] = useState(1);
 
   // PAGINATION STATE
   const [currentPage, setCurrentPage] = useState(1);
@@ -88,7 +93,7 @@ export default function FishExpertEnginePage() {
           setHasShrimp(parsed.answers.hasShrimp || false);
           setHasPlants(parsed.answers.hasPlants || false);
           setAquascapeStyle(parsed.answers.aquascapeStyle || "Bebas");
-          setExistingFishLayers(parsed.answers.existingFishLayers || []);
+          if (parsed.answers.existingFishes) setExistingFishes(parsed.answers.existingFishes);
         }
         if (parsed.results) setResults(parsed.results);
         if (parsed.currentPage) setCurrentPage(parsed.currentPage);
@@ -109,19 +114,35 @@ export default function FishExpertEnginePage() {
     }
   }, [currentPage, results]);
 
-  const handleLayerToggle = (layer: string) => {
-    setExistingFishLayers(prev => prev.includes(layer) ? prev.filter(l => l !== layer) : [...prev, layer]);
+  const handleAddFish = () => {
+    if (!selectedFishId || selectedQuantity < 1) return;
+    const fishObj = fishes.find(f => f.id === selectedFishId);
+    if (!fishObj) return;
+
+    setExistingFishes(prev => {
+      const exists = prev.find(p => p.fish.id === selectedFishId);
+      if (exists) {
+        return prev.map(p => p.fish.id === selectedFishId ? { ...p, quantity: p.quantity + selectedQuantity } : p);
+      }
+      return [...prev, { fish: fishObj, quantity: selectedQuantity }];
+    });
+    setSelectedQuantity(1);
+    setSelectedFishId("");
+  };
+
+  const handleRemoveFish = (id: string) => {
+    setExistingFishes(prev => prev.filter(p => p.fish.id !== id));
   };
 
   const dictionary = dict as unknown as FishEngineDict;
   const engineDict = dictionary.fishExpertEngine || {
-    title: "Fish Compatibility Engine V3", subtitle: "Sistem cerdas evaluasi bioload dan ekuilibrium fauna.", formTitle: "Kuesioner Ekosistem Tangki",
+    title: "Fish Compatibility Engine V4", subtitle: "Sistem cerdas evaluasi bioload predator-prey dan kapasitas water layer.", formTitle: "Kuesioner Ekosistem Tangki",
     q1: "Pengalaman", q1Opt1: "Pemula", q1Opt2: "Menengah", q1Opt3: "Mahir",
     q2: "Volume Tangki (Liter)", q3: "pH Air", q4: "Suhu Air (°C)", q5: "Rencana Ekosistem",
     q5Opt1: "Community Tank", q5Opt2: "Semi-Aggressive", q5Opt3: "Species Only",
-    needSchooling: "Suka Ikan Berkelompok", btnStart: "Mulai Analisis V3", processing: "Mengukur Defisit...",
+    needSchooling: "Suka Ikan Berkelompok", btnStart: "Mulai Analisis V4", processing: "Mengukur Kepadatan Layer...",
     idleTitle: "Sistem Aktif", idleDesc: "Kirim parameter tangki Anda untuk diagnosis cerdas.", failTitle: "Gagal Menemukan Kecocokan", failDesc: "Tangki terlalu ekstrem atau overstock.",
-    successTitle: "Hasil Analisis", successDesc: "Daftar ikan yang lolos audit sistem pakar.", matchCount: "Spesies Aman", bestMatch: "Top Match",
+    successTitle: "Hasil Analisis", successDesc: "Daftar ikan yang aman digabungkan dengan penghuni lama.", matchCount: "Spesies Aman", bestMatch: "Top Match",
     confidence: "Keamanan AI", points: "Poin", defaultReason: "Sesuai standar.",
     paginationShowing: "Menampilkan", paginationTo: "hingga", paginationOf: "dari", paginationData: "data.",
     confExcellent: "Sangat Cocok", confVeryGood: "Bagus", confGood: "Cocok", confModerate: "Cukup"
@@ -133,7 +154,8 @@ export default function FishExpertEnginePage() {
     
     const answers: UserFishAnswers = { 
       experience, tankVolumeLiters, tankLengthCm, currentPH, currentTemp, 
-      wantSchoolingFish, fishTypePref, hasShrimp, hasPlants, aquascapeStyle, existingFishLayers 
+      wantSchoolingFish, fishTypePref, hasShrimp, hasPlants, aquascapeStyle, 
+      existingFishes // V4 Injection
     };
     
     const aiResults = generateFishRecommendations(fishes, answers, dict.fishExpertEngine as unknown as FishExpertDictionary);
@@ -158,7 +180,6 @@ export default function FishExpertEnginePage() {
     switch (key) { case "Excellent": return engineDict.confExcellent; case "VeryGood": return engineDict.confVeryGood; case "Good": return engineDict.confGood; default: return engineDict.confModerate; }
   };
 
-  // PAGINATION
   let totalPages = 0;
   let displayedResults: RecommendedFish[] = [];
   let startIndex = 0;
@@ -195,11 +216,13 @@ export default function FishExpertEnginePage() {
 
         <div className="grid gap-8 xl:grid-cols-12">
           
-          {/* PANEL KIRI: FORMULIR INPUT V3 */}
-          <Card className="border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/80 xl:col-span-4 h-fit shadow-xl shadow-slate-200/50 dark:shadow-none transition-colors duration-300">
+          {/* PANEL KIRI: FORMULIR INPUT V4 */}
+          <Card className="border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/80 xl:col-span-5 h-fit shadow-xl shadow-slate-200/50 dark:shadow-none transition-colors duration-300">
             <CardContent className="p-6 md:p-8 space-y-6">
+              
+              {/* SECTION: LINGKUNGAN */}
               <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center gap-2 text-gray-900 dark:text-slate-100">
-                <Filter className="h-5 w-5 text-blue-600 dark:text-blue-500" /> {engineDict.formTitle}
+                <Filter className="h-5 w-5 text-blue-600 dark:text-blue-500" /> Profil Lingkungan Tangki
               </h3>
 
               <div className="space-y-5">
@@ -246,19 +269,7 @@ export default function FishExpertEnginePage() {
                   </select>
                 </div>
 
-                <div className="pt-4 mt-2 border-t border-slate-200 dark:border-slate-800 space-y-4">
-                  <div className="space-y-3 pb-2 border-b border-slate-200 dark:border-slate-800">
-                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">Zona Renang Penghuni Lama</Label>
-                    <div className="flex gap-4">
-                      {["Top", "Middle", "Bottom"].map(layer => (
-                        <label key={layer} className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" checked={existingFishLayers.includes(layer)} onChange={() => handleLayerToggle(layer)} className="w-4 h-4 accent-blue-600 rounded" />
-                          <span className="text-sm font-semibold">{layer}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  
+                <div className="pt-2 pb-2 space-y-4">
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <input type="checkbox" checked={hasPlants} onChange={(e) => setHasPlants(e.target.checked)} className="h-5 w-5 accent-teal-600 rounded cursor-pointer" />
                     <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-teal-600 transition-colors">Terdapat Tanaman Hidup</span>
@@ -274,14 +285,51 @@ export default function FishExpertEnginePage() {
                 </div>
               </div>
 
-              <Button onClick={runInferenceEngine} disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-14 mt-4 text-base shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98]">
+              {/* SECTION: V4 MY AQUARIUM INTEGRATION MOCK */}
+              <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
+                <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center gap-2 text-blue-700 dark:text-blue-400 mb-4">
+                  <FishSymbol className="h-5 w-5" /> Penghuni Saat Ini (My Aquarium)
+                </h3>
+                
+                <div className="flex gap-2 mb-4">
+                  <select value={selectedFishId} onChange={(e) => setSelectedFishId(e.target.value)} className="flex-1 h-10 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none">
+                    <option value="">-- Pilih Ikan --</option>
+                    {fishes.map(f => <option key={f.id} value={f.id}>{language === 'en' && f.name_en ? f.name_en : f.name_id}</option>)}
+                  </select>
+                  <Input type="number" min={1} value={selectedQuantity} onChange={(e) => setSelectedQuantity(Number(e.target.value))} className="w-20 h-10 bg-slate-50 dark:bg-slate-950" />
+                  <Button type="button" onClick={handleAddFish} className="h-10 w-10 p-0 bg-blue-600 hover:bg-blue-500 text-white shrink-0">
+                    <Plus className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+                  {existingFishes.length === 0 ? (
+                    <p className="text-sm text-slate-500 italic p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-center">Tangki Anda masih kosong.</p>
+                  ) : (
+                    existingFishes.map((ef, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2.5 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <span className="font-black text-blue-700 dark:text-blue-400 text-sm bg-white dark:bg-slate-950 px-2 py-0.5 rounded shadow-sm">{ef.quantity}x</span>
+                          <div>
+                            <p className="text-sm font-bold leading-none">{language === 'en' && ef.fish.name_en ? ef.fish.name_en : ef.fish.name_id}</p>
+                            <p className="text-[10px] text-slate-500 mt-1">{ef.fish.water_layer} • Adult: {ef.fish.estimated_adult_size_cm}cm</p>
+                          </div>
+                        </div>
+                        <button type="button" onClick={() => handleRemoveFish(ef.fish.id)} className="text-slate-400 hover:text-red-500 transition-colors p-1"><X className="h-4 w-4"/></button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <Button onClick={runInferenceEngine} disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest h-14 mt-4 text-base shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98]">
                 {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : engineDict.btnStart}
               </Button>
             </CardContent>
           </Card>
 
           {/* PANEL KANAN: HASIL REKOMENDASI AI */}
-          <div className="xl:col-span-8 space-y-6">
+          <div className="xl:col-span-7 space-y-6">
             {!results ? (
               <div className="flex flex-col items-center justify-center min-h-[500px] border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-900/20 text-center p-8">
                 <Fish className="h-20 w-20 text-slate-300 dark:text-slate-700 mb-6 animate-pulse" />
@@ -379,12 +427,13 @@ export default function FishExpertEnginePage() {
                     <div className="flex gap-1">
                       <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="h-9 w-9"><ChevronLeft className="h-4 w-4" /></Button>
                       {pageNumbers.map(num => (
-                        <Button key={num} variant={currentPage === num ? "default" : "outline"} onClick={() => setCurrentPage(num)} className={`h-9 w-9 p-0 ${currentPage === num ? 'bg-blue-600 text-white border-blue-600' : ''}`}>{num}</Button>
+                        <Button key={num} variant={currentPage === num ? "default" : "outline"} onClick={() => setCurrentPage(num)} className={`h-9 w-9 p-0 ${currentPage === num ? 'bg-blue-600 text-white' : ''}`}>{num}</Button>
                       ))}
                       <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="h-9 w-9"><ChevronRight className="h-4 w-4" /></Button>
                     </div>
                   </div>
                 )}
+
               </div>
             )}
           </div>

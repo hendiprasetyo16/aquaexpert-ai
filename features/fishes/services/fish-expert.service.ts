@@ -2,10 +2,15 @@
 import { Fish } from "../types/fish.types";
 import { RawEvaluation, processExpertResults, ConfidenceKey } from "@/lib/expert-engine";
 
+export interface ExistingFishRecord {
+  fish: Fish;
+  quantity: number;
+}
+
 export interface UserFishAnswers {
   experience: "Pemula" | "Menengah" | "Mahir";
   tankVolumeLiters: number;
-  tankLengthCm: number; // UPGRADE 1: Panjang tangki untuk ikan aktif
+  tankLengthCm: number; 
   currentPH: number;
   currentTemp: number;
   currentGH?: number; 
@@ -14,7 +19,7 @@ export interface UserFishAnswers {
   hasShrimp: boolean; 
   hasPlants: boolean; 
   aquascapeStyle: string; 
-  existingFishLayers: string[]; // UPGRADE 4: Area ikan yang sudah ada (Top/Middle/Bottom)
+  existingFishes: ExistingFishRecord[]; // UPGRADE V4: Array ikan yang sudah ada di tangki
 }
 
 export interface RecommendedFish extends Fish {
@@ -40,7 +45,11 @@ export interface FishExpertDictionary {
   reasonNotPlantSafe?: string; 
   reasonStyleMatch?: string;    
   reasonActivityNeedsSpace?: string; 
-  reasonLayerBalance?: string; // UPGRADE 4
+  reasonLayerBalance?: string; 
+  reasonLayerCrowded?: string; // V4
+  reasonPredatorRisk?: string; // V4
+  reasonPreyRisk?: string;     // V4
+  reasonFinNipperRisk?: string;// V4
 }
 
 export function generateFishRecommendations(
@@ -50,80 +59,129 @@ export function generateFishRecommendations(
 ): RecommendedFish[] {
   const rawEvaluations: RawEvaluation<Fish>[] = [];
 
+  // V4 PRE-CALCULATION: Kalkulasi Kepadatan Layer (Layer Density) & Total Bioload Lama
+  const layerBioload: Record<string, number> = { "Top": 0, "Middle": 0, "Bottom": 0, "All Levels": 0 };
+  let currentTotalBioload = 0;
+
+  answers.existingFishes.forEach(record => {
+    const size = record.fish.estimated_adult_size_cm || 5;
+    const factor = record.fish.bioload_factor || 1;
+    const load = size * factor * record.quantity;
+    const layer = record.fish.water_layer || "Middle";
+    
+    if (layerBioload[layer] !== undefined) layerBioload[layer] += load;
+    currentTotalBioload += load;
+  });
+
   for (const fish of allFishes) {
     let score = 0;
     let reasons: string[] = [];
     let isFatal = false; 
 
-    // ==========================================
-    // TAHAP A: HARD FILTERS (ATURAN FATAL / MUTLAK)
-    // ==========================================
-
-    // 1. FATAL SHRIMP SAFE (UPGRADE 2)
-    // Jika user punya udang, ikan predator/iseng mutlak diskualifikasi.
-    if (answers.hasShrimp && fish.shrimp_safe === false) {
-      isFatal = true;
+    // Cek apakah ikan ini sudah ada di dalam tank (jangan rekomendasikan ulang sebagai spesies "baru")
+    if (answers.existingFishes.some(ef => ef.fish.id === fish.id)) {
+      continue;
     }
 
-    // 2. FATAL PLANT SAFE (UPGRADE 3)
-    // Di tank Dutch/Nature yang full tanaman, ikan pemakan daun mutlak diskualifikasi.
-    if (answers.hasPlants && fish.plant_safe === false) {
-      if (answers.aquascapeStyle === "Dutch" || answers.aquascapeStyle === "Nature") {
+    const candidateSize = fish.estimated_adult_size_cm || 5;
+    const candidateTempScore = fish.temperament_score || 2;
+
+    // ==========================================
+    // TAHAP A: V4 EXISTING FISH COMPATIBILITY (HUKUM RIMBA)
+    // ==========================================
+    
+    for (const record of answers.existingFishes) {
+      const existingSize = record.fish.estimated_adult_size_cm || 5;
+      const existingTempScore = record.fish.temperament_score || 2;
+
+      // 1. PREDATOR CHECK: Apakah ikan KANDIDAT akan memakan ikan LAMA?
+      // Jika kandidat agresif (>=4) dan ukurannya 2x lipat lebih besar dari ikan lama = FATAL
+      if (candidateTempScore >= 4 && candidateSize > existingSize * 2) {
         isFatal = true;
-      } else {
-        // Untuk style lain (misal Biotope), cukup beri penalti berat
+        break;
+      }
+
+      // 2. PREY CHECK: Apakah ikan LAMA akan memakan ikan KANDIDAT?
+      // Jika ikan lama agresif (>=4) dan ukurannya 2x lipat lebih besar dari kandidat = FATAL
+      if (existingTempScore >= 4 && existingSize > candidateSize * 2) {
+        isFatal = true;
+        break;
+      }
+
+      // 3. FIN NIPPER CHECK: Barb/Tetra Jahil vs Ikan Sirip Panjang (Betta/Angelfish)
+      if (fish.fish_type === "Betta" && record.fish.fish_type === "Barb") {
+        score -= 40;
+        reasons.push(dictEE.reasonFinNipperRisk || "BERBAHAYA: Sirip ikan ini akan digigit oleh kawanan Barb yang sudah ada.");
+      } else if (record.fish.fish_type === "Betta" && fish.fish_type === "Barb") {
+        score -= 40;
+        reasons.push(dictEE.reasonFinNipperRisk || "BERBAHAYA: Ikan ini berisiko menggigit sirip Cupang/Angelfish Anda.");
+      }
+    }
+
+    // ==========================================
+    // TAHAP B: HARD FILTERS LAMA (Shrimp, Plant, Predator Rule)
+    // ==========================================
+
+    if (answers.hasShrimp && fish.shrimp_safe === false) isFatal = true;
+
+    if (answers.hasPlants && fish.plant_safe === false) {
+      if (answers.aquascapeStyle === "Dutch" || answers.aquascapeStyle === "Nature") isFatal = true;
+      else {
         score -= 60;
         reasons.push(dictEE.reasonNotPlantSafe || "BERBAHAYA: Berisiko merusak tanaman aquascape Anda.");
       }
     }
 
-    // 3. FATAL PREDATOR DI TANGKI DAMAI
-    if (answers.fishTypePref === "Community Tank" && (fish.temperament_score && fish.temperament_score >= 4)) {
-      isFatal = true; 
-    }
+    if (answers.fishTypePref === "Community Tank" && candidateTempScore >= 4) isFatal = true; 
 
-    if (isFatal) continue; // Langsung buang ikan dari daftar rekomendasi
+    if (isFatal) continue; 
 
     // ==========================================
-    // TAHAP B: PENILAIAN LINGKUNGAN & TANGKI
+    // TAHAP C: V4 WATER LAYER CAPACITY & DYNAMIC BIOLOAD
     // ==========================================
     
-    // TANK SIZE PENALTY (Volume)
+    // TANK SIZE PENALTY
     if (fish.min_tank_size && answers.tankVolumeLiters < fish.min_tank_size) {
       const deficit = fish.min_tank_size - answers.tankVolumeLiters;
       score -= Math.min(50, deficit * 0.8);
       reasons.push(dictEE.reasonTankSizeBad || "Volume tangki kurang dari kebutuhan minimal spesies ini.");
     } else if (fish.min_tank_size && answers.tankVolumeLiters >= fish.min_tank_size * 2) {
-      score += 20; 
+      score += 15; 
       reasons.push(dictEE.reasonTankSizeOK);
     }
 
-    // DYNAMIC BIOLOAD
-    const adultSize = fish.estimated_adult_size_cm || 5; 
-    const bioload = fish.bioload_factor || 1;
-    const groupSize = fish.schooling ? (fish.min_group_size || 6) : 1;
-    const requiredVolumeByBioload = adultSize * bioload * groupSize;
+    // DYNAMIC BIOLOAD V4 (Kotoran Ikan Lama + Kotoran Ikan Baru)
+    const candidateGroupSize = fish.schooling ? (fish.min_group_size || 6) : 1;
+    const candidateLoad = candidateSize * (fish.bioload_factor || 1) * candidateGroupSize;
+    const projectedTotalBioload = currentTotalBioload + candidateLoad;
 
-    if (answers.tankVolumeLiters < requiredVolumeByBioload) {
-       const bioloadDeficit = requiredVolumeByBioload - answers.tankVolumeLiters;
-       score -= Math.min(50, bioloadDeficit * 0.5);
-       reasons.push(dictEE.reasonBioloadBad || "Berisiko overstock (kotoran ikan melebihi kapasitas filtrasi).");
+    if (answers.tankVolumeLiters < projectedTotalBioload) {
+       const bioloadDeficit = projectedTotalBioload - answers.tankVolumeLiters;
+       score -= Math.min(60, bioloadDeficit * 0.5);
+       reasons.push(dictEE.reasonBioloadBad || "Kapasitas filtrasi tangki Anda sudah maksimal/overstock.");
     }
 
-    // ACTIVITY vs TANK LENGTH (UPGRADE 1)
-    if (fish.activity_level === "High" && answers.tankLengthCm < 80) {
-      score -= 25; // Hukuman panjang tangki
-      reasons.push(dictEE.reasonActivityNeedsSpace || "Ikan hiperaktif ini butuh panjang akuarium (horizontal) minimal 80cm untuk sprint.");
-    }
-
-    // ZONAL BALANCING / WATER LAYER (UPGRADE 4)
-    if (answers.existingFishLayers.length > 0 && fish.water_layer && fish.water_layer !== "All Levels") {
-      if (!answers.existingFishLayers.includes(fish.water_layer)) {
-        score += 15;
-        reasons.push(dictEE.reasonLayerBalance || `Mengisi area ${fish.water_layer} yang masih kosong di akuarium Anda.`);
+    // V4 WATER LAYER BALANCING
+    const layer = fish.water_layer || "Middle";
+    if (layer !== "All Levels") {
+      // Asumsi: Satu layer dianggap "padat" jika menyumbang >40% dari volume tangki
+      const layerCapacityMax = answers.tankVolumeLiters * 0.4; 
+      
+      if (layerBioload[layer] >= layerCapacityMax) {
+        score -= 20; // Hukuman karena layer ini sudah sesak
+        reasons.push(dictEE.reasonLayerCrowded || `Area renang ${layer} sudah cukup padat oleh penghuni lama.`);
+      } else if (layerBioload[layer] === 0) {
+        score += 20; // Bonus besar karena mengisi slot yang benar-benar kosong
+        reasons.push(dictEE.reasonLayerBalance || `Sempurna untuk mengisi area ${layer} yang masih kosong di akuarium Anda.`);
       } else {
-        score -= 5; // Area tersebut sudah sesak/dihuni
+        score += 5; // Layer ada isinya tapi belum penuh
       }
+    }
+
+    // ACTIVITY vs TANK LENGTH 
+    if (fish.activity_level === "High" && answers.tankLengthCm < 80) {
+      score -= 25; 
+      reasons.push(dictEE.reasonActivityNeedsSpace || "Ikan hiperaktif ini butuh panjang akuarium (horizontal) minimal 80cm untuk sprint.");
     }
 
     // STYLE MATCHING
@@ -133,7 +191,7 @@ export function generateFishRecommendations(
     }
 
     // ==========================================
-    // TAHAP C: PARAMETER AIR (pH, Temp, GH)
+    // TAHAP D: PARAMETER AIR (pH, Temp, GH)
     // ==========================================
 
     if (fish.ideal_ph_min && fish.ideal_ph_max) {
@@ -142,8 +200,7 @@ export function generateFishRecommendations(
         reasons.push(dictEE.reasonPHMatch);
       } else {
         const phDiff = Math.min(Math.abs(answers.currentPH - fish.ideal_ph_min), Math.abs(answers.currentPH - fish.ideal_ph_max));
-        if (phDiff > 1.5) score -= 40; 
-        else score -= (phDiff * 10); 
+        if (phDiff > 1.5) score -= 40; else score -= (phDiff * 10); 
         reasons.push(dictEE.reasonPHMismatch);
       }
     }
@@ -170,38 +227,32 @@ export function generateFishRecommendations(
     }
 
     // ==========================================
-    // TAHAP D: PENGALAMAN, SIFAT & KELOMPOK
+    // TAHAP E: PENGALAMAN & KELOMPOK
     // ==========================================
     
     if (answers.experience === "Pemula") {
-      if (fish.difficulty === "Easy") { score += 25; reasons.push(dictEE.reasonBeginnerFriendly); } 
+      if (fish.difficulty === "Easy") { score += 20; reasons.push(dictEE.reasonBeginnerFriendly); } 
       else if (fish.difficulty === "Hard") { score -= 40; }
     } else if (answers.experience === "Mahir" && fish.difficulty === "Hard") {
       score += 15; reasons.push(dictEE.reasonExpertOnly);
-    } else if (fish.difficulty === "Medium") {
-      score += 10;
-    }
+    } 
 
     if (answers.wantSchoolingFish && fish.schooling) {
-      score += 20; reasons.push(`${dictEE.reasonSchooling} (Min: ${fish.min_group_size || 6})`);
+      score += 15; reasons.push(`${dictEE.reasonSchooling} (Min: ${fish.min_group_size || 6})`);
     } else if (!answers.wantSchoolingFish && fish.schooling) {
       score -= 15; 
     }
 
-    const temperamentScore = fish.temperament_score || 2; 
-
     if (answers.fishTypePref === "Community Tank") {
-      if (temperamentScore <= 2) { score += 20; reasons.push(dictEE.reasonCompatibility); } 
+      if (candidateTempScore <= 2) { score += 15; reasons.push(dictEE.reasonCompatibility); } 
     } else if (answers.fishTypePref === "Semi-Aggressive") {
-      if (temperamentScore === 3 || temperamentScore === 4) { score += 20; reasons.push(dictEE.reasonCompatibility); } 
-      else if (temperamentScore === 5) { score -= 30; }
+      if (candidateTempScore === 3 || candidateTempScore === 4) { score += 15; reasons.push(dictEE.reasonCompatibility); } 
+      else if (candidateTempScore === 5) { score -= 30; }
     } else if (answers.fishTypePref === "Species Only") {
-      if (temperamentScore >= 4) { score += 20; reasons.push(dictEE.reasonCompatibility); }
+      if (candidateTempScore >= 4) { score += 15; reasons.push(dictEE.reasonCompatibility); }
     }
 
-    // Cegah skor di bawah nol
     if (score < 0) score = 0;
-
     rawEvaluations.push({ item: fish, rawScore: score, reasons });
   }
 
