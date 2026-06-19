@@ -7,7 +7,7 @@ export interface Aquarium {
   name: string;
   image_url?: string | null;
   tank_type: string;
-  aquascape_style?: string | null; // KOLOM BARU (Untuk Deep Diagnosis & Fish Expert)
+  aquascape_style?: string | null; 
   setup_date: string;
   is_primary: boolean;
 
@@ -19,7 +19,7 @@ export interface Aquarium {
   substrate_type?: string | null;
 
   filter_type?: string | null;
-  filter_capacity_lph?: number | null;
+  filter_flow_lph?: number | null; // BUG FIX: Sinkronisasi dengan SQL & Engine
 
   light_type?: string | null;
   light_wattage?: number | null;
@@ -39,6 +39,10 @@ export interface Aquarium {
   created_at?: string;
   updated_at?: string;
 
+  // FINAL V1: Sinkronisasi Atribut Infrastruktur Fisik
+  hardscape_type?: string[] | null;
+  lid_present?: boolean | null;
+
   // RELASI
   aquarium_plants?: { id: string }[];
   aquarium_fishes?: { id: string }[];
@@ -57,7 +61,7 @@ export interface Aquarium {
 export interface CreateAquariumInput {
   name: string;
   tank_type: string;
-  aquascape_style?: string | null; // KOLOM BARU
+  aquascape_style?: string | null; 
   setup_date: string;
   
   length_cm: number;
@@ -70,7 +74,10 @@ export interface CreateAquariumInput {
 
   substrate_type?: string | null;
   filter_type?: string | null;
-  filter_capacity_lph?: number | null;
+  filter_flow_lph?: number | null; // BUG FIX
+  hardscape_type?: string[] | null; // BUG FIX
+  lid_present?: boolean | null;     // BUG FIX
+
   light_type?: string | null;
   light_wattage?: number | null;
   photoperiod_hours?: number | null;
@@ -87,7 +94,7 @@ export type UpdateAquariumInput = Partial<CreateAquariumInput> & {
   is_active?: boolean;
 };
 
-// ... (Interface lainnya tetap) ...
+// ... (Interface Parameter & Inventory) ...
 export interface AquariumParameter {
   id: string;
   aquarium_id: string;
@@ -97,12 +104,13 @@ export interface AquariumParameter {
   gh?: number | null;
   kh?: number | null;
   ammonia?: number | null;
-  nitrite?: number | null; // Cek sinkronisasi: Saya tambahkan untuk keselamatan
+  nitrite?: number | null; 
   nitrate?: number | null;
   test_method?: string | null;
   parameter_source?: string | null;
   notes?: string | null;
-  recorded_at?: string;
+  record_date?: string; // BUG FIX: Sinkronisasi dengan sorting di Deep Diagnosis
+  created_at?: string;
 }
 
 export interface AquariumPlant {

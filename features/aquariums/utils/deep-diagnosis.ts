@@ -33,12 +33,21 @@ interface Props {
   masterPlantsCandidates?: TankPlant["plant"][]; 
 }
 
+// Extensi aman untuk mengakomodasi fleksibilitas penamaan kolom fisik aquarium tanpa memicu error "any" di TypeScript
+interface ExtendedAquarium extends Aquarium {
+  filter_capacity_lph?: number | null;
+  filter_flow_lph?: number | null;
+  lid_present?: boolean | null;
+}
+
 export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, plants, lang, masterPlantsCandidates }: Props): DeepDiagnosisResult {
   const rootCauses: DiagnosisCause[] = [];
   const recommendations: string[] = [];
   const nextActions: string[] = [];
   const plantRecommendations: string[] = [];
   const explainabilityBreakdown: string[] = [];
+
+  const extAq = aquarium as ExtendedAquarium;
 
   const sortedParams = [...parameters].sort((a, b) => new Date(b.record_date).getTime() - new Date(a.record_date).getTime());
   const latest = sortedParams.length > 0 ? sortedParams[0] : null;
@@ -57,7 +66,7 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
   });
 
   // =======================================================
-  // 1. ADVANCED FISH COMPATIBILITY & NIGHT TERRITORY ENGINE
+  // 1. BEHAVIORAL, COMPATIBILITY & ECOLOGICAL AI (FISH)
   // =======================================================
   if (groupedFishes.size > 0) {
     const uniqueFishes = Array.from(groupedFishes.values());
@@ -188,11 +197,18 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
       });
     }
 
-    const currentStyle = aquarium.aquascape_style || "Bebas";
+    const currentStyle = extAq.aquascape_style || "Bebas";
     const subOptTemp: string[] = [];
     const subOptPh: string[] = [];
     const styleMismatches: string[] = [];
     const oxygenRisks: string[] = [];
+    const jumpers: string[] = [];
+    const highNitrateSensitives: string[] = [];
+    let totalWasteScore = 0;
+
+    const filterCapacityLph = extAq.filter_capacity_lph ?? extAq.filter_flow_lph ?? 0;
+    const tankTurnoverRate = extAq.volume_liters > 0 ? (filterCapacityLph / extAq.volume_liters) : 0;
+    const isLidPresent = extAq.lid_present === true;
 
     groupedFishes.forEach((data) => {
       const fInfo = data.fishInfo;
@@ -217,31 +233,66 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
         }
       }
 
-      // FISIKA AIR: Suhu tinggi menurunkan kadar oksigen terlarut
-      if (latest?.temperature != null && latest.temperature > 28 && fInfo.oxygen_requirement_score != null && fInfo.oxygen_requirement_score >= 8) {
+      // FISIKA AIR: Kebutuhan Oksigen / Arus
+      const oxygenScore = fInfo.oxygen_requirement_score || 5;
+      const requiresCurrent = fInfo.current_preference?.toLowerCase() === "high";
+      if (latest?.temperature != null && latest.temperature > 28 && oxygenScore >= 8) {
          oxygenRisks.push(fishName);
+      } else if ((oxygenScore >= 8 || requiresCurrent) && filterCapacityLph > 0 && tankTurnoverRate < 4) {
+         oxygenRisks.push(`${fishName} (Butuh arus kuat)`);
       }
-      
+
+      // Validasi Ekologi Khusus V1 Final
+      if (fInfo.jump_risk === true && !isLidPresent) jumpers.push(fishName);
+      if (fInfo.sensitive_to_nitrate === true && latest?.nitrate != null && latest.nitrate >= 20) highNitrateSensitives.push(fishName);
+      totalWasteScore += (fInfo.waste_production_score || 5) * data.totalQty;
+
+      // Schooling & Limit Dimensi
       if (fInfo.min_school_size != null && fInfo.min_school_size > 0 && data.totalQty < fInfo.min_school_size) {
         rootCauses.push({
           title: lang === 'id' ? "Kawanan Terlalu Sedikit" : "Insufficient Schooling Size", severity: "medium",
           description: lang === 'id' ? `${fishName} stres karena populasi kawanannya (${data.totalQty} ekor) kurang dari minimal.` : `${fishName} is stressed due to low school group count (${data.totalQty}).`
         });
       }
-      if (fInfo.minimum_tank_length_cm != null && aquarium.length_cm < fInfo.minimum_tank_length_cm) {
+      if (fInfo.minimum_tank_length_cm != null && extAq.length_cm < fInfo.minimum_tank_length_cm) {
         rootCauses.push({
           title: lang === 'id' ? "Keterbatasan Ruang Gerak" : "Inadequate Tank Space", severity: "high",
           description: lang === 'id' ? `${fishName} butuh panjang tank minimal ${fInfo.minimum_tank_length_cm} cm.` : `${fishName} requires at least ${fInfo.minimum_tank_length_cm} cm tank length.`
         });
       }
+      if (fInfo.minimum_tank_volume_liters != null && extAq.volume_liters < fInfo.minimum_tank_volume_liters) {
+        rootCauses.push({
+          title: lang === 'id' ? "Volume Air Terlalu Kecil" : "Insufficient Water Volume", severity: "high",
+          description: lang === 'id' ? `${fishName} membutuhkan volume minimal ${fInfo.minimum_tank_volume_liters} Liter.` : `${fishName} requires a minimum volume of ${fInfo.minimum_tank_volume_liters} Liters.`
+        });
+      }
     });
 
+    // Peringatan Ekologi Massal
     if (oxygenRisks.length > 0) {
       rootCauses.push({
-        title: lang === 'id' ? "Defisit Oksigen Terlarut (Suhu Tinggi)" : "Dissolved Oxygen Deficit (High Temp)", severity: "high",
-        description: lang === 'id' ? `Suhu >28°C menguras oksigen terlarut, sangat berbahaya bagi spesies arus deras: ${oxygenRisks.join(", ")}.` : `Temperatures >28°C deplete oxygen, highly dangerous for high-flow species: ${oxygenRisks.join(", ")}.`
+        title: lang === 'id' ? "Defisit Oksigen Terlarut / Arus" : "Dissolved Oxygen / Flow Deficit", severity: "high",
+        description: lang === 'id' ? `Kondisi suhu atau sirkulasi saat ini mengancam spesies beroksigen tinggi: ${oxygenRisks.join(", ")}.` : `Current temp or circulation threatens high-oxygen species: ${oxygenRisks.join(", ")}.`
       });
-      recommendations.push(lang === 'id' ? "Nyalakan aerator tambahan (batu aerasi) atau arahkan arus filter memecah permukaan air." : "Add extra air stones or aim filter output to break the surface tension.");
+    }
+    if (jumpers.length > 0) {
+      rootCauses.push({
+        title: lang === 'id' ? "Risiko Ikan Meloncat (Tanpa Tutup)" : "Jump Hazard (Open Top)", severity: "high",
+        description: lang === 'id' ? `Akuarium tidak memiliki tutup padahal spesies ini rawan melompat keluar: ${jumpers.join(", ")}.` : `Tank is uncovered but contains known jumpers: ${jumpers.join(", ")}.`
+      });
+      nextActions.push(lang === 'id' ? "Pasang penutup jaring/kaca pada akuarium atau turunkan level air secara signifikan." : "Install a mesh/glass lid or lower the water line significantly.");
+    }
+    if (highNitrateSensitives.length > 0) {
+      rootCauses.push({
+        title: lang === 'id' ? "Spesies Rentan Nitrat Terancam" : "Nitrate Sensitive Species Threatened", severity: "high",
+        description: lang === 'id' ? `Kadar nitrat mencapai batas kritis intoleransi bagi: ${highNitrateSensitives.join(", ")}.` : `Nitrate reached critical intolerance bounds for: ${highNitrateSensitives.join(", ")}.`
+      });
+    }
+    if (extAq.volume_liters > 0 && (totalWasteScore / extAq.volume_liters) > 1.2) {
+      rootCauses.push({
+        title: lang === 'id' ? "Produksi Limbah Fauna Masif" : "Heavy Waste Production", severity: "high",
+        description: lang === 'id' ? "Kombinasi ikan pencetak limbah tinggi membebani filtrasi mekanis dan biologis." : "Combination of heavy waste producers is overwhelming the filtration."
+      });
     }
 
     if (subOptTemp.length > 0) {
@@ -265,17 +316,19 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
   }
 
   // =======================================================
-  // 2. DYNAMIC PLANT RECOMMENDATION ENGINE & AESTHETIC EVALUATION
+  // 2. DYNAMIC PLANT RECOMMENDATION ENGINE & ECOLOGY
   // =======================================================
-  const co2Type = aquarium.co2_type?.toLowerCase() || "none";
-  const lightType = aquarium.light_type?.toLowerCase() || "none";
+  const co2Type = extAq.co2_type?.toLowerCase() || "none";
+  const lightType = extAq.light_type?.toLowerCase() || "none";
   const isLowTech = co2Type === "none" && (!lightType.includes("rgb") && !lightType.includes("high"));
-  const currStyleStr = aquarium.aquascape_style?.toLowerCase() || "bebas";
+  const currStyleStr = extAq.aquascape_style?.toLowerCase() || "bebas";
 
-  // Estetika Tanaman Saat Ini
   if (plants.length > 0) {
     const unsuitablePlants: string[] = [];
     const phWarningPlants: string[] = [];
+    const invasivePlants: string[] = [];
+    const highMaintenancePlants: string[] = [];
+    const overgrownPlants: string[] = [];
 
     plants.forEach(p => {
       const pData = p.plant;
@@ -285,40 +338,48 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
       if (latest?.ph != null && pData.preferred_ph != null && Math.abs(latest.ph - pData.preferred_ph) >= 1.0) {
         phWarningPlants.push(pName);
       }
-      
       if (currStyleStr === "dutch" && (pData.epiphyte || pData.floating)) {
         unsuitablePlants.push(pName);
       } else if (currStyleStr === "iwagumi" && !pData.carpeting && pData.placement !== "Foreground") {
         unsuitablePlants.push(pName);
       }
+
+      if (pData.invasive_growth) invasivePlants.push(pName);
+      if ((pData.trimming_frequency_score || 0) >= 8) highMaintenancePlants.push(pName);
+      if (pData.growth_height_cm != null && extAq.height_cm > 0 && pData.growth_height_cm > extAq.height_cm) overgrownPlants.push(pName);
     });
 
     if (unsuitablePlants.length > 0) {
       rootCauses.push({
         title: lang === 'id' ? "Estetika Flora Kurang Tepat" : "Sub-optimal Flora Aesthetics", severity: "low",
-        description: lang === 'id' ? `Tanaman berikut kurang lazim digunakan pada gaya ${aquarium.aquascape_style}: ${unsuitablePlants.join(", ")}.` : `The following plants are unconventional for ${aquarium.aquascape_style} style: ${unsuitablePlants.join(", ")}.`
+        description: lang === 'id' ? `Tanaman berikut kurang lazim digunakan pada gaya ${extAq.aquascape_style}: ${unsuitablePlants.join(", ")}.` : `The following plants are unconventional for ${extAq.aquascape_style} style: ${unsuitablePlants.join(", ")}.`
       });
     }
-    if (phWarningPlants.length > 0) {
+    if (invasivePlants.length > 0) {
+      recommendations.push(lang === 'id' ? `Tanaman ${invasivePlants.join(", ")} sangat invasif, jadwalkan pemangkasan rutin agar tidak menutupi cahaya ke dasar.` : `Plants like ${invasivePlants.join(", ")} are highly invasive. Schedule regular trimming.`);
+    }
+    if (overgrownPlants.length > 0) {
       rootCauses.push({
-        title: lang === 'id' ? "pH Sub-Optimal untuk Flora" : "Sub-optimal pH for Flora", severity: "low",
-        description: lang === 'id' ? `pH saat ini dapat menghambat pertumbuhan optimal pada: ${phWarningPlants.join(", ")}.` : `Current pH may stunt the optimal growth of: ${phWarningPlants.join(", ")}.`
+        title: lang === 'id' ? "Tinggi Flora Melebihi Tangki" : "Flora Exceeds Tank Height", severity: "medium",
+        description: lang === 'id' ? `Sifat tumbuh alami tanaman ${overgrownPlants.join(", ")} akan melebihi tinggi akuarium Anda.` : `The natural growth height of ${overgrownPlants.join(", ")} will exceed your aquarium glass height.`
+      });
+    }
+    if (highMaintenancePlants.length > 0 && health.scores.maintenance < 80) {
+      rootCauses.push({
+        title: lang === 'id' ? "Flora Pemeliharaan Tinggi Terabaikan" : "Neglected High-Maintenance Flora", severity: "medium",
+        description: lang === 'id' ? `Kualitas pemeliharaan Anda menurun, padahal flora seperti ${highMaintenancePlants.join(", ")} butuh trimming ketat.` : `Maintenance discipline is slipping, yet flora like ${highMaintenancePlants.join(", ")} require strict trimming.`
       });
     }
   }
 
-  // Rekomendasi Tanaman Database
   if (masterPlantsCandidates && masterPlantsCandidates.length > 0) {
     const dynamicFiltered = masterPlantsCandidates.filter(p => {
       if (!p) return false;
       const co2Mandatory = p.co2_mandatory ?? false;
       const lightReq = p.light_requirement?.toLowerCase() || "medium";
       
-      if (isLowTech) {
-        return !co2Mandatory && (lightReq === "low" || lightReq === "medium");
-      } else {
-        return lightReq === "high" || lightReq === "medium" || co2Mandatory;
-      }
+      if (isLowTech) return !co2Mandatory && (lightReq === "low" || lightReq === "medium");
+      return lightReq === "high" || lightReq === "medium" || co2Mandatory;
     }).slice(0, 4);
 
     dynamicFiltered.forEach(p => {
@@ -354,6 +415,9 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
   }
   if (latest?.nitrite != null && latest.nitrite > 0.25) {
     rootCauses.push({ title: lang === "id" ? "Nitrit Berbahaya" : "Dangerous Nitrite", severity: "high", description: lang === "id" ? `Nitrit ${latest.nitrite} ppm memblokir oksigen darah.` : `Nitrite ${latest.nitrite} ppm blocks oxygen.` });
+  }
+  if (latest?.nitrate != null && latest.nitrate > 40) {
+    rootCauses.push({ title: lang === 'id' ? "Nitrat Tinggi" : "High Nitrate", severity: "medium", description: lang === 'id' ? `Nitrat ${latest.nitrate} ppm dapat memicu stres panjang.` : `Nitrate ${latest.nitrate} ppm causes stress.` });
   }
 
   // ==========================================

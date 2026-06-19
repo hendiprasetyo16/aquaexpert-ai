@@ -43,6 +43,7 @@ export async function getTankInventoryAction(aquariumId: string) {
 
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
+    // Kueri 100% tersinkronisasi dengan antarmuka Final V1 Database
     const { data: fishes, error: errFish } = await supabase
       .from("aquarium_fishes")
       .select(`
@@ -56,12 +57,14 @@ export async function getTankInventoryAction(aquariumId: string) {
           mouth_size_factor, compatibility_tags, territorial, predatory, activity_period,
           compatibility_score, shrimp_predation_risk, native_biotope,
           preferred_temperature, preferred_ph, preferred_gh, uproots_plants, preferred_aquascape_styles,
-          oxygen_requirement_score, current_preference, max_group_size, breeding_difficulty, lifespan_years
+          oxygen_requirement_score, current_preference, max_group_size, breeding_difficulty, lifespan_years,
+          minimum_tank_volume_liters, waste_production_score, jump_risk, sensitive_to_nitrate
         )
       `)
       .eq("aquarium_id", aquariumId)
       .order("added_at", { ascending: false });
 
+    // Kueri 100% tersinkronisasi dengan antarmuka Final V1 Database
     const { data: plants, error: errPlant } = await supabase
       .from("aquarium_plants")
       .select(`
@@ -70,7 +73,8 @@ export async function getTankInventoryAction(aquariumId: string) {
           id, name_id, name_en, image_url, placement, growth_rate, nitrate_consumption, 
           oxygen_production, algae_resistance, difficulty, co2_mandatory, light_requirement, 
           growth_speed_score, nutrient_consumption_score,
-          preferred_ph, preferred_temperature, preferred_gh, carpeting, epiphyte, floating, aquascape_style
+          preferred_ph, preferred_temperature, preferred_gh, carpeting, epiphyte, floating, aquascape_style,
+          growth_height_cm, growth_width_cm, trimming_frequency_score, invasive_growth
         )
       `)
       .eq("aquarium_id", aquariumId)

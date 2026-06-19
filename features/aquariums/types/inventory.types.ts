@@ -22,7 +22,6 @@ export interface TankPlant {
     light_requirement?: string | null;
     growth_speed_score?: number | null;
     nutrient_consumption_score?: number | null;
-    // FINAL V1: Plant Sweet Spots & Morfologi Estetika
     preferred_ph?: number | null;
     preferred_temperature?: number | null;
     preferred_gh?: number | null;
@@ -30,6 +29,11 @@ export interface TankPlant {
     epiphyte?: boolean | null;
     floating?: boolean | null;
     aquascape_style?: string[] | null; 
+    // KEKURANGAN YANG SUDAH DITAMBAHKAN: Karakter Pertumbuhan Final V1
+    growth_height_cm?: number | null;
+    growth_width_cm?: number | null;
+    trimming_frequency_score?: number | null;
+    invasive_growth?: boolean | null;
   } | null;
 }
 
@@ -75,11 +79,15 @@ export interface TankFish {
     preferred_gh?: number | null;
     uproots_plants?: boolean | null;
     preferred_aquascape_styles?: string[] | null;
-    // FINAL V1: Kebutuhan Oksigen, Arus & Life-cycle Ikan
     oxygen_requirement_score?: number | null;
     current_preference?: string | null;
     max_group_size?: number | null;
     breeding_difficulty?: number | null;
     lifespan_years?: number | null;
+    // KEKURANGAN YANG SUDAH DITAMBAHKAN: Sensitivitas & Limbah Final V1
+    minimum_tank_volume_liters?: number | null;
+    waste_production_score?: number | null;
+    jump_risk?: boolean | null;
+    sensitive_to_nitrate?: boolean | null;
   } | null;
 }
