@@ -43,7 +43,6 @@ export async function getTankInventoryAction(aquariumId: string) {
 
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
-    // Kueri 100% tersinkronisasi dengan antarmuka Final V1 Database
     const { data: fishes, error: errFish } = await supabase
       .from("aquarium_fishes")
       .select(`
@@ -58,13 +57,13 @@ export async function getTankInventoryAction(aquariumId: string) {
           compatibility_score, shrimp_predation_risk, native_biotope,
           preferred_temperature, preferred_ph, preferred_gh, uproots_plants, preferred_aquascape_styles,
           oxygen_requirement_score, current_preference, max_group_size, breeding_difficulty, lifespan_years,
-          minimum_tank_volume_liters, waste_production_score, jump_risk, sensitive_to_nitrate
+          minimum_tank_volume_liters, waste_production_score, jump_risk, sensitive_to_nitrate,
+          conservation_status
         )
       `)
       .eq("aquarium_id", aquariumId)
       .order("added_at", { ascending: false });
 
-    // Kueri 100% tersinkronisasi dengan antarmuka Final V1 Database
     const { data: plants, error: errPlant } = await supabase
       .from("aquarium_plants")
       .select(`
@@ -74,7 +73,8 @@ export async function getTankInventoryAction(aquariumId: string) {
           oxygen_production, algae_resistance, difficulty, co2_mandatory, light_requirement, 
           growth_speed_score, nutrient_consumption_score,
           preferred_ph, preferred_temperature, preferred_gh, carpeting, epiphyte, floating, aquascape_style,
-          growth_height_cm, growth_width_cm, trimming_frequency_score, invasive_growth
+          growth_height_cm, growth_width_cm, trimming_frequency_score, invasive_growth,
+          root_feeder
         )
       `)
       .eq("aquarium_id", aquariumId)
@@ -107,21 +107,17 @@ export async function addPlantToTankAction(payload: z.infer<typeof plantSchema>)
       .maybeSingle();
 
     if (existing) {
-      const { error } = await supabase
-        .from("aquarium_plants")
-        .update({ quantity: existing.quantity + validated.quantity })
-        .eq("id", existing.id);
+      const { error } = await supabase.from("aquarium_plants").update({ quantity: existing.quantity + validated.quantity }).eq("id", existing.id);
       if (error) throw new Error(error.message);
     } else {
-      const insertPayload = { ...validated, added_at: safeAddedAt };
-      const { error } = await supabase.from("aquarium_plants").insert([insertPayload]);
+      const { error } = await supabase.from("aquarium_plants").insert([{ ...validated, added_at: safeAddedAt }]);
       if (error) throw new Error(error.message);
     }
 
     revalidatePath(`/dashboard/my-aquarium/${validated.aquarium_id}`);
     return { success: true };
-  } catch (error: unknown) {
-    return { success: false, error: error instanceof Error ? error.message : "Process failed" };
+  } catch (error: unknown) { 
+    return { success: false, error: error instanceof Error ? error.message : "Process failed" }; 
   }
 }
 
@@ -146,21 +142,17 @@ export async function addFishToTankAction(payload: z.infer<typeof fishSchema>) {
       .maybeSingle();
 
     if (existing) {
-      const { error } = await supabase
-        .from("aquarium_fishes")
-        .update({ quantity: existing.quantity + validated.quantity })
-        .eq("id", existing.id);
+      const { error } = await supabase.from("aquarium_fishes").update({ quantity: existing.quantity + validated.quantity }).eq("id", existing.id);
       if (error) throw new Error(error.message);
     } else {
-      const insertPayload = { ...validated, added_at: safeAddedAt };
-      const { error } = await supabase.from("aquarium_fishes").insert([insertPayload]);
+      const { error } = await supabase.from("aquarium_fishes").insert([{ ...validated, added_at: safeAddedAt }]);
       if (error) throw new Error(error.message);
     }
 
     revalidatePath(`/dashboard/my-aquarium/${validated.aquarium_id}`);
     return { success: true };
-  } catch (error: unknown) {
-    return { success: false, error: error instanceof Error ? error.message : "Process failed" };
+  } catch (error: unknown) { 
+    return { success: false, error: error instanceof Error ? error.message : "Process failed" }; 
   }
 }
 
@@ -169,26 +161,17 @@ export async function updateFishInventoryAction(id: string, aquariumId: string, 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: "Unauthorized" };
-
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
-    const { error } = await supabase
-      .from("aquarium_fishes")
-      .update({ 
-        quantity: updates.quantity,
-        health_status: updates.health_status,
-        size_category: updates.size_category,
-        ...(updates.added_at ? { added_at: updates.added_at } : {})
-      })
-      .eq("id", id)
-      .eq("aquarium_id", aquariumId);
+    const { error } = await supabase.from("aquarium_fishes").update({ 
+        quantity: updates.quantity, health_status: updates.health_status, size_category: updates.size_category, ...(updates.added_at ? { added_at: updates.added_at } : {})
+      }).eq("id", id).eq("aquarium_id", aquariumId);
 
     if (error) throw new Error(error.message);
-    
     revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
     return { success: true };
-  } catch (error: unknown) {
-    return { success: false, error: error instanceof Error ? error.message : "Update failed" };
+  } catch (error: unknown) { 
+    return { success: false, error: error instanceof Error ? error.message : "Update failed" }; 
   }
 }
 
@@ -197,7 +180,6 @@ export async function removeInventoryItemAction(table: "aquarium_fishes" | "aqua
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: "Unauthorized" };
-
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
     const { error } = await supabase.from(table).delete().eq("id", id).eq("aquarium_id", aquariumId);
@@ -205,7 +187,7 @@ export async function removeInventoryItemAction(table: "aquarium_fishes" | "aqua
     
     revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
     return { success: true };
-  } catch (error: unknown) {
-    return { success: false, error: error instanceof Error ? error.message : "Deletion failed" };
+  } catch (error: unknown) { 
+    return { success: false, error: error instanceof Error ? error.message : "Deletion failed" }; 
   }
 }

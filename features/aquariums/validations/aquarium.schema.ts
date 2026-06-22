@@ -5,8 +5,6 @@ import { TANK_TYPES, SUBSTRATE_TYPES, FILTER_TYPES, LIGHT_TYPES, CO2_TYPES, FERT
 export const createAquariumSchema = z.object({
   // Step 1: Identitas
   name: z.string().min(3, "Nama akuarium minimal 3 karakter").max(50, "Nama terlalu panjang"),
-  
-  // Pisahkan validasi tank_type dan aquascape_style
   tank_type: z.enum(TANK_TYPES as unknown as [string, ...string[]]),
   aquascape_style: z.string().nullable().optional(), 
   
@@ -15,16 +13,18 @@ export const createAquariumSchema = z.object({
   }),
   is_primary: z.boolean().default(false),
 
-  // Step 2: Dimensi (Validasi Wajib > 0)
-  length_cm: z.number().min(1, "Panjang harus lebih dari 0 cm"),
-  width_cm: z.number().min(1, "Lebar harus lebih dari 0 cm"),
-  height_cm: z.number().min(1, "Tinggi harus lebih dari 0 cm"),
+  // Step 2: Dimensi & Hardscape
+  length_cm: z.number().min(1, "Panjang harus > 0 cm"),
+  width_cm: z.number().min(1, "Lebar harus > 0 cm"),
+  height_cm: z.number().min(1, "Tinggi harus > 0 cm"),
   volume_liters: z.number().min(0.1, "Volume tidak valid"),
   substrate_type: z.enum(SUBSTRATE_TYPES as unknown as [string, ...string[]]).nullable().optional(),
+  hardscape_type: z.array(z.string()).nullable().optional(), // FIX: Ditambahkan
+  lid_present: z.boolean().default(false),                   // FIX: Ditambahkan
 
   // Step 3: Peralatan
   filter_type: z.enum(FILTER_TYPES as unknown as [string, ...string[]]).nullable().optional(),
-  filter_capacity_lph: z.number().nullable().optional(),
+  filter_flow_lph: z.number().nullable().optional(),         // FIX: Menggunakan flow_lph
   light_type: z.enum(LIGHT_TYPES as unknown as [string, ...string[]]).nullable().optional(),
   light_wattage: z.number().nullable().optional(),
   photoperiod_hours: z.number().min(0).max(24).nullable().optional(),

@@ -29,11 +29,11 @@ export interface TankPlant {
     epiphyte?: boolean | null;
     floating?: boolean | null;
     aquascape_style?: string[] | null; 
-    // KEKURANGAN YANG SUDAH DITAMBAHKAN: Karakter Pertumbuhan Final V1
     growth_height_cm?: number | null;
     growth_width_cm?: number | null;
     trimming_frequency_score?: number | null;
     invasive_growth?: boolean | null;
+    root_feeder?: boolean | null;
   } | null;
 }
 
@@ -82,12 +82,13 @@ export interface TankFish {
     oxygen_requirement_score?: number | null;
     current_preference?: string | null;
     max_group_size?: number | null;
-    breeding_difficulty?: number | null;
-    lifespan_years?: number | null;
-    // KEKURANGAN YANG SUDAH DITAMBAHKAN: Sensitivitas & Limbah Final V1
     minimum_tank_volume_liters?: number | null;
     waste_production_score?: number | null;
     jump_risk?: boolean | null;
     sensitive_to_nitrate?: boolean | null;
+    conservation_status?: string | null;
+    // FIXX: Sinkronisasi Tipe Data Kuantitatif
+    breeding_difficulty?: number | null;
+    lifespan_years?: number | null;
   } | null;
 }

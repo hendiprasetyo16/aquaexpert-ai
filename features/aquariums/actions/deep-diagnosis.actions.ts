@@ -9,12 +9,15 @@ import { analyzeAquariumHealth } from "../utils/health-engine";
 import { generateDeepDiagnosis } from "../utils/deep-diagnosis";
 import { AquariumParameterLog } from "../types/parameter.types";
 import { TankFish, TankPlant } from "../types/inventory.types";
+import { verifyAquariumOwnership } from "../repositories/security.repository"; // FIX: Domain Tertata Bersih
 
 export async function getDeepDiagnosisAction(aquariumId: string, lang: "id" | "en") {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: "Unauthorized" };
+
+    await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
     const { data: aquarium, error: aqError } = await supabase
       .from("my_aquariums")
@@ -43,7 +46,6 @@ export async function getDeepDiagnosisAction(aquariumId: string, lang: "id" | "e
       maintenanceStatus
     });
 
-    // Panggil Local Rule-Based Engine (Super cepat, 0 Latency, 0 Rupiah)
     const diagnosis = generateDeepDiagnosis({
       aquarium,
       health,

@@ -80,8 +80,9 @@ export async function getParametersAction(aquariumId: string) {
 
     if (error) throw new Error(error.message);
     return { success: true, data: data as AquariumParameterLog[] };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    // ZERO ANY POLICY APPLIED
+    return { success: false, error: error instanceof Error ? error.message : "Process failed" };
   }
 }
 
@@ -102,8 +103,9 @@ export async function addParameterAction(payload: z.infer<typeof parameterSchema
 
     revalidatePath(`/dashboard/my-aquarium/${payload.aquarium_id}`);
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    // ZERO ANY POLICY APPLIED
+    return { success: false, error: error instanceof Error ? error.message : "Process failed" };
   }
 }
 
@@ -133,7 +135,8 @@ export async function deleteParameterAction(id: string, aquariumId: string) {
 
     revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    // ZERO ANY POLICY APPLIED
+    return { success: false, error: error instanceof Error ? error.message : "Process failed" };
   }
 }

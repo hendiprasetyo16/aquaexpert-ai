@@ -3,7 +3,6 @@
 export interface Aquarium {
   id: string;
   user_id: string;
-
   name: string;
   image_url?: string | null;
   tank_type: string;
@@ -17,9 +16,8 @@ export interface Aquarium {
   volume_liters: number;
 
   substrate_type?: string | null;
-
   filter_type?: string | null;
-  filter_flow_lph?: number | null; // BUG FIX: Sinkronisasi dengan SQL & Engine
+  filter_flow_lph?: number | null; 
 
   light_type?: string | null;
   light_wattage?: number | null;
@@ -39,11 +37,9 @@ export interface Aquarium {
   created_at?: string;
   updated_at?: string;
 
-  // FINAL V1: Sinkronisasi Atribut Infrastruktur Fisik
   hardscape_type?: string[] | null;
   lid_present?: boolean | null;
 
-  // RELASI
   aquarium_plants?: { id: string }[];
   aquarium_fishes?: { id: string }[];
 
@@ -55,9 +51,7 @@ export interface Aquarium {
   };
 }
 
-// ----------------------------------------------------
 // STRICT INPUT TYPES UNTUK MENCEGAH INJEKSI PAYLOAD
-// ----------------------------------------------------
 export interface CreateAquariumInput {
   name: string;
   tank_type: string;
@@ -73,17 +67,20 @@ export interface CreateAquariumInput {
   is_primary?: boolean;
 
   substrate_type?: string | null;
-  filter_type?: string | null;
-  filter_flow_lph?: number | null; // BUG FIX
-  hardscape_type?: string[] | null; // BUG FIX
-  lid_present?: boolean | null;     // BUG FIX
+  hardscape_type?: string[] | null; // FIX: Ditambahkan
+  lid_present?: boolean;            // FIX: Ditambahkan
 
+  filter_type?: string | null;
+  filter_flow_lph?: number | null;  // FIX: Disinkronkan (bukan capacity lagi)
+  
   light_type?: string | null;
   light_wattage?: number | null;
   photoperiod_hours?: number | null;
+  
   co2_type?: string | null;
   co2_bps?: number | null;
   heater_enabled?: boolean;
+  
   water_change_percent?: number | null;
   water_change_interval_days?: number | null;
   fertilizer_type?: string | null;
@@ -93,42 +90,3 @@ export interface CreateAquariumInput {
 export type UpdateAquariumInput = Partial<CreateAquariumInput> & {
   is_active?: boolean;
 };
-
-// ... (Interface Parameter & Inventory) ...
-export interface AquariumParameter {
-  id: string;
-  aquarium_id: string;
-  temperature?: number | null;
-  ph?: number | null;
-  tds?: number | null;
-  gh?: number | null;
-  kh?: number | null;
-  ammonia?: number | null;
-  nitrite?: number | null; 
-  nitrate?: number | null;
-  test_method?: string | null;
-  parameter_source?: string | null;
-  notes?: string | null;
-  record_date?: string; // BUG FIX: Sinkronisasi dengan sorting di Deep Diagnosis
-  created_at?: string;
-}
-
-export interface AquariumPlant {
-  id: string;
-  aquarium_id: string;
-  plant_id: string;
-  quantity: number;
-  status: "Healthy" | "Melting" | "Algae-Covered";
-  added_at?: string;
-}
-
-export interface AquariumFish {
-  id: string;
-  aquarium_id: string;
-  fish_id?: string | null;
-  species_name: string;
-  quantity: number;
-  health_status?: string | null;
-  size_category?: string | null;
-  added_at?: string;
-}

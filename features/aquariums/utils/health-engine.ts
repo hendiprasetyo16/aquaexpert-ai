@@ -24,7 +24,7 @@ export interface HealthAnalysisResult {
   alerts: string[];
   recommendations: string[];
   overdueTasks: string[]; 
-  deductions: Record<string, number>; // PILAR UTAMA PRIORITY 3: Map jejak pemotongan skor
+  deductions: Record<string, number>; 
 }
 
 interface AnalyzeProps {
@@ -72,12 +72,13 @@ export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, ma
   const overdueTasks: string[] = [];
   const deductions: Record<string, number> = {};
   
-  // ==========================================
-  // 1. WATER QUALITY SCORE
-  // ==========================================
-  let waterScore = 100;
   const sortedParams = [...parameters].sort((a, b) => new Date(b.record_date).getTime() - new Date(a.record_date).getTime());
   const latestParam = sortedParams.length > 0 ? sortedParams[0] : null;
+
+  // ==========================================
+  // 1. KUALITAS AIR (WATER QUALITY SCORE)
+  // ==========================================
+  let waterScore = 100;
 
   if (latestParam) {
     const paramDate = latestParam.record_date ? new Date(latestParam.record_date) : new Date();
@@ -106,11 +107,18 @@ export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, ma
     }
     if (avgNitrate != null && avgNitrate > 20) {
       const p = Math.min(30, (avgNitrate - 20) * 0.5); waterScore -= p; deductions["Nitrate High Accumulation"] = p;
+      
+      // Integrasi V1.1: Penalti tambahan jika ada spesies yang sangat sensitif nitrat
+      const hasNitrateSensitiveFish = fishes.some(f => f.fish?.sensitive_to_nitrate === true);
+      if (hasNitrateSensitiveFish && avgNitrate >= 25) {
+        waterScore -= 15; deductions["Nitrate Sensitive Species Stress"] = 15;
+        alerts.push("Bahaya: Akumulasi nitrat menekan imunitas spesies rentan.");
+      }
     }
-    if (avgPh != null && (avgPh < 5.5 || avgPh > 8.0)) {
+    if (avgPh != null && (avgPh < 5.5 || avgPh > 8.5)) {
       waterScore -= 15; deductions["Unstable pH Level"] = 15;
     }
-    if (avgTemp != null && (avgTemp > 32 || (avgTemp < 22 && aquarium.heater_enabled))) {
+    if (avgTemp != null && (avgTemp > 31 || (avgTemp < 22 && aquarium.heater_enabled))) {
       waterScore -= 15; deductions["Thermal Deviation Stress"] = 15;
     }
 
@@ -118,20 +126,14 @@ export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, ma
       alerts.push(`Bahaya: Amonia terdeteksi (${latestParam.ammonia} ppm)`);
       if (latestParam.ammonia >= 1.0) waterScore = Math.min(waterScore, 40); 
     }
-    if (latestParam.nitrite != null && latestParam.nitrite > 0) {
-      if (latestParam.nitrite > 0.25) {
-        alerts.push(`Kritis: Kadar Nitrit tinggi (${latestParam.nitrite} ppm)`);
-        waterScore = Math.min(waterScore, 40);
-      }
-    }
   } else {
     waterScore = 50; deductions["Missing Water Logs"] = 50;
-    alerts.push("Tidak ada log parameter air.");
+    alerts.push("Tidak ada log parameter air terdata.");
   }
   waterScore = clampScore(waterScore);
 
   // ==========================================
-  // 2. MAINTENANCE SCORE
+  // 2. KEPATUHAN PERAWATAN (MAINTENANCE SCORE)
   // ==========================================
   let maintenanceScore = 100;
   if (maintenanceStatus.length > 0) {
@@ -142,17 +144,26 @@ export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, ma
       else if (status.urgencyLevel === "warning" && status.isOverdue) warningCount++;
     });
 
-    const totalMaintenancePenalty = (criticalCount * 30) + (warningCount * 10);
+    let totalMaintenancePenalty = (criticalCount * 30) + (warningCount * 10);
+    
+    // Integrasi V1.1: Penalti berlipat ganda jika maintenance tertunda saat tangki dihuni flora invasif / cepat tumbuh
+    const hasHighTrimmingPlant = plants.some(p => (p.plant?.trimming_frequency_score || 5) >= 8 || p.plant?.invasive_growth === true);
+    if (hasHighTrimmingPlant && criticalCount > 0) {
+      totalMaintenancePenalty += 15;
+      deductions["Neglected Invasive Plant Growth"] = 15;
+      alerts.push("Risiko: Flora cepat tumbuh berpotensi menyumbat sirkulasi akibat penundaan trimming.");
+    }
+
     maintenanceScore -= totalMaintenancePenalty;
-    if (totalMaintenancePenalty > 0) {
-      deductions["Overdue Tasks Penalty"] = totalMaintenancePenalty;
+    if (totalMaintenancePenalty > 0 && !deductions["Overdue Tasks Penalty"]) {
+      deductions["Overdue Tasks Penalty"] = Math.min(100, totalMaintenancePenalty);
       alerts.push(`Penundaan perawatan: ${criticalCount} Kritis, ${warningCount} Peringatan.`);
     }
   }
   maintenanceScore = clampScore(maintenanceScore);
 
   // ==========================================
-  // 3. BIOLOAD SCORE
+  // 3. BEBAN BIOLOGIS (BIOLOAD SCORE)
   // ==========================================
   let bioloadScore = 100;
   const totalFishQuantity = fishes.reduce((acc, curr) => acc + curr.quantity, 0);
@@ -160,9 +171,12 @@ export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, ma
   if (totalFishQuantity > 0 && aquarium.volume_liters > 0) {
     const totalBioloadUnits = fishes.reduce((acc, curr) => {
       const adultSize = curr.fish?.estimated_adult_size_cm ?? 4; 
-      const wasteMultiplier = curr.fish?.bioload_factor ?? 1.0; 
+      const bioloadFactor = curr.fish?.bioload_factor ?? 1.0; 
+      const wasteScore = curr.fish?.waste_production_score ?? 5; // Atribut V1.1
       const sizeMultiplier = curr.size_category === "Juvenile" ? 0.5 : 1;
-      return acc + (curr.quantity * (adultSize * sizeMultiplier) * wasteMultiplier);
+      
+      // Rumus Bio-Kognitif Maju: Menggabungkan ukuran fisik dengan skor ekskresi limbah spesies
+      return acc + (curr.quantity * (adultSize * sizeMultiplier) * bioloadFactor * (wasteScore / 5));
     }, 0);
     
     const layers = new Set(fishes.map(f => f.fish?.water_layer).filter(Boolean));
@@ -173,16 +187,24 @@ export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, ma
 
     if (bioloadRatio > 1.5) {
       bioloadScore -= 60; deductions["Severe Tank Overstocking"] = 60;
-      alerts.push(`Overstocking Ekstrem: Rasio Bioload melampaui batas toleransi.`);
+      alerts.push(`Overstocking Ekstrem: Rasio Beban Biologis melampaui ambang batas ekosistem.`);
     } else if (bioloadRatio > 1.0) {
       bioloadScore -= 30; deductions["Mild Tank Overstocking"] = 30;
-      alerts.push("Beban biologis (Bioload) hampir melampaui batas aman.");
+      alerts.push("Beban biologis tangki mendekati batas batas kapasitas aman.");
+    }
+
+    // Integrasi Sirkulasi V1.1: Memvalidasi kecukupan perputaran air (Turnover LPH) terhadap Bioload
+    const filterFlow = aquarium.filter_flow_lph || 0;
+    const turnoverRate = filterFlow / aquarium.volume_liters;
+    if (bioloadRatio >= 0.8 && turnoverRate < 4.0 && filterFlow > 0) {
+      bioloadScore -= 20; deductions["Inadequate Filtration Turnover"] = 20;
+      alerts.push("Filtrasi Lemah: Aliran LPH filter tidak mengimbangi akumulasi limbah fauna.");
     }
   }
   bioloadScore = clampScore(bioloadScore);
 
   // ==========================================
-  // 4. FISH HEALTH SCORE
+  // 4. KESEHATAN FAUNA (FISH HEALTH SCORE)
   // ==========================================
   let fishHealthScore = 100;
   if (totalFishQuantity > 0) {
@@ -195,24 +217,25 @@ export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, ma
     if (sickCount > 0) {
       const penalty = Math.min(60, sickCount * 20);
       fishHealthScore -= penalty; deductions["Active Disease Outbreak"] = penalty;
-      alerts.push(`Kritis: ${sickCount} ikan terpantau sakit di dalam tangki utama!`);
-      recommendations.push("Segera isolasi ikan yang sakit dan lakukan diagnosis penyakit.");
+      alerts.push(`Kritis: Ditemukan ${sickCount} ekor fauna dalam kondisi sakit.`);
+      recommendations.push("Segera pindahkan ikan sakit ke tangki karantina terisolasi.");
     }
     if (quarantinedCount > 0) {
       fishHealthScore -= 10; deductions["Quarantined Fish Presence"] = 10;
-      alerts.push(`Info: Terdapat ${quarantinedCount} ikan dalam masa karantina.`);
     }
   }
   fishHealthScore = clampScore(fishHealthScore);
 
   // ==========================================
-  // 5. PLANT SCORE
+  // 5. KESEHATAN FLORA (PLANT SCORE)
   // ==========================================
   let plantScore: number | null = null;
   const totalPlantQuantity = plants.reduce((acc, curr) => acc + curr.quantity, 0);
 
   if (totalPlantQuantity > 0 && aquarium.volume_liters > 0) {
     let totalPlantBiomassValue = 0;
+    let rootFeederCount = 0;
+
     plants.forEach(p => {
       let multiplier = 1.0;
       const growthRate = p.plant?.growth_rate?.toLowerCase();
@@ -223,6 +246,9 @@ export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, ma
       if (nitrate === 'high') multiplier += 0.5;
       if (nitrate === 'low') multiplier -= 0.2;
       if (oxygen === 'high') multiplier += 0.3; 
+      if (p.plant?.root_feeder) {
+        rootFeederCount += p.quantity;
+      }
       
       totalPlantBiomassValue += (p.quantity * multiplier);
     });
@@ -231,19 +257,30 @@ export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, ma
     
     if (density < 0.05) { plantScore = 40; deductions["Critically Low Plant Density"] = 60; }
     else if (density < 0.1) { plantScore = 80; deductions["Low Plant Density"] = 20; }
-    else if (density <= 0.3) plantScore = 100; 
-    else if (density <= 0.5) { plantScore = 80; deductions["High Plant Density"] = 20; }
+    else if (density <= 0.35) plantScore = 100; 
+    else if (density <= 0.55) { plantScore = 80; deductions["High Plant Density"] = 20; }
     else {
       plantScore = 60; deductions["Choking Plant Overcrowding"] = 40;
-      alerts.push(`Overcrowded Plants: Kapasitas flora terlalu padat.`);
+      alerts.push(`Flora Terlalu Padat: Mengurangi ruang renang bebas fauna.`);
+    }
+
+    // Integrasi Substrat V1.1: Memeriksa apakah tanaman "Root Feeder" ditanam pada substrat pasif
+    const substrate = aquarium.substrate_type?.toLowerCase() || "";
+    const isInertSubstrate = substrate === "sand" || substrate === "gravel" || substrate === "bare bottom";
+    if (rootFeederCount > 0 && isInertSubstrate && plantScore !== null) {
+      plantScore -= 15;
+      deductions["Inert Substrate for Root Feeders"] = 15;
+      alerts.push("Flora Defisit Nutrisi: Tanaman pemakan akar membutuhkan media soil aktif atau root tabs.");
     }
   } else if (totalFishQuantity > 5 && aquarium.aquascape_style !== "Blackwater" && aquarium.aquascape_style !== "Iwagumi") {
     deductions["Zero Plant Ecosystem Risk"] = 30;
-    alerts.push("Tidak ada tanaman hidup untuk menyerap nitrat berlebih secara alami.");
+    alerts.push("Tangki tanpa vegetasi rentan mengalami akumulasi senyawa beracun.");
   }
 
+  if (plantScore !== null) plantScore = clampScore(plantScore);
+
   // ==========================================
-  // 6. OVERALL HEALTH SCORE
+  // 6. FORMULASI TOTAL (OVERALL HEALTH SCORE)
   // ==========================================
   let overallScore = 0;
   if (plantScore !== null) {
@@ -253,13 +290,14 @@ export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, ma
   }
   overallScore = clampScore(overallScore);
 
+  // Kebijakan Batas Kritis: Tangki tidak boleh mendapat nilai baik jika parameter racun pecah
   if (waterScore <= 40) overallScore = Math.min(overallScore, waterScore);
   if (bioloadScore <= 40) overallScore = Math.min(overallScore, bioloadScore);
   if (fishHealthScore <= 40) overallScore = Math.min(overallScore, fishHealthScore);
   overallScore = clampScore(overallScore);
 
   // ==========================================
-  // 7. ADVANCED HEALTH TREND
+  // 7. ANALISIS TREN PARAMETER (HEALTH TREND)
   // ==========================================
   let healthTrend: HealthTrend = "stable";
   if (sortedParams.length > 1) {
@@ -276,12 +314,8 @@ export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, ma
     if ((current.nitrate ?? 0) < (prev.nitrate ?? 0)) improvePoints++;
     else if ((current.nitrate ?? 0) > (prev.nitrate ?? 0)) declinePoints++;
 
-    if (current.ph != null && prev.ph != null) {
-      if (Math.abs(current.ph - prev.ph) >= 0.5) declinePoints += 2; 
-    }
-    if (current.temperature != null && prev.temperature != null) {
-      if (Math.abs(current.temperature - prev.temperature) >= 2.0) declinePoints += 2; 
-    }
+    if (current.ph != null && prev.ph != null && Math.abs(current.ph - prev.ph) >= 0.5) declinePoints += 2; 
+    if (current.temperature != null && prev.temperature != null && Math.abs(current.temperature - prev.temperature) >= 1.5) declinePoints += 2; 
 
     if (declinePoints > improvePoints) healthTrend = "declining";
     else if (improvePoints > declinePoints) healthTrend = "improving";

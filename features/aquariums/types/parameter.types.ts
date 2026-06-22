@@ -3,6 +3,7 @@
 export interface AquariumParameterLog {
   id: string;
   aquarium_id: string;
+  record_date: string; // FIX: Wajib ada sesuai DB
   
   temperature: number | null;
   ph: number | null;
@@ -18,12 +19,13 @@ export interface AquariumParameterLog {
   parameter_source?: string | null;
   notes?: string | null;
   
+  is_deleted: boolean; // FIX: Tipe boolean sesuai DB
   created_at: string;
-  updated_at?: string; // Dibuat opsional agar tidak memicu error dari Actions
 }
 
 export interface CreateParameterInput {
   aquarium_id: string;
+  record_date?: string; // FIX: Bisa diinput manual
   temperature?: number | null;
   ph?: number | null;
   tds?: number | null;

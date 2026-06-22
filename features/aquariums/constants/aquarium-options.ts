@@ -25,6 +25,17 @@ export const SUBSTRATE_TYPES = [
   "Mixed"
 ] as const;
 
+// FIX V1.1: Menambahkan daftar hardscape untuk form UI
+export const HARDSCAPE_TYPES = [
+  "Driftwood (Kayu)",
+  "Seiryu Stone",
+  "Dragon Stone",
+  "Lava Rock",
+  "River Stones",
+  "Mixed",
+  "None"
+] as const;
+
 export const FILTER_TYPES = [
   "Canister",
   "Hang on Back (HOB)",
