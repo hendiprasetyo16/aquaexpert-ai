@@ -1,3 +1,4 @@
+// features/aquariums/components/AquariumDashboard.tsx
 "use client";
 
 import { useState, useEffect } from "react";

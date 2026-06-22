@@ -1,3 +1,4 @@
+// features/aquariums/components/AquariumSpecsPanel.tsx
 "use client";
 
 import { Box, Layers, Sun, Wind, FlaskConical, LayoutTemplate, Thermometer, Leaf } from "lucide-react";

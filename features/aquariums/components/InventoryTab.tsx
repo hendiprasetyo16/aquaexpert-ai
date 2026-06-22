@@ -1,3 +1,4 @@
+// features/aquariums/components/InventoryTab.tsx
 "use client";
 
 import { useState, useEffect } from "react";
