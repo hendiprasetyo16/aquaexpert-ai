@@ -1,4 +1,3 @@
-// features/aquariums/components/AquariumSpecsPanel.tsx
 "use client";
 
 import { Box, Layers, Sun, Wind, FlaskConical, LayoutTemplate, Thermometer, Leaf } from "lucide-react";
@@ -25,7 +24,8 @@ export function AquariumSpecsPanel({ aquarium, lang = "id" }: Props) {
         {lang === "id" ? "Spesifikasi & Perangkat" : "Specs & Equipments"}
       </h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-8 gap-x-8">
+      {/* FIX: Ubah menjadi 4 Kolom di PC (xl:grid-cols-4), 3 Kolom di Laptop (lg), 2 di Tablet, 1 di HP */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-y-8 gap-x-8">
         
         {/* KOLOM 1: Gaya & Substrat */}
         <div className="space-y-6">
@@ -86,7 +86,7 @@ export function AquariumSpecsPanel({ aquarium, lang = "id" }: Props) {
           </div>
         </div>
 
-        {/* KOLOM 3: CO2, Pupuk, Suhu (Tersusun Lurus Ke Bawah) */}
+        {/* KOLOM 3: CO2 & Pupuk */}
         <div className="space-y-6">
           <div>
             <div className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
@@ -100,7 +100,6 @@ export function AquariumSpecsPanel({ aquarium, lang = "id" }: Props) {
               {aquarium.co2_bps ? ` (${aquarium.co2_bps} BPS)` : ""}
             </p>
           </div>
-          
           <div>
             <div className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
               <div className="p-1.5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-500 rounded-lg">
@@ -112,8 +111,10 @@ export function AquariumSpecsPanel({ aquarium, lang = "id" }: Props) {
               {getFertilizerDesc(aquarium.fertilizer_type, lang)}
             </p>
           </div>
-            
-          {/* FIX: Heater berdiri sendiri di bawah Fertilizer */}
+        </div>
+
+        {/* KOLOM 4: Heater Berdiri Sendiri di Kolom Terakhir */}
+        <div className="space-y-6">
           <div>
             <div className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
               <div className="p-1.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-500 rounded-lg">

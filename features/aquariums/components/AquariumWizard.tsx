@@ -21,7 +21,7 @@ import toast from "react-hot-toast";
 
 import { 
   AquariumDictionary, getTankTypeDesc, getSubstrateDesc, 
-  getFilterDesc, getLightDesc, getCO2Desc, getFertilizerDesc 
+  getFilterDesc, getLightDesc, getCO2Desc, getFertilizerDesc, getAquascapeStyleDesc 
 } from "./aquarium-helpers";
 
 interface AquariumWizardProps {
@@ -146,7 +146,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
   const [formData, setFormData] = useState<CreateAquariumInput>({
     name: "", tank_type: "Community", aquascape_style: "Bebas", setup_date: new Date().toISOString().split('T')[0], is_primary: false,
     length_cm: 60, width_cm: 30, height_cm: 36, volume_liters: 55, 
-    substrate_type: "Sand", filter_type: "Hang on Back (HOB)", filter_flow_lph: null, // FIX: Menggunakan filter_flow_lph
+    substrate_type: "Sand", filter_type: "Hang on Back (HOB)", filter_flow_lph: null, 
     light_type: "White LED", light_wattage: null, photoperiod_hours: 8,
     co2_type: "None", co2_bps: null, heater_enabled: false,
     water_change_percent: 30, water_change_interval_days: 7, fertilizer_type: "None", fertilizer_schedule: ""
@@ -166,7 +166,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
         volume_liters: initialData.volume_liters || 55,
         substrate_type: (initialData.substrate_type as CreateAquariumInput["substrate_type"]) || "Sand",
         filter_type: (initialData.filter_type as CreateAquariumInput["filter_type"]) || "Hang on Back (HOB)",
-        filter_flow_lph: initialData.filter_flow_lph || null, // FIX: Menggunakan filter_flow_lph
+        filter_flow_lph: initialData.filter_flow_lph || null, 
         light_type: (initialData.light_type as CreateAquariumInput["light_type"]) || "White LED",
         light_wattage: initialData.light_wattage || null,
         photoperiod_hours: initialData.photoperiod_hours || 8,
@@ -184,9 +184,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
     }
   }, [mode, initialData]);
 
-  // ==========================================
-  // PERHITUNGAN VOLUME NETTO (15% Reduksi)
-  // ==========================================
   useEffect(() => {
     if (mode === "edit" && initialData && formData.length_cm === initialData.length_cm && formData.width_cm === initialData.width_cm && formData.height_cm === initialData.height_cm) {
         return; 
@@ -398,6 +395,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
               <div className="grid sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.tankType}</label>
+                  {/* FIX: Memisahkan nilai yang dikirim ke Zod (value={t}) dengan penjelasan ke user (getTankTypeDesc) */}
                   <select name="tank_type" value={formData.tank_type} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none">
                     {TANK_TYPES.map(t => <option key={t} value={t}>{getTankTypeDesc(t, lang)}</option>)}
                   </select>
@@ -406,8 +404,9 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
                 
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.aquascapeStyle}</label>
+                  {/* FIX: Memisahkan nilai dengan penjelasan UI (Bilingual) */}
                   <select name="aquascape_style" value={formData.aquascape_style || "Bebas"} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none">
-                    {AQUASCAPE_STYLES.map(s => <option key={s} value={s}>{s}</option>)}
+                    {AQUASCAPE_STYLES.map(s => <option key={s} value={s}>{getAquascapeStyleDesc(s, lang)}</option>)}
                   </select>
                   <p className="text-xs text-slate-500 flex items-start gap-1 mt-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.aquascapeStyle}</p>
                 </div>
@@ -456,6 +455,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
 
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.substrate}</label>
+                {/* FIX: Memisahkan nilai dengan penjelasan UI (Bilingual) */}
                 <select name="substrate_type" value={formData.substrate_type || ""} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none">
                   {SUBSTRATE_TYPES.map(t => <option key={t} value={t}>{getSubstrateDesc(t, lang)}</option>)}
                 </select>
@@ -469,6 +469,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
               <div className="grid sm:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.filter}</label>
+                  {/* FIX: Memisahkan nilai dengan penjelasan UI (Bilingual) */}
                   <select name="filter_type" value={formData.filter_type || ""} onChange={handleChange} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none">
                     {FILTER_TYPES.map(t => <option key={t} value={t}>{getFilterDesc(t, lang)}</option>)}
                   </select>
@@ -483,6 +484,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
               <div className="grid sm:grid-cols-3 gap-4 bg-amber-50/50 dark:bg-amber-950/10 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.light}</label>
+                  {/* FIX: Memisahkan nilai dengan penjelasan UI (Bilingual) */}
                   <select name="light_type" value={formData.light_type || ""} onChange={handleChange} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none">
                     {LIGHT_TYPES.map(t => <option key={t} value={t}>{getLightDesc(t, lang)}</option>)}
                   </select>
@@ -501,6 +503,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
               <div className="grid sm:grid-cols-3 gap-4 bg-emerald-50/50 dark:bg-emerald-950/10 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.co2}</label>
+                  {/* FIX: Memisahkan nilai dengan penjelasan UI (Bilingual) */}
                   <select name="co2_type" value={formData.co2_type || ""} onChange={handleChange} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none">
                     {CO2_TYPES.map(t => <option key={t} value={t}>{getCO2Desc(t, lang)}</option>)}
                   </select>
@@ -543,6 +546,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
               <div className="grid sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.fertType}</label>
+                  {/* FIX: Memisahkan nilai dengan penjelasan UI (Bilingual) */}
                   <select name="fertilizer_type" value={formData.fertilizer_type || ""} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 outline-none">
                     {FERTILIZER_TYPES.map(t => <option key={t} value={t}>{getFertilizerDesc(t, lang)}</option>)}
                   </select>
