@@ -29,7 +29,6 @@ interface InventoryTabProps {
   aquariumId: string;
 }
 
-// FIX: Mendefinisikan tipe spesifik untuk menendang 'any'
 type HealthType = "Healthy" | "Sick" | "Quarantined";
 type SizeType = "Juvenile" | "Adult";
 
@@ -232,7 +231,6 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                     onClick={() => {
                       setShowEditFishModal(item);
                       setQuantity(item.quantity);
-                      // FIX: Type Safety Mutlak
                       setHealthStatus((item.health_status as HealthType) || "Healthy");
                       setSizeCategory((item.size_category as SizeType) || "Adult");
                       setAddedAt(item.added_at ? new Date(item.added_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
@@ -307,22 +305,20 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
           MODAL: TAMBAH DATA (VISUAL PICKER)
       ======================================================== */}
       {mounted && showAddModal && createPortal(
-        // FIX: Backdrop Click-to-Close
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300" onClick={resetForm}>
-          {/* FIX: Mencegah penutupan tak sengaja dengan stopPropagation */}
           <div className={`w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl bg-slate-50 dark:bg-slate-950 shadow-2xl border-t-8 overflow-hidden ${isFish ? 'border-blue-500' : 'border-emerald-500'}`} onClick={e => e.stopPropagation()}>
             
-            <div className="p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 flex justify-between items-center">
-              <div>
+            <div className="p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+              <div className="w-full">
                 <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">
                   {isFish ? (lang === 'id' ? "Pilih Fauna (Ikan)" : "Select Fauna") : (lang === 'id' ? "Pilih Flora (Tanaman)" : "Select Flora")}
                 </h3>
                 <div className="relative mt-2">
                   <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="text" placeholder={lang === 'id' ? "Cari nama atau jenis..." : "Search by name..."} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full h-12 pl-12 pr-4 rounded-xl border-2 outline-none font-semibold transition-colors bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
+                  <input type="text" placeholder={lang === 'id' ? "Cari nama spesies..." : "Search species..."} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full h-12 pl-12 pr-4 rounded-xl border-2 outline-none font-semibold transition-colors bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
                 </div>
               </div>
-              <button onClick={resetForm} className="p-2 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-500 rounded-full transition-colors self-start"><X className="w-5 h-5"/></button>
+              <button onClick={resetForm} className="absolute top-6 right-6 p-2 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-500 rounded-full transition-colors"><X className="w-5 h-5"/></button>
             </div>
 
             <div className="p-6 overflow-y-auto custom-scrollbar flex-1 border-b border-slate-200 dark:border-slate-800">
@@ -347,34 +343,37 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
               )}
             </div>
 
-            <form onSubmit={handleAddSubmit} className="p-6 bg-white dark:bg-slate-900 shrink-0">
-              {/* FIX: Layout Adaptif untuk Form Tambah (Aman di HP) */}
-              <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
+            <form onSubmit={handleAddSubmit} className="p-5 sm:p-6 bg-white dark:bg-slate-900 shrink-0">
+              {/* FIX: Layout Form Tambah menggunakan Flex Column terstruktur agar tidak tergencet */}
+              <div className="flex flex-col gap-4">
                 
-                <div className="w-full sm:w-24 space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{lang === 'id' ? "Jumlah" : "Qty"}</label>
-                  <input required type="number" min="1" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className={`w-full h-12 px-4 rounded-xl border-2 outline-none font-black text-lg bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
+                {/* Baris 1: Kuantitas & Tanggal */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{lang === 'id' ? "Jumlah" : "Qty"}</label>
+                    <input required type="number" min="1" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className={`w-full h-12 px-4 rounded-xl border-2 outline-none font-black text-lg bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
+                  </div>
+
+                  <div className="col-span-1 sm:col-span-3 space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tanggal Masuk</label>
+                    <input required type="date" value={addedAt} onChange={(e) => setAddedAt(e.target.value)} className={`w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
+                  </div>
                 </div>
 
-                <div className="w-full sm:w-40 space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tanggal Masuk</label>
-                  <input required type="date" value={addedAt} onChange={(e) => setAddedAt(e.target.value)} className={`w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
-                </div>
-
+                {/* Baris 2: Kesehatan & Ukuran (Hanya untuk Ikan) */}
                 {isFish && (
-                  <div className="flex flex-col sm:flex-row gap-4 w-full">
-                    <div className="flex-1 space-y-1">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
                       <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kesehatan</label>
-                      {/* FIX: Type casting presisi tanpa any */}
-                      <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value as HealthType)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
+                      <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value as HealthType)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500 cursor-pointer">
                         <option value="Healthy">Healthy (Sehat)</option>
                         <option value="Sick">Sick (Sakit)</option>
                         <option value="Quarantined">Quarantine</option>
                       </select>
                     </div>
-                    <div className="w-full sm:w-32 space-y-1">
+                    <div className="space-y-1">
                       <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Ukuran</label>
-                      <select value={sizeCategory} onChange={(e) => setSizeCategory(e.target.value as SizeType)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
+                      <select value={sizeCategory} onChange={(e) => setSizeCategory(e.target.value as SizeType)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500 cursor-pointer">
                         <option value="Juvenile">Juvenile</option>
                         <option value="Adult">Adult</option>
                       </select>
@@ -382,10 +381,11 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                   </div>
                 )}
                 
-                <div className="flex w-full sm:w-auto gap-3 mt-4 sm:mt-0">
-                  <Button type="button" variant="ghost" onClick={resetForm} className="flex-1 sm:flex-none h-12 rounded-xl text-slate-500 font-bold uppercase bg-slate-100 hover:bg-slate-200 dark:bg-slate-800">{lang === 'id' ? "Batal" : "Cancel"}</Button>
-                  <Button type="submit" disabled={submitting || !selectedItemId} className={`flex-1 sm:flex-none h-12 rounded-xl text-white font-black uppercase tracking-wider shadow-lg px-8 ${isFish ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'}`}>
-                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Simpan"}
+                {/* Baris 3: Tombol Aksi */}
+                <div className="flex gap-3 pt-2">
+                  <Button type="button" variant="ghost" onClick={resetForm} className="flex-1 h-12 rounded-xl text-slate-500 font-bold uppercase bg-slate-100 hover:bg-slate-200 dark:bg-slate-800">{lang === 'id' ? "Batal" : "Cancel"}</Button>
+                  <Button type="submit" disabled={submitting || !selectedItemId} className={`flex-1 h-12 rounded-xl text-white font-black uppercase tracking-wider shadow-lg ${isFish ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'}`}>
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Simpan"}
                   </Button>
                 </div>
               </div>
@@ -419,36 +419,36 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kesehatan Terkini</label>
-                <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value as HealthType)} className="w-full h-12 px-4 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
+                <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value as HealthType)} className="w-full h-12 px-4 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500 cursor-pointer">
                   <option value="Healthy">Healthy (Sehat)</option>
                   <option value="Sick">Sick (Sakit)</option>
                   <option value="Quarantined">Quarantine (Diisolasi)</option>
                 </select>
               </div>
 
-              {/* FIX: Merubah pembagian grid menjadi flex adaptif agar tidak gepeng di HP */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="w-full sm:w-1/3 space-y-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Ukuran</label>
-                  <select value={sizeCategory} onChange={(e) => setSizeCategory(e.target.value as SizeType)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
+                  <select value={sizeCategory} onChange={(e) => setSizeCategory(e.target.value as SizeType)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500 cursor-pointer">
                     <option value="Juvenile">Juvenile</option>
                     <option value="Adult">Adult</option>
                   </select>
                 </div>
-                <div className="w-full sm:w-1/3 space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Jumlah</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Jumlah (Ekor)</label>
                   <input required type="number" min="1" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="w-full h-12 px-4 rounded-xl border-2 outline-none font-black text-lg bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500" />
                 </div>
-                <div className="w-full sm:w-1/3 space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tgl Masuk</label>
-                  <input required type="date" value={addedAt} onChange={(e) => setAddedAt(e.target.value)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-xs bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500" />
-                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tgl Masuk</label>
+                <input required type="date" value={addedAt} onChange={(e) => setAddedAt(e.target.value)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-xs bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500" />
               </div>
 
               <div className="pt-4 flex gap-3">
                 <Button type="button" variant="ghost" onClick={resetForm} className="flex-1 h-12 rounded-xl text-slate-500 font-bold uppercase bg-slate-100 hover:bg-slate-200">Batal</Button>
                 <Button type="submit" disabled={submitting} className="flex-1 h-12 rounded-xl text-white font-black uppercase tracking-wider bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20">
-                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Perbarui"}
+                  {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Perbarui"}
                 </Button>
               </div>
             </form>
@@ -462,22 +462,24 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
       ======================================================== */}
       {mounted && deleteTarget && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setDeleteTarget(null)}>
-          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-5 text-red-600">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600 text-center" onClick={e => e.stopPropagation()}>
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="h-8 w-8" />
-              <h3 className="text-2xl font-black uppercase tracking-tight">{lang === 'id' ? "Hapus Item?" : "Remove Item?"}</h3>
             </div>
+            <h3 className="text-2xl font-black tracking-tight mb-2 text-slate-800 dark:text-slate-100">
+              {lang === 'id' ? "Hapus Data?" : "Delete Data?"}
+            </h3>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed font-medium">
               {lang === 'id' 
-                ? <>Anda yakin ingin menghapus <strong className="text-red-500 bg-red-50 px-1.5 py-0.5 rounded">{deleteTarget.name}</strong> dari akuarium ini?</>
-                : <>Are you sure you want to remove <strong className="text-red-500 bg-red-50 px-1.5 py-0.5 rounded">{deleteTarget.name}</strong> from this aquarium?</>
+                ? <>Anda yakin ingin menghapus <strong className="text-red-500 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">{deleteTarget.name}</strong> dari akuarium ini?</>
+                : <>Are you sure you want to remove <strong className="text-red-500 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">{deleteTarget.name}</strong> from this aquarium?</>
               }
             </p>
             <div className="flex flex-col gap-3">
-              <Button onClick={executeRemove} disabled={isDeleting} className="bg-red-600 hover:bg-red-700 w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 text-white">
-                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : (lang === 'id' ? "YA, HAPUS" : "YES, REMOVE")}
+              <Button onClick={executeRemove} disabled={isDeleting} className="bg-red-600 hover:bg-red-700 w-full h-12 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/20 text-white transition-colors">
+                {isDeleting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (lang === 'id' ? "YA, HAPUS" : "YES, REMOVE")}
               </Button>
-              <Button variant="ghost" onClick={() => setDeleteTarget(null)} disabled={isDeleting} className="w-full h-12 rounded-xl text-slate-500 hover:bg-slate-100 font-bold uppercase tracking-wider">
+              <Button variant="ghost" onClick={() => setDeleteTarget(null)} disabled={isDeleting} className="w-full h-12 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
                 {lang === 'id' ? "Batal" : "Cancel"}
               </Button>
             </div>

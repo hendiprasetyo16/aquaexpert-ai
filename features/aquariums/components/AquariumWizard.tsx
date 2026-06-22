@@ -14,7 +14,7 @@ import {
 } from "../constants/aquarium-options";
 import { 
   CheckCircle2, ChevronLeft, ChevronRight, Save, 
-  Ruler, Settings2, Droplets, Info, Loader2, Container, ImagePlus, X 
+  Ruler, Settings2, Droplets, Info, Loader2, Container, ImagePlus, X, HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
@@ -29,14 +29,10 @@ interface AquariumWizardProps {
   initialData?: Aquarium | null;
 }
 
-// Opsi Hardcoded untuk Style Aquascape
 const AQUASCAPE_STYLES = [
   "Bebas", "Nature", "Dutch", "Iwagumi", "Biotope", "Blackwater", "Jungle", "Minimalist"
 ] as const;
 
-// =========================================================================
-// HELPER KOMPRESI GAMBAR (HTML5 CANVAS)
-// =========================================================================
 const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<File> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -95,46 +91,46 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
     btnCancel: lang === 'id' ? "Batal" : "Cancel", 
     labels: {
       name: lang === 'id' ? "Nama Akuarium" : "Aquarium Name",
-      tankType: lang === 'id' ? "Fokus Ekosistem" : "Ecosystem Focus",
-      aquascapeStyle: lang === 'id' ? "Tema / Style Aquascape" : "Aquascape Style", 
-      setupDate: lang === 'id' ? "Tanggal Setup Awal" : "Initial Setup Date",
-      isPrimary: lang === 'id' ? "Jadikan Tangki Utama" : "Set as Primary Tank",
-      length: lang === 'id' ? "Panjang (cm)" : "Length (cm)",
-      width: lang === 'id' ? "Lebar (cm)" : "Width (cm)",
-      height: lang === 'id' ? "Tinggi (cm)" : "Height (cm)",
+      tankType: lang === 'id' ? "Fokus Ekosistem (Tipe Tangki)" : "Ecosystem Focus",
+      aquascapeStyle: lang === 'id' ? "Tema / Style Visual Aquascape" : "Aquascape Style", 
+      setupDate: lang === 'id' ? "Tanggal Setup Air Awal" : "Initial Setup Date",
+      isPrimary: lang === 'id' ? "Jadikan Tangki Utama Default" : "Set as Primary Tank",
+      length: lang === 'id' ? "Panjang Kaca Luar (cm)" : "Length (cm)",
+      width: lang === 'id' ? "Lebar Kaca Luar (cm)" : "Width (cm)",
+      height: lang === 'id' ? "Tinggi Kaca Luar (cm)" : "Height (cm)",
       volume: lang === 'id' ? "Volume Bersih Estimasi (Liter)" : "Estimated Net Volume (Liters)",
-      filter: lang === 'id' ? "Sistem Filter" : "Filtration System",
-      filterCapacity: lang === 'id' ? "Kapasitas Pompa (L/H)" : "Pump Flow Rate (L/H)",
-      light: lang === 'id' ? "Jenis Lampu" : "Lighting Type",
-      lightWatt: lang === 'id' ? "Daya Lampu (Watt)" : "Light Power (Watts)",
-      lightHours: lang === 'id' ? "Durasi Nyala (Jam/Hari)" : "Photoperiod (Hours/Day)",
-      co2: lang === 'id' ? "Sistem CO2" : "CO2 System",
-      co2Bps: lang === 'id' ? "Dosis CO2 (BPS)" : "CO2 Dosage (BPS)",
-      heater: lang === 'id' ? "Gunakan Heater (Pemanas Air)" : "Use Water Heater",
-      substrate: lang === 'id' ? "Substrat Dasar" : "Bottom Substrate",
-      wcPercent: lang === 'id' ? "Volume Ganti Air (%)" : "Water Change Volume (%)",
-      wcInterval: lang === 'id' ? "Interval Ganti Air (Hari)" : "Water Change Interval (Days)",
-      fertType: lang === 'id' ? "Metode Pupuk" : "Fertilizer Method",
-      fertSchedule: lang === 'id' ? "Jadwal Pupuk" : "Fertilizer Schedule"
+      filter: lang === 'id' ? "Mekanisme Sistem Filter" : "Filtration System",
+      filterCapacity: lang === 'id' ? "Daya Putar Pompa / Filter Flow Rate (L/H)" : "Pump Flow Rate (L/H)",
+      light: lang === 'id' ? "Kategori Spesifikasi Lampu" : "Lighting Type",
+      lightWatt: lang === 'id' ? "Konsumsi Daya Lampu (Watt)" : "Light Power (Watts)",
+      lightHours: lang === 'id' ? "Durasi Pencahayaan (Jam/Hari)" : "Photoperiod (Hours/Day)",
+      co2: lang === 'id' ? "Sistem Suplai Gas CO2" : "CO2 System",
+      co2Bps: lang === 'id' ? "Kecepatan Dosis CO2 (BPS / Bubble Per Second)" : "CO2 Dosage (BPS)",
+      heater: lang === 'id' ? "Gunakan Alat Pengontrol Suhu (Heater/Pemanas Air)" : "Use Water Heater",
+      substrate: lang === 'id' ? "Sistem Lapisan Substrat Dasar" : "Bottom Substrate",
+      wcPercent: lang === 'id' ? "Volume Air yang Diganti (%)" : "Water Change Volume (%)",
+      wcInterval: lang === 'id' ? "Frekuensi Ganti Air (Hari Sekali)" : "Water Change Interval (Days)",
+      fertType: lang === 'id' ? "Metode Pemupukan Flora" : "Fertilizer Method",
+      fertSchedule: lang === 'id' ? "Dosis & Jadwal Pupuk" : "Fertilizer Schedule"
     },
     hints: {
-      name: lang === 'id' ? "Beri nama unik (misal: Akuarium Ruang Tamu)." : "Give it a unique name.",
-      tankType: lang === 'id' ? "Pilih tujuan tangki Anda (Sangat mempengaruhi kecocokan ikan AI)." : "Choose tank purpose. Affects AI fish compatibility.",
-      aquascapeStyle: lang === 'id' ? "Pilih tema visual tangki Anda." : "Choose your visual tank theme.",
-      setupDate: lang === 'id' ? "Kapan air pertama kali dimasukkan? Penting untuk analisis AI." : "When was water first added? Crucial for AI.",
-      isPrimary: lang === 'id' ? "AI Assistant akan otomatis menggunakan tank ini saat Anda bertanya." : "AI Assistant uses this tank as the default.",
-      dimensions: lang === 'id' ? "Otomatis dihitung sebagai 'Volume Netto' (dikurangi 15% untuk substrat, jarak bibir kaca, dll)." : "Automatically calculated as 'Net Volume' (minus 15% for substrate, clearance, etc).",
-      filter: lang === 'id' ? "Pilih mekanisme yang paling sesuai. Kosongkan kapasitas jika tidak tahu." : "Choose closest mechanism. Leave empty if unsure.",
-      light: lang === 'id' ? "Jika pilih 'Kombinasi', isikan Daya Watt & Jam untuk lampu utama." : "If 'Mixed', input Wattage for main light.",
-      co2: lang === 'id' ? "Pilih jenis suplai CO2. Kosongkan Dosis BPS jika tidak tahu/tidak pakai." : "Select CO2 supply type. Leave BPS empty if unsure/unused.",
-      substrate: lang === 'id' ? "Pilih material yang menutupi dasar akuarium Anda." : "Select the material covering your tank bottom.",
-      maintenance: lang === 'id' ? "Data ini sangat penting bagi AI untuk mencari akar masalah alga/penyakit." : "Key metrics for AI to find root cause of algae/disease."
+      name: lang === 'id' ? "Beri nama penanda yang unik agar tidak tertukar (misal: Tank Ruang Tamu, Kamar Depan)." : "Give it a unique name.",
+      tankType: lang === 'id' ? "Menentukan tujuan tangki Bapak. AI menggunakannya sebagai tolok ukur keserasian fauna." : "Choose tank purpose. Affects AI fish compatibility.",
+      aquascapeStyle: lang === 'id' ? "Menentukan pakem seni visual. Mempengaruhi penilaian estetika layout vegetasi oleh AI." : "Choose your visual tank theme.",
+      setupDate: lang === 'id' ? "Kapan pertama kali air dimasukkan? AI memakainya untuk menghitung tingkat kematangan bakteri pengurai (Nitrogen Cycle)." : "When was water first added? Crucial for AI.",
+      isPrimary: lang === 'id' ? "Jika dicentang, asisten AI Consultant akan otomatis mendiagnosis tank ini sebagai prioritas utama." : "AI Assistant uses this tank as the default.",
+      dimensions: lang === 'id' ? "Volume dihitung otomatis sebagai 'Volume Bersih'. Rumus telah memotong ruang sebesar 15% untuk menyisakan ruang substrat pasir, hardscape kayu/batu, dan jarak bibir air atas kaca agar tidak luber." : "Automatically calculated as 'Net Volume' (minus 15% for substrate, clearance, etc).",
+      filter: lang === 'id' ? "Pilih tipe filter fisik yang Bapak gunakan. Jika tidak yakin dengan angka LPH pompa, biarkan kosong." : "Choose closest mechanism. Leave empty if unsure.",
+      light: lang === 'id' ? "Pilih kategori spektrum lampu. Input Watt & Jam digunakan AI untuk mendeteksi ancaman wabah alga." : "If 'Mixed', input Wattage for main light.",
+      co2: lang === 'id' ? "Pencahayaan tinggi tanpa gas CO2 seimbang akan memicu kerusakan tanaman dan ledakan alga rambut." : "Select CO2 supply type. Leave BPS empty if unsure/unused.",
+      substrate: lang === 'id' ? "Tanaman penutup dasar (karpet) membutuhkan Aquasoil. Pasir polos hanya cocok untuk tanaman akar tempel (epifit)." : "Select the material covering your tank bottom.",
+      maintenance: lang === 'id' ? "Disiplin perawatan harian adalah kunci utama penentu skor vitalitas kesehatan air dari AI." : "Key metrics for AI to find root cause of algae/disease."
     }
   };
 
   const titleAddText = mode === "edit" 
-    ? (lang === 'id' ? "Edit Akuarium" : "Edit Aquarium") 
-    : (aqDict?.dashboard?.btnAdd || (lang === 'id' ? "Tambah Akuarium" : "Add Aquarium"));
+    ? (lang === 'id' ? "Konfigurasi Ulang Profil Akuarium" : "Edit Aquarium") 
+    : (aqDict?.dashboard?.btnAdd || (lang === 'id' ? "Daftarkan Ekosistem Akuarium Baru" : "Add Aquarium"));
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -360,17 +356,20 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
             </div>
           )}
 
+          {/* =========================================================================
+              LANGKAH 1: IDENTITAS (FAUNA & PAKEM SENI VISUAL)
+             ========================================================================= */}
           {step === 1 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
               
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Foto Akuarium (Opsional)</label>
+                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Foto Profil Sampul Tangki (Opsional)</label>
                 <input id="cover-image" type="file" accept="image/jpeg, image/png, image/webp, image/heic" onChange={handleCoverChange} className="hidden" />
                 <label htmlFor="cover-image" className="cursor-pointer block">
                   <div className="overflow-hidden rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-500 transition-all group bg-slate-50 dark:bg-slate-950/50">
                     {coverPreview ? (
                       <div className="relative h-48 w-full">
-                        <Image src={coverPreview} alt="Preview Akuarium" fill className="object-cover" unoptimized />
+                        <Image src={coverPreview} alt="Preview" fill className="object-cover" unoptimized />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <span className="text-white text-sm font-bold">Ganti Foto</span>
                         </div>
@@ -378,8 +377,8 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
                     ) : (
                       <div className="flex h-48 flex-col items-center justify-center text-slate-500 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
                         <ImagePlus className="h-10 w-10 mb-2" />
-                        <span className="text-sm font-bold">Upload Foto</span>
-                        <span className="text-xs mt-1">Otomatis Terkompresi (Max 10MB)</span>
+                        <span className="text-sm font-bold">Upload Foto Aktual Tangki</span>
+                        <span className="text-xs mt-1">Sistem Otomatis Mengompres File (Maksimal 10MB)</span>
                       </div>
                     )}
                   </div>
@@ -388,27 +387,38 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
 
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.name} *</label>
-                <input required type="text" name="name" value={formData.name} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none transition-all" placeholder="Contoh: Akuarium Ruang Tamu" />
-                <p className="text-xs text-slate-500 flex items-start gap-1 mt-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.name}</p>
+                <input required type="text" name="name" value={formData.name} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none transition-all" placeholder="Contoh: Tank Kaca Kamar Tidur, Aquascape Ruang Tamu" />
+                <p className="text-xs text-slate-500 flex items-start gap-1 mt-1"><Info className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {wizDict.hints.name}</p>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.tankType}</label>
-                  {/* FIX: Memisahkan nilai yang dikirim ke Zod (value={t}) dengan penjelasan ke user (getTankTypeDesc) */}
-                  <select name="tank_type" value={formData.tank_type} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none">
+                  <select name="tank_type" value={formData.tank_type} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none cursor-pointer">
                     {TANK_TYPES.map(t => <option key={t} value={t}>{getTankTypeDesc(t, lang)}</option>)}
                   </select>
-                  <p className="text-xs text-slate-500 flex items-start gap-1 mt-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.tankType}</p>
+                  <p className="text-xs text-slate-500 flex items-start gap-1 mt-1"><Info className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {wizDict.hints.tankType}</p>
                 </div>
                 
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.aquascapeStyle}</label>
-                  {/* FIX: Memisahkan nilai dengan penjelasan UI (Bilingual) */}
-                  <select name="aquascape_style" value={formData.aquascape_style || "Bebas"} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none">
+                  <select name="aquascape_style" value={formData.aquascape_style || "Bebas"} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none cursor-pointer">
                     {AQUASCAPE_STYLES.map(s => <option key={s} value={s}>{getAquascapeStyleDesc(s, lang)}</option>)}
                   </select>
                   <p className="text-xs text-slate-500 flex items-start gap-1 mt-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.aquascapeStyle}</p>
+                </div>
+              </div>
+
+              {/* KOTAK EDUKASI TAMBAHAN UNTUK PEMULA (STEP 1) */}
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/50 flex items-start gap-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                <HelpCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-blue-800 dark:text-blue-400 block mb-1">💡 Bantuan Cepat Pilih Fokus Ekosistem:</span>
+                  <ul className="list-disc pl-4 space-y-1">
+                    <li><strong className="text-slate-700 dark:text-slate-300">Komunitas:</strong> Gabungan berbagai jenis ikan damai yang aman disatukan (Sangat disarankan bagi pemula).</li>
+                    <li><strong className="text-slate-700 dark:text-slate-300">Iwagumi:</strong> Seni meniru padang rumput hijau luas di alam bebas, hanya fokus pada susunan batu utama dan tanaman karpet lantai bawah.</li>
+                    <li><strong className="text-slate-700 dark:text-slate-300">Dutch Style:</strong> Seperti kebun bunga, tangki penuh sesak dengan barisan tanaman warna-warni tanpa susunan batu/kayu.</li>
+                  </ul>
                 </div>
               </div>
 
@@ -428,35 +438,37 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
             </div>
           )}
 
+          {/* =========================================================================
+              LANGKAH 2: DIMENSI KACA & SUBSTRAT DASAR
+             ========================================================================= */}
           {step === 2 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.length}</label>
-                  <input type="number" name="length_cm" value={formData.length_cm || ""} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none" />
+                  <input type="number" name="length_cm" value={formData.length_cm || ""} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none font-bold" placeholder="Contoh: 60" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.width}</label>
-                  <input type="number" name="width_cm" value={formData.width_cm || ""} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none" />
+                  <input type="number" name="width_cm" value={formData.width_cm || ""} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none font-bold" placeholder="Contoh: 30" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.height}</label>
-                  <input type="number" name="height_cm" value={formData.height_cm || ""} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none" />
+                  <input type="number" name="height_cm" value={formData.height_cm || ""} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none font-bold" placeholder="Contoh: 36" />
                 </div>
               </div>
 
               <div className="p-6 bg-slate-50 dark:bg-slate-950 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-center">
                 <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">{wizDict.labels.volume}</p>
                 <div className="text-4xl font-black text-teal-600 dark:text-teal-400">
-                  {formData.volume_liters} <span className="text-xl text-slate-400">Liters</span>
+                  {formData.volume_liters} <span className="text-xl text-slate-400">Liter Air Netto</span>
                 </div>
-                <p className="text-xs text-slate-500 mt-3">{wizDict.hints.dimensions}</p>
+                <p className="text-xs text-slate-500 mt-3 leading-relaxed max-w-xl mx-auto">{wizDict.hints.dimensions}</p>
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.substrate}</label>
-                {/* FIX: Memisahkan nilai dengan penjelasan UI (Bilingual) */}
-                <select name="substrate_type" value={formData.substrate_type || ""} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none">
+                <select name="substrate_type" value={formData.substrate_type || ""} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none cursor-pointer">
                   {SUBSTRATE_TYPES.map(t => <option key={t} value={t}>{getSubstrateDesc(t, lang)}</option>)}
                 </select>
                 <p className="text-xs text-slate-500 flex items-start gap-1 mt-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.substrate}</p>
@@ -464,101 +476,127 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
             </div>
           )}
 
+          {/* =========================================================================
+              LANGKAH 3: PERALATAN TEKNIS (FILTER, LAMPU, CO2, HEATER)
+             ========================================================================= */}
           {step === 3 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-              <div className="grid sm:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+              
+              {/* 1. SEKTOR FILTRASI */}
+              <div className="grid sm:grid-cols-2 gap-4 bg-blue-50/40 dark:bg-blue-950/10 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/30">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.filter}</label>
-                  {/* FIX: Memisahkan nilai dengan penjelasan UI (Bilingual) */}
-                  <select name="filter_type" value={formData.filter_type || ""} onChange={handleChange} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none">
+                  <select name="filter_type" value={formData.filter_type || ""} onChange={handleChange} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none cursor-pointer">
                     {FILTER_TYPES.map(t => <option key={t} value={t}>{getFilterDesc(t, lang)}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.filterCapacity}</label>
-                  <input type="number" name="filter_flow_lph" value={formData.filter_flow_lph || ""} onChange={handleChange} placeholder="Contoh: 600" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
+                  <input type="number" name="filter_flow_lph" value={formData.filter_flow_lph || ""} onChange={handleChange} placeholder="Contoh: 600" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none font-bold" />
                 </div>
-                <p className="text-xs text-slate-500 col-span-full flex items-start gap-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.filter}</p>
+                {/* CHEAT SHEET FILTRASI UNTUK ORANG AWAM */}
+                <div className="text-xs text-slate-500 col-span-full bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800 leading-relaxed mt-1">
+                  <strong className="text-blue-700 dark:text-blue-400 block mb-1">📋 Lembar Panduan Pompa (LPH):</strong>
+                  Rasio sehat perputaran air akuarium yang ideal adalah <span className="font-bold text-slate-700 dark:text-slate-300">4 kali lipat hingga 6 kali lipat</span> volume air tangki Bapak per jam.
+                  <br />💡 <span className="italic">Rumus Cepat: Jika tangki Bapak berkapasitas 55 Liter, carilah pompa filter yang di spek kardusnya tertulis minimal 220 L/H hingga 300 L/H.</span>
+                </div>
               </div>
 
-              <div className="grid sm:grid-cols-3 gap-4 bg-amber-50/50 dark:bg-amber-950/10 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30">
+              {/* 2. SEKTOR LIGHTING */}
+              <div className="grid sm:grid-cols-3 gap-4 bg-amber-50/40 dark:bg-amber-950/10 p-5 rounded-2xl border border-amber-100 dark:border-amber-900/30">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.light}</label>
-                  {/* FIX: Memisahkan nilai dengan penjelasan UI (Bilingual) */}
-                  <select name="light_type" value={formData.light_type || ""} onChange={handleChange} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none">
+                  <select name="light_type" value={formData.light_type || ""} onChange={handleChange} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none cursor-pointer">
                     {LIGHT_TYPES.map(t => <option key={t} value={t}>{getLightDesc(t, lang)}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.lightWatt}</label>
-                  <input type="number" name="light_wattage" value={formData.light_wattage || ""} onChange={handleChange} placeholder="Daya" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
+                  <input type="number" name="light_wattage" value={formData.light_wattage || ""} onChange={handleChange} placeholder="Contoh: 18" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none font-bold" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.lightHours}</label>
-                  <input type="number" name="photoperiod_hours" value={formData.photoperiod_hours || ""} onChange={handleChange} placeholder="Durasi" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
+                  <input type="number" name="photoperiod_hours" value={formData.photoperiod_hours || ""} onChange={handleChange} placeholder="Contoh: 8" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none font-bold" />
                 </div>
-                <p className="text-xs text-slate-500 col-span-full flex items-start gap-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.light}</p>
+                {/* CHEAT SHEET CAHAYA UNTUK ORANG AWAM */}
+                <div className="text-xs text-slate-500 col-span-full bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800 leading-relaxed mt-1">
+                  <strong className="text-amber-700 dark:text-amber-400 block mb-1">📋 Lembar Panduan Pencahayaan (Watt):</strong>
+                  Ikan & tanaman membutuhkan siklus siang yang teratur. Durasi standar menyalakan lampu adalah <span className="font-bold text-slate-700 dark:text-slate-300">7 - 8 jam sehari</span>.
+                  <br />💡 <span className="italic">Tips Alga: Jangan menyalakan lampu lebih dari 10 jam, karena air tangki Bapak akan berubah menjadi hijau keruh akibat ledakan alga.</span>
+                </div>
               </div>
 
-              <div className="grid sm:grid-cols-3 gap-4 bg-emerald-50/50 dark:bg-emerald-950/10 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
+              {/* 3. SEKTOR CO2 & HEATER */}
+              <div className="grid sm:grid-cols-3 gap-4 bg-emerald-50/40 dark:bg-emerald-950/10 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.co2}</label>
-                  {/* FIX: Memisahkan nilai dengan penjelasan UI (Bilingual) */}
-                  <select name="co2_type" value={formData.co2_type || ""} onChange={handleChange} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none">
+                  <select name="co2_type" value={formData.co2_type || ""} onChange={handleChange} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none cursor-pointer">
                     {CO2_TYPES.map(t => <option key={t} value={t}>{getCO2Desc(t, lang)}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.co2Bps}</label>
-                  <input type="number" name="co2_bps" value={formData.co2_bps || ""} onChange={handleChange} placeholder="BPS" disabled={formData.co2_type === 'None'} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none disabled:opacity-50" />
+                  <input type="number" name="co2_bps" value={formData.co2_bps || ""} onChange={handleChange} placeholder="Contoh: 2" disabled={formData.co2_type === 'None'} className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none disabled:opacity-50 font-bold" />
                 </div>
-                <div className="space-y-2 pt-8 pl-4">
+                <div className="space-y-2 pt-8 pl-2">
                   <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700 dark:text-slate-300 text-sm">
-                    <input type="checkbox" name="heater_enabled" checked={formData.heater_enabled} onChange={handleChange} className="w-5 h-5 accent-emerald-600 rounded" />
+                    <input type="checkbox" name="heater_enabled" checked={formData.heater_enabled} onChange={handleChange} className="w-5 h-5 accent-emerald-600 rounded shrink-0" />
                     {wizDict.labels.heater}
                   </label>
                 </div>
-                <p className="text-xs text-slate-500 col-span-full flex items-start gap-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.co2}</p>
+                {/* CHEAT SHEET CO2 UNTUK ORANG AWAM */}
+                <div className="text-xs text-slate-500 col-span-full bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800 leading-relaxed mt-1">
+                  <strong className="text-emerald-700 dark:text-emerald-400 block mb-1">📋 Lembar Panduan Gas CO2 (BPS):</strong>
+                  BPS artinya jumlah gelembung gas CO2 yang keluar dalam satu detik di counter tabung Bapak.
+                  <br />💡 <span className="italic">Rekomendasi Pemula: Jika menggunakan tipe tabung gas hitech, setel setelan regulator di angka aman **1 - 2 BPS**. Mengisi terlalu tinggi (di atas 4 BPS) bisa meracuni dan membuat ikan pingsan kekurangan oksigen.</span>
+                </div>
               </div>
 
             </div>
           )}
 
+          {/* =========================================================================
+              LANGKAH 4: RUTINITAS PEMELIHARAAN (WATER CHANGE & PUPUK)
+             ========================================================================= */}
           {step === 4 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-              <div className="grid sm:grid-cols-2 gap-6">
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-50 dark:bg-slate-950 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.wcPercent}</label>
                   <div className="relative">
-                    <input type="number" name="water_change_percent" value={formData.water_change_percent || ""} onChange={handleChange} placeholder="Contoh: 30" className="w-full h-12 pl-4 pr-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 outline-none" />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                    <input type="number" name="water_change_percent" value={formData.water_change_percent || ""} onChange={handleChange} placeholder="Contoh: 30" className="w-full h-12 pl-4 pr-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none font-bold text-lg" />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">% Air</span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.wcInterval}</label>
                   <div className="relative">
-                    <input type="number" name="water_change_interval_days" value={formData.water_change_interval_days || ""} onChange={handleChange} placeholder="Contoh: 7" className="w-full h-12 pl-4 pr-16 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 outline-none" />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">Hari</span>
+                    <input type="number" name="water_change_interval_days" value={formData.water_change_interval_days || ""} onChange={handleChange} placeholder="Contoh: 7" className="w-full h-12 pl-4 pr-24 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none font-bold text-lg" />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">Hari Sekali</span>
                   </div>
+                </div>
+                {/* PANDUAN WATER CHANGE */}
+                <div className="text-xs text-slate-500 col-span-full bg-blue-50/50 dark:bg-blue-950/10 p-3 rounded-xl border border-blue-100/50 dark:border-blue-900/30 leading-relaxed">
+                  ⚠️ <span className="font-bold text-slate-700 dark:text-slate-300">Peringatan Keras Pemula:</span> Jangan pernah menguras air akuarium sampai habis total (100% ganti air) karena akan menghancurkan koloni bakteri baik pelapis air tangki Bapak. Rekomendasi medis yang aman adalah mengganti <span className="font-black text-blue-600 dark:text-blue-400">25% - 30% air saja, diulangi setiap 7 hari sekali</span>.
                 </div>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-50 dark:bg-slate-950 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.fertType}</label>
-                  {/* FIX: Memisahkan nilai dengan penjelasan UI (Bilingual) */}
-                  <select name="fertilizer_type" value={formData.fertilizer_type || ""} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 outline-none">
+                  <select name="fertilizer_type" value={formData.fertilizer_type || ""} onChange={handleChange} className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none cursor-pointer">
                     {FERTILIZER_TYPES.map(t => <option key={t} value={t}>{getFertilizerDesc(t, lang)}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.fertSchedule}</label>
-                  <input type="text" name="fertilizer_schedule" value={formData.fertilizer_schedule || ""} onChange={handleChange} placeholder="Contoh: 2 tetes setiap pagi" className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 outline-none" />
+                  <input type="text" name="fertilizer_schedule" value={formData.fertilizer_schedule || ""} onChange={handleChange} placeholder="Contoh: 3 pencet (pump) setiap hari Selasa & Jumat" className="w-full h-12 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
                 </div>
               </div>
               
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/30">
-                <p className="text-sm text-blue-800 dark:text-blue-300 flex items-start gap-2">
+              <div className="p-4 bg-teal-50 dark:bg-teal-950/20 rounded-xl border border-teal-100 dark:border-teal-900/30">
+                <p className="text-sm text-teal-800 dark:text-teal-400 flex items-start gap-2">
                   <Info className="w-5 h-5 shrink-0 mt-0.5" /> 
                   {wizDict.hints.maintenance}
                 </p>
@@ -568,7 +606,8 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
 
         </div>
 
-        <div className="p-4 md:p-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-b-2xl flex items-center justify-between transition-colors">
+        {/* CONTAINER ACTION BUTTONS (Mendukung Tampilan HP & PC) */}
+        <div className="p-4 md:p-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3 transition-colors">
           <Button 
             type="button"
             variant="outline" 
@@ -581,7 +620,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
               }
             }}
             disabled={loading}
-            className="h-12 px-6 rounded-xl font-bold border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm"
+            className="h-12 px-6 rounded-xl font-bold border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm w-full sm:w-auto flex justify-center items-center"
           >
             {step === 1 ? (
               <><X className="w-4 h-4 mr-2" /> {wizDict.btnCancel || (lang === 'id' ? "Batal" : "Cancel")}</>
@@ -591,13 +630,13 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
           </Button>
 
           {step < 4 ? (
-            <Button onClick={handleNextStep} className="bg-teal-600 hover:bg-teal-500 text-white font-bold h-12 px-8 rounded-xl shadow-md shadow-teal-600/20 transition-all">
+            <Button onClick={handleNextStep} className="bg-teal-600 hover:bg-teal-500 text-white font-bold h-12 px-8 rounded-xl shadow-md shadow-teal-600/20 transition-all w-full sm:w-auto flex justify-center items-center">
               {wizDict.btnNext} <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={loading} className="bg-teal-600 hover:bg-teal-500 text-white font-bold h-12 px-8 rounded-xl shadow-lg shadow-teal-600/30 transition-all active:scale-95">
+            <Button onClick={handleSubmit} disabled={loading} className="bg-teal-600 hover:bg-teal-500 text-white font-bold h-12 px-8 rounded-xl shadow-lg shadow-teal-600/30 transition-all active:scale-95 w-full sm:w-auto flex justify-center items-center">
               {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
-              {mode === "edit" ? (lang === 'id' ? "Perbarui" : "Update") : wizDict.btnSave}
+              {mode === "edit" ? (lang === 'id' ? "Perbarui Profil Tangki" : "Update Profile") : wizDict.btnSave}
             </Button>
           )}
         </div>
