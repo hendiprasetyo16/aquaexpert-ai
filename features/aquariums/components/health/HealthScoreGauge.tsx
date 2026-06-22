@@ -14,8 +14,8 @@ interface Props {
 
 export default function HealthScoreGauge({ score, status, trend, lang }: Props) {
   return (
-    <>
-      <div className="relative w-32 h-32 shrink-0 flex items-center justify-center mx-auto md:mx-0">
+    <div className="flex flex-col gap-6 w-full md:w-auto items-center md:items-start">
+      <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
           <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" className="text-slate-100 dark:text-slate-800" />
           <circle 
@@ -30,15 +30,16 @@ export default function HealthScoreGauge({ score, status, trend, lang }: Props) 
         </div>
       </div>
 
-      <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-        <div className={`p-2 rounded-xl text-white ${getHealthBg(status)} shadow-lg`}><HeartPulse className="w-6 h-6" /></div>
+      <div className="flex items-center gap-3 w-full md:w-auto border-b border-slate-100 dark:border-slate-800 pb-4">
+        <div className={`p-2 rounded-xl text-white ${getHealthBg(status)} shadow-lg shrink-0`}><HeartPulse className="w-6 h-6" /></div>
         <div>
-          <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">
-            {lang === 'id' ? "Kesehatan Ekosistem:" : "Ecosystem Health:"} <span className={getHealthColor(status)}>{getHealthStatusText(status, lang === 'en')}</span>
+          <h3 className="text-lg md:text-xl font-black text-slate-800 dark:text-slate-100 leading-tight">
+            {lang === 'id' ? "Status Tangki:" : "Tank Status:"} <br className="hidden md:block"/>
+            <span className={getHealthColor(status)}>{getHealthStatusText(status, lang === 'en')}</span>
           </h3>
-          <p className="text-sm font-medium text-slate-500 mt-0.5">Trend: <span className="font-bold text-slate-700 dark:text-slate-300">{getTrendIcon(trend, lang)}</span></p>
+          <p className="text-sm font-medium text-slate-500 mt-1">Trend: <span className="font-bold text-slate-700 dark:text-slate-300">{getTrendIcon(trend, lang)}</span></p>
         </div>
       </div>
-    </>
+    </div>
   );
 }

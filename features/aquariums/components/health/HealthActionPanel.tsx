@@ -2,7 +2,6 @@
 "use client";
 
 import { HeartPulse, CheckCircle2 } from "lucide-react";
-import { translateHealthRec } from "./health-formatters";
 
 interface Props {
   recommendations: string[];
@@ -18,12 +17,19 @@ export default function HealthActionPanel({ recommendations, lang }: Props) {
         {lang === 'id' ? "Tindakan Disarankan" : "Action Required"}
       </h4>
       <ul className="space-y-3 relative z-10">
-        {recommendations.map((rec, i) => (
-          <li key={i} className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-2.5">
-            <div className="w-2 h-2 rounded-full bg-teal-500 shrink-0 mt-1.5 shadow-[0_0_8px_rgba(20,184,166,0.8)]" />
-            <span className="leading-snug">{translateHealthRec(rec, lang === 'en')}</span>
-          </li>
-        ))}
+        {recommendations.length === 0 ? (
+          <p className="text-sm font-medium text-teal-600/70 dark:text-teal-400/70 italic">
+            {lang === 'id' ? "Tidak ada tindakan mendesak." : "No urgent actions required."}
+          </p>
+        ) : (
+          recommendations.map((rec, i) => (
+            <li key={i} className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-2.5">
+              <div className="w-2 h-2 rounded-full bg-teal-500 shrink-0 mt-1.5 shadow-[0_0_8px_rgba(20,184,166,0.8)]" />
+              {/* Teks sudah bilingual dari Health Engine Backend */}
+              <span className="leading-snug">{rec}</span>
+            </li>
+          ))
+        )}
       </ul>
     </div>
   );

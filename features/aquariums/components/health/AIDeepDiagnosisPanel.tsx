@@ -2,9 +2,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getDeepDiagnosisAction } from "../../actions/deep-diagnosis.actions";
-import { DeepDiagnosisResult, RiskLevel } from "../../utils/deep-diagnosis";
-import { ShieldAlert, Sparkles, Loader2, AlertTriangle, CheckCircle2, Clock, Activity, AlertOctagon, ListTodo, Stethoscope, RefreshCw, Flame, ShieldCheck, Eye, Leaf } from "lucide-react";
+import { getHybridDeepDiagnosisAction, HybridDiagnosisResponse } from "../../actions/gemini-expert.actions";
+import { RiskLevel } from "../../utils/deep-diagnosis";
+import { ShieldAlert, Sparkles, AlertTriangle, Activity, AlertOctagon, Stethoscope, Flame, ShieldCheck, Eye, Leaf, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -14,11 +14,11 @@ interface Props {
 
 export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<DeepDiagnosisResult | null>(null);
+  const [result, setResult] = useState<HybridDiagnosisResponse | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const cachedDiagnosis = sessionStorage.getItem(`aquaexpert_diagnosis_${aquariumId}`);
+    const cachedDiagnosis = sessionStorage.getItem(`aquaexpert_diagnosis_v1_${aquariumId}`);
     if (cachedDiagnosis) {
       try { setResult(JSON.parse(cachedDiagnosis)); } catch (err) {}
     }
@@ -26,14 +26,14 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
 
   const handleRunDiagnosis = async () => {
     setLoading(true); setError("");
-    const res = await getDeepDiagnosisAction(aquariumId, lang);
-    if (res.success && res.diagnosis) {
-      setResult(res.diagnosis as DeepDiagnosisResult);
-      sessionStorage.setItem(`aquaexpert_diagnosis_${aquariumId}`, JSON.stringify(res.diagnosis));
+    const res = await getHybridDeepDiagnosisAction(aquariumId, lang);
+    if (res.success && res.localDiagnosis) {
+      setResult(res);
+      sessionStorage.setItem(`aquaexpert_diagnosis_v1_${aquariumId}`, JSON.stringify(res));
     } else {
       setError(res.error || "Gagal memproses diagnosis.");
     }
-    setTimeout(() => setLoading(false), 800); 
+    setLoading(false);
   };
 
   const getRiskLevelText = (level: string) => {
@@ -74,74 +74,103 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
   return (
     <div className="space-y-6 mt-4">
       {!result && !loading && (
-        <div className="flex flex-col items-center justify-center p-12 bg-indigo-50 dark:bg-indigo-950/20 rounded-[2rem] border-2 border-dashed border-indigo-200 text-center">
+        <div className="flex flex-col items-center justify-center p-8 md:p-12 bg-indigo-50 dark:bg-indigo-950/20 rounded-[2rem] border-2 border-dashed border-indigo-200 text-center">
           <Stethoscope className="w-16 h-16 text-indigo-500 mb-4" />
-          <h4 className="text-2xl font-black text-indigo-900 dark:text-indigo-200">Expert Diagnostic Engine</h4>
-          <Button onClick={handleRunDiagnosis} className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 h-14 rounded-xl">
+          <h4 className="text-xl md:text-2xl font-black text-indigo-900 dark:text-indigo-200 mb-4">Hybrid Expert Diagnostic</h4>
+          <Button onClick={handleRunDiagnosis} className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 h-14 rounded-xl w-full sm:w-auto">
             <Activity className="w-5 h-5 mr-2" /> {lang === 'id' ? "MULAI DIAGNOSIS SISTEM" : "START DIAGNOSIS"}
           </Button>
+          {error && <p className="text-sm font-bold text-rose-500 mt-4">{error}</p>}
         </div>
       )}
 
-      {loading && <div className="p-20 text-center font-black animate-pulse">{lang === 'id' ? "Memindai Anomali..." : "Scanning..."}</div>}
+      {loading && (
+        <div className="flex flex-col items-center justify-center p-20 text-indigo-600 dark:text-indigo-400 font-black animate-pulse">
+          <Bot className="w-12 h-12 mb-4 animate-bounce" />
+          {lang === 'id' ? "Menganalisis Ekosistem & Menghubungi Pakar AI..." : "Analyzing Ecosystem & Consulting AI..."}
+        </div>
+      )}
 
-      {result && !loading && (
+      {result && result.localDiagnosis && !loading && (
         <div className="space-y-6 animate-in fade-in duration-500">
-          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[2rem] border-2 border-slate-200 dark:border-slate-800 shadow-xl flex flex-col md:flex-row gap-8 items-center">
-            <div className="flex-1">
-              <p className="text-slate-800 dark:text-slate-200 font-extrabold text-lg sm:text-xl md:text-2xl leading-relaxed">{result.summary}</p>
+          
+          {/* HEADER SUMMARY */}
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[2rem] border-2 border-slate-200 dark:border-slate-800 shadow-xl flex flex-col-reverse md:flex-row gap-8 items-center">
+            <div className="flex-1 text-center md:text-left">
+              <p className="text-slate-800 dark:text-slate-200 font-extrabold text-lg sm:text-xl md:text-2xl leading-relaxed">
+                {result.localDiagnosis.summary}
+              </p>
             </div>
             <div className="w-full md:w-80 bg-slate-50 dark:bg-slate-950/50 p-6 rounded-3xl border-2 border-slate-200 shadow-inner flex flex-col items-center">
-              <RiskRadarCore currentRisk={result.riskLevel} />
+              <RiskRadarCore currentRisk={result.localDiagnosis.riskLevel} />
             </div>
           </div>
 
-          {/* PRIORITY 3 PANEL: TRANSPARANSI NILAI (AI EXPLAINABILITY) */}
-          {result.explainabilityBreakdown && result.explainabilityBreakdown.length > 0 && (
+          {/* GEMINI HYBRID EXPERT COMMENTARY */}
+          <div className={`relative overflow-hidden p-6 sm:p-8 rounded-[2rem] border-2 shadow-lg ${result.expertAIExtras.generatedByGemini ? 'bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 border-indigo-200 dark:border-indigo-800' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800'}`}>
+            {result.expertAIExtras.generatedByGemini && <Sparkles className="absolute -right-4 -top-4 w-32 h-32 text-indigo-500/10 rotate-12" />}
+            <h4 className={`text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2 ${result.expertAIExtras.generatedByGemini ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400'}`}>
+              <Bot className="w-5 h-5" /> {lang === 'id' ? "Catatan Pakar Ekologi (AI)" : "Expert Ecological Notes (AI)"}
+            </h4>
+            <div className="text-sm md:text-base font-medium leading-relaxed text-slate-700 dark:text-slate-300 space-y-4 whitespace-pre-wrap relative z-10">
+              {result.expertAIExtras.commentary}
+            </div>
+          </div>
+
+          {/* EXPLAINABILITY LOGS */}
+          {result.localDiagnosis.explainabilityBreakdown && result.localDiagnosis.explainabilityBreakdown.length > 0 && (
             <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl">
               <h4 className="text-xs font-black uppercase text-slate-500 tracking-widest mb-3 flex items-center gap-1.5"><Eye className="w-4 h-4"/> Log Transparansi Nilai (AI Explainability)</h4>
               <div className="flex flex-wrap gap-2">
-                {result.explainabilityBreakdown.map((item, idx) => (
+                {result.localDiagnosis.explainabilityBreakdown.map((item, idx) => (
                   <span key={idx} className="text-xs font-bold bg-white dark:bg-slate-900 border text-slate-700 dark:text-slate-300 px-3 py-1 rounded-lg shadow-sm">{item}</span>
                 ))}
               </div>
             </div>
           )}
 
+          {/* DETAILED FINDINGS & ACTIONS */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
             <div className="lg:col-span-2 space-y-6">
+              
+              {/* ROOT CAUSES */}
               <div className="bg-rose-50 dark:bg-rose-950/20 p-6 sm:p-8 rounded-[2rem] border-2 border-rose-200 shadow-md">
-                <h4 className="text-sm font-black uppercase text-rose-700 tracking-widest mb-5 flex items-center gap-2"><ShieldAlert className="w-5 h-5" /> {lang === 'id' ? "Akar Masalah Terdeteksi (Max 8)" : "Top 8 Findings"}</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {result.rootCauses.map((cause, i) => (
-                    <div key={i} className="p-4 rounded-2xl border bg-white dark:bg-slate-950 shadow-sm">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <h5 className="font-extrabold text-slate-800 dark:text-slate-200 text-xs leading-tight">{cause.title}</h5>
-                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${getSeverityColor(cause.severity)}`}>{cause.severity}</span>
+                <h4 className="text-sm font-black uppercase text-rose-700 tracking-widest mb-5 flex items-center gap-2"><ShieldAlert className="w-5 h-5" /> {lang === 'id' ? "Akar Masalah Terdeteksi" : "Core Root Causes"}</h4>
+                {result.localDiagnosis.rootCauses.length === 0 ? (
+                  <p className="text-sm font-bold text-rose-600/50">{lang === 'id' ? "Tidak ada masalah kritis terdeteksi." : "No critical issues detected."}</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {result.localDiagnosis.rootCauses.map((cause, i) => (
+                      <div key={i} className="p-4 rounded-2xl border bg-white dark:bg-slate-950 shadow-sm flex flex-col">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <h5 className="font-extrabold text-slate-800 dark:text-slate-200 text-xs leading-tight">{cause.title}</h5>
+                          <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded shrink-0 ${getSeverityColor(cause.severity)}`}>{cause.severity}</span>
+                        </div>
+                        <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400 leading-relaxed mt-auto">{cause.description}</p>
                       </div>
-                      <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">{cause.description}</p>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* PRIORITY 2 PANEL: FLORA RECOMMENDATION ENGINE */}
+              {/* FLORA RECOMMENDATIONS */}
               <div className="bg-emerald-50 dark:bg-emerald-950/20 p-6 sm:p-8 rounded-[2rem] border-2 border-emerald-200 shadow-md">
-                <h4 className="text-sm font-black uppercase text-emerald-800 tracking-widest mb-4 flex items-center gap-2"><Leaf className="w-5 h-5"/> Rekomendasi Spesies Tanaman Pendukung</h4>
+                <h4 className="text-sm font-black uppercase text-emerald-800 tracking-widest mb-4 flex items-center gap-2"><Leaf className="w-5 h-5"/> {lang === 'id' ? "Rekomendasi Spesies Tanaman Pendukung" : "Flora Support Recommendations"}</h4>
                 <div className="space-y-2">
-                  {result.plantRecommendations.map((rec, i) => (
+                  {result.localDiagnosis.plantRecommendations.map((rec, i) => (
                     <div key={i} className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-emerald-100 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-md" /> {rec}
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] shrink-0" /> {rec}
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
+            {/* ACTION PLAN */}
             <div className="lg:col-span-1 bg-amber-50 dark:bg-amber-950/20 p-6 sm:p-8 rounded-[2rem] border-2 border-amber-200 shadow-md flex flex-col">
-              <h4 className="text-sm font-black uppercase text-amber-800 tracking-widest mb-6 flex items-center gap-2"><Clock className="w-5 h-5" /> {lang === 'id' ? "Rencana Eksekusi" : "Action Plan"}</h4>
+              <h4 className="text-sm font-black uppercase text-amber-800 tracking-widest mb-6 flex items-center gap-2"><Activity className="w-5 h-5" /> {lang === 'id' ? "Rencana Eksekusi" : "Action Plan"}</h4>
               <div className="space-y-4 flex-1">
-                {result.nextActions.map((action, i) => (
+                {result.localDiagnosis.nextActions.map((action, i) => (
                   <div key={i} className="flex items-start gap-3">
                     <div className="w-7 h-7 rounded-full bg-white dark:bg-slate-900 border-2 border-amber-400 text-amber-600 flex items-center justify-center font-black text-xs shrink-0">{i + 1}</div>
                     <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border flex-1"><p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">{action}</p></div>
