@@ -10,7 +10,16 @@ interface Props {
 }
 
 export default function HealthBentoCards({ scores, lang }: Props) {
-  // FIX: Mendefinisikan class Tailwind secara absolut (fillBg) agar tidak di-purge compiler
+  
+  // FIX V1.4: Fungsi konverter skor menjadi Lencana Visual (Severity Badges)
+  const getSeverityBadge = (score: number, isNull: boolean) => {
+    if (isNull) return null;
+    if (score >= 90) return { text: lang === 'id' ? "SEMPURNA" : "EXCELLENT", bg: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" };
+    if (score >= 75) return { text: lang === 'id' ? "BAIK" : "GOOD", bg: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" };
+    if (score >= 60) return { text: lang === 'id' ? "WASPADA" : "WARNING", bg: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" };
+    return { text: lang === 'id' ? "KRITIS" : "CRITICAL", bg: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" };
+  };
+
   const cards = [
     { label: lang === 'id' ? "Kualitas Air" : "Water Quality", score: scores.waterQuality, color: "text-blue-500", fillBg: "bg-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800", icon: Activity, isNull: false },
     { label: lang === 'id' ? "Perawatan" : "Maintenance", score: scores.maintenance, color: "text-amber-500", fillBg: "bg-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800", icon: RefreshCw, isNull: false },
@@ -21,24 +30,34 @@ export default function HealthBentoCards({ scores, lang }: Props) {
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-      {cards.map((sub, i) => (
-        <div key={i} className={`p-4 rounded-2xl border shadow-sm flex flex-col justify-between group transition-colors ${sub.bg}`}>
-          <div className="flex justify-between items-start mb-2">
-            <div className={`p-1.5 rounded-lg bg-white/50 dark:bg-slate-950/50 ${sub.color}`}>
-              <sub.icon className="w-4 h-4" />
+      {cards.map((sub, i) => {
+        const badge = getSeverityBadge(sub.score, sub.isNull);
+        return (
+          <div key={i} className={`p-4 rounded-2xl border shadow-sm flex flex-col justify-between group transition-colors ${sub.bg}`}>
+            <div className="flex justify-between items-start mb-2">
+              <div className={`p-1.5 rounded-lg bg-white/50 dark:bg-slate-950/50 ${sub.color}`}>
+                <sub.icon className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <span className={`text-xl font-black ${sub.isNull ? 'text-slate-400' : 'text-slate-800 dark:text-slate-100'}`}>
+                  {sub.isNull ? '-' : sub.score}
+                </span>
+                {badge && (
+                  <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${badge.bg}`}>
+                    {badge.text}
+                  </span>
+                )}
+              </div>
             </div>
-            <span className={`text-xl font-black ${sub.isNull ? 'text-slate-400' : 'text-slate-800 dark:text-slate-100'}`}>
-              {sub.isNull ? '-' : sub.score}
-            </span>
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">{sub.label}</p>
-            <div className="w-full h-1.5 bg-white dark:bg-slate-800 rounded-full overflow-hidden">
-              {!sub.isNull && <div className={`h-full rounded-full ${sub.fillBg}`} style={{ width: `${sub.score}%` }} />}
+            <div>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">{sub.label}</p>
+              <div className="w-full h-1.5 bg-white dark:bg-slate-800 rounded-full overflow-hidden">
+                {!sub.isNull && <div className={`h-full rounded-full ${sub.fillBg}`} style={{ width: `${sub.score}%` }} />}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

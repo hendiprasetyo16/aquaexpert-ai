@@ -4,15 +4,33 @@
 import { HeartPulse } from "lucide-react";
 import { HealthStatus, HealthTrend } from "../../utils/health-engine";
 import { getHealthColor, getHealthBg, getHealthStatusText, getTrendIcon } from "./health-formatters";
+import { getFriendlyDeductionName } from "../../utils/deduction-labels"; // FIX TEMUAN B: Impor Global
 
 interface Props {
   score: number;
   status: HealthStatus;
   trend: HealthTrend;
   lang: "id" | "en";
+  deductions?: Record<string, number>;
 }
 
-export default function HealthScoreGauge({ score, status, trend, lang }: Props) {
+export default function HealthScoreGauge({ score, status, trend, lang, deductions }: Props) {
+  
+  // Mencari "Faktor Pembatas Utama" menggunakan Mapper Global
+  let limitingFactor: { name: string, penalty: number } | null = null;
+  let maxPen = 0;
+  if (deductions) {
+    Object.entries(deductions).forEach(([key, val]) => {
+      if (val > maxPen) {
+        maxPen = val;
+        limitingFactor = { 
+          name: getFriendlyDeductionName(key, lang), 
+          penalty: Math.floor(val) 
+        };
+      }
+    });
+  }
+
   return (
     <div className="flex flex-col gap-6 w-full md:w-auto items-center md:items-start">
       <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
@@ -40,6 +58,20 @@ export default function HealthScoreGauge({ score, status, trend, lang }: Props) 
           <p className="text-sm font-medium text-slate-500 mt-1">Trend: <span className="font-bold text-slate-700 dark:text-slate-300">{getTrendIcon(trend, lang)}</span></p>
         </div>
       </div>
+
+      {limitingFactor && (
+        <div className="mt-2 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900 rounded-xl p-3 flex items-start gap-2.5 w-full">
+           <div className="mt-0.5 text-rose-500">🔥</div>
+           <div>
+             <p className="text-[10px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 mb-0.5">
+               {lang === 'id' ? "Faktor Pembatas Utama" : "Main Limiting Factor"}
+             </p>
+             <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
+               {limitingFactor.name} <span className="text-rose-600 dark:text-rose-400 font-black">(-{limitingFactor.penalty})</span>
+             </p>
+           </div>
+        </div>
+      )}
     </div>
   );
 }

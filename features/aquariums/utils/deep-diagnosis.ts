@@ -3,6 +3,7 @@ import type { HealthAnalysisResult } from "./health-engine";
 import type { Aquarium } from "../types/aquarium.types";
 import type { AquariumParameterLog } from "../types/parameter.types";
 import type { TankFish, TankPlant } from "../types/inventory.types";
+import { getFriendlyDeductionName } from "./deduction-labels";
 
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
@@ -12,18 +13,22 @@ export interface DiagnosisCause {
   description: string;
 }
 
+export interface DiagnosisAction {
+  instruction: string;
+  priority: "critical" | "high" | "medium" | "low";
+}
+
 export interface DeepDiagnosisResult {
   summary: string;
   riskLevel: RiskLevel;
   rootCauses: DiagnosisCause[];
   recommendations: string[];
-  nextActions: string[];
+  nextActions: DiagnosisAction[]; 
   generatedAt: string;
   explainabilityBreakdown: string[]; 
   plantRecommendations: string[];    
 }
 
-// INJEKSI V1.3: Interface tambahan relasi kerentanan penyakit
 export interface DiseaseVulnerability {
   fish_id: string;
   disease_name_id: string;
@@ -39,24 +44,23 @@ interface Props {
   plants: TankPlant[];
   lang: "id" | "en";
   masterPlantsCandidates?: TankPlant["plant"][]; 
-  // Dipersiapkan untuk Query Action Disease Relational yang akan dibangun selanjutnya
   pathologyVulnerabilities?: DiseaseVulnerability[]; 
 }
 
 export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, plants, lang, masterPlantsCandidates, pathologyVulnerabilities = [] }: Props): DeepDiagnosisResult {
   const rootCauses: DiagnosisCause[] = [];
   const recommendations: string[] = [];
-  const nextActions: string[] = [];
+  const nextActions: DiagnosisAction[] = [];
   const plantRecommendations: string[] = [];
   const explainabilityBreakdown: string[] = [];
 
   const sortedParams = [...parameters].sort((a, b) => new Date(b.record_date).getTime() - new Date(a.record_date).getTime());
   const latest = sortedParams.length > 0 ? sortedParams[0] : null;
 
+  // SINKRONISASI: Variabel hasShrimp digunakan di gerbang validasi predasi invertebrata
   const hasShrimp = fishes.some(f => f.fish?.fish_type === "Invertebrate" || f.fish?.fish_type?.toLowerCase().includes("shrimp"));
   const groupedFishes = new Map<string, { totalQty: number, fishInfo: NonNullable<TankFish['fish']> }>();
   
-  let totalFaunaQty = 0;
   let highRiskDiseaseTriggered = false;
 
   fishes.forEach(f => {
@@ -65,13 +69,15 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
         groupedFishes.set(f.fish_id, { totalQty: 0, fishInfo: f.fish });
       }
       groupedFishes.get(f.fish_id)!.totalQty += f.quantity;
-      totalFaunaQty += f.quantity;
     }
   });
 
-  // =======================================================
-  // 1. ADVANCED FAUNA COMPATIBILITY & POPULATION ENGINE
-  // =======================================================
+  const tankTurnoverRate = (aquarium.volume_liters > 0 && aquarium.filter_flow_lph) ? (aquarium.filter_flow_lph / aquarium.volume_liters) : 0;
+  const isLidPresent = aquarium.lid_present === true;
+  
+  const jumpers: string[] = [];
+  const highFlowDemands: string[] = []; // SINKRONISASI: Diaktifkan
+
   if (groupedFishes.size > 0) {
     const uniqueFishes = Array.from(groupedFishes.values());
 
@@ -133,19 +139,14 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
       }
     }
 
-    // AUDIT PRIORITAS: PATHOLOGY LINK REASONING (DYNAMIC DB RELATION INTEGRATION)
     if (latest && pathologyVulnerabilities.length > 0) {
       groupedFishes.forEach((data) => {
         const f = data.fishInfo;
         const fishName = lang === 'id' ? f.name_id : f.name_en;
-        
-        // Memeriksa tabel silang untuk mencari penyakit kritis (Skor 4 atau 5)
         const criticalVulnerabilities = pathologyVulnerabilities.filter(v => v.fish_id === f.id && v.susceptibility_score >= 4);
 
         criticalVulnerabilities.forEach(vuln => {
           const diseaseName = lang === 'id' ? vuln.disease_name_id : vuln.disease_name_en;
-          
-          // Logika Reaksi Dinamis 1: Kerentanan diaktifkan oleh Toksisitas Kimia (Nitrate)
           if (latest.nitrate != null && latest.nitrate >= 25 && vuln.susceptibility_score === 5) {
             highRiskDiseaseTriggered = true;
             rootCauses.push({
@@ -154,9 +155,11 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
                 ? `Akumulasi Nitrat (${latest.nitrate} ppm) mengaktifkan kerentanan spesifik ras ${fishName} terhadap infeksi ${diseaseName}.`
                 : `Nitrate buildup (${latest.nitrate} ppm) catalyzes ${fishName}'s acute species-specific vulnerability to ${diseaseName}.`
             });
+            nextActions.push({ 
+              instruction: lang === 'id' ? `Lakukan water change berkala untuk menekan nitrat di bawah 15 ppm demi keselamatan ${fishName}.` : `Perform water changes to drop nitrate below 15 ppm for ${fishName}.`,
+              priority: "high"
+            });
           }
-
-          // Logika Reaksi Dinamis 2: Kerentanan diaktifkan oleh Ekstrem Suhu (Shock Termal)
           if (latest.temperature != null && f.temperature_min != null && latest.temperature < f.temperature_min) {
              highRiskDiseaseTriggered = true;
              rootCauses.push({
@@ -169,11 +172,6 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
         });
       });
     }
-
-    const tankTurnoverRate = (aquarium.volume_liters > 0 && aquarium.filter_flow_lph) ? (aquarium.filter_flow_lph / aquarium.volume_liters) : 0;
-    const isLidPresent = aquarium.lid_present === true;
-    const jumpers: string[] = [];
-    const highFlowDemands: string[] = [];
 
     groupedFishes.forEach((data) => {
       const fInfo = data.fishInfo;
@@ -202,29 +200,48 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
         title: lang === 'id' ? "Ancaman Fatal Melompat Keluar" : "Critical Open-Top Jump Hazard", severity: "high",
         description: lang === 'id' ? `Akuarium tanpa tutup atas berisiko tinggi mematikan spesies pelompat: ${jumpers.join(", ")}.` : `Tank top lacks physical boundaries for high-risk jumping species: ${jumpers.join(", ")}.`
       });
-      nextActions.push(lang === 'id' ? "Pasang penutup tangki rapat atau turunkan level air minimal 5 cm dari bibir kaca." : "Install a mesh or glass lid immediately, or drop water level 5 cm down.");
+      nextActions.push({
+        instruction: lang === 'id' ? "Pasang penutup tangki rapat atau turunkan level air minimal 5 cm dari bibir kaca." : "Install a mesh or glass lid immediately, or drop water level 5 cm down.",
+        priority: "critical"
+      });
+    }
+
+    // SINKRONISASI LOGIKA: Membuka data highFlowDemands menjadi Root Cause real
+    if (highFlowDemands.length > 0) {
+      rootCauses.push({
+        title: lang === 'id' ? "Defisit Suplai Arus & Oksigen" : "Oxygen & Flow Deficit Alert", severity: "high",
+        description: lang === 'id'
+          ? `Laju perputaran filter saat ini tidak mencukupi kebutuhan pasokan metabolisme aktif untuk: ${highFlowDemands.join(", ")}.`
+          : `Current filter turnover is suboptimal to support high-flow demand species: ${highFlowDemands.join(", ")}.`
+      });
+    }
+
+    // Validasi Predasi Udang memanfaatkan hasShrimp
+    if (hasShrimp) {
+      groupedFishes.forEach((data) => {
+        if ((data.fishInfo.shrimp_predation_risk ?? 0) >= 8) {
+          nextActions.push({
+             instruction: lang === 'id' ? `Pindahkan udang hias ke tank terisolasi sebelum menjadi mangsa fauna ${data.fishInfo.name_id}.` : `Relocate ornamental shrimp before they get predated by ${data.fishInfo.name_en}.`,
+             priority: "high"
+          });
+        }
+      });
     }
   }
 
-  // =======================================================
-  // 2. MORFOLOGI FLORA & ESTETIKA DESAIN
-  // =======================================================
   const currStyleStr = aquarium.aquascape_style?.toLowerCase() || "bebas";
+  const overgrownPlants: string[] = []; // SINKRONISASI: Diaktifkan
 
   if (plants.length > 0) {
     const unsuitablePlants: string[] = [];
-    const overgrownPlants: string[] = [];
 
     plants.forEach(p => {
       const pData = p.plant;
       if (!pData) return;
       const pName = lang === 'id' ? pData.name_id : (pData.name_en || pData.name_id);
       
-      if (currStyleStr === "dutch" && (pData.epiphyte || pData.floating)) {
-        unsuitablePlants.push(pName);
-      } else if (currStyleStr === "iwagumi" && !pData.carpeting && pData.placement !== "Foreground") {
-        unsuitablePlants.push(pName);
-      }
+      if (currStyleStr === "dutch" && (pData.epiphyte || pData.floating)) unsuitablePlants.push(pName);
+      else if (currStyleStr === "iwagumi" && !pData.carpeting && pData.placement !== "Foreground") unsuitablePlants.push(pName);
 
       if (pData.growth_height_cm != null && aquarium.height_cm > 0 && pData.growth_height_cm > aquarium.height_cm) {
         overgrownPlants.push(pName);
@@ -235,6 +252,20 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
       rootCauses.push({
         title: lang === 'id' ? "Anomali Komposisi Kompetisi Flora" : "Layout Design Anomaly", severity: "low",
         description: lang === 'id' ? `Peletakan tanaman ${unsuitablePlants.join(", ")} menyalahi pakem baku aliran kontes ${aquarium.aquascape_style}.` : `The usage of ${unsuitablePlants.join(", ")} conflicts with classical layouts of ${aquarium.aquascape_style} style.`
+      });
+    }
+
+    // SINKRONISASI LOGIKA: Membuka data overgrownPlants menjadi Root Cause real
+    if (overgrownPlants.length > 0) {
+      rootCauses.push({
+        title: lang === 'id' ? "Flora Melebihi Batas Ketinggian" : "Flora Outgrew Vertical Bounds", severity: "medium",
+        description: lang === 'id'
+          ? `Tanaman bertangkai ${overgrownPlants.join(", ")} telah tumbuh menembus ketinggian permukaan air kaca tangki.`
+          : `Stem plants like ${overgrownPlants.join(", ")} outgrew the vertical water surface line.`,
+      });
+      nextActions.push({
+         instruction: lang === 'id' ? `Lakukan pemangkasan (*trimming*) berkala pada bagian atas tanaman ${overgrownPlants.join(", ")}.` : `Perform routine top trimming for overgrown stems: ${overgrownPlants.join(", ")}.`,
+         priority: "medium"
       });
     }
   }
@@ -261,12 +292,12 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
     });
   }
 
-  // ==========================================
-  // 3. LOGIKA DEDUPLIKASI & OVERRIDE RISK LEVEL
-  // ==========================================
   if (health.deductions) {
     Object.entries(health.deductions).forEach(([key, value]) => {
-      if (value > 0) explainabilityBreakdown.push(`${key}: -${Math.floor(value)} Poin`);
+      if (value > 0) {
+        const friendlyName = getFriendlyDeductionName(key, lang);
+        explainabilityBreakdown.push(`${friendlyName}: -${Math.floor(value)} Poin`);
+      }
     });
   }
 
@@ -289,12 +320,47 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
   if (health.scores.overall < 70) riskLevel = "HIGH";
   if (health.scores.overall < 50) riskLevel = "CRITICAL";
 
-  if (highRiskDiseaseTriggered && riskLevel === "HIGH") {
+  if (highRiskDiseaseTriggered && riskLevel === "HIGH") riskLevel = "CRITICAL";
+
+  if (latest?.ammonia != null && latest.ammonia >= 0.5) {
     riskLevel = "CRITICAL";
+    nextActions.push({ instruction: lang === 'id' ? "Segera evakuasi ikan atau ganti air 50% untuk menekan Amonia beracun." : "Evacuate fish immediately or perform a 50% water change to dilute toxic Ammonia.", priority: "critical" });
+  }
+  if (latest?.nitrite != null && latest.nitrite >= 0.5) {
+    riskLevel = "CRITICAL";
+    nextActions.push({ instruction: lang === 'id' ? "Tambahkan bakteri starter dan aerasi ekstra untuk mendongkrak pengikatan oksigen." : "Dose starter bacteria and maximize aeration to combat Nitrite suffocation.", priority: "high" });
   }
 
-  if (latest?.ammonia != null && latest.ammonia >= 0.5) riskLevel = "CRITICAL";
-  if (latest?.nitrite != null && latest.nitrite >= 0.5) riskLevel = "CRITICAL";
+  if (nextActions.length === 0) {
+    nextActions.push({ 
+      instruction: lang === 'id' ? "Pertahankan sirkulasi filter harian dan awasi perilaku ikan." : "Maintain baseline flow dynamics and observe behavioural mutations.", 
+      priority: "low" 
+    });
+  }
+
+  const uniqueActionsMap = new Map<string, DiagnosisAction>();
+  nextActions.forEach(action => {
+    if (uniqueActionsMap.has(action.instruction)) {
+      const existing = uniqueActionsMap.get(action.instruction)!;
+      const pWeight = { "critical": 4, "high": 3, "medium": 2, "low": 1 };
+      if (pWeight[action.priority] > pWeight[existing.priority]) {
+        uniqueActionsMap.set(action.instruction, action);
+      }
+    } else {
+      uniqueActionsMap.set(action.instruction, action);
+    }
+  });
+  const finalActions = Array.from(uniqueActionsMap.values());
+
+  finalActions.sort((a, b) => {
+    const pWeight = { "critical": 4, "high": 3, "medium": 2, "low": 1 };
+    return pWeight[b.priority] - pWeight[a.priority];
+  });
+
+  const hasCriticalAction = finalActions.some(a => a.priority === "critical");
+  if (hasCriticalAction && riskLevel !== "CRITICAL") {
+     riskLevel = "CRITICAL";
+  }
 
   let summary = "";
   if (riskLevel === "LOW") summary = lang === 'id' ? "Kondisi simulasi ekologi stabil. Parameter biologi beroperasi di titik kenyamanan tertinggi." : "Ecosystem simulation stable. All biological entities operating within ideal comfort loops.";
@@ -302,7 +368,5 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
   else if (riskLevel === "HIGH") summary = lang === 'id' ? "Peringatan Malfungsi Sistem: Faktor destruktif mengancam keselamatan populasi." : "System Alert: Highly destructive elements threatening current survival loops.";
   else summary = lang === 'id' ? "KEGAGALAN EKOSISTEM TOTAL: Terdeteksi ancaman patogen aktif atau keracunan parameter air parah!" : "TOTAL ECOSYSTEM FAILURE: Active high-vulnerability pathogens or chemical spikes detected!";
 
-  if (nextActions.length === 0) nextActions.push(lang === 'id' ? "Pertahankan sirkulasi filter harian dan awasi tanda-tanda stres perilaku." : "Maintain baseline flow dynamics and observe behavioural mutations.");
-
-  return { summary, riskLevel, rootCauses: finalRootCauses, recommendations, nextActions, generatedAt: new Date().toISOString(), explainabilityBreakdown, plantRecommendations };
+  return { summary, riskLevel, rootCauses: finalRootCauses, recommendations, nextActions: finalActions, generatedAt: new Date().toISOString(), explainabilityBreakdown, plantRecommendations };
 }

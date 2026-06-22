@@ -63,7 +63,8 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
     if (process.env.GEMINI_API_KEY && localDiagnosis.rootCauses.length > 0) {
       try {
         const issuesSummary = localDiagnosis.rootCauses.map(c => `- ${c.title}: ${c.description}`).join("\n");
-        const actionsSummary = localDiagnosis.nextActions.join(", ");
+        // FIX: Konversi array of objects kembali ke string informatif untuk LLM
+        const actionsSummary = localDiagnosis.nextActions.map(a => `[${a.priority.toUpperCase()}] ${a.instruction}`).join("\n");
         
         const systemPrompt = `You are a world-class professional aquascaper and aquatic veterinarian expert. 
 You will be provided with a raw technical diagnosis report from an aquarium ecosystem monitoring software. 
@@ -73,7 +74,6 @@ Strictly adhere to these rules:
 2. Do not repeat the raw numbers verbatim, instead explain the biological consequence of those issues.
 3. Be supportive but firm about urgent threats like Ammonia or Biotope Mismatches.
 4. Output your response entirely in the requested language: ${lang === 'id' ? 'Indonesian' : 'English'}.`;
-
         const userPrompt = `Aquarium Name: ${aquarium.name}
 Style: ${aquarium.aquascape_style}
 Volume: ${aquarium.volume_liters} Liters
