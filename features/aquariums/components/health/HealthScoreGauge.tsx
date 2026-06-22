@@ -1,10 +1,9 @@
-// features/aquariums/components/health/HealthScoreGauge.tsx
 "use client";
 
 import { HeartPulse } from "lucide-react";
 import { HealthStatus, HealthTrend } from "../../utils/health-engine";
 import { getHealthColor, getHealthBg, getHealthStatusText, getTrendIcon } from "./health-formatters";
-import { getFriendlyDeductionName } from "../../utils/deduction-labels"; // FIX TEMUAN B: Impor Global
+import { getFriendlyDeductionName } from "../../utils/deduction-labels"; 
 
 interface Props {
   score: number;
@@ -16,11 +15,13 @@ interface Props {
 
 export default function HealthScoreGauge({ score, status, trend, lang, deductions }: Props) {
   
-  // Mencari "Faktor Pembatas Utama" menggunakan Mapper Global
-  let limitingFactor: { name: string, penalty: number } | null = null;
+  let limitingFactor: { name: string; penalty: number } | null = null;
   let maxPen = 0;
+  
+  // FIX ERROR 2: Menggunakan for...of agar TypeScript bisa melacak mutasi nilai 
+  // dan tidak menganggap variabel ini sebagai tipe 'never'
   if (deductions) {
-    Object.entries(deductions).forEach(([key, val]) => {
+    for (const [key, val] of Object.entries(deductions)) {
       if (val > maxPen) {
         maxPen = val;
         limitingFactor = { 
@@ -28,7 +29,7 @@ export default function HealthScoreGauge({ score, status, trend, lang, deduction
           penalty: Math.floor(val) 
         };
       }
-    });
+    }
   }
 
   return (

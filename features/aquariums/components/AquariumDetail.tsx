@@ -1,4 +1,3 @@
-// features/aquariums/components/AquariumDetail.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -11,19 +10,19 @@ import { getAquariumByIdAction, updateAquariumAction, deleteAquariumAction } fro
 import { Aquarium } from "../types/aquarium.types";
 import { 
   ArrowLeft, Edit, Archive, Trash2, Container, AlertTriangle, 
-  Droplets, Settings2, CalendarDays, Loader2, RefreshCw, 
-  LayoutDashboard, Activity, Leaf, ShieldAlert,
-  Maximize, Box, Layers, Lightbulb, Wind, Thermometer, FlaskConical,
-  Stethoscope, Fish, HeartPulse // Tambahan Icon
+  Droplets, RefreshCw, LayoutDashboard, Activity, Leaf, ShieldAlert,
+  Stethoscope, Fish, Loader2 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
+// Tabs & Panels
 import ParameterTab from "./ParameterTab";
 import InventoryTab from "./InventoryTab"; 
 import MaintenanceTab from "./MaintenanceTab"; 
 import HealthDashboard from "./health/HealthDashboard"; 
 import AIDeepDiagnosisPanel from "./health/AIDeepDiagnosisPanel";
+import { AquariumSpecsPanel } from "./AquariumSpecsPanel"; // FIX: Panggil komponen modular baru
 
 import { getParametersAction } from "../actions/parameter.actions";
 import { getTankInventoryAction } from "../actions/inventory.actions";
@@ -31,10 +30,7 @@ import { getMaintenanceDashboardAction } from "../actions/maintenance.actions";
 import type { AquariumParameterLog } from "../types/parameter.types";
 import type { TankFish, TankPlant } from "../types/inventory.types";
 import { analyzeAquariumHealth, HealthAnalysisResult } from "../utils/health-engine";
-import { 
-  calculateTankAge, getTankTypeDesc, getSubstrateDesc, 
-  getFilterDesc, getFertilizerDesc, AquariumDictionary
-} from "./aquarium-helpers";
+import { getTankTypeDesc, AquariumDictionary } from "./aquarium-helpers";
 
 interface DetailDictionary {
   back: string; edit: string; archive: string; restore: string;
@@ -63,7 +59,6 @@ export default function AquariumDetail() {
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   
-  // Data tambahan untuk Overview (Inventaris Realtime)
   const [healthResult, setHealthResult] = useState<HealthAnalysisResult | null>(null);
   const [totalFishes, setTotalFishes] = useState(0);
   const [totalPlants, setTotalPlants] = useState(0);
@@ -95,15 +90,6 @@ export default function AquariumDetail() {
     { id: "ai" as TabId, label: detailDict.aiDiagnose, icon: Stethoscope }, 
   ];
 
-  const getParamText = (val: string | null | undefined) => {
-    if (!val) return "-";
-    const lower = val.toLowerCase();
-    if (lower === 'low') return rootDict?.formOptions?.paramLow || val;
-    if (lower === 'medium') return rootDict?.formOptions?.paramMed || val;
-    if (lower === 'high') return rootDict?.formOptions?.paramHigh || val;
-    return val;
-  };
-
   useEffect(() => {
     async function fetchAllData() {
       if (!aquariumId) return;
@@ -123,7 +109,6 @@ export default function AquariumDetail() {
         const fishData = invRes.success ? (invRes.fishes as TankFish[]) : [];
         const maintData = maintRes.success ? maintRes.tasksStatus : [];
 
-        // Hitung total kuantitas murni untuk UI Overview
         setTotalFishes(fishData.reduce((acc, curr) => acc + curr.quantity, 0));
         setTotalPlants(plantData.reduce((acc, curr) => acc + curr.quantity, 0));
 
@@ -211,10 +196,8 @@ export default function AquariumDetail() {
   }
 
   const isArchived = aquarium.is_active === false;
-  const tankAge = calculateTankAge(aquarium.setup_date, {} as AquariumDictionary, lang);
   const tankType = getTankTypeDesc(aquarium.tank_type, lang);
 
-  // Kalkulasi persentase Bioload aktual (100 - Bioload Score)
   const bioloadPercent = healthResult ? Math.max(0, 100 - healthResult.scores.bioload) : 0;
   const bioloadColor = bioloadPercent < 50 ? "text-teal-500 bg-teal-50 dark:bg-teal-900/30" : bioloadPercent < 80 ? "text-amber-500 bg-amber-50 dark:bg-amber-900/30" : "text-rose-500 bg-rose-50 dark:bg-rose-900/30";
 
@@ -238,9 +221,9 @@ export default function AquariumDetail() {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent pointer-events-none" />
 
-          <div className="relative z-10 mt-auto p-6 sm:p-10 w-full">
+          <div className="relative z-10 mt-auto p-5 sm:p-8 lg:p-10 w-full">
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-              <div className="space-y-3">
+              <div className="space-y-3 w-full lg:w-auto overflow-hidden">
                 <div className="flex items-center gap-2 flex-wrap">
                   {isArchived ? (
                     <span className="inline-flex px-3 py-1 bg-amber-500/20 text-amber-400 text-[10px] font-black tracking-widest uppercase rounded-full border border-amber-500/30 backdrop-blur-md items-center gap-1.5"><Archive className="w-3.5 h-3.5" /> ARCHIVED</span>
@@ -249,9 +232,9 @@ export default function AquariumDetail() {
                   )}
                   {aquarium.is_primary && !isArchived && <span className="inline-flex px-3 py-1 bg-blue-500 text-white text-[10px] font-black tracking-widest uppercase rounded-full shadow-lg border border-blue-400">PRIMARY TANK</span>}
                 </div>
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white drop-shadow-2xl tracking-tight">{aquarium.name}</h1>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-white drop-shadow-2xl tracking-tight truncate" title={aquarium.name}>{aquarium.name}</h1>
                 <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-slate-300 font-medium">
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg border border-white/10 backdrop-blur-sm"><Container className="w-4 h-4 text-teal-400" /> <span className="text-sm">{tankType}</span></div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg border border-white/10 backdrop-blur-sm"><Container className="w-4 h-4 text-teal-400" /> <span className="text-sm truncate max-w-[150px] sm:max-w-xs">{tankType}</span></div>
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg border border-white/10 backdrop-blur-sm"><Droplets className="w-4 h-4 text-blue-400" /> <span className="text-sm">{aquarium.volume_liters} L</span></div>
                 </div>
               </div>
@@ -268,7 +251,7 @@ export default function AquariumDetail() {
 
       {/* TABS MENU */}
       <div className="max-w-[1400px] mx-auto p-4 sm:p-8 mt-4 relative z-20">
-        <div className="flex items-center justify-start sm:justify-between bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 mb-6 p-2 overflow-x-auto no-scrollbar">
+        <div className="flex items-center justify-start sm:justify-between bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 mb-6 p-2 overflow-x-auto custom-scrollbar">
           <div className="flex gap-2 min-w-max w-full">
             {TABS.map((tab) => (
               <button key={tab.id} onClick={() => handleTabClick(tab.id)} className={`flex items-center justify-center gap-2 flex-1 min-w-[140px] px-4 py-2.5 text-sm font-black rounded-xl transition-all duration-300 ${activeTab === tab.id ? "bg-teal-600 text-white shadow-md shadow-teal-600/20" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-teal-600"}`}>
@@ -283,34 +266,34 @@ export default function AquariumDetail() {
           {activeTab === "overview" && (
             <div className="flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-500">
               
-              {/* V4 INVENTORY QUICK STATS (NEW!) */}
+              {/* INVENTORY QUICK STATS */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
                   <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl text-blue-600 dark:text-blue-400"><Fish className="w-6 h-6" /></div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{lang === 'id' ? "Total Ikan" : "Fish Stock"}</p>
-                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5">{totalFishes} {lang === 'id' ? "Ekor" : "pcs"}</p>
+                  <div className="overflow-hidden">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest truncate">{lang === 'id' ? "Total Ikan" : "Fish Stock"}</p>
+                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5 truncate">{totalFishes} {lang === 'id' ? "Ekor" : "pcs"}</p>
                   </div>
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
                   <div className="bg-emerald-100 dark:bg-emerald-900/30 p-3 rounded-xl text-emerald-600 dark:text-emerald-400"><Leaf className="w-6 h-6" /></div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{lang === 'id' ? "Total Flora" : "Plants"}</p>
-                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5">{totalPlants} {lang === 'id' ? "Porsi" : "pts"}</p>
+                  <div className="overflow-hidden">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest truncate">{lang === 'id' ? "Total Flora" : "Plants"}</p>
+                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5 truncate">{totalPlants} {lang === 'id' ? "Porsi" : "pts"}</p>
                   </div>
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
                   <div className="bg-cyan-100 dark:bg-cyan-900/30 p-3 rounded-xl text-cyan-600 dark:text-cyan-400"><Container className="w-6 h-6" /></div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{lang === 'id' ? "Volume Air" : "Capacity"}</p>
-                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5">{aquarium.volume_liters} L</p>
+                  <div className="overflow-hidden">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest truncate">{lang === 'id' ? "Volume Air" : "Capacity"}</p>
+                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5 truncate">{aquarium.volume_liters} L</p>
                   </div>
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                  <div className={`p-3 rounded-xl ${bioloadColor}`}><Activity className="w-6 h-6" /></div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{lang === 'id' ? "Beban Ekosistem" : "Bioload"}</p>
-                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5">{bioloadPercent}%</p>
+                  <div className={`p-3 rounded-xl ${bioloadColor} shrink-0`}><Activity className="w-6 h-6" /></div>
+                  <div className="overflow-hidden">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest truncate">{lang === 'id' ? "Beban Ekologi" : "Bioload"}</p>
+                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5 truncate">{bioloadPercent}%</p>
                   </div>
                 </div>
               </div>
@@ -320,107 +303,11 @@ export default function AquariumDetail() {
                 <HealthDashboard healthResult={healthResult} lang={lang} />
               )}
 
-              {/* BENTO GRID BAWAH (DIMENSI, PERALATAN, MAINTENANCE) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch mt-2">
-                {/* 1. KOTAK DIMENSI */}
-                <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-900/50 p-6 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-800 flex flex-col h-full relative overflow-hidden group">
-                  <Maximize className="absolute -bottom-4 -right-4 w-24 h-24 text-slate-100 dark:text-slate-800/50 transition-transform duration-700 group-hover:scale-110" />
-                  <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-6 flex items-center gap-2 relative z-10">
-                    <CalendarDays className="w-5 h-5 text-indigo-500" /> {detailDict.dimensions}
-                  </h3>
-                  <div className="space-y-4 relative z-10 flex-1 flex flex-col justify-center">
-                    <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0"><CalendarDays className="w-5 h-5"/></div>
-                      <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{lang === 'id' ? "Umur Sistem" : "System Maturity"}</p>
-                        <p className="font-black text-slate-800 dark:text-slate-100 leading-tight">{tankAge}</p>
-                        <p className="text-[10px] text-slate-500 font-medium">Setup: {aquarium.setup_date}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0"><Box className="w-5 h-5"/></div>
-                      <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{lang === 'id' ? "Volume & Ukuran" : "Volume & Size"}</p>
-                        <p className="font-black text-slate-800 dark:text-slate-100 leading-tight">{aquarium.volume_liters} Liters</p>
-                        <p className="text-[10px] text-slate-500 font-medium">{aquarium.length_cm} x {aquarium.width_cm} x {aquarium.height_cm} cm</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0"><Layers className="w-5 h-5"/></div>
-                      <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Substrate</p>
-                        <p className="font-black text-slate-800 dark:text-slate-100 leading-tight">{getSubstrateDesc(aquarium.substrate_type, lang)}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. KOTAK PERALATAN */}
-                <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-900/50 p-6 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-800 flex flex-col h-full relative overflow-hidden group">
-                  <Settings2 className="absolute -bottom-4 -right-4 w-24 h-24 text-slate-100 dark:text-slate-800/50 transition-transform duration-700 group-hover:rotate-45" />
-                  <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-6 flex items-center gap-2 relative z-10">
-                    <Settings2 className="w-5 h-5 text-teal-500" /> {detailDict.equipment}
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3 relative z-10 flex-1 content-start">
-                    <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-start transition-colors hover:border-cyan-200 dark:hover:border-cyan-900 h-full">
-                      <div className="flex items-center gap-2 mb-1.5 shrink-0">
-                        <div className="p-1.5 bg-cyan-100 dark:bg-cyan-900/50 rounded-lg text-cyan-600 dark:text-cyan-400"><Activity className="w-3.5 h-3.5"/></div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{lang === 'id' ? "Filtrasi" : "Filtration"}</span>
-                      </div>
-                      <p className="font-black text-[13px] text-slate-800 dark:text-slate-100 leading-snug">{getFilterDesc(aquarium.filter_type, lang)}</p>
-                    </div>
-                    <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-start transition-colors hover:border-yellow-200 dark:hover:border-yellow-900 h-full">
-                      <div className="flex items-center gap-2 mb-1.5 shrink-0">
-                        <div className="p-1.5 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg text-yellow-600 dark:text-yellow-400"><Lightbulb className="w-3.5 h-3.5"/></div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{lang === 'id' ? "Cahaya" : "Lighting"}</span>
-                      </div>
-                      <p className="font-black text-[13px] text-slate-800 dark:text-slate-100 leading-snug">{getParamText(aquarium.light_type)}</p>
-                    </div>
-                    <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-start transition-colors hover:border-emerald-200 dark:hover:border-emerald-900 h-full">
-                      <div className="flex items-center gap-2 mb-1.5 shrink-0">
-                        <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg text-emerald-600 dark:text-emerald-400"><Wind className="w-3.5 h-3.5"/></div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{lang === 'id' ? "CO2" : "CO2 Supply"}</span>
-                      </div>
-                      <p className="font-black text-[13px] text-slate-800 dark:text-slate-100 leading-snug">{getParamText(aquarium.co2_type)}</p>
-                    </div>
-                    <div className="bg-white dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-start transition-colors hover:border-orange-200 dark:hover:border-orange-900 h-full">
-                      <div className="flex items-center gap-2 mb-1.5 shrink-0">
-                        <div className="p-1.5 bg-orange-100 dark:bg-orange-900/50 rounded-lg text-orange-600 dark:text-orange-400"><Thermometer className="w-3.5 h-3.5"/></div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{lang === 'id' ? "Suhu" : "Thermal"}</span>
-                      </div>
-                      <p className="font-black text-[13px] text-slate-800 dark:text-slate-100 leading-snug">{aquarium.heater_enabled ? (lang === 'id' ? "Heater Aktif" : "Heater Active") : (lang === 'id' ? "Tanpa Heater" : "No Heater")}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. KOTAK MAINTENANCE */}
-                <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-900/50 p-6 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-800 flex flex-col h-full relative overflow-hidden group">
-                  <Droplets className="absolute -bottom-4 -right-4 w-24 h-24 text-slate-100 dark:text-slate-800/50 transition-transform duration-700 group-hover:-translate-y-2" />
-                  <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-6 flex items-center gap-2 relative z-10">
-                    <RefreshCw className="w-5 h-5 text-blue-500" /> {detailDict.maintenance}
-                  </h3>
-                  <div className="space-y-4 relative z-10 flex-1 flex flex-col justify-center">
-                    <div className="p-5 rounded-2xl bg-blue-500 text-white shadow-lg shadow-blue-500/30 flex-1 flex flex-col justify-center relative overflow-hidden group/wc hover:bg-blue-600 transition-colors min-h-[100px]">
-                      <Droplets className="absolute -right-4 -bottom-4 w-32 h-32 opacity-10 group-hover/wc:scale-110 transition-transform duration-700" />
-                      <p className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-1.5 relative z-10">{lang === 'id' ? "Ganti Air (Water Change)" : "Water Change"}</p>
-                      <div className="flex items-baseline gap-2 relative z-10">
-                        <span className="text-4xl font-black">{aquarium.water_change_percent}%</span>
-                        <span className="text-sm font-medium text-blue-100 uppercase tracking-wide">
-                          {lang === 'id' ? "Tiap" : "Every"} {aquarium.water_change_interval_days} {lang === 'id' ? "Hari" : "Days"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4 transition-colors hover:border-emerald-200 dark:hover:border-emerald-900 min-h-[80px]">
-                      <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0"><FlaskConical className="w-6 h-6"/></div>
-                      <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{lang === 'id' ? "Jadwal Pupuk" : "Fertilizer Regimen"}</p>
-                        <p className="font-black text-sm text-slate-800 dark:text-slate-100 leading-snug">{getFertilizerDesc(aquarium.fertilizer_type, lang)}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
+              {/* FIX: MENGGUNAKAN KOMPONEN MODULAR SPECS PANEL YANG SUDAH DIBUAT */}
+              <div className="mt-2">
+                <AquariumSpecsPanel aquarium={aquarium} lang={lang} />
               </div>
+
             </div>
           )}
 

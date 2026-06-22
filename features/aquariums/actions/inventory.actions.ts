@@ -1,4 +1,3 @@
-// features/aquariums/actions/inventory.actions.ts
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
@@ -43,42 +42,29 @@ export async function getTankInventoryAction(aquariumId: string) {
 
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
+    // FIX: Menggunakan operator (*) untuk mencegah query crash akibat typo/ketidakcocokan nama kolom
     const { data: fishes, error: errFish } = await supabase
       .from("aquarium_fishes")
       .select(`
         *, 
-        fish:fishes(
-          id, name_id, name_en, image_url, fish_type, 
-          estimated_adult_size_cm, bioload_factor,
-          activity_level, water_layer, temperament_score, shrimp_safe, plant_safe,
-          temperature_min, temperature_max, ph_min, ph_max,
-          min_school_size, fin_nipper, long_finned, minimum_tank_length_cm,
-          mouth_size_factor, compatibility_tags, territorial, predatory, activity_period,
-          compatibility_score, shrimp_predation_risk, native_biotope,
-          preferred_temperature, preferred_ph, preferred_gh, uproots_plants, preferred_aquascape_styles,
-          oxygen_requirement_score, current_preference, max_group_size, breeding_difficulty, lifespan_years,
-          minimum_tank_volume_liters, waste_production_score, jump_risk, sensitive_to_nitrate,
-          conservation_status
-        )
+        fish:fishes(*)
       `)
       .eq("aquarium_id", aquariumId)
       .order("added_at", { ascending: false });
 
+    // FIX: Menggunakan operator (*) untuk tanaman
     const { data: plants, error: errPlant } = await supabase
       .from("aquarium_plants")
       .select(`
         *, 
-        plant:plants(
-          id, name_id, name_en, image_url, placement, growth_rate, nitrate_consumption, 
-          oxygen_production, algae_resistance, difficulty, co2_mandatory, light_requirement, 
-          growth_speed_score, nutrient_consumption_score,
-          preferred_ph, preferred_temperature, preferred_gh, carpeting, epiphyte, floating, aquascape_style,
-          growth_height_cm, growth_width_cm, trimming_frequency_score, invasive_growth,
-          root_feeder
-        )
+        plant:plants(*)
       `)
       .eq("aquarium_id", aquariumId)
       .order("added_at", { ascending: false });
+
+    // Injeksi console.error untuk mempermudah Bapak melakukan debugging di terminal VS Code
+    if (errFish) console.error("Supabase Fish Error:", errFish);
+    if (errPlant) console.error("Supabase Plant Error:", errPlant);
 
     if (errFish || errPlant) throw new Error("Database error while fetching inventory.");
 

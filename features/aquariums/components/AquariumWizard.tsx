@@ -1,4 +1,3 @@
-// features/aquariums/components/AquariumWizard.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -30,7 +29,7 @@ interface AquariumWizardProps {
   initialData?: Aquarium | null;
 }
 
-// Opsi Hardcoded untuk Style Aquascape (Sesuai request)
+// Opsi Hardcoded untuk Style Aquascape
 const AQUASCAPE_STYLES = [
   "Bebas", "Nature", "Dutch", "Iwagumi", "Biotope", "Blackwater", "Jungle", "Minimalist"
 ] as const;
@@ -146,8 +145,8 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
 
   const [formData, setFormData] = useState<CreateAquariumInput>({
     name: "", tank_type: "Community", aquascape_style: "Bebas", setup_date: new Date().toISOString().split('T')[0], is_primary: false,
-    length_cm: 60, width_cm: 30, height_cm: 36, volume_liters: 55, // Default volume netto 60x30x36
-    substrate_type: "Sand", filter_type: "Hang on Back (HOB)", filter_capacity_lph: null,
+    length_cm: 60, width_cm: 30, height_cm: 36, volume_liters: 55, 
+    substrate_type: "Sand", filter_type: "Hang on Back (HOB)", filter_flow_lph: null, // FIX: Menggunakan filter_flow_lph
     light_type: "White LED", light_wattage: null, photoperiod_hours: 8,
     co2_type: "None", co2_bps: null, heater_enabled: false,
     water_change_percent: 30, water_change_interval_days: 7, fertilizer_type: "None", fertilizer_schedule: ""
@@ -167,7 +166,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
         volume_liters: initialData.volume_liters || 55,
         substrate_type: (initialData.substrate_type as CreateAquariumInput["substrate_type"]) || "Sand",
         filter_type: (initialData.filter_type as CreateAquariumInput["filter_type"]) || "Hang on Back (HOB)",
-        filter_capacity_lph: initialData.filter_capacity_lph || null,
+        filter_flow_lph: initialData.filter_flow_lph || null, // FIX: Menggunakan filter_flow_lph
         light_type: (initialData.light_type as CreateAquariumInput["light_type"]) || "White LED",
         light_wattage: initialData.light_wattage || null,
         photoperiod_hours: initialData.photoperiod_hours || 8,
@@ -189,14 +188,13 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
   // PERHITUNGAN VOLUME NETTO (15% Reduksi)
   // ==========================================
   useEffect(() => {
-    // Hindari perhitungan ulang jika sedang mode edit dan data awal baru di-load (agar tidak override volume asli)
     if (mode === "edit" && initialData && formData.length_cm === initialData.length_cm && formData.width_cm === initialData.width_cm && formData.height_cm === initialData.height_cm) {
         return; 
     }
 
     if (formData.length_cm > 0 && formData.width_cm > 0 && formData.height_cm > 0) {
       const volumeBruto = (formData.length_cm * formData.width_cm * formData.height_cm) / 1000;
-      const volumeNetto = volumeBruto * 0.85; // Kurangi 15% untuk substrat, batu, kayu, jarak bibir air
+      const volumeNetto = volumeBruto * 0.85; 
       setFormData(prev => ({ ...prev, volume_liters: Number(volumeNetto.toFixed(1)) }));
     }
   }, [formData.length_cm, formData.width_cm, formData.height_cm, mode, initialData]);
@@ -477,7 +475,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.filterCapacity}</label>
-                  <input type="number" name="filter_capacity_lph" value={formData.filter_capacity_lph || ""} onChange={handleChange} placeholder="Contoh: 600" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
+                  <input type="number" name="filter_flow_lph" value={formData.filter_flow_lph || ""} onChange={handleChange} placeholder="Contoh: 600" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none" />
                 </div>
                 <p className="text-xs text-slate-500 col-span-full flex items-start gap-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.filter}</p>
               </div>

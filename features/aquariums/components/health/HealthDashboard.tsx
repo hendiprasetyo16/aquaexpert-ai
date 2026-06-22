@@ -16,13 +16,14 @@ interface Props {
 export default function HealthDashboard({ healthResult, lang }: Props) {
   return (
     <div className="space-y-5">
-      {/* KOTAK ATAS: GAUGE + BENTO SUB-SCORES */}
+      {/* KOTAK ATAS: GAUGE (Kiri) + BENTO SUB-SCORES (Kanan) */}
       <div className={`w-full bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-md border-t-8 border-x border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-8 items-center md:items-stretch ${getHealthBorder(healthResult.status)}`}>
         <HealthScoreGauge 
           score={healthResult.scores.overall} 
           status={healthResult.status} 
           trend={healthResult.trend} 
           lang={lang} 
+          deductions={healthResult.deductions} // PENTING: Oper data deductions ke Gauge
         />
         <div className="flex-1 w-full flex flex-col justify-center">
           <HealthBentoCards scores={healthResult.scores} lang={lang} />

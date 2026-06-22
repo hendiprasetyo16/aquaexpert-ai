@@ -1,4 +1,3 @@
-// features/aquariums/components/MaintenanceTab.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,7 +7,6 @@ import { Loader2, CalendarDays, CheckCircle2, AlertTriangle, Trash2, Clock, Info
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
-// Import Server Actions dan Types
 import { 
   getMaintenanceDashboardAction, 
   addTaskAction, 
@@ -27,22 +25,17 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
   const lang = language as "id" | "en";
 
   const [mounted, setMounted] = useState(false);
-
-  // Data States
   const [loading, setLoading] = useState(true);
   const [tasksStatus, setTasksStatus] = useState<MaintenanceDashboardStatus[]>([]);
   const [recentLogs, setRecentLogs] = useState<AquariumMaintenanceLog[]>([]);
 
-  // Modal States
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // State Custom Delete Modal
   const [deleteTarget, setDeleteTarget] = useState<{ id: string, type: 'task' | 'log', title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Form States
   const [taskForm, setTaskForm] = useState({ type: "water_change" as MaintenanceType, title: "", interval: 7 });
   const [logForm, setLogForm] = useState({ taskId: "", type: "water_change" as MaintenanceType, value: "", unit: "", notes: "" });
 
@@ -63,9 +56,6 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
     loadData();
   }, [aquariumId]);
 
-  // ==========================================
-  // HANDLERS: CREATE
-  // ==========================================
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -119,9 +109,6 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
     setIsSubmitting(false);
   };
 
-  // ==========================================
-  // HANDLERS: DELETE
-  // ==========================================
   const executeDelete = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
@@ -145,9 +132,6 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
     setDeleteTarget(null);
   };
 
-  // ==========================================
-  // BILINGUAL HELPERS UI
-  // ==========================================
   const formatUrgencyColor = (level: string) => {
     switch (level) {
       case "critical": return "border-red-500 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400";
@@ -186,7 +170,6 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
     return enLabels[type] || type;
   };
 
-  // HELPER: Placeholder Dinamis untuk Judul Tugas
   const getDynamicPlaceholder = (type: MaintenanceType) => {
     if (lang === 'id') {
       switch(type) {
@@ -211,10 +194,8 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
     }
   };
 
-  // HELPER: Rekomendasi Pengisian Dinamis Berdasarkan Tipe Tugas yang Dipilih di Form Log
   const getLogHelperText = (taskId: string, currentType: MaintenanceType) => {
     let effectiveType = currentType;
-    
     if (taskId) {
         const selectedTask = tasksStatus.find(ts => ts.task.id === taskId);
         if (selectedTask) effectiveType = selectedTask.task.task_type;
@@ -222,32 +203,22 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
 
     if (lang === 'id') {
         switch(effectiveType) {
-            case 'water_change':
-                return "Saran: Tugas ini biasanya Kuantitatif. Isi Nilai (Misal: 30) dan Satuan (Misal: %).";
-            case 'fertilizer':
-                return "Saran: Tugas ini biasanya Kuantitatif. Isi Nilai (Misal: 5) dan Satuan (Misal: ml atau tetes).";
-            case 'co2_refill':
-                return "Saran: Tugas ini opsional Kuantitatif. Anda bisa isi Nilai (Misal: 5) dan Satuan (Misal: kg), atau kosongkan.";
-            default:
-                return "Saran: Tugas ini biasanya Kualitatif (fisik). Biarkan Nilai & Satuan KOSONG. Cukup gunakan kolom Catatan jika perlu.";
+            case 'water_change': return "Saran: Tugas ini biasanya Kuantitatif. Isi Nilai (Misal: 30) dan Satuan (Misal: %).";
+            case 'fertilizer': return "Saran: Tugas ini biasanya Kuantitatif. Isi Nilai (Misal: 5) dan Satuan (Misal: ml atau tetes).";
+            case 'co2_refill': return "Saran: Tugas ini opsional Kuantitatif. Anda bisa isi Nilai (Misal: 5) dan Satuan (Misal: kg), atau kosongkan.";
+            default: return "Saran: Tugas ini biasanya Kualitatif (fisik). Biarkan Nilai & Satuan KOSONG. Cukup gunakan kolom Catatan jika perlu.";
         }
     } else {
         switch(effectiveType) {
-            case 'water_change':
-                return "Tip: This is usually a Quantitative task. Enter Value (e.g., 30) and Unit (e.g., %).";
-            case 'fertilizer':
-                return "Tip: This is usually a Quantitative task. Enter Value (e.g., 5) and Unit (e.g., ml or drops).";
-            case 'co2_refill':
-                return "Tip: This is an optional Quantitative task. Enter Value (e.g., 5) and Unit (e.g., kg), or leave blank.";
-            default:
-                return "Tip: This is usually a Qualitative (physical) task. Leave Value & Unit BLANK. Use Notes if necessary.";
+            case 'water_change': return "Tip: This is usually a Quantitative task. Enter Value (e.g., 30) and Unit (e.g., %).";
+            case 'fertilizer': return "Tip: This is usually a Quantitative task. Enter Value (e.g., 5) and Unit (e.g., ml or drops).";
+            case 'co2_refill': return "Tip: This is an optional Quantitative task. Enter Value (e.g., 5) and Unit (e.g., kg), or leave blank.";
+            default: return "Tip: This is usually a Qualitative (physical) task. Leave Value & Unit BLANK. Use Notes if necessary.";
         }
     }
   };
 
-  if (loading) {
-    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-teal-600" /></div>;
-  }
+  if (loading) return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-teal-600" /></div>;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -262,7 +233,6 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
         </Button>
       </div>
 
-      {/* 2-COLUMN LAYOUT MVP */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* KOLOM KIRI: ACTIVE TASKS */}
@@ -309,7 +279,7 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
         {/* KOLOM KANAN: RECENT ACTIVITY LOGS */}
         <div className="space-y-4">
           <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4" /> {lang === 'id' ? "Riwayat Pekerjaan Selesai" : "Recent Activity"}
+            <CheckCircle2 className="w-4 h-4" /> {lang === 'id' ? "Riwayat Pekerjaan" : "Recent Activity"}
           </h3>
           
           {recentLogs.length === 0 ? (
@@ -341,14 +311,10 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
         </div>
       </div>
 
-      {/* ==========================================
-          MODALS BILINGUAL & RAMAH AWAM (PORTALS)
-      ========================================== */}
-      
       {/* MODAL: ADD TASK */}
       {mounted && showTaskModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] w-full max-w-md shadow-2xl">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowTaskModal(false)}>
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="text-center mb-6">
               <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-3"><CalendarDays className="w-6 h-6" /></div>
               <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100">{lang === 'id' ? "Buat Jadwal Baru" : "Create Schedule"}</h2>
@@ -394,7 +360,7 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="ghost" onClick={() => setShowTaskModal(false)} className="flex-1 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-bold">{lang === 'id' ? "Batal" : "Cancel"}</Button>
                 <Button type="submit" disabled={isSubmitting} className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-lg shadow-indigo-500/30">
-                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (lang === 'id' ? "Simpan Jadwal" : "Save Schedule")}
+                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (lang === 'id' ? "Simpan" : "Save")}
                 </Button>
               </div>
             </form>
@@ -403,24 +369,22 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
         document.body
       )}
 
-      {/* MODAL: LOG MAINTENANCE DENGAN EDUKASI */}
+      {/* MODAL: LOG MAINTENANCE */}
       {mounted && showLogModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] w-full max-w-[500px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowLogModal(false)}>
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] w-full max-w-[500px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar" onClick={e => e.stopPropagation()}>
             
             <div className="text-center mb-6">
               <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/50 text-teal-600 dark:text-teal-400 rounded-full flex items-center justify-center mx-auto mb-3"><CheckCircle2 className="w-6 h-6" /></div>
               <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100">{lang === 'id' ? "Catat Pekerjaan" : "Log Maintenance"}</h2>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed px-4">
                 {lang === 'id' 
-                  ? "Catat apa saja yang baru Anda lakukan agar AI bisa menganalisa ekosistem Anda." 
+                  ? "Catat apa saja yang baru Anda lakukan agar AI bisa menganalisa ekosistem." 
                   : "Log what you just did so the AI can analyze your ecosystem."}
               </p>
             </div>
 
             <form onSubmit={handleCreateLog} className="space-y-6">
-              
-              {/* BAGIAN 1: PILIH JADWAL */}
               <div className="bg-teal-50 dark:bg-teal-950/20 p-4 rounded-2xl border border-teal-100 dark:border-teal-900/30">
                 <label className="text-[11px] font-black uppercase text-teal-700 dark:text-teal-400 tracking-wider mb-2 block">
                   {lang === 'id' ? "Pilih Jadwal Yang Selesai" : "Select Completed Schedule"}
@@ -431,12 +395,8 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
                     <option key={ts.task.id} value={ts.task.id}>{ts.task.title}</option>
                   ))}
                 </select>
-                <p className="text-[10px] font-medium text-teal-600/70 mt-2 leading-tight">
-                  {lang === 'id' ? "*Jika Anda memilih jadwal, hari pengingat berikutnya akan otomatis di-reset ulang." : "*If selected, the reminder schedule will automatically reset."}
-                </p>
               </div>
               
-              {/* BAGIAN 2: TIPE TUGAS */}
               {!logForm.taskId && (
                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                   <label className="text-xs font-bold uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
@@ -454,9 +414,9 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
                 </div>
               )}
 
-              {/* BAGIAN 3: NILAI & UNIT */}
               <div className="pt-2">
-                <div className="flex gap-4 mb-4">
+                {/* FIX: Layout Nilai & Satuan adaptif untuk HP */}
+                <div className="flex flex-col sm:flex-row gap-4 mb-4">
                   <div className="flex-1">
                     <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">{lang === 'id' ? "Nilai (Opsional)" : "Value"}</label>
                     <input type="number" value={logForm.value} onChange={e => setLogForm({...logForm, value: e.target.value})} placeholder={lang === 'id' ? "Misal: 30" : "E.g., 30"} className="w-full h-12 px-4 rounded-xl border-2 mt-1.5 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none transition-colors" />
@@ -467,20 +427,19 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
                   </div>
                 </div>
 
-                {/* INFO BOX PANDUAN AWAM (GABUNGAN STATIS & DINAMIS) */}
                 <div className="flex items-start gap-2.5 bg-blue-50 dark:bg-blue-950/30 p-4 rounded-xl border border-blue-100 dark:border-blue-900/50">
                   <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
                   <div className="text-[11px] font-medium text-slate-600 dark:text-slate-400 space-y-2 leading-relaxed">
                     <p>
                       {lang === 'id' 
-                        ? <><strong className="text-blue-700 dark:text-blue-400">Pekerjaan Kuantitatif:</strong> Contohnya "Ganti Air" (Nilai: 30, Satuan: %) atau "Beri Pupuk Cair" (Nilai: 5, Satuan: ml). AI butuh angka ini untuk mengukur batas aman.</>
-                        : <><strong className="text-blue-700 dark:text-blue-400">Quantitative tasks:</strong> E.g., "Water Change" (Value: 30, Unit: %) or "Liquid Fertilizer" (Value: 5, Unit: ml). AI needs this to measure safety limits.</>
+                        ? <><strong className="text-blue-700 dark:text-blue-400">Tugas Kuantitatif:</strong> Cth: "Ganti Air" (Nilai: 30, Sat: %). AI butuh angka ini.</>
+                        : <><strong className="text-blue-700 dark:text-blue-400">Quantitative:</strong> E.g., "Water Change" (Val: 30, Unit: %). AI needs this.</>
                       }
                     </p>
                     <p>
                       {lang === 'id'
-                        ? <><strong className="text-blue-700 dark:text-blue-400">Pekerjaan Fisik (Kualitatif):</strong> Contohnya "Ganti Busa", "Bersihkan Kaca". Pekerjaan ini tidak ada angkanya. Jadi biarkan Nilai & Satuan KOSONG, dan tulis di kolom Catatan jika perlu.</>
-                        : <><strong className="text-blue-700 dark:text-blue-400">Physical tasks (Qualitative):</strong> E.g., "Change Sponge", "Clean Glass". Leave Value & Unit BLANK, and use the Notes column if needed.</>
+                        ? <><strong className="text-blue-700 dark:text-blue-400">Tugas Fisik:</strong> Cth: "Bersihkan Kaca". Biarkan Nilai & Satuan kosong.</>
+                        : <><strong className="text-blue-700 dark:text-blue-400">Physical:</strong> E.g., "Clean Glass". Leave Val & Unit blank.</>
                       }
                     </p>
                     <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800/50 text-blue-700 dark:text-blue-400 font-bold italic">
@@ -490,7 +449,6 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
                 </div>
               </div>
 
-              {/* BAGIAN 4: CATATAN */}
               <div>
                 <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">{lang === 'id' ? "Catatan Tambahan (Opsional)" : "Notes (Optional)"}</label>
                 <input type="text" value={logForm.notes} onChange={e => setLogForm({...logForm, notes: e.target.value})} placeholder={lang === 'id' ? "Catatan khusus..." : "Any observations?"} className="w-full h-12 px-4 rounded-xl border-2 mt-1.5 bg-slate-50 dark:bg-slate-950 focus:border-teal-500 outline-none transition-colors" />
@@ -499,7 +457,7 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
               <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <Button type="button" variant="ghost" onClick={() => setShowLogModal(false)} className="flex-1 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-bold">{lang === 'id' ? "Batal" : "Cancel"}</Button>
                 <Button type="submit" disabled={isSubmitting} className="flex-1 h-12 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-black shadow-lg shadow-teal-500/30">
-                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (lang === 'id' ? "Simpan Pekerjaan" : "Save Log")}
+                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (lang === 'id' ? "Simpan Log" : "Save Log")}
                 </Button>
               </div>
             </form>
@@ -508,12 +466,10 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
         document.body
       )}
 
-      {/* ==========================================
-          MODAL HAPUS MODERN (PORTALS)
-      ========================================== */}
+      {/* MODAL HAPUS MODERN */}
       {mounted && deleteTarget && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600 text-center">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setDeleteTarget(null)}>
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600 text-center" onClick={e => e.stopPropagation()}>
             <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="h-8 w-8" />
             </div>
@@ -522,8 +478,8 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
             </h3>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed font-medium">
               {lang === 'id' 
-                ? <>Anda yakin ingin menghapus <strong className="text-red-500 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">{deleteTarget.title}</strong>? Tindakan ini tidak bisa dibatalkan.</>
-                : <>Are you sure you want to delete <strong className="text-red-500 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">{deleteTarget.title}</strong>? This cannot be undone.</>
+                ? <>Anda yakin ingin menghapus <strong className="text-red-500 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">{deleteTarget.title}</strong>?</>
+                : <>Are you sure you want to delete <strong className="text-red-500 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">{deleteTarget.title}</strong>?</>
               }
             </p>
             <div className="flex flex-col gap-3">

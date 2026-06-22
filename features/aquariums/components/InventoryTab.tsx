@@ -1,4 +1,3 @@
-// features/aquariums/components/InventoryTab.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -15,7 +14,7 @@ import {
 } from "../actions/inventory.actions";
 import type { TankFish, TankPlant } from "../types/inventory.types"; 
 
-import { Plus, Trash2, Loader2, Leaf, Fish as FishIcon, Search, CheckCircle2, AlertTriangle, Edit2, ShieldAlert, HeartPulse, ArrowUpCircle, X, Calendar } from "lucide-react";
+import { Plus, Trash2, Loader2, Leaf, Fish as FishIcon, Search, CheckCircle2, AlertTriangle, Edit2, ShieldAlert, HeartPulse, X, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
@@ -30,22 +29,23 @@ interface InventoryTabProps {
   aquariumId: string;
 }
 
+// FIX: Mendefinisikan tipe spesifik untuk menendang 'any'
+type HealthType = "Healthy" | "Sick" | "Quarantined";
+type SizeType = "Juvenile" | "Adult";
+
 export default function InventoryTab({ aquariumId }: InventoryTabProps) {
   const { language } = useLanguage();
   const lang = language as "id" | "en";
 
   const [mounted, setMounted] = useState(false);
 
-  // Data State
   const [fishes, setFishes] = useState<TankFish[]>([]);
   const [plants, setPlants] = useState<TankPlant[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Master Data
   const [masterFishes, setMasterFishes] = useState<MasterItem[]>([]);
   const [masterPlants, setMasterPlants] = useState<MasterItem[]>([]);
 
-  // UI States
   const [showAddModal, setShowAddModal] = useState<"fish" | "plant" | null>(null);
   const [showEditFishModal, setShowEditFishModal] = useState<TankFish | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -53,14 +53,12 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string, table: "aquarium_fishes" | "aquarium_plants", name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Input Form States (Tambah / Edit)
   const [selectedItemId, setSelectedItemId] = useState("");
   const [quantity, setQuantity] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState("");
   
-  // STATE BARU: Untuk Status Kesehatan, Ukuran, & TANGGAL MASUK (added_at)
-  const [healthStatus, setHealthStatus] = useState<"Healthy" | "Sick" | "Quarantined">("Healthy");
-  const [sizeCategory, setSizeCategory] = useState<"Juvenile" | "Adult">("Adult");
+  const [healthStatus, setHealthStatus] = useState<HealthType>("Healthy");
+  const [sizeCategory, setSizeCategory] = useState<SizeType>("Adult");
   const [addedAt, setAddedAt] = useState<string>(new Date().toISOString().split('T')[0]);
 
   const loadInventory = async () => {
@@ -89,7 +87,6 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
     loadMasterData();
   }, [aquariumId]);
 
-  // RESET FORM
   const resetForm = () => {
     setShowAddModal(null);
     setShowEditFishModal(null);
@@ -101,7 +98,6 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
     setAddedAt(new Date().toISOString().split('T')[0]);
   };
 
-  // HANDLER: TAMBAH DATA BARU
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedItemId) return toast.error(lang === 'id' ? "Pilih spesies dari daftar terlebih dahulu!" : "Please select a species from the list!");
@@ -129,7 +125,6 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
     setSubmitting(false);
   };
 
-  // HANDLER: PERBARUI (EDIT) IKAN
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!showEditFishModal) return;
@@ -149,7 +144,6 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
     setSubmitting(false);
   };
 
-  // HANDLER: HAPUS
   const triggerDelete = (table: "aquarium_fishes" | "aquarium_plants", id: string, name: string) => { setDeleteTarget({ table, id, name }); };
   const executeRemove = async () => {
     if (!deleteTarget) return;
@@ -173,7 +167,6 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
     return new Date(dateStr).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
-  // PENCARIAN & PENGURUTAN ABJAD (BILINGUAL)
   const filteredMasterFishes = masterFishes.filter(f => f.name_id.toLowerCase().includes(searchQuery.toLowerCase()) || f.name_en.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => { const nameA = lang === 'id' ? a.name_id : a.name_en; const nameB = lang === 'id' ? b.name_id : b.name_en; return nameA.localeCompare(nameB); });
   const filteredMasterPlants = masterPlants.filter(p => p.name_id.toLowerCase().includes(searchQuery.toLowerCase()) || p.name_en.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => { const nameA = lang === 'id' ? a.name_id : a.name_en; const nameB = lang === 'id' ? b.name_id : b.name_en; return nameA.localeCompare(nameB); });
 
@@ -212,7 +205,6 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
               const fishName = lang === 'id' ? item.fish?.name_id || "" : item.fish?.name_en || "";
               return (
               <div key={item.id} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:border-blue-300 hover:shadow-md transition-all group relative overflow-hidden pl-5">
-                
                 <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-blue-500" />
                 <div className="absolute top-0 left-0 bg-blue-500 text-white text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-br-lg shadow-sm z-10">
                   {idx + 1}
@@ -225,14 +217,11 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{fishName}</p>
-                  
                   <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                     <span className="text-[10px] font-black bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded">{item.quantity} {lang === 'id' ? "Ekor" : "pcs"}</span>
                     {getHealthBadge(item.health_status)}
                     <span className="text-[10px] font-bold text-slate-500 uppercase">{item.size_category === "Juvenile" ? "Anakan" : "Dewasa"}</span>
                   </div>
-                  
-                  {/* MENAMPILKAN TANGGAL DITAMBAHKAN */}
                   <div className="flex items-center gap-1 mt-2 text-[10px] font-semibold text-slate-400">
                     <Calendar className="w-3 h-3" /> Masuk: {formatAddedDate(item.added_at)}
                   </div>
@@ -243,8 +232,9 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                     onClick={() => {
                       setShowEditFishModal(item);
                       setQuantity(item.quantity);
-                      setHealthStatus((item.health_status as any) || "Healthy");
-                      setSizeCategory((item.size_category as any) || "Adult");
+                      // FIX: Type Safety Mutlak
+                      setHealthStatus((item.health_status as HealthType) || "Healthy");
+                      setSizeCategory((item.size_category as SizeType) || "Adult");
                       setAddedAt(item.added_at ? new Date(item.added_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
                     }} 
                     className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors border border-transparent hover:border-blue-200" title={lang === 'id' ? "Edit Status" : "Edit Status"}
@@ -317,8 +307,10 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
           MODAL: TAMBAH DATA (VISUAL PICKER)
       ======================================================== */}
       {mounted && showAddModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
-          <div className={`w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl bg-slate-50 dark:bg-slate-950 shadow-2xl border-t-8 overflow-hidden ${isFish ? 'border-blue-500' : 'border-emerald-500'}`}>
+        // FIX: Backdrop Click-to-Close
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300" onClick={resetForm}>
+          {/* FIX: Mencegah penutupan tak sengaja dengan stopPropagation */}
+          <div className={`w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl bg-slate-50 dark:bg-slate-950 shadow-2xl border-t-8 overflow-hidden ${isFish ? 'border-blue-500' : 'border-emerald-500'}`} onClick={e => e.stopPropagation()}>
             
             <div className="p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 flex justify-between items-center">
               <div>
@@ -356,7 +348,8 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
             </div>
 
             <form onSubmit={handleAddSubmit} className="p-6 bg-white dark:bg-slate-900 shrink-0">
-              <div className="flex flex-col sm:flex-row gap-4 items-end">
+              {/* FIX: Layout Adaptif untuk Form Tambah (Aman di HP) */}
+              <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
                 
                 <div className="w-full sm:w-24 space-y-1">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{lang === 'id' ? "Jumlah" : "Qty"}</label>
@@ -368,12 +361,12 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                   <input required type="date" value={addedAt} onChange={(e) => setAddedAt(e.target.value)} className={`w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
                 </div>
 
-                {/* DROPDOWN KESEHATAN DAN UKURAN (HANYA MUNCUL JIKA IKAN) */}
                 {isFish && (
-                  <>
-                    <div className="w-full sm:w-40 space-y-1">
+                  <div className="flex flex-col sm:flex-row gap-4 w-full">
+                    <div className="flex-1 space-y-1">
                       <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kesehatan</label>
-                      <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value as any)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
+                      {/* FIX: Type casting presisi tanpa any */}
+                      <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value as HealthType)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
                         <option value="Healthy">Healthy (Sehat)</option>
                         <option value="Sick">Sick (Sakit)</option>
                         <option value="Quarantined">Quarantine</option>
@@ -381,17 +374,17 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                     </div>
                     <div className="w-full sm:w-32 space-y-1">
                       <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Ukuran</label>
-                      <select value={sizeCategory} onChange={(e) => setSizeCategory(e.target.value as any)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
+                      <select value={sizeCategory} onChange={(e) => setSizeCategory(e.target.value as SizeType)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
                         <option value="Juvenile">Juvenile</option>
                         <option value="Adult">Adult</option>
                       </select>
                     </div>
-                  </>
+                  </div>
                 )}
                 
-                <div className="flex w-full sm:flex-1 gap-3">
-                  <Button type="button" variant="ghost" onClick={resetForm} className="flex-1 h-12 rounded-xl text-slate-500 font-bold uppercase bg-slate-100 hover:bg-slate-200 dark:bg-slate-800">{lang === 'id' ? "Batal" : "Cancel"}</Button>
-                  <Button type="submit" disabled={submitting || !selectedItemId} className={`flex-1 h-12 rounded-xl text-white font-black uppercase tracking-wider shadow-lg ${isFish ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'}`}>
+                <div className="flex w-full sm:w-auto gap-3 mt-4 sm:mt-0">
+                  <Button type="button" variant="ghost" onClick={resetForm} className="flex-1 sm:flex-none h-12 rounded-xl text-slate-500 font-bold uppercase bg-slate-100 hover:bg-slate-200 dark:bg-slate-800">{lang === 'id' ? "Batal" : "Cancel"}</Button>
+                  <Button type="submit" disabled={submitting || !selectedItemId} className={`flex-1 sm:flex-none h-12 rounded-xl text-white font-black uppercase tracking-wider shadow-lg px-8 ${isFish ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'}`}>
                     {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Simpan"}
                   </Button>
                 </div>
@@ -406,8 +399,8 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
           MODAL: EDIT IKAN (STATUS KESEHATAN)
       ======================================================== */}
       {mounted && showEditFishModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-blue-500">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300" onClick={resetForm}>
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-blue-500" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100">Update Status Ikan</h3>
               <button onClick={resetForm} className="p-2 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-500 rounded-full transition-colors"><X className="w-5 h-5"/></button>
@@ -426,26 +419,27 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kesehatan Terkini</label>
-                <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value as any)} className="w-full h-12 px-4 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
+                <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value as HealthType)} className="w-full h-12 px-4 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
                   <option value="Healthy">Healthy (Sehat)</option>
                   <option value="Sick">Sick (Sakit)</option>
                   <option value="Quarantined">Quarantine (Diisolasi)</option>
                 </select>
               </div>
 
-              <div className="flex gap-4">
-                <div className="w-1/3 space-y-2">
+              {/* FIX: Merubah pembagian grid menjadi flex adaptif agar tidak gepeng di HP */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="w-full sm:w-1/3 space-y-2">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Ukuran</label>
-                  <select value={sizeCategory} onChange={(e) => setSizeCategory(e.target.value as any)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
+                  <select value={sizeCategory} onChange={(e) => setSizeCategory(e.target.value as SizeType)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500">
                     <option value="Juvenile">Juvenile</option>
                     <option value="Adult">Adult</option>
                   </select>
                 </div>
-                <div className="w-1/3 space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Jumlah (Ekor)</label>
+                <div className="w-full sm:w-1/3 space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Jumlah</label>
                   <input required type="number" min="1" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="w-full h-12 px-4 rounded-xl border-2 outline-none font-black text-lg bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500" />
                 </div>
-                <div className="w-1/3 space-y-2">
+                <div className="w-full sm:w-1/3 space-y-2">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tgl Masuk</label>
                   <input required type="date" value={addedAt} onChange={(e) => setAddedAt(e.target.value)} className="w-full h-12 px-3 rounded-xl border-2 outline-none font-bold text-xs bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500" />
                 </div>
@@ -467,8 +461,8 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
           MODAL: KONFIRMASI HAPUS
       ======================================================== */}
       {mounted && deleteTarget && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setDeleteTarget(null)}>
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-5 text-red-600">
               <AlertTriangle className="h-8 w-8" />
               <h3 className="text-2xl font-black uppercase tracking-tight">{lang === 'id' ? "Hapus Item?" : "Remove Item?"}</h3>

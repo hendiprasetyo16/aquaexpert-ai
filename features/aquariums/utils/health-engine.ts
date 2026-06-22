@@ -187,7 +187,6 @@ function getEcosystemSnapshot(
       const p = Math.min(30, (avgNitrate - 20) * 0.5); waterScore -= p; deductions["Nitrate High Accumulation"] = p;
       recommendations.push("Tingkatkan frekuensi penggantian air berkala secara disiplin untuk menurunkan akumulasi senyawa nitrat.");
       
-      // FIX OPTIMASI: Konsistensi data source menggunakan struktur Map groupedFishes
       const hasNitrateSensitiveFish = Array.from(groupedFishes.values()).some(d => d.fishInfo.sensitive_to_nitrate === true);
       if (hasNitrateSensitiveFish && avgNitrate >= 25) {
         waterScore -= 15; deductions["Nitrate Sensitive Species Stress"] = 15;
@@ -402,9 +401,10 @@ function getEcosystemSnapshot(
 
     groupedFishes.forEach((data) => {
       const f = data.fishInfo;
-      if (f.schooling === true || (f.min_school_size != null && f.min_school_size > 1)) {
+      // FIX TEMUAN: Mengganti properti f.schooling yang tidak terdaftar di interface, menggunakan kondisi min_school_size murni.
+      if (f.min_school_size != null && f.min_school_size > 1) {
         hasSchoolingSpecies = true;
-        const minRequired = f.min_school_size ?? 6;
+        const minRequired = f.min_school_size;
         if (data.totalQty < minRequired) {
           schoolingStressPenalties += 15;
           invalidSchoolingSpecies.push(`${f.name_id || f.name_en || "Unknown Species"} (${data.totalQty}/${minRequired})`);
@@ -439,9 +439,9 @@ function getEcosystemSnapshot(
           let dynamicScore = 10;
 
           if (fishA.compatibility_score && fishB.name_en && fishA.compatibility_score[fishB.name_en] !== undefined) {
-             dynamicScore = fishA.compatibility_score[fishB.name_en];
+             dynamicScore = fishA.compatibility_score[fishB.name_en] as number;
           } else if (fishB.compatibility_score && fishA.name_en && fishB.compatibility_score[fishA.name_en] !== undefined) {
-             dynamicScore = fishB.compatibility_score[fishA.name_en];
+             dynamicScore = fishB.compatibility_score[fishA.name_en] as number;
           } else {
              const tagsA = fishA.compatibility_tags?.map(t => t.toLowerCase()) || [];
              const tagsB = fishB.compatibility_tags?.map(t => t.toLowerCase()) || [];
@@ -516,7 +516,7 @@ function getEcosystemSnapshot(
   return {
     scores: { waterQuality: waterScore, maintenance: maintenanceScore, bioload: bioloadScore, fishHealth: fishHealthScore, plant: plantScore, overall: overallScore },
     alerts,
-    recommendations, // FIX TEMUAN UTAMA #1: Eksplisit dikembalikan agar tidak memicu error kompilasi
+    recommendations,
     deductions,
     bonuses: finalBonuses,
     overdueTasks
@@ -555,11 +555,9 @@ export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, ma
     if (currentParamLog.ph != null && prevParamLog.ph != null && Math.abs(currentParamLog.ph - prevParamLog.ph) >= 0.8) declinePoints += 2; 
     if (currentParamLog.temperature != null && prevParamLog.temperature != null && Math.abs(currentParamLog.temperature - prevParamLog.temperature) >= 1.5) declinePoints += 2; 
 
-    // FIX TEMUAN UTAMA #2: SYSTEMIC DEGRADATION MATRIX (Melihat pergerakan Overall Score lintas sub-skor)
     if (currentSnapshot.scores.overall > prevSnapshot.scores.overall + 5) improvePoints += 4;
     else if (currentSnapshot.scores.overall < prevSnapshot.scores.overall - 5) declinePoints += 4;
 
-    // Tambahan Evaluasi Lintas Domain Baru (Fauna Health, Bioload, Plant Performa)
     if (currentSnapshot.scores.fishHealth < prevSnapshot.scores.fishHealth - 10) declinePoints += 3;
     if (currentSnapshot.scores.bioload < prevSnapshot.scores.bioload - 10) declinePoints += 2;
     if (

@@ -6,9 +6,7 @@ import { generateDeepDiagnosis } from "../utils/deep-diagnosis";
 import { analyzeAquariumHealth } from "../utils/health-engine";
 import { getTankInventoryAction } from "./inventory.actions";
 import { createClient } from "@/lib/supabase/server";
-import { verifyAquariumOwnership } from "../repositories/security.repository"; // FIX: Domain Tertata Bersih
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+import { verifyAquariumOwnership } from "../repositories/security.repository";
 
 export interface HybridDiagnosisResponse {
   success: boolean;
@@ -60,10 +58,11 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
       : "Generative expert commentary is temporarily unavailable. Please follow the local systemic action plans below.";
     let generatedByGemini = false;
 
+    // FIX: Cegah aplikasi crash karena SDK dipanggil saat .env kosong (Defensive Init)
     if (process.env.GEMINI_API_KEY && localDiagnosis.rootCauses.length > 0) {
       try {
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
         const issuesSummary = localDiagnosis.rootCauses.map(c => `- ${c.title}: ${c.description}`).join("\n");
-        // FIX: Konversi array of objects kembali ke string informatif untuk LLM
         const actionsSummary = localDiagnosis.nextActions.map(a => `[${a.priority.toUpperCase()}] ${a.instruction}`).join("\n");
         
         const systemPrompt = `You are a world-class professional aquascaper and aquatic veterinarian expert. 
@@ -74,6 +73,7 @@ Strictly adhere to these rules:
 2. Do not repeat the raw numbers verbatim, instead explain the biological consequence of those issues.
 3. Be supportive but firm about urgent threats like Ammonia or Biotope Mismatches.
 4. Output your response entirely in the requested language: ${lang === 'id' ? 'Indonesian' : 'English'}.`;
+        
         const userPrompt = `Aquarium Name: ${aquarium.name}
 Style: ${aquarium.aquascape_style}
 Volume: ${aquarium.volume_liters} Liters
@@ -92,7 +92,9 @@ ${actionsSummary}`;
           config: { systemInstruction: systemPrompt, temperature: 0.6 }
         });
 
-        const timeoutPromise = new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Gemini Gateway Timeout")), 3500));
+        // FIX: Hapus any menggunakan Promise<never> murni agar TypeScript mewarisi tipe secara otomatis
+        const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Gemini Gateway Timeout")), 3500));
+        
         const aiResult = await Promise.race([responsePromise, timeoutPromise]);
 
         if (aiResult && aiResult.text) {

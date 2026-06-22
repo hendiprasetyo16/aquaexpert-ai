@@ -57,7 +57,6 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
   const sortedParams = [...parameters].sort((a, b) => new Date(b.record_date).getTime() - new Date(a.record_date).getTime());
   const latest = sortedParams.length > 0 ? sortedParams[0] : null;
 
-  // SINKRONISASI: Variabel hasShrimp digunakan di gerbang validasi predasi invertebrata
   const hasShrimp = fishes.some(f => f.fish?.fish_type === "Invertebrate" || f.fish?.fish_type?.toLowerCase().includes("shrimp"));
   const groupedFishes = new Map<string, { totalQty: number, fishInfo: NonNullable<TankFish['fish']> }>();
   
@@ -76,7 +75,7 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
   const isLidPresent = aquarium.lid_present === true;
   
   const jumpers: string[] = [];
-  const highFlowDemands: string[] = []; // SINKRONISASI: Diaktifkan
+  const highFlowDemands: string[] = []; 
 
   if (groupedFishes.size > 0) {
     const uniqueFishes = Array.from(groupedFishes.values());
@@ -177,7 +176,8 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
       const fInfo = data.fishInfo;
       const fishName = lang === 'id' ? fInfo.name_id : fInfo.name_en;
 
-      if (fInfo.schooling === true && fInfo.min_school_size != null && data.totalQty < fInfo.min_school_size) {
+      // FIX: Menghapus kebutuhan properti "schooling" yang memicu error type, dan murni menggunakan "min_school_size > 1"
+      if (fInfo.min_school_size != null && fInfo.min_school_size > 1 && data.totalQty < fInfo.min_school_size) {
         rootCauses.push({
           title: lang === 'id' ? "Stres Sosial (Schooling Size Invalid)" : "Social Schooling Isolation Stress", severity: "medium",
           description: lang === 'id'
@@ -206,7 +206,6 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
       });
     }
 
-    // SINKRONISASI LOGIKA: Membuka data highFlowDemands menjadi Root Cause real
     if (highFlowDemands.length > 0) {
       rootCauses.push({
         title: lang === 'id' ? "Defisit Suplai Arus & Oksigen" : "Oxygen & Flow Deficit Alert", severity: "high",
@@ -216,7 +215,6 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
       });
     }
 
-    // Validasi Predasi Udang memanfaatkan hasShrimp
     if (hasShrimp) {
       groupedFishes.forEach((data) => {
         if ((data.fishInfo.shrimp_predation_risk ?? 0) >= 8) {
@@ -230,7 +228,7 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
   }
 
   const currStyleStr = aquarium.aquascape_style?.toLowerCase() || "bebas";
-  const overgrownPlants: string[] = []; // SINKRONISASI: Diaktifkan
+  const overgrownPlants: string[] = []; 
 
   if (plants.length > 0) {
     const unsuitablePlants: string[] = [];
@@ -255,7 +253,6 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
       });
     }
 
-    // SINKRONISASI LOGIKA: Membuka data overgrownPlants menjadi Root Cause real
     if (overgrownPlants.length > 0) {
       rootCauses.push({
         title: lang === 'id' ? "Flora Melebihi Batas Ketinggian" : "Flora Outgrew Vertical Bounds", severity: "medium",
