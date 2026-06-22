@@ -30,7 +30,6 @@ interface InventoryTabProps {
   aquariumId: string;
 }
 
-// Tipe spesifik untuk menendang 'any'
 type HealthType = "Healthy" | "Sick" | "Quarantined";
 type SizeType = "Juvenile" | "Adult";
 
@@ -211,6 +210,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                   {idx + 1}
                 </div>
 
+                {/* FIX: Ubah bingkai ikan di list utama menjadi landscape (rounded-xl w-16 h-12) */}
                 <div className="w-16 h-12 sm:w-20 sm:h-14 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 relative border-2 border-transparent group-hover:border-blue-200 ml-1">
                   {item.fish?.image_url ? (
                     <img src={item.fish.image_url} alt="fish" className="w-full h-full object-cover" />
@@ -295,7 +295,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                   </div>
                 </div>
                 <button onClick={() => triggerDelete("aquarium_plants", item.id, plantName)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors border border-transparent hover:border-red-200" title={lang === 'id' ? "Hapus" : "Delete"}>
-                  <Trash2 className="w-5 h-5" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             )})}
@@ -304,49 +304,48 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
       </div>
 
       {/* ========================================================
-          MODAL: TAMBAH DATA (VISUAL PICKER) - MOBILE OPTIMIZED
+          MODAL: TAMBAH DATA (VISUAL PICKER)
       ======================================================== */}
       {mounted && showAddModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300" onClick={resetForm}>
-          <div className={`w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] flex flex-col rounded-3xl bg-slate-50 dark:bg-slate-950 shadow-2xl border-t-8 overflow-hidden ${isFish ? 'border-blue-500' : 'border-emerald-500'}`} onClick={e => e.stopPropagation()}>
+          <div className={`w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl bg-slate-50 dark:bg-slate-950 shadow-2xl border-t-8 overflow-hidden ${isFish ? 'border-blue-500' : 'border-emerald-500'}`} onClick={e => e.stopPropagation()}>
             
-            <div className="p-4 sm:p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 flex items-start sm:items-center justify-between gap-4">
-              <div className="w-full pr-8">
+            <div className="p-5 sm:p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 flex items-start sm:items-center justify-between gap-4">
+              <div className="w-full">
                 <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">
                   {isFish ? (lang === 'id' ? "Pilih Fauna (Ikan)" : "Select Fauna") : (lang === 'id' ? "Pilih Flora (Tanaman)" : "Select Flora")}
                 </h3>
                 <div className="relative mt-2">
-                  <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input type="text" placeholder={lang === 'id' ? "Cari nama spesies..." : "Search species..."} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full h-10 sm:h-12 pl-10 sm:pl-12 pr-4 rounded-xl border-2 outline-none font-semibold transition-colors bg-slate-50 dark:bg-slate-950 text-sm ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
+                  <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input type="text" placeholder={lang === 'id' ? "Cari nama spesies..." : "Search species..."} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full h-11 sm:h-12 pl-12 pr-4 rounded-xl border-2 outline-none font-semibold transition-colors bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
                 </div>
               </div>
-              <button onClick={resetForm} className="absolute top-4 sm:top-6 right-4 sm:right-6 p-2 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-500 rounded-full transition-colors shrink-0"><X className="w-4 h-4 sm:w-5 sm:h-5"/></button>
+              <button onClick={resetForm} className="p-2 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-500 rounded-full transition-colors shrink-0"><X className="w-5 h-5"/></button>
             </div>
 
-            {/* AREA DAFTAR SPESIES - FIX UKURAN GAMBAR AGAR TIDAK MENDORONG TEKS */}
             <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
               {currentList.length === 0 ? (
-                <div className="text-center p-10 text-slate-400 font-medium text-sm">{lang === 'id' ? "Spesies tidak ditemukan." : "Species not found."}</div>
+                <div className="text-center p-10 text-slate-400 font-medium">{lang === 'id' ? "Spesies tidak ditemukan." : "Species not found."}</div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                   {currentList.map((item, idx) => {
                     const isSelected = selectedItemId === item.id;
                     return (
-                      <div key={item.id} onClick={() => setSelectedItemId(item.id)} className={`relative cursor-pointer rounded-2xl border-2 p-2 sm:p-3 flex flex-col items-center gap-2 transition-all duration-200 bg-white dark:bg-slate-900 group ${isSelected ? (isFish ? "border-blue-500 bg-blue-50/30" : "border-emerald-500 bg-emerald-50/30") : "border-slate-100 hover:border-slate-300 dark:border-slate-800"}`}>
-                        <div className="absolute top-1.5 left-1.5 w-4 h-4 flex items-center justify-center rounded bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm text-[8px] font-black text-slate-500 z-10">{idx + 1}</div>
-                        {isSelected && (<div className={`absolute top-1.5 right-1.5 rounded-full bg-white dark:bg-slate-900 z-10 ${isFish ? 'text-blue-500' : 'text-emerald-500'}`}><CheckCircle2 className="w-4 h-4" /></div>)}
+                      <div key={item.id} onClick={() => setSelectedItemId(item.id)} className={`relative cursor-pointer rounded-2xl border-2 p-2 sm:p-3 flex flex-col items-center gap-2.5 transition-all duration-200 bg-white dark:bg-slate-900 group ${isSelected ? (isFish ? "border-blue-500 bg-blue-50/30" : "border-emerald-500 bg-emerald-50/30") : "border-slate-100 hover:border-slate-300 dark:border-slate-800"}`}>
+                        <div className="absolute top-2 left-2 w-5 h-5 flex items-center justify-center rounded bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm text-[9px] font-black text-slate-500 z-10">{idx + 1}</div>
+                        {isSelected && (<div className={`absolute top-2 right-2 rounded-full bg-white dark:bg-slate-900 z-10 ${isFish ? 'text-blue-500' : 'text-emerald-500'}`}><CheckCircle2 className="w-5 h-5" /></div>)}
                         
-                        {/* FIX: Menggunakan fixed size di layar kecil agar tidak memakan tinggi layar */}
-                        <div className={`${isFish ? 'w-16 h-12 sm:w-20 sm:h-14 rounded-xl' : 'w-12 h-12 sm:w-16 sm:h-16 rounded-full'} overflow-hidden shrink-0 relative bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition-transform duration-300 ${isSelected ? 'scale-95' : 'group-hover:scale-95'}`}>
+                        {/* FIX: Shape Landscape (4:3) untuk Ikan, Lingkaran untuk Tanaman */}
+                        <div className={`w-full ${isFish ? 'aspect-[4/3] rounded-xl' : 'aspect-square rounded-full w-3/4 mx-auto'} overflow-hidden shrink-0 relative bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition-transform duration-300 ${isSelected ? 'scale-95' : 'group-hover:scale-95'}`}>
                            {item.image_url ? ( 
                              <img src={item.image_url} alt="species" className="w-full h-full object-cover" /> 
                            ) : ( 
-                             isFish ? <FishIcon className="w-6 h-6 text-slate-300" /> : <Leaf className="w-6 h-6 text-slate-300" /> 
+                             isFish ? <FishIcon className="w-8 h-8 text-slate-300" /> : <Leaf className="w-8 h-8 text-slate-300" /> 
                            )}
                         </div>
                         
                         <div className="flex-1 flex items-start justify-center w-full px-1">
-                          <p className={`text-[10px] sm:text-xs text-center font-bold leading-tight line-clamp-2 ${isSelected ? (isFish ? 'text-blue-700 dark:text-blue-400' : 'text-emerald-700 dark:text-emerald-400') : 'text-slate-700 dark:text-slate-300'}`}>
+                          <p className={`text-[11px] sm:text-xs text-center font-bold leading-snug line-clamp-2 ${isSelected ? (isFish ? 'text-blue-700 dark:text-blue-400' : 'text-emerald-700 dark:text-emerald-400') : 'text-slate-700 dark:text-slate-300'}`}>
                             {lang === 'id' ? item.name_id : item.name_en}
                           </p>
                         </div>
@@ -357,49 +356,46 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
               )}
             </div>
 
-            {/* AREA FORM BAWAH - DIPERPADAT (COMPACT) UNTUK HP */}
-            <form onSubmit={handleAddSubmit} className="p-3 sm:p-5 bg-white dark:bg-slate-900 shrink-0 border-t border-slate-200 dark:border-slate-800">
-              <div className="flex flex-col gap-2.5">
-                
-                {/* Baris 1: Kuantitas & Tanggal */}
-                <div className="flex gap-3">
-                  <div className="w-20 shrink-0 space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest">{lang === 'id' ? "Jumlah" : "Qty"}</label>
-                    <input required type="number" min="1" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className={`w-full h-10 px-2 rounded-lg border-2 outline-none font-black text-sm bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
+            <form onSubmit={handleAddSubmit} className="p-4 sm:p-5 bg-white dark:bg-slate-900 shrink-0">
+              {/* FIX: Layout Form Compact (Grid 2 Kolom di HP) menghemat sangat banyak tinggi layar */}
+              <div className="flex flex-col gap-3">
+                <div className={`grid grid-cols-2 ${isFish ? 'sm:grid-cols-4' : 'sm:grid-cols-2'} gap-3`}>
+                  
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{lang === 'id' ? "Jumlah" : "Qty"}</label>
+                    <input required type="number" min="1" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className={`w-full h-11 px-3 rounded-lg border-2 outline-none font-black text-base bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
                   </div>
 
-                  <div className="flex-1 space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Tanggal Masuk</label>
-                    <input required type="date" value={addedAt} onChange={(e) => setAddedAt(e.target.value)} className={`w-full h-10 px-2 rounded-lg border-2 outline-none font-bold text-xs bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tgl Masuk</label>
+                    <input required type="date" value={addedAt} onChange={(e) => setAddedAt(e.target.value)} className={`w-full h-11 px-2.5 rounded-lg border-2 outline-none font-bold text-xs bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
                   </div>
+
+                  {isFish && (
+                    <>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kesehatan</label>
+                        <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value as HealthType)} className="w-full h-11 px-2.5 rounded-lg border-2 outline-none font-bold text-xs bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500 cursor-pointer">
+                          <option value="Healthy">Healthy (Sehat)</option>
+                          <option value="Sick">Sick (Sakit)</option>
+                          <option value="Quarantined">Quarantine</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Ukuran</label>
+                        <select value={sizeCategory} onChange={(e) => setSizeCategory(e.target.value as SizeType)} className="w-full h-11 px-2.5 rounded-lg border-2 outline-none font-bold text-xs bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500 cursor-pointer">
+                          <option value="Juvenile">Juvenile</option>
+                          <option value="Adult">Adult</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
                 </div>
-
-                {/* Baris 2: Kesehatan & Ukuran (Hanya untuk Ikan) */}
-                {isFish && (
-                  <div className="flex gap-3">
-                    <div className="w-1/2 space-y-1">
-                      <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Kesehatan</label>
-                      <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value as HealthType)} className="w-full h-10 px-2 rounded-lg border-2 outline-none font-bold text-xs bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500 cursor-pointer">
-                        <option value="Healthy">Healthy (Sehat)</option>
-                        <option value="Sick">Sick (Sakit)</option>
-                        <option value="Quarantined">Quarantine</option>
-                      </select>
-                    </div>
-                    <div className="w-1/2 space-y-1">
-                      <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Ukuran</label>
-                      <select value={sizeCategory} onChange={(e) => setSizeCategory(e.target.value as SizeType)} className="w-full h-10 px-2 rounded-lg border-2 outline-none font-bold text-xs bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500 cursor-pointer">
-                        <option value="Juvenile">Juvenile</option>
-                        <option value="Adult">Adult</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
                 
-                {/* Baris 3: Tombol Aksi */}
                 <div className="flex gap-3 pt-1">
-                  <Button type="button" variant="ghost" onClick={resetForm} className="flex-1 h-10 rounded-lg text-slate-500 font-bold uppercase text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800">{lang === 'id' ? "Batal" : "Cancel"}</Button>
-                  <Button type="submit" disabled={submitting || !selectedItemId} className={`flex-1 h-10 rounded-lg text-white font-black uppercase tracking-wider text-xs shadow-md ${isFish ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'}`}>
-                    {submitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Simpan"}
+                  <Button type="button" variant="ghost" onClick={resetForm} className="flex-1 h-11 rounded-lg text-slate-500 font-bold uppercase bg-slate-100 hover:bg-slate-200 dark:bg-slate-800">{lang === 'id' ? "Batal" : "Cancel"}</Button>
+                  <Button type="submit" disabled={submitting || !selectedItemId} className={`flex-1 h-11 rounded-lg text-white font-black uppercase tracking-wider shadow-lg ${isFish ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'}`}>
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Simpan"}
                   </Button>
                 </div>
               </div>
@@ -414,7 +410,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
       ======================================================== */}
       {mounted && showEditFishModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300" onClick={resetForm}>
-          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-2xl border-t-8 border-blue-500" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-2xl border-t-8 border-blue-500" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">Update Status Ikan</h3>
               <button onClick={resetForm} className="p-2 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-500 rounded-full transition-colors"><X className="w-4 h-4"/></button>
