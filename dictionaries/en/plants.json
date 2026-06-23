@@ -134,7 +134,10 @@
     "levelHigh": "High",
     "algaeVuln": "Vulnerable (Low)",
     "algaeStrong": "Strong (Medium)",
-    "algaeVeryStrong": "Very Strong (High)"
+    "algaeVeryStrong": "Very Strong (High)",
+    "growthScoreHint": "1=Very Slow, 10=Very Fast/Wild",
+    "nutrientScoreHint": "1=Low Demand, 10=Heavy Feeder",
+    "trimmingScoreHint": "1=Rare Trimming, 10=Frequent Trimming"
   },
   "plantList": {
     "title": "Plant Database",

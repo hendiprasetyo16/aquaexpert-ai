@@ -134,7 +134,10 @@
     "levelHigh": "Tinggi (High)",
     "algaeVuln": "Rentan (Low)",
     "algaeStrong": "Kuat (Medium)",
-    "algaeVeryStrong": "Sangat Kuat (High)"
+    "algaeVeryStrong": "Sangat Kuat (High)",
+    "growthScoreHint": "1=Sangat Lambat, 10=Sangat Cepat/Liar",
+    "nutrientScoreHint": "1=Hemat Nutrisi, 10=Sangat Rakus Nutrisi",
+    "trimmingScoreHint": "1=Jarang Dipangkas, 10=Wajib Rutin Dipangkas"
   },
   "plantList": {
     "title": "Database Tanaman",

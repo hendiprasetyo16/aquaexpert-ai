@@ -695,9 +695,28 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6 pt-2">
-                <div className="space-y-2"><Label className="text-slate-500 text-xs uppercase font-semibold">{dict.plantForm.growthScore}</Label><Input type="number" min="1" max="10" name="growth_speed_score" value={formData.growth_speed_score} onChange={handleChange} className="h-9" placeholder="1-10" /></div>
-                <div className="space-y-2"><Label className="text-slate-500 text-xs uppercase font-semibold">{dict.plantForm.nutrientScore}</Label><Input type="number" min="1" max="10" name="nutrient_consumption_score" value={formData.nutrient_consumption_score} onChange={handleChange} className="h-9" placeholder="1-10" /></div>
-                <div className="space-y-2"><Label className="text-slate-500 text-xs uppercase font-semibold">{dict.plantForm.trimmingScore}</Label><Input type="number" min="1" max="10" name="trimming_frequency_score" value={formData.trimming_frequency_score} onChange={handleChange} className="h-9" placeholder="1-10" /></div>
+                
+                {/* SKOR TUMBUH */}
+                <div className="space-y-2">
+                  <Label className="text-slate-500 text-xs uppercase font-semibold">{dict.plantForm.growthScore}</Label>
+                  <Input type="number" min="1" max="10" name="growth_speed_score" value={formData.growth_speed_score} onChange={handleChange} className="h-9" placeholder="1-10" />
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">💡 {dict.plantForm.growthScoreHint}</p>
+                </div>
+                
+                {/* SKOR NUTRISI */}
+                <div className="space-y-2">
+                  <Label className="text-slate-500 text-xs uppercase font-semibold">{dict.plantForm.nutrientScore}</Label>
+                  <Input type="number" min="1" max="10" name="nutrient_consumption_score" value={formData.nutrient_consumption_score} onChange={handleChange} className="h-9" placeholder="1-10" />
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">💡 {dict.plantForm.nutrientScoreHint}</p>
+                </div>
+                
+                {/* SKOR TRIMMING */}
+                <div className="space-y-2">
+                  <Label className="text-slate-500 text-xs uppercase font-semibold">{dict.plantForm.trimmingScore}</Label>
+                  <Input type="number" min="1" max="10" name="trimming_frequency_score" value={formData.trimming_frequency_score} onChange={handleChange} className="h-9" placeholder="1-10" />
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">💡 {dict.plantForm.trimmingScoreHint}</p>
+                </div>
+                
                 <div className="space-y-2"><Label className="text-slate-500 text-xs uppercase font-semibold">{dict.plantForm.idealPh}</Label><Input type="number" step="0.1" name="preferred_ph" value={formData.preferred_ph} onChange={handleChange} className="h-9" /></div>
                 <div className="space-y-2"><Label className="text-slate-500 text-xs uppercase font-semibold">{dict.plantForm.idealTemp}</Label><Input type="number" step="0.1" name="preferred_temperature" value={formData.preferred_temperature} onChange={handleChange} className="h-9" /></div>
                 <div className="space-y-2"><Label className="text-slate-500 text-xs uppercase font-semibold">{dict.plantForm.idealGh}</Label><Input type="number" step="0.1" name="preferred_gh" value={formData.preferred_gh} onChange={handleChange} className="h-9" /></div>
