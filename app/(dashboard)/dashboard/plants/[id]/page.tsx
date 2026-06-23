@@ -13,13 +13,12 @@ import {
   Loader2, ArrowLeft, ArrowRight, Leaf, Edit, Droplets, Wind, Sun, 
   Thermometer, FlaskConical, MapPin, Ruler, CheckCircle2, Maximize2, X, Info, ImageIcon,
   ChevronLeft, ChevronRight, Brain, ShieldCheck, Scissors, Activity, Target, Box, BookOpen,
-  Zap, Sprout, Share2, Link as LinkIcon, Check, CheckSquare
+  Zap, Sprout, Share2, Link as LinkIcon, Check, CheckSquare, AlertOctagon, Anchor
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-// IMPORT DIPERBAIKI: Pastikan getPlantTypeSubtitle ada di sini
 import { 
   getCO2DisplayStatus, renderStars, getIndoLevelDetail, getPlacementBadgeStyle, 
   getTankSizeDetails, getStyleDesc, getPlantTypeDesc, 
@@ -210,10 +209,10 @@ export default function PlantDetailPage() {
     <>
       <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-10 space-y-6 transition-colors duration-300">
         
+        {/* HEADER NAVIGATION */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              
               <Button 
                 variant="outline" 
                 onClick={() => {
@@ -224,17 +223,15 @@ export default function PlantDetailPage() {
               >
                 <ArrowLeft className="mr-2 h-4 w-4" /> {dict.plantDetail.btnBack}
               </Button>
-              
               <div className="flex bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md overflow-hidden transition-colors">
-                <Button variant="ghost" disabled={!prevPlantId} onClick={() => prevPlantId && router.push(`/dashboard/plants/${prevPlantId}`)} className="rounded-none border-r border-slate-300 dark:border-slate-700 hover:bg-teal-50 dark:hover:bg-teal-900/40 hover:text-teal-600 dark:hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300" title={dict.plantDetail.tooltipPrev}>
+                <Button variant="ghost" disabled={!prevPlantId} onClick={() => prevPlantId && router.push(`/dashboard/plants/${prevPlantId}`)} className="rounded-none border-r border-slate-300 dark:border-slate-700 hover:bg-teal-50 dark:hover:bg-teal-900/40 hover:text-teal-600 dark:hover:text-teal-400 disabled:opacity-30 text-slate-600 dark:text-slate-300" title={dict.plantDetail.tooltipPrev}>
                   <ChevronLeft className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" disabled={!nextPlantId} onClick={() => nextPlantId && router.push(`/dashboard/plants/${nextPlantId}`)} className="rounded-none hover:bg-teal-50 dark:hover:bg-teal-900/40 hover:text-teal-600 dark:hover:text-teal-400 disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300" title={dict.plantDetail.tooltipNext}>
+                <Button variant="ghost" disabled={!nextPlantId} onClick={() => nextPlantId && router.push(`/dashboard/plants/${nextPlantId}`)} className="rounded-none hover:bg-teal-50 dark:hover:bg-teal-900/40 hover:text-teal-600 dark:hover:text-teal-400 disabled:opacity-30 text-slate-600 dark:text-slate-300" title={dict.plantDetail.tooltipNext}>
                   <ChevronRight className="h-5 w-5" />
                 </Button>
               </div>
             </div>
-            
             {totalPlants > 0 && (
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700/50 w-full sm:w-auto text-center transition-colors">
                 {dict.plantDetail.plantLabel} <strong className="text-gray-900 dark:text-slate-200">{currentIndex}</strong> {dict.plantDetail.of} <strong className="text-gray-900 dark:text-slate-200">{totalPlants}</strong>
@@ -254,7 +251,8 @@ export default function PlantDetailPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-12">
-          {/* KOLOM KIRI */}
+          
+          {/* KOLOM KIRI (VISUAL & TAGS EKOSISTEM) */}
           <div className="lg:col-span-4 space-y-6">
             <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden shadow-xl transition-colors">
               <div 
@@ -289,7 +287,6 @@ export default function PlantDetailPage() {
               )}
 
               <CardContent className="p-6 flex flex-col items-center text-center border-t border-slate-200 dark:border-slate-800 relative transition-colors">
-                
                 <div className="flex gap-2 justify-end w-full mb-2">
                    <button onClick={handleShare} className="p-2 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 rounded-md transition-colors" title={dict.plantDetail.btnShare}>
                      <Share2 className="h-4 w-4" />
@@ -343,7 +340,7 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
-                {/* KECOCOKAN EKOSISTEM */}
+                {/* KECOCOKAN EKOSISTEM & NEW AQUAEXPERT TAGS */}
                 <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-5 w-full transition-colors">
                   <div className="flex items-center gap-2 justify-center mb-6">
                     <CheckSquare className="h-4 w-4 text-teal-600 dark:text-teal-500" />
@@ -366,24 +363,6 @@ export default function PlantDetailPage() {
                         ))
                       ) : (
                         <span className="text-[11px] text-slate-500 dark:text-slate-500 italic py-2">{dict.plantDetail.noSpecificData}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mb-6">
-                    <h4 className="text-xs font-bold uppercase tracking-widest text-yellow-600 dark:text-yellow-400 mb-3">
-                      {dict.plantDetail.setupRecommendation}
-                    </h4>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {setupRekomendasiTags.length > 0 ? (
-                        setupRekomendasiTags.map(tag => (
-                          <div key={tag} className={`flex flex-col items-center justify-center px-4 py-2.5 rounded-lg border shadow-sm transition-colors ${getRecommendationBadgeColor(tag)}`} >
-                            <span className="text-sm font-black uppercase text-center">{tag}</span>
-                            <span className="text-[10px] opacity-80 mt-1 text-center">{getRecommendedDesc(tag, language)}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <span className="text-[11px] text-slate-500 dark:text-slate-500 italic py-2">{dict.plantDetail.noSetupData}</span>
                       )}
                     </div>
                   </div>
@@ -432,21 +411,30 @@ export default function PlantDetailPage() {
                         </div>
                       )}
 
-                      {/* Emersed */}
-                      {plant.emersed_capable && (
-                        <div className="flex flex-col items-center justify-center px-4 py-2 rounded-lg border shadow-sm min-w-[110px] bg-lime-50 dark:bg-lime-950/40 text-lime-700 dark:text-lime-400 border-lime-200 dark:border-lime-900/50 transition-colors">
-                          <span className="text-base font-black uppercase text-center">{dict.plantDetail.emersedLabel}</span>
-                          <span className="text-[10px] opacity-80 mt-1 text-center font-medium">{dict.plantDetail.emersedDesc}</span>
+                      {/* NEW: Root Feeder */}
+                      {plant.root_feeder && (
+                        <div className="flex flex-col items-center justify-center px-4 py-2 rounded-lg border shadow-sm min-w-[110px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/50 transition-colors">
+                          <span className="text-base font-black uppercase text-center">{language === 'id' ? "Root Feeder" : "Root Feeder"}</span>
+                          <span className="text-[10px] opacity-80 mt-1 text-center font-medium">{language === 'id' ? "Butuh pupuk tancap" : "Needs root tabs"}</span>
                         </div>
                       )}
 
-                      {/* Spesifik Ekosistem Tags */}
-                      {ekosistemSpesifikTags.map(tag => (
-                        <div key={tag} className={`flex flex-col items-center justify-center px-4 py-2.5 rounded-lg border shadow-sm transition-colors ${getRecommendationBadgeColor(tag)}`} >
-                          <span className="text-sm font-black uppercase text-center">{tag}</span>
-                          <span className="text-[10px] opacity-80 mt-1 text-center">{getRecommendedDesc(tag, language)}</span>
+                      {/* NEW: Epiphyte Flag */}
+                      {plant.epiphyte && (
+                        <div className="flex flex-col items-center justify-center px-4 py-2 rounded-lg border shadow-sm min-w-[110px] bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-900/50 transition-colors">
+                          <span className="text-base font-black uppercase text-center">{language === 'id' ? "Epiphyte" : "Epiphyte"}</span>
+                          <span className="text-[10px] opacity-80 mt-1 text-center font-medium">{language === 'id' ? "Menempel Kayu/Batu" : "Attaches to wood/rock"}</span>
                         </div>
-                      ))}
+                      )}
+
+                      {/* NEW: Invasive Warning */}
+                      {plant.invasive_growth && (
+                        <div className="flex flex-col items-center justify-center px-4 py-2 rounded-lg border shadow-sm min-w-[110px] bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50 transition-colors">
+                          <span className="text-base font-black uppercase text-center">{language === 'id' ? "Invasif" : "Invasive"}</span>
+                          <span className="text-[10px] opacity-80 mt-1 text-center font-medium">{language === 'id' ? "Tumbuh agresif" : "Grows aggressively"}</span>
+                        </div>
+                      )}
+
                     </div>
                   </div>
                 </div>
@@ -731,8 +719,63 @@ export default function PlantDetailPage() {
                   </div>
                 </div>
 
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-4 border-b border-slate-200 dark:border-slate-800 pb-3 transition-colors">{dict.plantDetail.physicalProfileTitle}</h3>
+                {/* NEW: BAGIAN EKOLOGI LANJUTAN & SKOR EXPERT */}
+                <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-8 transition-colors">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-6 flex items-center gap-2 transition-colors">
+                    <Activity className="h-5 w-5 text-indigo-600 dark:text-indigo-500" /> 
+                    {language === "id" ? "Ekologi Lanjutan & Skor Pakar" : "Advanced Ecology & Expert Scores"}
+                  </h3>
+
+                  {/* Top 3 Ecology Params */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-indigo-50 dark:bg-indigo-950/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/30 text-center transition-colors">
+                        <span className="text-[11px] uppercase font-bold text-indigo-500 dark:text-indigo-400">{language === 'id' ? "Konsumsi Nitrat" : "Nitrate Demand"}</span>
+                        <p className="text-lg font-black text-indigo-700 dark:text-indigo-300 mt-1">{plant.nitrate_consumption || "N/A"}</p>
+                    </div>
+                    <div className="bg-sky-50 dark:bg-sky-950/20 p-4 rounded-xl border border-sky-100 dark:border-sky-900/30 text-center transition-colors">
+                        <span className="text-[11px] uppercase font-bold text-sky-500 dark:text-sky-400">{language === 'id' ? "Produksi Oksigen" : "Oxygen Output"}</span>
+                        <p className="text-lg font-black text-sky-700 dark:text-sky-300 mt-1">{plant.oxygen_production || "N/A"}</p>
+                    </div>
+                    <div className="bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/30 text-center transition-colors">
+                        <span className="text-[11px] uppercase font-bold text-emerald-500 dark:text-emerald-400">{language === 'id' ? "Resistensi Alga" : "Algae Resistance"}</span>
+                        <p className="text-lg font-black text-emerald-700 dark:text-emerald-300 mt-1">{plant.algae_resistance || "N/A"}</p>
+                    </div>
+                  </div>
+
+                  {/* Expert Scores */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">{language === 'id' ? "Skor Tumbuh" : "Growth Score"}</span>
+                        <span className="text-xs font-black text-slate-900 dark:text-white">{plant.growth_speed_score || 5}/10</span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2">
+                        <div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${(plant.growth_speed_score || 5) * 10}%` }}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">{language === 'id' ? "Skor Nutrisi" : "Nutrient Score"}</span>
+                        <span className="text-xs font-black text-slate-900 dark:text-white">{plant.nutrient_consumption_score || 5}/10</span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2">
+                        <div className="bg-amber-500 h-2 rounded-full transition-all" style={{ width: `${(plant.nutrient_consumption_score || 5) * 10}%` }}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">{language === 'id' ? "Skor Trimming" : "Trimming Score"}</span>
+                        <span className="text-xs font-black text-slate-900 dark:text-white">{plant.trimming_frequency_score || 5}/10</span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2">
+                        <div className="bg-rose-500 h-2 rounded-full transition-all" style={{ width: `${(plant.trimming_frequency_score || 5) * 10}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-200 dark:border-slate-800 pt-6 transition-colors">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-4 pb-3 transition-colors">{dict.plantDetail.physicalProfileTitle}</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     
                     <div className="bg-slate-50 dark:bg-slate-950/50 p-5 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-between transition-colors">
