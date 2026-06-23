@@ -17,12 +17,29 @@ interface CommentaryPayload {
 }
 
 // ============================================================================
-// IN-MEMORY CACHE (SPAM PROTECTION & COST SAVING)
-// Menyimpan hasil AI di memori serverless selama instance lambda hangat.
-// Menghemat token untuk spam-click atau request duplikat dalam 1 jam.
+// IN-MEMORY CACHE INFRASTRUCTURE & CONFIGURATION
 // ============================================================================
 const aiResponseCache = new Map<string, { commentary: string; timestamp: number }>();
 const CACHE_TTL_MS = 1000 * 60 * 60; // 1 Jam
+const MAX_CACHE_SIZE = 500;
+
+/**
+ * Helper khusus untuk mengekstrak teks respons dari SDK Google Gen AI.
+ * Mengisolasi casting 'any' di satu tempat untuk menjaga Type Safety berkas.
+ */
+function extractGeminiText(response: unknown): string | null {
+  if (!response || typeof response !== "object") return null;
+  
+  const geminiAny = response as any;
+  if (typeof geminiAny.text === "function") {
+    return geminiAny.text();
+  }
+  if (typeof geminiAny.text === "string") {
+    return geminiAny.text;
+  }
+  
+  return null;
+}
 
 export async function generateDiseaseCommentaryAction({
   aquariumId,
@@ -33,7 +50,7 @@ export async function generateDiseaseCommentaryAction({
   try {
     const supabase = await createClient();
 
-    // 1. Validasi Keamanan & Pesan Error Ramah Pengguna
+    // 1. Autentikasi Keamanan & IDOR Validation
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { 
@@ -54,7 +71,7 @@ export async function generateDiseaseCommentaryAction({
 
     const primaryMatch = diagnosisResults[0];
 
-    // 2. Token Saver & Ambang Batas Keyakinan
+    // 2. Token Saver & Confidence Score Threshold
     if (primaryMatch.confidenceScore < 35) {
       return {
         success: true,
@@ -64,13 +81,16 @@ export async function generateDiseaseCommentaryAction({
       };
     }
 
-    // 3. CACHE CHECK: Cek apakah kombinasi penyakit & parameter ini sudah pernah ditanyakan
+    // 3. DETERMINISTIC CACHE KEY GENERATION
+    // FIX: Menyertakan daftar ID gejala yang terurut (sorted) agar cache unik terhadap kombinasi gejala fisik
     const cacheKey = JSON.stringify({
       aquariumId,
       lang,
       diseaseIds: diagnosisResults.map(d => d.disease.id).join(","),
       confidence: diagnosisResults.map(d => d.confidenceScore).join(","),
-      waterScore: waterHealthStatus.scores.overall
+      selectedSymptoms: primaryMatch.matchedSymptoms.map(s => s.id).sort().join(","),
+      waterQuality: waterHealthStatus.scores.waterQuality,
+      bioload: waterHealthStatus.scores.bioload
     });
 
     const cachedData = aiResponseCache.get(cacheKey);
@@ -79,7 +99,7 @@ export async function generateDiseaseCommentaryAction({
       return { success: true, commentary: cachedData.commentary };
     }
     
-    // 4. Differential Diagnosis Mapping (Top 3) dengan Fallback Null Safety
+    // 4. Differential Diagnosis Core Mapping
     const isDifferential = diagnosisResults.length > 1;
     const topMatchesText = diagnosisResults
       .slice(0, 3)
@@ -90,7 +110,7 @@ export async function generateDiseaseCommentaryAction({
       })
       .join("\n");
 
-    // 5. Defensive Programming untuk Deductions
+    // 5. Parameter & Symptom Text Parsers
     let deductionsText = lang === 'id' ? "Tidak ada penalti lingkungan" : "No environmental penalties";
     if (waterHealthStatus.deductions && typeof waterHealthStatus.deductions === 'object' && !Array.isArray(waterHealthStatus.deductions)) {
       const deductionEntries = Object.entries(waterHealthStatus.deductions);
@@ -105,7 +125,7 @@ export async function generateDiseaseCommentaryAction({
       ? primaryMatch.matchedSymptoms.map(s => lang === 'id' ? s.name_id : s.name_en).join(", ")
       : (lang === "id" ? "Tidak ada gejala manual yang dipilih" : "No manually selected symptoms");
 
-    // 6. Arsitektur Prompt Medis Dinamis (Tunggal vs Diferensial)
+    // 6. Adaptive Knowledge Engineering Prompt
     const systemInstruction = `
       Anda adalah seorang Ichthyologist (Ahli Biologi Ikan) dan Dokter Hewan Akuatik Senior dari AquaExpert Expert System.
       Tugas Anda adalah memberikan ulasan klinis singkat (maksimal 3 paragraf) berdasarkan hasil komputasi sistem pakar kami.
@@ -113,7 +133,7 @@ export async function generateDiseaseCommentaryAction({
       Aturan Ketat Konseptual:
       1. JANGAN PERNAH mengubah nama penyakit atau skor persentase keyakinan. Jalankan analisis berdasarkan data tersebut sebagai fakta mutlak.
       2. ${isDifferential 
-          ? "Berdasarkan daftar Kandidat Penyakit Teratas, jelaskan secara ilmiah MENGAPA kandidat #1 menjadi kemungkinan terbesar, dan bedakan tipis gejalanya dengan kandidat di bawahnya." 
+          ? "Berdasarkan daftar Kandidat Penyakit Teratas, jelaskan secara ilmiah MENGAPA kandidat #1 menjadi kemungkinan terbesar, dan bedakan tipis gejalanya dengan kandidat di bawahnya jika relevan." 
           : "Jelaskan secara ilmiah patologi dari diagnosis tunggal ini berdasarkan gejala yang dikonfirmasi."}
       3. Hubungkan secara ekologis kemungkinan pecah wabah dengan data pemotongan skor lingkungan (deductions).
       4. Gunakan bahasa ilmiah yang ramah pengguna, berwibawa, edukatif, dan taktis.
@@ -140,7 +160,7 @@ export async function generateDiseaseCommentaryAction({
     let aiSuccess = false;
 
     // =====================================================================
-    // MESIN 1: GROQ CLOUD (UTAMA - FAST INFERENCE DENGAN ABORT CONTROLLER)
+    // AI ENGINE HIGH-PRIORITY LAYER: GROQ INFRASTRUCTURE
     // =====================================================================
     if (process.env.GROQ_API_KEY && !aiSuccess) {
       const groqController = new AbortController();
@@ -183,7 +203,7 @@ export async function generateDiseaseCommentaryAction({
     }
 
     // =====================================================================
-    // MESIN 2: GOOGLE GEMINI (CADANGAN)
+    // AI ENGINE FALLBACK LAYER: GOOGLE GEN AI (GEMINI 2.5 FLASH)
     // =====================================================================
     if (process.env.GEMINI_API_KEY && !aiSuccess) {
       let geminiTimeoutId: NodeJS.Timeout | undefined;
@@ -211,8 +231,8 @@ export async function generateDiseaseCommentaryAction({
         const aiResult = await Promise.race([responsePromise, timeoutPromise]) as Awaited<typeof responsePromise>;
         if (geminiTimeoutId) clearTimeout(geminiTimeoutId);
         
-        // FIX: Mengambil teks secara langsung sesuai arsitektur getter SDK @google/genai
-        const rawText = aiResult?.text;
+        // FIX: Mengekstrak teks melalui fungsi pembantu yang aman secara Type Safety & Lintas Versi SDK
+        const rawText = extractGeminiText(aiResult);
         if (rawText) {
           finalCommentary = String(rawText).trim();
           aiSuccess = true;
@@ -233,7 +253,11 @@ export async function generateDiseaseCommentaryAction({
       };
     }
 
-    // SIMPAN KE CACHE SEBELUM RETURN
+    // 7. Cache Management & Memory Eviction Strategy
+    if (aiResponseCache.size > MAX_CACHE_SIZE) {
+      aiResponseCache.clear();
+      logger.info("[DISEASE AI] 🧹 Cache dibersihkan untuk menjaga performa memori serverless.");
+    }
     aiResponseCache.set(cacheKey, { commentary: finalCommentary, timestamp: Date.now() });
 
     return { success: true, commentary: finalCommentary };
