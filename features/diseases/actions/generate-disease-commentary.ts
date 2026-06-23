@@ -1,6 +1,7 @@
 // features/diseases/actions/generate-disease-commentary.ts
 "use server";
 
+import crypto from "crypto";
 import Groq from "groq-sdk";
 import { GoogleGenAI } from "@google/genai";
 import { createClient } from "@/lib/supabase/server";
@@ -17,7 +18,7 @@ interface CommentaryPayload {
 }
 
 // ============================================================================
-// IN-MEMORY CACHE INFRASTRUCTURE
+// IN-MEMORY LRU CACHE INFRASTRUCTURE
 // ============================================================================
 const aiResponseCache = new Map<string, { commentary: string; timestamp: number }>();
 const CACHE_TTL_MS = 1000 * 60 * 60; // 1 Jam
@@ -42,7 +43,7 @@ export async function generateDiseaseCommentaryAction({
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      return { success: false, error: lang === "id" ? "Sesi login berakhir." : "Session expired." };
+      return { success: false, error: lang === "id" ? "Sesi login berakhir. Silakan muat ulang halaman." : "Session expired. Please refresh the page." };
     }
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
@@ -61,7 +62,6 @@ export async function generateDiseaseCommentaryAction({
       };
     }
 
-    // DETERMINISTIC CACHE KEY
     const deductionsKey = waterHealthStatus.deductions && typeof waterHealthStatus.deductions === 'object' && !Array.isArray(waterHealthStatus.deductions)
       ? Object.entries(waterHealthStatus.deductions)
           .sort(([a], [b]) => a.localeCompare(b))
@@ -69,7 +69,8 @@ export async function generateDiseaseCommentaryAction({
           .join("|")
       : "";
 
-    const cacheKey = JSON.stringify({
+    // OPTIMASI: Payload hashing menggunakan SHA-256 untuk memadatkan memori kunci
+    const rawKeyPayload = JSON.stringify({
       aquariumId,
       lang,
       diseaseIds: diagnosisResults.map(d => d.disease.id).join(","),
@@ -80,8 +81,10 @@ export async function generateDiseaseCommentaryAction({
       alerts: [...waterHealthStatus.alerts].sort().join(","),
       deductions: deductionsKey
     });
+    
+    const cacheKey = crypto.createHash("sha256").update(rawKeyPayload).digest("hex");
 
-    // LAZY EVICTION CACHE CHECK
+    // OPTIMASI: Lazy Eviction & LRU Cache Promotion
     const cachedData = aiResponseCache.get(cacheKey);
     if (cachedData) {
       const isExpired = Date.now() - cachedData.timestamp > CACHE_TTL_MS;
@@ -89,7 +92,11 @@ export async function generateDiseaseCommentaryAction({
         aiResponseCache.delete(cacheKey);
         logger.info("[DISEASE AI] 🧹 Stale cache deleted.");
       } else {
-        logger.info("[DISEASE AI] ⚡ Cache Hit! Mengembalikan ulasan dari memori.");
+        // LRU Promotion: Pindahkan elemen yang diakses ke urutan teratas (paling akhir di iterasi Map)
+        aiResponseCache.delete(cacheKey);
+        aiResponseCache.set(cacheKey, cachedData);
+        
+        logger.info("[DISEASE AI] ⚡ Cache Hit (LRU)! Mengembalikan ulasan dari memori.");
         return { success: true, commentary: cachedData.commentary };
       }
     }
@@ -247,11 +254,11 @@ export async function generateDiseaseCommentaryAction({
         : `Primary diagnosis strongly indicates **${topDiseaseName}** (${primaryMatch.confidenceScore}% Confidence).\n\nYour tank's current ecosystem condition has recorded environmental penalties that risk accelerating the pathogen lifecycle. Although the Generative AI Assistant is undergoing maintenance, our Expert System highly recommends taking immediate corrective actions on water parameters, isolating infected fish to a quarantine tank, and reviewing the biological load.`;
     }
 
-    // Memory Eviction Policy
+    // Memory Eviction Policy: Evict Oldest (First element in Map iteration)
     if (aiResponseCache.size >= MAX_CACHE_SIZE) {
       const oldestKey = aiResponseCache.keys().next().value;
       if (oldestKey) aiResponseCache.delete(oldestKey);
-      logger.info("[DISEASE AI] 🧹 Evicting oldest cache item.");
+      logger.info("[DISEASE AI] 🧹 Evicting oldest cache item to maintain LRU structure.");
     }
 
     aiResponseCache.set(cacheKey, { commentary: finalCommentary, timestamp: Date.now() });
