@@ -1,7 +1,7 @@
 // features/aquariums/actions/gemini-expert.actions.ts
 "use server";
 
-import { GoogleGenAI } from "@google/genai";
+import Groq from "groq-sdk"; // FIX: Kita panggil SDK Groq
 import { generateDeepDiagnosis } from "../utils/deep-diagnosis";
 import { analyzeAquariumHealth } from "../utils/health-engine";
 import { getTankInventoryAction } from "./inventory.actions";
@@ -56,11 +56,15 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
     let expertCommentary = lang === 'id' 
       ? "Catatan pakar generatif sementara tidak tersedia. Silakan ikuti rencana eksekusi dan aksi tindakan dari sistem kontrol mekanis lokal di bawah."
       : "Generative expert commentary is temporarily unavailable. Please follow the local systemic action plans below.";
+    
     let generatedByGemini = false;
 
-    if (process.env.GEMINI_API_KEY && localDiagnosis.rootCauses.length > 0) {
+    // FIX: Menggunakan GROQ_API_KEY sebagai nyawa utama AI sekarang
+    if (process.env.GROQ_API_KEY && localDiagnosis.rootCauses.length > 0) {
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        console.log("\n🚀 [GROQ START] Menghubungi mesin Groq Llama 3...");
+        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        
         const issuesSummary = localDiagnosis.rootCauses.map(c => `- ${c.title}: ${c.description}`).join("\n");
         const actionsSummary = localDiagnosis.nextActions.map(a => `[${a.priority.toUpperCase()}] ${a.instruction}`).join("\n");
         
@@ -85,23 +89,27 @@ ${issuesSummary}
 Recommended Next Actions:
 ${actionsSummary}`;
 
-        const responsePromise = ai.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: userPrompt,
-          config: { systemInstruction: systemPrompt, temperature: 0.6 }
+        // Menggunakan model Llama-3.3 terbaru dari Meta via Groq (Sangat pintar bahasa Indonesia & Instan)
+        const responsePromise = groq.chat.completions.create({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          model: "llama-3.3-70b-versatile",
+          temperature: 0.6,
         });
 
-        // FIX: WAKTU TUNGGU (TIMEOUT) DITAMBAH DARI 3.5 DETIK MENJADI 15 DETIK AGAR AI SEMPAT BERPIKIR!
-        const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Gemini Gateway Timeout")), 15000));
+        const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Groq Gateway Timeout")), 15000));
         
         const aiResult = await Promise.race([responsePromise, timeoutPromise]);
 
-        if (aiResult && aiResult.text) {
-          expertCommentary = aiResult.text.trim();
-          generatedByGemini = true;
+        if (aiResult && aiResult.choices && aiResult.choices[0]?.message?.content) {
+          expertCommentary = aiResult.choices[0].message.content.trim();
+          generatedByGemini = true; // Flag ini tetap kita true-kan agar efek bintang berkilau di UI tetap menyala
+          console.log("✅ [GROQ SUCCESS] Teks AI berhasil didapatkan!");
         }
       } catch (aiErr) {
-        console.warn("Gemini API Hybrid Integration bypassed gracefully:", aiErr);
+        console.error("❌ [GROQ ERROR] Gagal menghubungi Groq:", aiErr);
       }
     }
 
