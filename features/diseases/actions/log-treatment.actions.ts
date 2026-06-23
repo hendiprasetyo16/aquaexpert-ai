@@ -1,4 +1,3 @@
-// features/treatments/actions/log-treatment.actions.ts
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
@@ -9,6 +8,23 @@ import type {
   TreatmentStatus, 
   ActionTaken
 } from "../types/treatment.types";
+
+// ============================================================================
+// STRICT INTERFACES
+// ============================================================================
+interface SymptomSnapshot {
+  id: string;
+  name_id: string;
+  name_en: string;
+  weight: number;
+}
+
+interface TreatmentRpcResult {
+  success: boolean;
+  log_id: string;
+  recovery_rate: number;
+  status: TreatmentStatus;
+}
 
 interface LogPayload {
   aquariumId: string;
@@ -38,14 +54,12 @@ export async function logDailyTreatmentAction({
   try {
     const supabase = await createClient();
 
-    // 1. Validasi Keamanan Akses
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, analytics: null, error: lang === "id" ? "Sesi berakhir." : "Session expired." };
     }
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
-    // 2. Tarik Data Sesi Pengobatan (Zero-Cast)
     const { data: session, error: errSession } = await supabase
       .from("treatment_sessions")
       .select("*")
@@ -61,7 +75,6 @@ export async function logDailyTreatmentAction({
       throw new Error(lang === "id" ? "Sesi pengobatan ini sudah ditutup." : "This treatment session is already closed.");
     }
 
-    // 3. Kalkulasi Calendar Days Menggunakan Waktu UTC Absolut
     const startDate = new Date(session.started_at);
     const today = new Date();
     
@@ -70,9 +83,9 @@ export async function logDailyTreatmentAction({
     
     const dayNumber = Math.floor((todayMidnight - startMidnight) / (1000 * 60 * 60 * 24)) + 1;
 
-    // 4. Kalkulasi Severity Score & PEMBEKUAN HISTORI (Snapshot)
+    // FIX: Strict Typed Snapshot Array
     let currentSeverityScore = 0;
-    let symptomsSnapshot: any[] = [];
+    let symptomsSnapshot: SymptomSnapshot[] = [];
     
     if (remainingSymptomIds.length > 0) {
       const { data: symptoms } = await supabase
@@ -82,11 +95,16 @@ export async function logDailyTreatmentAction({
         
       if (symptoms) {
         currentSeverityScore = symptoms.reduce((acc, curr) => acc + (Number(curr.weight) || 0), 0);
-        symptomsSnapshot = symptoms; // Simpan struktur utuh sebagai rekam medis permanen
+        // Mapping ketat untuk menghindari any leakage
+        symptomsSnapshot = symptoms.map(s => ({
+          id: String(s.id),
+          name_id: String(s.name_id),
+          name_en: String(s.name_en),
+          weight: Number(s.weight) || 0
+        }));
       }
     }
 
-    // 5. Analitik Baseline Dinamis
     const { data: previousLogRaw } = await supabase
       .from("treatment_logs")
       .select("severity_score")
@@ -98,7 +116,6 @@ export async function logDailyTreatmentAction({
     const previousSeverity = previousLogRaw ? Number(previousLogRaw.severity_score) : Number(session.initial_severity_score);
     const isImproving = currentSeverityScore < previousSeverity;
 
-    // 6. Kalkulasi Persentase Pemulihan Global
     let recoveryRate = 0;
     const initialSeverity = Number(session.initial_severity_score);
     if (initialSeverity > 0) {
@@ -106,7 +123,6 @@ export async function logDailyTreatmentAction({
     }
     recoveryRate = Math.max(0, Math.min(100, Math.round(recoveryRate)));
 
-    // 7. Snapshot Ekosistem Air Terkini
     const { data: latestParams } = await supabase
       .from("aquarium_parameters")
       .select("ph, temperature, ammonia, nitrite, nitrate")
@@ -116,7 +132,6 @@ export async function logDailyTreatmentAction({
       .limit(1)
       .maybeSingle();
 
-    // 8. Rule-Based Expert System (Rekomendasi Berbasis Kondisi Faktual)
     let recId = "";
     let recEn = "";
     let autoUpdateStatus: TreatmentStatus = "Active";
@@ -144,13 +159,12 @@ export async function logDailyTreatmentAction({
       recEn = "Treatment is ongoing. Continue to monitor fauna condition regularly.";
     }
 
-    // 9. Eksekusi Transaksi RPC dengan Penanganan Error Kuat
-    const { data: rpcResult, error: rpcError } = await supabase.rpc('log_treatment_transaction', {
+    const { data: rawRpcResult, error: rpcError } = await supabase.rpc('log_treatment_transaction', {
       p_session_id: sessionId,
       p_day_number: dayNumber,
       p_severity_score: currentSeverityScore,
       p_remaining_symptoms: remainingSymptomIds,
-      p_symptoms_snapshot: symptomsSnapshot, // Dikirim ke DB
+      p_symptoms_snapshot: symptomsSnapshot,
       p_action_taken: actionTaken,
       p_notes: notes,
       p_photo_url: photoUrl || null,
@@ -164,7 +178,6 @@ export async function logDailyTreatmentAction({
     });
 
     if (rpcError) {
-      // Jaring Pengaman Error PostgreSQL/PostgREST yang kebal perubahan driver
       const errStr = JSON.stringify(rpcError).toLowerCase();
       if (rpcError.code === '23505' || errStr.includes('unique') || errStr.includes('duplicate')) {
         throw new Error(lang === "id" 
@@ -176,14 +189,15 @@ export async function logDailyTreatmentAction({
       throw new Error("Gagal mengeksekusi transaksi rekam medis.");
     }
 
+    // FIX: Type-Safe RPC Result Handling
+    const rpcResult = rawRpcResult as unknown as TreatmentRpcResult;
     logger.info("[TREATMENT ENGINE SUCCESS]", { rpcResult });
 
-    // Menggabungkan Single Source of Truth dari DB dengan kalkulasi AI lokal
     return {
       success: true,
       analytics: {
         isImproving,
-        recoveryPercentage: rpcResult ? rpcResult.recovery_rate : recoveryRate, // Ambil dari RPC jika tersedia
+        recoveryPercentage: rpcResult && typeof rpcResult === 'object' ? Number(rpcResult.recovery_rate) : recoveryRate,
         aiRecommendationId: recId,
         aiRecommendationEn: recEn
       }
