@@ -1,7 +1,8 @@
 // features/aquariums/actions/gemini-expert.actions.ts
 "use server";
 
-import Groq from "groq-sdk"; // FIX: Kita panggil SDK Groq
+import Groq from "groq-sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai"; 
 import { generateDeepDiagnosis } from "../utils/deep-diagnosis";
 import { analyzeAquariumHealth } from "../utils/health-engine";
 import { getTankInventoryAction } from "./inventory.actions";
@@ -13,7 +14,7 @@ export interface HybridDiagnosisResponse {
   localDiagnosis: ReturnType<typeof generateDeepDiagnosis> | null;
   expertAIExtras: {
     commentary: string;
-    generatedByGemini: boolean;
+    generatedByGemini: boolean; // Menandakan bahwa teks ini asli buatan AI (Groq atau Gemini)
   };
   error?: string;
 }
@@ -50,70 +51,104 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
     const plants = inventory.plants || [];
     const paramsList = parameters || [];
 
+    // 1. Eksekusi Mesin Kalkulasi Lokal (Akurasi Pasti 100%)
     const healthResult = analyzeAquariumHealth({ aquarium, parameters: paramsList, plants, fishes });
     const localDiagnosis = generateDeepDiagnosis({ aquarium, health: healthResult, parameters: paramsList, fishes, plants, lang });
 
+    // Fallback Bawaan Jika Semua AI Mati
     let expertCommentary = lang === 'id' 
       ? "Catatan pakar generatif sementara tidak tersedia. Silakan ikuti rencana eksekusi dan aksi tindakan dari sistem kontrol mekanis lokal di bawah."
       : "Generative expert commentary is temporarily unavailable. Please follow the local systemic action plans below.";
     
-    let generatedByGemini = false;
+    let generatedByAI = false;
+    let aiSuccess = false;
 
-    // FIX: Menggunakan GROQ_API_KEY sebagai nyawa utama AI sekarang
-    if (process.env.GROQ_API_KEY && localDiagnosis.rootCauses.length > 0) {
-      try {
-        console.log("\n🚀 [GROQ START] Menghubungi mesin Groq Llama 3...");
-        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-        
-        const issuesSummary = localDiagnosis.rootCauses.map(c => `- ${c.title}: ${c.description}`).join("\n");
-        const actionsSummary = localDiagnosis.nextActions.map(a => `[${a.priority.toUpperCase()}] ${a.instruction}`).join("\n");
-        
-        const systemPrompt = `You are a world-class professional aquascaper and aquatic veterinarian expert. 
-You will be provided with a raw technical diagnosis report from an aquarium ecosystem monitoring software. 
-Your job is to write an empathetic, deeply educational, and scientifically solid commentary for the aquarist.
+    if (localDiagnosis.rootCauses.length > 0) {
+      
+      const issuesSummary = localDiagnosis.rootCauses.map(c => `- ${c.title}: ${c.description}`).join("\n");
+      const actionsSummary = localDiagnosis.nextActions.map(a => `[${a.priority.toUpperCase()}] ${a.instruction}`).join("\n");
+      
+      const systemPrompt = `You are a world-class professional aquascaper and aquatic veterinarian expert. 
+Your job is to write an empathetic, deeply educational, and scientifically solid commentary for the aquarist based on this raw data.
 Strictly adhere to these rules:
 1. Write exactly 2 paragraphs.
-2. Do not repeat the raw numbers verbatim, instead explain the biological consequence of those issues.
-3. Be supportive but firm about urgent threats like Ammonia or Biotope Mismatches.
-4. Output your response entirely in the requested language: ${lang === 'id' ? 'Indonesian' : 'English'}.`;
-        
-        const userPrompt = `Aquarium Name: ${aquarium.name}
+2. Explain the biological consequence of the issues.
+3. Output your response entirely in the requested language: ${lang === 'id' ? 'Indonesian' : 'English'}.`;
+      
+      const userPrompt = `Aquarium Name: ${aquarium.name}
 Style: ${aquarium.aquascape_style}
 Volume: ${aquarium.volume_liters} Liters
-Calculated Overall Ecosystem Score: ${healthResult.scores.overall}/100
-Ecosystem Risk Level Status: ${localDiagnosis.riskLevel}
+Score: ${healthResult.scores.overall}/100
+Status: ${localDiagnosis.riskLevel}
 
-Detected Core Root Causes:
+Root Causes:
 ${issuesSummary}
 
-Recommended Next Actions:
+Actions:
 ${actionsSummary}`;
 
-        // Menggunakan model Llama-3.3 terbaru dari Meta via Groq (Sangat pintar bahasa Indonesia & Instan)
-        const responsePromise = groq.chat.completions.create({
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt }
-          ],
-          model: "llama-3.3-70b-versatile",
-          temperature: 0.6,
-        });
+      // =====================================================================
+      // MESIN 1: GROQ (PRIORITAS UTAMA KARENA SUPER CEPAT)
+      // =====================================================================
+      if (process.env.GROQ_API_KEY && !aiSuccess) {
+        try {
+          console.log("\n🚀 [AI ENGINE] Mencoba Mesin 1: GROQ (Llama 3)...");
+          const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+          
+          const responsePromise = groq.chat.completions.create({
+            messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.6,
+          });
 
-        const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Groq Gateway Timeout")), 15000));
-        
-        const aiResult = await Promise.race([responsePromise, timeoutPromise]);
+          const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Groq Timeout")), 10000));
+          const aiResult = await Promise.race([responsePromise, timeoutPromise]);
 
-        if (aiResult && aiResult.choices && aiResult.choices[0]?.message?.content) {
-          expertCommentary = aiResult.choices[0].message.content.trim();
-          generatedByGemini = true; // Flag ini tetap kita true-kan agar efek bintang berkilau di UI tetap menyala
-          console.log("✅ [GROQ SUCCESS] Teks AI berhasil didapatkan!");
+          if (aiResult && aiResult.choices && aiResult.choices[0]?.message?.content) {
+            expertCommentary = aiResult.choices[0].message.content.trim();
+            generatedByAI = true;
+            aiSuccess = true;
+            console.log("✅ [GROQ SUCCESS] Analisis Groq berhasil!");
+          }
+        } catch (err) {
+          console.warn("⚠️ [GROQ GAGAL] Mengalihkan ke mesin cadangan Gemini...", err instanceof Error ? err.message : err);
         }
-      } catch (aiErr) {
-        console.error("❌ [GROQ ERROR] Gagal menghubungi Groq:", aiErr);
+      }
+
+      // =====================================================================
+      // MESIN 2: GOOGLE GEMINI (CADANGAN JIKA GROQ GAGAL/LIMIT)
+      // =====================================================================
+      if (process.env.GEMINI_API_KEY && !aiSuccess) {
+        try {
+          console.log("\n🤖 [AI ENGINE] Mencoba Mesin 2: GOOGLE GEMINI...");
+          const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+          const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: systemPrompt });
+
+          const responsePromise = model.generateContent(userPrompt);
+          const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Gemini Timeout")), 15000));
+          
+          const result = await Promise.race([responsePromise, timeoutPromise]);
+          
+          if (result && result.response) {
+            expertCommentary = result.response.text().trim();
+            generatedByAI = true;
+            aiSuccess = true;
+            console.log("✅ [GEMINI SUCCESS] Analisis Gemini berhasil!");
+          }
+        } catch (err) {
+          console.error("❌ [GEMINI GAGAL] Kedua mesin AI tumbang. Menggunakan fallback lokal.", err instanceof Error ? err.message : err);
+        }
       }
     }
 
-    return { success: true, localDiagnosis, expertAIExtras: { commentary: expertCommentary, generatedByGemini } };
+    return { 
+      success: true, 
+      localDiagnosis, 
+      expertAIExtras: { 
+        commentary: expertCommentary, 
+        generatedByGemini: generatedByAI // Variabel ini tetap bernama generatedByGemini agar UI berkilau Bapak tetap bekerja
+      } 
+    };
   } catch (error: unknown) {
     return { success: false, localDiagnosis: null, expertAIExtras: { commentary: "", generatedByGemini: false }, error: error instanceof Error ? error.message : "Fatal error inside Hybrid Layer" };
   }
