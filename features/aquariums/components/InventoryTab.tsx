@@ -210,7 +210,6 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                   {idx + 1}
                 </div>
 
-                {/* FIX: Ubah bingkai ikan di list utama menjadi landscape (rounded-xl w-16 h-12) */}
                 <div className="w-16 h-12 sm:w-20 sm:h-14 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 relative border-2 border-transparent group-hover:border-blue-200 ml-1">
                   {item.fish?.image_url ? (
                     <img src={item.fish.image_url} alt="fish" className="w-full h-full object-cover" />
@@ -224,7 +223,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                     {getHealthBadge(item.health_status)}
                   </div>
                   <div className="flex items-center gap-1 mt-1.5 text-[9px] font-semibold text-slate-400">
-                    <Calendar className="w-2.5 h-2.5" /> Masuk: {formatAddedDate(item.added_at)}
+                    <Calendar className="w-2.5 h-2.5" /> {lang === 'id' ? "Masuk:" : "Added:"} {formatAddedDate(item.added_at)}
                   </div>
                 </div>
 
@@ -291,7 +290,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                   <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{plantName}</p>
                   <p className="text-xs text-emerald-600 dark:text-emerald-400 font-black mt-0.5 bg-emerald-50 dark:bg-emerald-900/30 inline-block px-2 py-0.5 rounded-md mb-1">{item.quantity} {lang === 'id' ? "Porsi" : "Portions"}</p>
                   <div className="flex items-center gap-1 text-[9px] font-semibold text-slate-400">
-                    <Calendar className="w-2.5 h-2.5" /> Tanam: {formatAddedDate(item.added_at)}
+                    <Calendar className="w-2.5 h-2.5" /> {lang === 'id' ? "Tanam:" : "Planted:"} {formatAddedDate(item.added_at)}
                   </div>
                 </div>
                 <button onClick={() => triggerDelete("aquarium_plants", item.id, plantName)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors border border-transparent hover:border-red-200" title={lang === 'id' ? "Hapus" : "Delete"}>
@@ -320,7 +319,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                   <input type="text" placeholder={lang === 'id' ? "Cari nama spesies..." : "Search species..."} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full h-11 sm:h-12 pl-12 pr-4 rounded-xl border-2 outline-none font-semibold transition-colors bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
                 </div>
               </div>
-              <button onClick={resetForm} className="p-2 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-500 rounded-full transition-colors shrink-0"><X className="w-5 h-5"/></button>
+              <button onClick={resetForm} className="absolute top-6 right-6 p-2 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-500 rounded-full transition-colors"><X className="w-5 h-5"/></button>
             </div>
 
             <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
@@ -335,7 +334,6 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                         <div className="absolute top-2 left-2 w-5 h-5 flex items-center justify-center rounded bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm text-[9px] font-black text-slate-500 z-10">{idx + 1}</div>
                         {isSelected && (<div className={`absolute top-2 right-2 rounded-full bg-white dark:bg-slate-900 z-10 ${isFish ? 'text-blue-500' : 'text-emerald-500'}`}><CheckCircle2 className="w-5 h-5" /></div>)}
                         
-                        {/* FIX: Shape Landscape (4:3) untuk Ikan, Lingkaran untuk Tanaman */}
                         <div className={`w-full ${isFish ? 'aspect-[4/3] rounded-xl' : 'aspect-square rounded-full w-3/4 mx-auto'} overflow-hidden shrink-0 relative bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition-transform duration-300 ${isSelected ? 'scale-95' : 'group-hover:scale-95'}`}>
                            {item.image_url ? ( 
                              <img src={item.image_url} alt="species" className="w-full h-full object-cover" /> 
@@ -357,7 +355,6 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
             </div>
 
             <form onSubmit={handleAddSubmit} className="p-4 sm:p-5 bg-white dark:bg-slate-900 shrink-0">
-              {/* FIX: Layout Form Compact (Grid 2 Kolom di HP) menghemat sangat banyak tinggi layar */}
               <div className="flex flex-col gap-3">
                 <div className={`grid grid-cols-2 ${isFish ? 'sm:grid-cols-4' : 'sm:grid-cols-2'} gap-3`}>
                   
@@ -367,25 +364,25 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tgl Masuk</label>
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{lang === 'id' ? "Tgl Masuk" : "Date Added"}</label>
                     <input required type="date" value={addedAt} onChange={(e) => setAddedAt(e.target.value)} className={`w-full h-11 px-2.5 rounded-lg border-2 outline-none font-bold text-xs bg-slate-50 dark:bg-slate-950 ${isFish ? 'border-blue-100 focus:border-blue-500' : 'border-emerald-100 focus:border-emerald-500'}`} />
                   </div>
 
                   {isFish && (
                     <>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kesehatan</label>
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{lang === 'id' ? "Kesehatan" : "Health"}</label>
                         <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value as HealthType)} className="w-full h-11 px-2.5 rounded-lg border-2 outline-none font-bold text-xs bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500 cursor-pointer">
-                          <option value="Healthy">Healthy (Sehat)</option>
-                          <option value="Sick">Sick (Sakit)</option>
-                          <option value="Quarantined">Quarantine</option>
+                          <option value="Healthy">{lang === 'id' ? "Sehat" : "Healthy"}</option>
+                          <option value="Sick">{lang === 'id' ? "Sakit" : "Sick"}</option>
+                          <option value="Quarantined">{lang === 'id' ? "Karantina" : "Quarantine"}</option>
                         </select>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Ukuran</label>
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{lang === 'id' ? "Ukuran" : "Size"}</label>
                         <select value={sizeCategory} onChange={(e) => setSizeCategory(e.target.value as SizeType)} className="w-full h-11 px-2.5 rounded-lg border-2 outline-none font-bold text-xs bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500 cursor-pointer">
-                          <option value="Juvenile">Juvenile</option>
-                          <option value="Adult">Adult</option>
+                          <option value="Juvenile">{lang === 'id' ? "Anakan" : "Juvenile"}</option>
+                          <option value="Adult">{lang === 'id' ? "Dewasa" : "Adult"}</option>
                         </select>
                       </div>
                     </>
@@ -395,7 +392,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                 <div className="flex gap-3 pt-1">
                   <Button type="button" variant="ghost" onClick={resetForm} className="flex-1 h-11 rounded-lg text-slate-500 font-bold uppercase bg-slate-100 hover:bg-slate-200 dark:bg-slate-800">{lang === 'id' ? "Batal" : "Cancel"}</Button>
                   <Button type="submit" disabled={submitting || !selectedItemId} className={`flex-1 h-11 rounded-lg text-white font-black uppercase tracking-wider shadow-lg ${isFish ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'}`}>
-                    {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Simpan"}
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (lang === 'id' ? "Simpan" : "Save")}
                   </Button>
                 </div>
               </div>
@@ -410,9 +407,9 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
       ======================================================== */}
       {mounted && showEditFishModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300" onClick={resetForm}>
-          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-2xl border-t-8 border-blue-500" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-2xl border-t-8 border-blue-500" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">Update Status Ikan</h3>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">{lang === 'id' ? "Update Status Ikan" : "Update Fish Status"}</h3>
               <button onClick={resetForm} className="p-2 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-500 rounded-full transition-colors"><X className="w-4 h-4"/></button>
             </div>
 
@@ -428,34 +425,34 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
             <form onSubmit={handleEditSubmit} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2 space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Kesehatan</label>
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{lang === 'id' ? "Kesehatan Terkini" : "Current Health"}</label>
                   <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value as HealthType)} className="w-full h-11 px-3 rounded-lg border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500 cursor-pointer">
-                    <option value="Healthy">Healthy (Sehat)</option>
-                    <option value="Sick">Sick (Sakit)</option>
-                    <option value="Quarantined">Quarantine</option>
+                    <option value="Healthy">{lang === 'id' ? "Sehat" : "Healthy"}</option>
+                    <option value="Sick">{lang === 'id' ? "Sakit" : "Sick"}</option>
+                    <option value="Quarantined">{lang === 'id' ? "Karantina" : "Quarantine"}</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Ukuran</label>
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{lang === 'id' ? "Ukuran" : "Size"}</label>
                   <select value={sizeCategory} onChange={(e) => setSizeCategory(e.target.value as SizeType)} className="w-full h-11 px-3 rounded-lg border-2 outline-none font-bold text-sm bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500 cursor-pointer">
-                    <option value="Juvenile">Juvenile</option>
-                    <option value="Adult">Adult</option>
+                    <option value="Juvenile">{lang === 'id' ? "Anakan" : "Juvenile"}</option>
+                    <option value="Adult">{lang === 'id' ? "Dewasa" : "Adult"}</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Jumlah</label>
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{lang === 'id' ? "Jumlah" : "Qty"}</label>
                   <input required type="number" min="1" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="w-full h-11 px-3 rounded-lg border-2 outline-none font-black text-base bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500" />
                 </div>
                 <div className="col-span-2 space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Tgl Masuk</label>
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{lang === 'id' ? "Tgl Masuk" : "Date Added"}</label>
                   <input required type="date" value={addedAt} onChange={(e) => setAddedAt(e.target.value)} className="w-full h-11 px-3 rounded-lg border-2 outline-none font-bold text-xs bg-slate-50 dark:bg-slate-950 border-blue-100 focus:border-blue-500" />
                 </div>
               </div>
 
               <div className="pt-3 flex gap-3">
-                <Button type="button" variant="ghost" onClick={resetForm} className="flex-1 h-11 rounded-lg text-slate-500 font-bold uppercase bg-slate-100 hover:bg-slate-200">Batal</Button>
+                <Button type="button" variant="ghost" onClick={resetForm} className="flex-1 h-11 rounded-lg text-slate-500 font-bold uppercase bg-slate-100 hover:bg-slate-200">{lang === 'id' ? "Batal" : "Cancel"}</Button>
                 <Button type="submit" disabled={submitting} className="flex-1 h-11 rounded-lg text-white font-black uppercase tracking-wider bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20">
-                  {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Simpan"}
+                  {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (lang === 'id' ? "Perbarui" : "Update")}
                 </Button>
               </div>
             </form>

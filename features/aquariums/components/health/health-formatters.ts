@@ -1,22 +1,21 @@
 // features/aquariums/components/health/health-formatters.ts
-
 export const getHealthColor = (status: string) => {
   switch (status) {
-    case "Excellent": return "text-emerald-500";
-    case "Good": return "text-blue-500";
-    case "Warning": return "text-amber-500";
-    case "Critical": return "text-red-500";
-    default: return "text-slate-500";
+    case "Excellent": return "text-emerald-600";
+    case "Good": return "text-blue-600";
+    case "Warning": return "text-amber-600";
+    case "Critical": return "text-rose-600";
+    default: return "text-slate-600";
   }
 };
 
 export const getHealthBg = (status: string) => {
   switch (status) {
-    case "Excellent": return "bg-emerald-500";
-    case "Good": return "bg-blue-500";
+    case "Excellent": return "bg-emerald-600";
+    case "Good": return "bg-blue-600";
     case "Warning": return "bg-amber-500";
-    case "Critical": return "bg-red-500";
-    default: return "bg-slate-500";
+    case "Critical": return "bg-rose-600";
+    default: return "bg-slate-600";
   }
 };
 
@@ -25,7 +24,7 @@ export const getHealthBorder = (status: string) => {
     case "Excellent": return "border-emerald-500";
     case "Good": return "border-blue-500";
     case "Warning": return "border-amber-500";
-    case "Critical": return "border-red-500";
+    case "Critical": return "border-rose-500";
     default: return "border-slate-500";
   }
 };
