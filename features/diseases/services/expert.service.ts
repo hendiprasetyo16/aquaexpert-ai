@@ -1,5 +1,5 @@
 // D:\aquaexpert-ai\features\diseases\services\expert.service.ts
-import type { AquariumParameterLog } from "../types/parameter.types";
+import type { AquariumParameterLog } from "../../aquariums/types/parameter.types";
 
 export interface Symptom {
   id: string;

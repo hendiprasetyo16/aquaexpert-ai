@@ -1,6 +1,7 @@
+// features/diseases/components/SymptomPicker.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Check, Activity, Search, AlertCircle, Info } from "lucide-react";
 import type { Symptom, BodyRegion } from "@/features/diseases/types/disease.types";
 
@@ -21,78 +22,62 @@ const REGION_TABS: { id: BodyRegion; labelId: string; labelEn: string }[] = [
   { id: "Mouth", labelId: "Mulut", labelEn: "Mouth" },
 ];
 
+function calculateQualityMetrics(count: number) {
+  if (count === 0) {
+    return { percent: 0, label: "Menunggu Input", color: "bg-slate-200", text: "text-slate-500" };
+  }
+  
+  const percent = Math.min(100, Math.round((count / 7) * 100));
+  
+  if (percent <= 35) {
+    return { percent, label: "Akurasi Rendah", color: "bg-amber-500", text: "text-amber-600" };
+  }
+  if (percent <= 75) {
+    return { percent, label: "Akurasi Baik", color: "bg-blue-500", text: "text-blue-600" };
+  }
+  return { percent, label: "Sangat Optimal", color: "bg-emerald-500", text: "text-emerald-600" };
+}
+
 export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis, isLoading }: Props) {
   const [activeRegion, setActiveRegion] = useState<BodyRegion>("General");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-// OPTIMASI: Indexing O(1) untuk menopang database gejala berskala masif di masa depan
-  const symptomsByRegion = useMemo(() => {
-    const map = new Map<BodyRegion, Symptom[]>();
-    
-    // Inisialisasi keranjang array kosong untuk tiap tab region
-    REGION_TABS.forEach(region => map.set(region.id, []));
-    
-    // Distribusi gejala ke dalam keranjang region masing-masing
-    availableSymptoms.forEach(symptom => {
-      map.get(symptom.body_region)?.push(symptom);
-    });
-    
-    return map;
-  }, [availableSymptoms]);
+  // Dikembalikan ke mekanisme filter linier yang bersahabat untuk ukuran data harian
+  const displayedSymptoms = useMemo(() => {
+    return availableSymptoms.filter(s => s.body_region === activeRegion);
+  }, [availableSymptoms, activeRegion]);
 
-  const displayedSymptoms = symptomsByRegion.get(activeRegion) ?? [];
-
-// OPTIMASI FINAL: Agregasi dengan Strict Typing
   const selectedCountsByRegion = useMemo(() => {
     const counts: Partial<Record<BodyRegion, number>> = {};
-    
     availableSymptoms.forEach(s => {
       if (selectedIds.has(s.id)) {
         counts[s.body_region] = (counts[s.body_region] || 0) + 1;
       }
     });
-    
     return counts;
   }, [availableSymptoms, selectedIds]);
 
-const toggleSymptom = (id: string) => {
-  setSelectedIds(prev => {
-    const next = new Set(prev);
+  // FIX: Menggunakan useCallback untuk mengunci referensi fungsi memori
+  const toggleSymptom = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-
-    return next;
-  });
-};
-
-  const handleProcess = () => {
+  // FIX: Menggunakan useCallback guna mencegah re-alokasi fungsi saat render ulang
+  const handleProcess = useCallback(() => {
     if (selectedIds.size > 0) {
       onSubmitDiagnosis(aquariumId, Array.from(selectedIds));
     }
-  };
+  }, [selectedIds, onSubmitDiagnosis, aquariumId]);
 
-  // MICRO-OPTIMIZATION: Memastikan metrik akurasi hanya dihitung saat pilihan gejala berubah
-// OPTIMASI: Memanfaatkan tipe primitif .size sebagai dependency agar lebih presisi
-  const quality = useMemo(() => {
-    const count = selectedIds.size;
-    if (count === 0) {
-      return { percent: 0, label: "Menunggu Input", color: "bg-slate-200", text: "text-slate-500" };
-    }
-    
-    const percent = Math.min(100, Math.round((count / 7) * 100));
-    
-    if (percent <= 35) {
-      return { percent, label: "Akurasi Rendah", color: "bg-amber-500", text: "text-amber-600" };
-    }
-    if (percent <= 75) {
-      return { percent, label: "Akurasi Baik", color: "bg-blue-500", text: "text-blue-600" };
-    }
-    return { percent, label: "Sangat Optimal", color: "bg-emerald-500", text: "text-emerald-600" };
-  }, [selectedIds.size]); // FIX: Menggunakan .size murni
+  const quality = calculateQualityMetrics(selectedIds.size);
 
   return (
     <div className="w-full max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col md:flex-row">
@@ -178,7 +163,7 @@ const toggleSymptom = (id: string) => {
           )}
         </div>
 
-        {/* DIAGNOSIS QUALITY METER & ACTION PANEL */}
+        {/* DIAGNOSIS QUALITY METER */}
         <div className="pt-5 mt-4 border-t border-slate-200 dark:border-slate-800">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
