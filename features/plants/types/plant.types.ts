@@ -1,3 +1,5 @@
+// features/plants/types/plant.types.ts
+
 export interface Plant {
   id: string;
 
@@ -49,6 +51,24 @@ export interface Plant {
   emersed_capable?: boolean | null; 
   growth_control?: string | null;
   tank_size_recommendation?: string[] | null;
+
+  // -- NEW COLUMNS DARI SQL TERBARU --
+  nitrate_consumption?: string | null;
+  oxygen_production?: string | null;
+  algae_resistance?: string | null;
+  growth_speed_score?: number | null;
+  nutrient_consumption_score?: number | null;
+  preferred_ph?: number | null;
+  preferred_temperature?: number | null;
+  preferred_gh?: number | null;
+  carpeting?: boolean | null;
+  epiphyte?: boolean | null;
+  floating?: boolean | null;
+  growth_height_cm?: number | null;
+  growth_width_cm?: number | null;
+  trimming_frequency_score?: number | null;
+  invasive_growth?: boolean | null;
+  root_feeder?: boolean | null;
 
   created_at: string;
   updated_at?: string | null;

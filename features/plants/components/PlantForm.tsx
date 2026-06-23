@@ -87,7 +87,14 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
     origin_country: "", max_height_cm: "", source_name: "Tropica", source_url: "", 
     recommended_for: [] as string[], plant_type: "Stem", beginner_score: "", maintenance_level: "Medium",
     carpet_potential: false, shrimp_safe: true, growth_control: "Moderate", co2_mandatory: false,
-    emersed_capable: false, aquascape_style: [] as string[], tank_size_recommendation: [] as string[]
+    emersed_capable: false, aquascape_style: [] as string[], tank_size_recommendation: [] as string[],
+    
+    // --- ATRIBUT BARU (ECOLOGY & EXPERT V2) ---
+    nitrate_consumption: "Medium", oxygen_production: "Medium", algae_resistance: "Medium",
+    growth_speed_score: "5", nutrient_consumption_score: "5", trimming_frequency_score: "5",
+    preferred_ph: "", preferred_temperature: "", preferred_gh: "",
+    growth_height_cm: "", growth_width_cm: "",
+    carpeting: false, epiphyte: false, floating: false, invasive_growth: false, root_feeder: false
   });
 
   useEffect(() => {
@@ -95,6 +102,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       const repairedRecommendations = (plant.recommended_for || []).map(r => r === "Pemula" ? "Beginner" : r);
 
       setFormData({
+        // ... (biarkan field lama yang sudah ada di useEffect Anda) ...
         name_id: plant.name_id || "", name_en: plant.name_en || "",
         description_id: plant.description_id || "", description_en: plant.description_en || "",
         expert_notes_id: plant.expert_notes_id || "", expert_notes_en: plant.expert_notes_en || "",
@@ -113,7 +121,25 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         maintenance_level: plant.maintenance_level || "Medium", carpet_potential: plant.carpet_potential || false,
         shrimp_safe: plant.shrimp_safe !== false, growth_control: plant.growth_control || "Moderate",
         co2_mandatory: plant.co2_mandatory || false, emersed_capable: plant.emersed_capable || false, 
-        tank_size_recommendation: plant.tank_size_recommendation || []
+        tank_size_recommendation: plant.tank_size_recommendation || [],
+
+        // --- MAPPING ATRIBUT BARU ---
+        nitrate_consumption: plant.nitrate_consumption || "Medium",
+        oxygen_production: plant.oxygen_production || "Medium",
+        algae_resistance: plant.algae_resistance || "Medium",
+        growth_speed_score: plant.growth_speed_score != null ? plant.growth_speed_score.toString() : "5",
+        nutrient_consumption_score: plant.nutrient_consumption_score != null ? plant.nutrient_consumption_score.toString() : "5",
+        trimming_frequency_score: plant.trimming_frequency_score != null ? plant.trimming_frequency_score.toString() : "5",
+        preferred_ph: plant.preferred_ph != null ? plant.preferred_ph.toString() : "",
+        preferred_temperature: plant.preferred_temperature != null ? plant.preferred_temperature.toString() : "",
+        preferred_gh: plant.preferred_gh != null ? plant.preferred_gh.toString() : "",
+        growth_height_cm: plant.growth_height_cm != null ? plant.growth_height_cm.toString() : "",
+        growth_width_cm: plant.growth_width_cm != null ? plant.growth_width_cm.toString() : "",
+        carpeting: plant.carpeting || false,
+        epiphyte: plant.epiphyte || false,
+        floating: plant.floating || false,
+        invasive_growth: plant.invasive_growth || false,
+        root_feeder: plant.root_feeder || false,
       });
 
       if (plant.image_url) setCoverPreview(plant.image_url);
@@ -210,6 +236,7 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
       }
 
       const payload: Partial<Plant> = {
+        // ... (biarkan field lama) ...
         name_id: cleanNameId,
         name_en: formData.name_en.trim(),
         description_id: formData.description_id,
@@ -243,7 +270,25 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
         growth_control: formData.growth_control,
         co2_mandatory: formData.co2_mandatory,
         emersed_capable: formData.emersed_capable, 
-        tank_size_recommendation: formData.tank_size_recommendation.length > 0 ? formData.tank_size_recommendation : null
+        tank_size_recommendation: formData.tank_size_recommendation.length > 0 ? formData.tank_size_recommendation : null,
+
+        // --- PAYLOAD ATRIBUT BARU ---
+        nitrate_consumption: formData.nitrate_consumption,
+        oxygen_production: formData.oxygen_production,
+        algae_resistance: formData.algae_resistance,
+        growth_speed_score: formData.growth_speed_score ? parseInt(formData.growth_speed_score as string) : null,
+        nutrient_consumption_score: formData.nutrient_consumption_score ? parseInt(formData.nutrient_consumption_score as string) : null,
+        trimming_frequency_score: formData.trimming_frequency_score ? parseInt(formData.trimming_frequency_score as string) : null,
+        preferred_ph: formData.preferred_ph ? parseFloat(formData.preferred_ph as string) : null,
+        preferred_temperature: formData.preferred_temperature ? parseFloat(formData.preferred_temperature as string) : null,
+        preferred_gh: formData.preferred_gh ? parseFloat(formData.preferred_gh as string) : null,
+        growth_height_cm: formData.growth_height_cm ? parseFloat(formData.growth_height_cm as string) : null,
+        growth_width_cm: formData.growth_width_cm ? parseFloat(formData.growth_width_cm as string) : null,
+        carpeting: formData.carpeting,
+        epiphyte: formData.epiphyte,
+        floating: formData.floating,
+        invasive_growth: formData.invasive_growth,
+        root_feeder: formData.root_feeder,
       };
 
       if (mode === "create") {
@@ -615,6 +660,70 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
                   <Label className="text-teal-700 dark:text-teal-400 flex items-center gap-2"><Brain className="h-4 w-4" /> {dict.plantForm.expertNotesEn}</Label>
                   <textarea name="expert_notes_en" rows={3} value={formData.expert_notes_en} onChange={handleChange} className="w-full rounded-md border border-teal-200 dark:border-teal-900/50 bg-teal-50/50 dark:bg-teal-950/20 p-3 text-teal-900 dark:text-slate-100 focus:border-teal-500 outline-none resize-y" placeholder={dict.plantForm.expertNotesEnPlaceholder} />
                 </div>
+              </div>
+            </div>
+
+            {/* BAGIAN 6: EKOLOGI & PERTUMBUHAN LANJUTAN */}
+            <div className="bg-indigo-50/50 dark:bg-indigo-950/20 p-4 sm:p-6 rounded-xl border border-indigo-200 dark:border-indigo-900/50 space-y-6">
+              <h3 className="text-lg font-bold text-indigo-700 dark:text-indigo-400 mb-2">{dict.plantForm.ecologySection}</h3>
+              
+              <div className="grid gap-5 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label className="text-slate-700 dark:text-slate-300">{dict.plantForm.nitrateConsumption}</Label>
+                  <select name="nitrate_consumption" value={formData.nitrate_consumption} onChange={handleChange} className="h-10 w-full rounded-md border border-indigo-200 dark:border-indigo-800/50 bg-white dark:bg-slate-950 px-3 text-slate-900 dark:text-slate-100 outline-none">
+                    <option value="Low">{dict.plantForm.levelLow}</option>
+                    <option value="Medium">{dict.plantForm.levelMedium}</option>
+                    <option value="High">{dict.plantForm.levelHigh}</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-700 dark:text-slate-300">{dict.plantForm.oxygenProduction}</Label>
+                  <select name="oxygen_production" value={formData.oxygen_production} onChange={handleChange} className="h-10 w-full rounded-md border border-indigo-200 dark:border-indigo-800/50 bg-white dark:bg-slate-950 px-3 text-slate-900 dark:text-slate-100 outline-none">
+                    <option value="Low">{dict.plantForm.levelLow}</option>
+                    <option value="Medium">{dict.plantForm.levelMedium}</option>
+                    <option value="High">{dict.plantForm.levelHigh}</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-700 dark:text-slate-300">{dict.plantForm.algaeResistance}</Label>
+                  <select name="algae_resistance" value={formData.algae_resistance} onChange={handleChange} className="h-10 w-full rounded-md border border-indigo-200 dark:border-indigo-800/50 bg-white dark:bg-slate-950 px-3 text-slate-900 dark:text-slate-100 outline-none">
+                    <option value="Low">{dict.plantForm.algaeVuln}</option>
+                    <option value="Medium">{dict.plantForm.algaeStrong}</option>
+                    <option value="High">{dict.plantForm.algaeVeryStrong}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6 pt-2">
+                <div className="space-y-2"><Label className="text-slate-500 text-xs uppercase font-semibold">{dict.plantForm.growthScore}</Label><Input type="number" min="1" max="10" name="growth_speed_score" value={formData.growth_speed_score} onChange={handleChange} className="h-9" placeholder="1-10" /></div>
+                <div className="space-y-2"><Label className="text-slate-500 text-xs uppercase font-semibold">{dict.plantForm.nutrientScore}</Label><Input type="number" min="1" max="10" name="nutrient_consumption_score" value={formData.nutrient_consumption_score} onChange={handleChange} className="h-9" placeholder="1-10" /></div>
+                <div className="space-y-2"><Label className="text-slate-500 text-xs uppercase font-semibold">{dict.plantForm.trimmingScore}</Label><Input type="number" min="1" max="10" name="trimming_frequency_score" value={formData.trimming_frequency_score} onChange={handleChange} className="h-9" placeholder="1-10" /></div>
+                <div className="space-y-2"><Label className="text-slate-500 text-xs uppercase font-semibold">{dict.plantForm.idealPh}</Label><Input type="number" step="0.1" name="preferred_ph" value={formData.preferred_ph} onChange={handleChange} className="h-9" /></div>
+                <div className="space-y-2"><Label className="text-slate-500 text-xs uppercase font-semibold">{dict.plantForm.idealTemp}</Label><Input type="number" step="0.1" name="preferred_temperature" value={formData.preferred_temperature} onChange={handleChange} className="h-9" /></div>
+                <div className="space-y-2"><Label className="text-slate-500 text-xs uppercase font-semibold">{dict.plantForm.idealGh}</Label><Input type="number" step="0.1" name="preferred_gh" value={formData.preferred_gh} onChange={handleChange} className="h-9" /></div>
+              </div>
+
+              <div className="flex flex-wrap gap-6 pt-4 border-t border-indigo-100 dark:border-indigo-900/30">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="carpeting" checked={formData.carpeting} onChange={handleChange} className="h-4 w-4 accent-indigo-600 rounded" />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{dict.plantForm.checkCarpeting}</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="epiphyte" checked={formData.epiphyte} onChange={handleChange} className="h-4 w-4 accent-indigo-600 rounded" />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{dict.plantForm.checkEpiphyte}</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="root_feeder" checked={formData.root_feeder} onChange={handleChange} className="h-4 w-4 accent-indigo-600 rounded" />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{dict.plantForm.checkRootFeeder}</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="floating" checked={formData.floating} onChange={handleChange} className="h-4 w-4 accent-indigo-600 rounded" />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{dict.plantForm.checkFloating}</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="invasive_growth" checked={formData.invasive_growth} onChange={handleChange} className="h-4 w-4 accent-red-600 rounded" />
+                  <span className="text-sm font-medium text-red-600 dark:text-red-400">{dict.plantForm.checkInvasive}</span>
+                </label>
               </div>
             </div>
 
