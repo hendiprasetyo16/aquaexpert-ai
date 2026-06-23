@@ -120,7 +120,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
       resetForm();
       loadInventory();
     } else {
-      toast.error(res?.error || "Gagal menambahkan data.");
+      toast.error(res?.error || (lang === 'id' ? "Gagal menambahkan data." : "Failed to add data."));
     }
     setSubmitting(false);
   };
@@ -139,7 +139,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
       resetForm();
       loadInventory();
     } else {
-      toast.error(res?.error || "Gagal memperbarui data.");
+      toast.error(res?.error || (lang === 'id' ? "Gagal memperbarui data." : "Failed to update data."));
     }
     setSubmitting(false);
   };
@@ -158,7 +158,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
 
   const getHealthBadge = (status: string | null | undefined) => {
     if (status === "Sick") return <span className="flex items-center gap-1 bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400 px-2 py-0.5 rounded text-[10px] font-black uppercase"><ShieldAlert className="w-3 h-3"/> {lang === 'id' ? "Sakit" : "Sick"}</span>;
-    if (status === "Quarantined") return <span className="flex items-center gap-1 bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 px-2 py-0.5 rounded text-[10px] font-black uppercase"><AlertTriangle className="w-3 h-3"/> Karantina</span>;
+    if (status === "Quarantined") return <span className="flex items-center gap-1 bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 px-2 py-0.5 rounded text-[10px] font-black uppercase"><AlertTriangle className="w-3 h-3"/> {lang === 'id' ? "Karantina" : "Quarantine"}</span>;
     return <span className="flex items-center gap-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 px-2 py-0.5 rounded text-[10px] font-black uppercase"><HeartPulse className="w-3 h-3"/> {lang === 'id' ? "Sehat" : "Healthy"}</span>;
   };
 
@@ -186,8 +186,8 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
               <FishIcon className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">Fauna / Ikan</h3>
-              <p className="text-sm font-medium text-slate-500">Total: {fishes.reduce((acc, curr) => acc + curr.quantity, 0)} {lang === 'id' ? "Ekor" : "Fishes"}</p>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">{lang === 'id' ? "Fauna / Ikan" : "Fauna / Fishes"}</h3>
+              <p className="text-sm font-medium text-slate-500">Total: {fishes.reduce((acc, curr) => acc + curr.quantity, 0)} {lang === 'id' ? "Ekor" : "pcs"}</p>
             </div>
           </div>
           <Button onClick={() => { setShowAddModal("fish"); setSelectedItemId(""); setSearchQuery(""); setQuantity(1); setAddedAt(new Date().toISOString().split('T')[0]); }} className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/20 h-11 px-5">
@@ -236,7 +236,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                       setSizeCategory((item.size_category as SizeType) || "Adult");
                       setAddedAt(item.added_at ? new Date(item.added_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
                     }} 
-                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors border border-transparent hover:border-blue-200" title={lang === 'id' ? "Edit Status" : "Edit Status"}
+                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors border border-transparent hover:border-blue-200" title={lang === 'id' ? "Edit" : "Edit"}
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
@@ -261,7 +261,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
               <Leaf className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">Flora / Tanaman</h3>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100">{lang === 'id' ? "Flora / Tanaman" : "Flora / Plants"}</h3>
               <p className="text-sm font-medium text-slate-500">Total: {plants.reduce((acc, curr) => acc + curr.quantity, 0)} {lang === 'id' ? "Porsi" : "Portions"}</p>
             </div>
           </div>

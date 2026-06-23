@@ -58,7 +58,6 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
       : "Generative expert commentary is temporarily unavailable. Please follow the local systemic action plans below.";
     let generatedByGemini = false;
 
-    // FIX: Cegah aplikasi crash karena SDK dipanggil saat .env kosong (Defensive Init)
     if (process.env.GEMINI_API_KEY && localDiagnosis.rootCauses.length > 0) {
       try {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -92,8 +91,8 @@ ${actionsSummary}`;
           config: { systemInstruction: systemPrompt, temperature: 0.6 }
         });
 
-        // FIX: Hapus any menggunakan Promise<never> murni agar TypeScript mewarisi tipe secara otomatis
-        const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Gemini Gateway Timeout")), 3500));
+        // FIX: WAKTU TUNGGU (TIMEOUT) DITAMBAH DARI 3.5 DETIK MENJADI 15 DETIK AGAR AI SEMPAT BERPIKIR!
+        const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Gemini Gateway Timeout")), 15000));
         
         const aiResult = await Promise.race([responsePromise, timeoutPromise]);
 
