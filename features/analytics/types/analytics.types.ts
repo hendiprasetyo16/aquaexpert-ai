@@ -12,6 +12,7 @@ export interface MedicationEfficacyStat {
   medianRecoveryDays: number;
   mortalityRatePct: number;
   relapseRatePct: number;
+  clinicalScore: number;
   
   evidenceGrade: EvidenceGrade;
   lastCalculatedAt: string;

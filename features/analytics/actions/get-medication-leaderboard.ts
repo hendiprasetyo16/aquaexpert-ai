@@ -5,8 +5,29 @@ import { logger } from "@/lib/logger";
 import type { MedicationLeaderboardResponse, MedicationEfficacyStat, EvidenceGrade } from "../types/analytics.types";
 
 interface FetchLeaderboardParams {
-  diseaseId?: string; // Opsional: Jika diisi, hanya menampilkan peringkat obat untuk penyakit tersebut
+  diseaseId?: string;
   limit?: number;
+}
+
+interface LeaderboardRow {
+  disease_id: string;
+  total_cases: number;
+  success_rate_pct: number;
+  median_recovery_days: number;
+  mortality_rate_pct: number;
+  relapse_rate_pct: number;
+  clinical_score: number;
+  evidence_grade: EvidenceGrade;
+  last_calculated_at: string;
+  medication: {
+    id: string;
+    name: string;
+  };
+  disease: {
+    id: string;
+    name_id: string;
+    name_en: string;
+  };
 }
 
 export async function getMedicationLeaderboardAction({
@@ -16,7 +37,6 @@ export async function getMedicationLeaderboardAction({
   try {
     const supabase = await createClient();
 
-    // Query builder untuk join data efikasi, nama obat, dan nama penyakit
     let query = supabase
       .from("medication_efficacy_stats")
       .select(`
@@ -26,23 +46,22 @@ export async function getMedicationLeaderboardAction({
         median_recovery_days,
         mortality_rate_pct,
         relapse_rate_pct,
+        clinical_score,
         evidence_grade,
         last_calculated_at,
         medication:medications!inner(id, name),
         disease:diseases!inner(id, name_id, name_en)
       `)
-      // Hanya tampilkan yang minimal memiliki 1 kasus selesai agar tidak memunculkan data kosong
       .gt("total_cases", 0);
 
-    // Filter penyakit jika diminta (Untuk halaman Disease Detail)
     if (diseaseId) {
       query = query.eq("disease_id", diseaseId);
     }
 
-    // Urutkan berdasarkan Success Rate tertinggi, lalu Median Recovery tercepat
+    // Pendekatan Evidence-Based: Diurutkan berdasarkan Skor Klinis, lalu jumlah kasus terbanyak (Tie-breaker)
     const { data: statsRaw, error } = await query
-      .order("success_rate_pct", { ascending: false })
-      .order("median_recovery_days", { ascending: true })
+      .order("clinical_score", { ascending: false })
+      .order("total_cases", { ascending: false })
       .limit(limit);
 
     if (error) {
@@ -50,8 +69,9 @@ export async function getMedicationLeaderboardAction({
       throw new Error("Gagal memuat statistik pengobatan.");
     }
 
-    // Mapping DTO yang aman dari tipe 'any'
-    const formattedData: MedicationEfficacyStat[] = (statsRaw || []).map((row: any) => ({
+    // ZERO-ANY IMPLEMENTATION
+    const rows = statsRaw as unknown as LeaderboardRow[];
+    const formattedData: MedicationEfficacyStat[] = rows.map((row) => ({
       diseaseId: row.disease_id,
       diseaseNameId: row.disease.name_id,
       diseaseNameEn: row.disease.name_en,
@@ -62,7 +82,8 @@ export async function getMedicationLeaderboardAction({
       medianRecoveryDays: Number(row.median_recovery_days) || 0,
       mortalityRatePct: Number(row.mortality_rate_pct) || 0,
       relapseRatePct: Number(row.relapse_rate_pct) || 0,
-      evidenceGrade: (row.evidence_grade as EvidenceGrade) || "Experimental",
+      clinicalScore: Number(row.clinical_score) || 0,
+      evidenceGrade: row.evidence_grade,
       lastCalculatedAt: row.last_calculated_at
     }));
 
