@@ -1,7 +1,7 @@
 // features/auth/constants/menu.ts
 import {
   LayoutDashboard,
-  Container, // <-- Tambahkan icon ini untuk My Aquarium
+  Container, 
   Leaf,
   Fish,
   Bug,
@@ -9,10 +9,10 @@ import {
   Users,
   Settings,
   Database, 
-  Cpu
+  Cpu,
+  BarChart // <-- TAMBAHKAN ICON INI UNTUK ANALYTICS
 } from "lucide-react";
 
-// WARNA KHUSUS UNTUK ICON AI AGAR MUDAH DIBEDAKAN
 const AI_COLORS = {
   plants: "text-green-500 dark:text-green-400",
   algae: "text-teal-500 dark:text-teal-400",
@@ -23,10 +23,7 @@ const AI_COLORS = {
 export const MENU_BY_ROLE = {
   super_admin: [
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    
-    // --- TAMBAHKAN MENU MY AQUARIUM DI SINI ---
     { title: "My Aquarium", href: "/dashboard/my-aquarium", icon: Container },
-    // ------------------------------------------
 
     { title: "Plant Expert", href: "/dashboard/plants", icon: Leaf },
     { title: "Plant Expert AI", href: "/dashboard/plant-expert/engine", icon: Cpu, color: AI_COLORS.plants },
@@ -37,8 +34,12 @@ export const MENU_BY_ROLE = {
     { title: "Fish Expert", href: "/dashboard/fishes", icon: Fish },
     { title: "Fish Expert AI", href: "/dashboard/fish-expert/engine", icon: Cpu, color: AI_COLORS.fishes },
     
-    { title: "Disease Expert", href: "/dashboard/diseases", icon: Activity },
+    { title: "Disease Database", href: "/dashboard/diseases", icon: Activity },
     { title: "Disease Expert AI", href: "/dashboard/disease-expert", icon: Cpu, color: AI_COLORS.diseases },
+    
+    // --- MENU BARU YANG KITA BUAT TADI ---
+    { title: "Clinical Analytics", href: "/dashboard/analytics", icon: BarChart, color: "text-indigo-500 dark:text-indigo-400" },
+    // -------------------------------------
     
     { title: "Users", href: "/dashboard/users", icon: Users },
     { title: "Control Panel", href: "/dashboard/admin-panel", icon: Database }, 
@@ -46,44 +47,33 @@ export const MENU_BY_ROLE = {
   ],
 
   admin: [
+    // ... (Sesuaikan isinya sama seperti super_admin, kurangi control panel & settings)
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    
-    // --- TAMBAHKAN MENU MY AQUARIUM DI SINI ---
     { title: "My Aquarium", href: "/dashboard/my-aquarium", icon: Container },
-    // ------------------------------------------
-    
     { title: "Plant Expert", href: "/dashboard/plants", icon: Leaf },
     { title: "Plant Expert AI", href: "/dashboard/plant-expert/engine", icon: Cpu, color: AI_COLORS.plants },
-    
     { title: "Algae Expert", href: "/dashboard/algae", icon: Bug },
     { title: "Algae Expert AI", href: "/dashboard/algae-expert", icon: Cpu, color: AI_COLORS.algae }, 
-    
     { title: "Fish Expert", href: "/dashboard/fishes", icon: Fish },
     { title: "Fish Expert AI", href: "/dashboard/fish-expert/engine", icon: Cpu, color: AI_COLORS.fishes },
-    
-    { title: "Disease Expert", href: "/dashboard/diseases", icon: Activity },
+    { title: "Disease Database", href: "/dashboard/diseases", icon: Activity },
     { title: "Disease Expert AI", href: "/dashboard/disease-expert", icon: Cpu, color: AI_COLORS.diseases },
-    
+    { title: "Clinical Analytics", href: "/dashboard/analytics", icon: BarChart, color: "text-indigo-500 dark:text-indigo-400" },
     { title: "Users", href: "/dashboard/users", icon: Users },
   ],
 
   user: [
+    // ... (Sesuaikan isinya sama seperti admin, kurangi Users)
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    
-    // --- TAMBAHKAN MENU MY AQUARIUM DI SINI ---
     { title: "My Aquarium", href: "/dashboard/my-aquarium", icon: Container },
-    // ------------------------------------------
-    
     { title: "Plant Expert", href: "/dashboard/plants", icon: Leaf },
     { title: "Plant Expert AI", href: "/dashboard/plant-expert/engine", icon: Cpu, color: AI_COLORS.plants },
-    
     { title: "Algae Expert", href: "/dashboard/algae", icon: Bug },
     { title: "Algae Expert AI", href: "/dashboard/algae-expert", icon: Cpu, color: AI_COLORS.algae }, 
-    
     { title: "Fish Expert", href: "/dashboard/fishes", icon: Fish },
     { title: "Fish Expert AI", href: "/dashboard/fish-expert/engine", icon: Cpu, color: AI_COLORS.fishes },
-    
-    { title: "Disease Expert", href: "/dashboard/diseases", icon: Activity },
+    { title: "Disease Database", href: "/dashboard/diseases", icon: Activity },
     { title: "Disease Expert AI", href: "/dashboard/disease-expert", icon: Cpu, color: AI_COLORS.diseases },
+    { title: "Clinical Analytics", href: "/dashboard/analytics", icon: BarChart, color: "text-indigo-500 dark:text-indigo-400" },
   ],
 } as const;
