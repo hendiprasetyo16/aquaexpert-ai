@@ -26,34 +26,74 @@ interface Payload {
   lang?: "id" | "en";
 }
 
-// Tipe ekstensi lokal agar kita tidak menyentuh any, dan TypeScript mengenal field opsional
+// ============================================================================
+// STRICT TYPE EXTENSIONS
+// Memperpanjang tipe data lokal agar kompilator TypeScript tenang 
+// tanpa perlu menggunakan "as any"
+// ============================================================================
+
 type ExtendedMedication = DbMedication & { reuse_interval_days?: number };
+type ExtendedDiseaseMedication = Omit<DbDiseaseMedication, "medication"> & { medication: ExtendedMedication };
+type ExtendedEnvironmentRule = DbEnvironmentRule & { max_threshold?: number | null };
+
+interface SupabaseDiseaseMedicationDto {
+  priority: "Primary" | "Alternative";
+  medication: {
+    id: string;
+    name: string;
+    active_ingredient: string;
+    description_id: string;
+    description_en: string;
+    base_dosage_per_100l: number;
+    dosage_unit: string;
+    treatment_duration_days: number;
+    reuse_interval_days: number | null;
+  } | null;
+}
+
+interface SupabaseTreatmentRowDto {
+  id: string;
+  medication_id: string;
+  started_at: string;
+  status: string;
+  medication: { name: string } | { name: string }[] | null;
+}
 
 // ============================================================================
-// HELPER FUNCTIONS (Strict Type Parsers & Evaluators)
+// HELPER FUNCTIONS (Strict Type Parsers & Range Evaluators)
 // ============================================================================
 
 function isValidParameterKey(key: string): key is WaterParameterKey {
   return ["ph", "temperature", "ammonia", "nitrite", "nitrate"].includes(key.toLowerCase());
 }
 
-function evaluateEnvironmentRule(currentValue: number, operator: string, threshold: number): boolean {
-  switch (operator) {
+function evaluateEnvironmentRule(currentValue: number, operator: string, threshold: number, maxThreshold?: number | null): boolean {
+  const op = operator.toUpperCase().trim();
+  switch (op) {
     case '<': return currentValue < threshold;
     case '>': return currentValue > threshold;
     case '<=': return currentValue <= threshold;
     case '>=': return currentValue >= threshold;
-    case '==': return currentValue === threshold;
+    case '==':
+    case '=': return currentValue === threshold;
+    case '!=':
+    case '<>': return currentValue !== threshold;
+    case 'BETWEEN':
+      return maxThreshold !== undefined && maxThreshold !== null
+        ? currentValue >= threshold && currentValue <= maxThreshold
+        : false;
+    case 'NOT_BETWEEN':
+      return maxThreshold !== undefined && maxThreshold !== null
+        ? currentValue < threshold || currentValue > maxThreshold
+        : false;
     default: return false;
   }
 }
 
-// Type Guard Parser yang sangat ketat untuk meloloskan Strict TypeScript
 function parseInventoryFishes(rawFishes: unknown[]): TypedTankFish[] {
   if (!Array.isArray(rawFishes)) return [];
   
   return rawFishes.map(item => {
-    // Pastikan item adalah objek yang valid sebelum mengakses propertinya
     if (typeof item !== "object" || item === null) {
       return { fish_id: "", fish: null };
     }
@@ -85,14 +125,14 @@ export async function getMedicationRecommendationAction({
   try {
     const supabase = await createClient();
 
-    // 1. Validasi Akses (Anti-IDOR)
+    // 1. Validasi Keamanan Akses
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, netVolumeLiters: 0, recommendations: [], error: lang === "id" ? "Sesi berakhir." : "Session expired." };
     }
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
-    // 2. Kalkulasi Net Volume
+    // 2. Kalkulasi Spek Volume Air Bersih
     const { data: aquarium, error: errAq } = await supabase
       .from("my_aquariums")
       .select("volume_liters, net_water_volume_liters")
@@ -101,12 +141,12 @@ export async function getMedicationRecommendationAction({
 
     if (errAq || !aquarium) throw new Error("Gagal memuat spesifikasi akuarium.");
     
-    const grossVolume = aquarium.volume_liters;
+    const grossVolume = Number(aquarium.volume_liters) || 0;
     const netVolume = aquarium.net_water_volume_liters 
-      ? aquarium.net_water_volume_liters 
+      ? Number(aquarium.net_water_volume_liters)
       : parseFloat((grossVolume * 0.9).toFixed(2));
 
-    // 3. Tarik Inventaris Fauna & Parameter Air Terakhir
+    // 3. Tarik Inventaris dan Riwayat Parameter Air
     const inventory = await getTankInventoryAction(aquariumId);
     const activeFishesInTank = inventory.success && inventory.fishes ? parseInventoryFishes(inventory.fishes) : [];
 
@@ -121,7 +161,7 @@ export async function getMedicationRecommendationAction({
       
     const latestParams = latestParamsRaw as TypedWaterParameters | null;
 
-    // 4. Tarik Relasi Penyakit - Obat
+    // 4. Ambil Relasi Penyakit Menggunakan DTO Mapping & Local Extended Types
     const { data: rawDiseaseMeds, error: errMeds } = await supabase
       .from("disease_medications")
       .select(`
@@ -133,25 +173,42 @@ export async function getMedicationRecommendationAction({
       .eq("disease_id", diseaseId);
 
     if (errMeds || !rawDiseaseMeds) throw new Error("Gagal memuat relasi data obat patogen.");
-    const diseaseMedications = rawDiseaseMeds as unknown as DbDiseaseMedication[];
     
+    const diseaseMedicationDtos = rawDiseaseMeds as unknown as SupabaseDiseaseMedicationDto[];
+    
+    const diseaseMedications: ExtendedDiseaseMedication[] = diseaseMedicationDtos
+      .filter((dto): dto is SupabaseDiseaseMedicationDto & { medication: NonNullable<SupabaseDiseaseMedicationDto["medication"]> } => dto.medication !== null)
+      .map(dto => ({
+        priority: dto.priority,
+        medication: {
+          id: dto.medication.id,
+          name: dto.medication.name,
+          active_ingredient: dto.medication.active_ingredient,
+          description_id: dto.medication.description_id,
+          description_en: dto.medication.description_en,
+          base_dosage_per_100l: Number(dto.medication.base_dosage_per_100l),
+          dosage_unit: dto.medication.dosage_unit,
+          treatment_duration_days: Number(dto.medication.treatment_duration_days),
+          reuse_interval_days: dto.medication.reuse_interval_days ? Number(dto.medication.reuse_interval_days) : undefined
+        }
+      }));
+
     if (diseaseMedications.length === 0) {
       return { success: true, netVolumeLiters: netVolume, recommendations: [] };
     }
 
-    // 5. Dynamic History Window: Kalkulasi batas waktu lihat ke belakang (lookback)
-    let maxLookbackDays = 30; // Default minimum
+    // 5. Dynamic History Lookback Window Calculation
+    let maxLookbackDays = 30;
     diseaseMedications.forEach(dm => {
-      const med = dm.medication as unknown as ExtendedMedication;
-      if (med.reuse_interval_days && med.reuse_interval_days > maxLookbackDays) {
-        maxLookbackDays = med.reuse_interval_days;
+      if (dm.medication.reuse_interval_days && dm.medication.reuse_interval_days > maxLookbackDays) {
+        maxLookbackDays = dm.medication.reuse_interval_days;
       }
     });
 
     const dynamicDaysAgo = new Date();
     dynamicDaysAgo.setDate(dynamicDaysAgo.getDate() - maxLookbackDays);
 
-    // Tarik Riwayat Pengobatan dengan Type-Safe Mapper
+    // Tarik Riwayat Pengobatan
     const { data: recentTreatmentsRaw } = await supabase
       .from("aquarium_treatments")
       .select("id, medication_id, started_at, status, medication:medications(name)")
@@ -159,20 +216,28 @@ export async function getMedicationRecommendationAction({
       .gte("started_at", dynamicDaysAgo.toISOString())
       .order("started_at", { ascending: false });
     
-    const recentTreatments: DbAquariumTreatment[] = (recentTreatmentsRaw || []).map((t: any) => ({
-      medication_id: t.medication_id,
-      started_at: t.started_at,
-      status: t.status,
-      // FIX Supabase Join Array: Ambil elemen pertama jika Array, atau langsung ambil propertinya jika Objek
-      medication: {
-        name: Array.isArray(t.medication) ? t.medication[0]?.name : t.medication?.name || "Unknown Medication"
+    const treatmentRows = (recentTreatmentsRaw || []) as unknown as SupabaseTreatmentRowDto[];
+    
+    const recentTreatments: DbAquariumTreatment[] = treatmentRows.map(t => {
+      let medName = "Unknown Medication";
+      if (t.medication) {
+        if (Array.isArray(t.medication)) {
+          medName = t.medication[0]?.name || medName;
+        } else {
+          medName = t.medication.name;
+        }
       }
-    }));
+      return {
+        medication_id: t.medication_id,
+        started_at: t.started_at,
+        status: t.status,
+        medication: { name: medName }
+      };
+    });
 
-    // 6. Agregasi Aturan & Pencegahan N+1 Query
+    // 6. Eksekusi Kueri Infrastruktur Masif
     const medicationIds = diseaseMedications.map(m => m.medication.id);
 
-    // FIX: Membelah kueri OR interaksi menjadi dua kueri IN yang terpisah dan aman
     const [faunaRulesRes, envRulesRes, interactionRes1, interactionRes2] = await Promise.all([
       supabase.from("medication_fauna_safety").select("*").in("medication_id", medicationIds),
       supabase.from("medication_environment_rules").select("*").in("medication_id", medicationIds),
@@ -181,22 +246,21 @@ export async function getMedicationRecommendationAction({
     ]);
 
     const faunaRules = (faunaRulesRes.data || []) as DbFaunaSafetyRule[];
-    const envRules = (envRulesRes.data || []) as DbEnvironmentRule[];
+    const envRules = (envRulesRes.data || []) as ExtendedEnvironmentRule[];
     
-    // Gabung dan hapus duplikasi interaksi berdasarkan ID
     const mergedInteractions = [...(interactionRes1.data || []), ...(interactionRes2.data || [])];
     const uniqueInteractionMap = new Map<string, DbMedicationInteraction>();
     mergedInteractions.forEach(ir => uniqueInteractionMap.set(ir.id, ir));
     const interactionRules = Array.from(uniqueInteractionMap.values());
 
-    // 7. O(1) LOOKUP MAPS
+    // 7. MEMORY INDEXING: O(1) Lookup Maps
     const faunaRulesMap = new Map<string, DbFaunaSafetyRule[]>();
     faunaRules.forEach(r => {
       if (!faunaRulesMap.has(r.medication_id)) faunaRulesMap.set(r.medication_id, []);
       faunaRulesMap.get(r.medication_id)!.push(r);
     });
 
-    const envRulesMap = new Map<string, DbEnvironmentRule[]>();
+    const envRulesMap = new Map<string, ExtendedEnvironmentRule[]>();
     envRules.forEach(r => {
       if (!envRulesMap.has(r.medication_id)) envRulesMap.set(r.medication_id, []);
       envRulesMap.get(r.medication_id)!.push(r);
@@ -210,16 +274,15 @@ export async function getMedicationRecommendationAction({
 
     const compiledRecommendations: MedicationRecommendation[] = [];
 
-    // 8. Core Engine: Evaluasi Dosis, Fauna, Lingkungan, Histori & Interaksi
+    // 8. DATA PROCESSING LAYER
     for (const record of diseaseMedications) {
-      // Cast yang aman dengan Type Intersection
-      const med = record.medication as unknown as ExtendedMedication; 
+      const med = record.medication; 
       const calculatedDosage = parseFloat(((netVolume / 100) * med.base_dosage_per_100l).toFixed(2));
       
       const currentMedAlerts: SafetyAlert[] = [];
       let isSafeToUse = true;
 
-      // A. Pengecekan Keselamatan Fauna O(1) Lookup
+      // A. Cross-Reference Keselamatan Fauna O(1)
       const medFaunaRules = faunaRulesMap.get(med.id) || [];
       for (const tankFish of activeFishesInTank) {
         const fishGroupId = tankFish.fish?.fauna_group; 
@@ -240,7 +303,7 @@ export async function getMedicationRecommendationAction({
         }
       }
 
-      // B. Pengecekan Lingkungan Air O(1) Lookup
+      // B. Cross-Reference Aturan Parameter Air O(1)
       const medEnvRules = envRulesMap.get(med.id) || [];
       if (latestParams) {
         for (const envRule of medEnvRules) {
@@ -249,7 +312,12 @@ export async function getMedicationRecommendationAction({
           if (isValidParameterKey(paramKey)) {
             const currentValue = latestParams[paramKey];
             if (currentValue !== undefined && currentValue !== null) {
-              const isTriggered = evaluateEnvironmentRule(currentValue, envRule.operator, envRule.threshold);
+              const isTriggered = evaluateEnvironmentRule(
+                currentValue, 
+                envRule.operator, 
+                envRule.threshold,
+                envRule.max_threshold 
+              );
               if (isTriggered) {
                 isSafeToUse = false;
                 currentMedAlerts.push({
@@ -264,14 +332,14 @@ export async function getMedicationRecommendationAction({
         }
       }
 
-      // C. Pengecekan Riwayat Pengobatan & Interaksi Obat
+      // C. Cross-Reference Analisis Jurnal Histori dan Interaksi Kimia Obat
       const reuseIntervalDays = med.reuse_interval_days || 7; 
       const reuseIntervalMs = reuseIntervalDays * 24 * 60 * 60 * 1000;
 
       for (const treatment of recentTreatments) {
         const msSinceTreatment = Date.now() - new Date(treatment.started_at).getTime();
 
-        // C.1. Peringatan Histori Dinamis
+        // C.1. Deteksi Amandemen Dosis Berulang (History Check)
         if (treatment.medication_id === med.id && msSinceTreatment < reuseIntervalMs) {
           isSafeToUse = false;
           const remainingDays = Math.ceil((reuseIntervalMs - msSinceTreatment) / (1000 * 60 * 60 * 24));
@@ -286,7 +354,7 @@ export async function getMedicationRecommendationAction({
           continue; 
         }
 
-        // C.2. Peringatan Interaksi O(1) Lookup Simetris
+        // C.2. Deteksi Kontraindikasi Toksisitas Ganda (Drug Interaction Check)
         const interaction = interactionMap.get(`${med.id}|${treatment.medication_id}`);
         if (interaction && msSinceTreatment < (7 * 24 * 60 * 60 * 1000)) { 
           isSafeToUse = false;
@@ -315,7 +383,7 @@ export async function getMedicationRecommendationAction({
       });
     }
 
-    // 9. Sorting Prioritas yang Handal
+    // 9. Penentuan Urutan Rekomendasi Obat (Primary Pertama)
     const priorityWeight: Record<"Primary" | "Alternative", number> = { Primary: 0, Alternative: 1 };
     compiledRecommendations.sort((a, b) => priorityWeight[a.priority] - priorityWeight[b.priority]);
 
