@@ -17,27 +17,17 @@ interface CommentaryPayload {
 }
 
 // ============================================================================
-// IN-MEMORY CACHE INFRASTRUCTURE & CONFIGURATION
+// IN-MEMORY CACHE INFRASTRUCTURE
 // ============================================================================
 const aiResponseCache = new Map<string, { commentary: string; timestamp: number }>();
 const CACHE_TTL_MS = 1000 * 60 * 60; // 1 Jam
 const MAX_CACHE_SIZE = 500;
 
-/**
- * Helper khusus untuk mengekstrak teks respons dari SDK Google Gen AI.
- * Mengisolasi casting 'any' di satu tempat untuk menjaga Type Safety berkas.
- */
 function extractGeminiText(response: unknown): string | null {
   if (!response || typeof response !== "object") return null;
-  
   const geminiAny = response as any;
-  if (typeof geminiAny.text === "function") {
-    return geminiAny.text();
-  }
-  if (typeof geminiAny.text === "string") {
-    return geminiAny.text;
-  }
-  
+  if (typeof geminiAny.text === "function") return geminiAny.text();
+  if (typeof geminiAny.text === "string") return geminiAny.text;
   return null;
 }
 
@@ -49,29 +39,19 @@ export async function generateDiseaseCommentaryAction({
 }: CommentaryPayload): Promise<{ success: boolean; commentary?: string; error?: string }> {
   try {
     const supabase = await createClient();
-
-    // 1. Autentikasi Keamanan & IDOR Validation
     const { data: { user } } = await supabase.auth.getUser();
+    
     if (!user) {
-      return { 
-        success: false, 
-        error: lang === "id" ? "Sesi login berakhir. Silakan muat ulang halaman." : "Session expired. Please refresh the page." 
-      };
+      return { success: false, error: lang === "id" ? "Sesi login berakhir." : "Session expired." };
     }
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
     if (diagnosisResults.length === 0) {
-      return { 
-        success: true, 
-        commentary: lang === "id" 
-          ? "Tidak ada indikasi patogen aktif terdeteksi berdasarkan ceklis gejala saat ini." 
-          : "No active pathogens detected based on current selected symptoms." 
-      };
+      return { success: true, commentary: lang === "id" ? "Tidak ada indikasi patogen aktif terdeteksi." : "No active pathogens detected." };
     }
 
     const primaryMatch = diagnosisResults[0];
 
-    // 2. Token Saver & Confidence Score Threshold
     if (primaryMatch.confidenceScore < 35) {
       return {
         success: true,
@@ -81,8 +61,14 @@ export async function generateDiseaseCommentaryAction({
       };
     }
 
-    // 3. DETERMINISTIC CACHE KEY GENERATION
-    // FIX: Menyertakan daftar ID gejala yang terurut (sorted) agar cache unik terhadap kombinasi gejala fisik
+    // DETERMINISTIC CACHE KEY
+    const deductionsKey = waterHealthStatus.deductions && typeof waterHealthStatus.deductions === 'object' && !Array.isArray(waterHealthStatus.deductions)
+      ? Object.entries(waterHealthStatus.deductions)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([k, v]) => `${k}:${v}`)
+          .join("|")
+      : "";
+
     const cacheKey = JSON.stringify({
       aquariumId,
       lang,
@@ -90,16 +76,24 @@ export async function generateDiseaseCommentaryAction({
       confidence: diagnosisResults.map(d => d.confidenceScore).join(","),
       selectedSymptoms: primaryMatch.matchedSymptoms.map(s => s.id).sort().join(","),
       waterQuality: waterHealthStatus.scores.waterQuality,
-      bioload: waterHealthStatus.scores.bioload
+      bioload: waterHealthStatus.scores.bioload,
+      alerts: [...waterHealthStatus.alerts].sort().join(","),
+      deductions: deductionsKey
     });
 
+    // LAZY EVICTION CACHE CHECK
     const cachedData = aiResponseCache.get(cacheKey);
-    if (cachedData && (Date.now() - cachedData.timestamp < CACHE_TTL_MS)) {
-      logger.info("[DISEASE AI] ⚡ Cache Hit! Mengembalikan ulasan dari memori.");
-      return { success: true, commentary: cachedData.commentary };
+    if (cachedData) {
+      const isExpired = Date.now() - cachedData.timestamp > CACHE_TTL_MS;
+      if (isExpired) {
+        aiResponseCache.delete(cacheKey);
+        logger.info("[DISEASE AI] 🧹 Stale cache deleted.");
+      } else {
+        logger.info("[DISEASE AI] ⚡ Cache Hit! Mengembalikan ulasan dari memori.");
+        return { success: true, commentary: cachedData.commentary };
+      }
     }
-    
-    // 4. Differential Diagnosis Core Mapping
+
     const isDifferential = diagnosisResults.length > 1;
     const topMatchesText = diagnosisResults
       .slice(0, 3)
@@ -110,7 +104,6 @@ export async function generateDiseaseCommentaryAction({
       })
       .join("\n");
 
-    // 5. Parameter & Symptom Text Parsers
     let deductionsText = lang === 'id' ? "Tidak ada penalti lingkungan" : "No environmental penalties";
     if (waterHealthStatus.deductions && typeof waterHealthStatus.deductions === 'object' && !Array.isArray(waterHealthStatus.deductions)) {
       const deductionEntries = Object.entries(waterHealthStatus.deductions);
@@ -125,33 +118,32 @@ export async function generateDiseaseCommentaryAction({
       ? primaryMatch.matchedSymptoms.map(s => lang === 'id' ? s.name_id : s.name_en).join(", ")
       : (lang === "id" ? "Tidak ada gejala manual yang dipilih" : "No manually selected symptoms");
 
-    // 6. Adaptive Knowledge Engineering Prompt
     const systemInstruction = `
       Anda adalah seorang Ichthyologist (Ahli Biologi Ikan) dan Dokter Hewan Akuatik Senior dari AquaExpert Expert System.
       Tugas Anda adalah memberikan ulasan klinis singkat (maksimal 3 paragraf) berdasarkan hasil komputasi sistem pakar kami.
-      
+
       Aturan Ketat Konseptual:
-      1. JANGAN PERNAH mengubah nama penyakit atau skor persentase keyakinan. Jalankan analisis berdasarkan data tersebut sebagai fakta mutlak.
+      1. JANGAN PERNAH mengubah nama penyakit atau skor persentase keyakinan.
       2. ${isDifferential 
-          ? "Berdasarkan daftar Kandidat Penyakit Teratas, jelaskan secara ilmiah MENGAPA kandidat #1 menjadi kemungkinan terbesar, dan bedakan tipis gejalanya dengan kandidat di bawahnya jika relevan." 
-          : "Jelaskan secara ilmiah patologi dari diagnosis tunggal ini berdasarkan gejala yang dikonfirmasi."}
-      3. Hubungkan secara ekologis kemungkinan pecah wabah dengan data pemotongan skor lingkungan (deductions).
-      4. Gunakan bahasa ilmiah yang ramah pengguna, berwibawa, edukatif, dan taktis.
-      5. Selalu berikan respon sesuai instruksi bahasa yang diminta (${lang === "id" ? "Bahasa Indonesia" : "English"}).
+          ? "Jelaskan MENGAPA kandidat #1 menjadi kemungkinan terbesar, dan bedakan gejalanya dengan kandidat di bawahnya." 
+          : "Jelaskan patologi dari diagnosis tunggal ini berdasarkan gejala yang dikonfirmasi."}
+      3. Hubungkan secara ekologis kemungkinan pecah wabah dengan pemotongan skor lingkungan (deductions).
+      4. Gunakan bahasa ilmiah yang edukatif dan taktis.
+      5. Respon dalam bahasa: ${lang === "id" ? "Bahasa Indonesia" : "English"}.
     `;
 
     const userPrompt = `
       Data Analisis ${isDifferential ? "Diagnosis Diferensial" : "Diagnosis Tunggal"} Sistem Pakar:
-      ${isDifferential ? "Kandidat Penyakit Teratas (Top Candidates):" : "Diagnosis Utama:"}
+      ${isDifferential ? "Kandidat Penyakit:" : "Diagnosis Utama:"}
       ${topMatchesText}
-      
-      Gejala Fisik yang Dikonfirmasi Pengguna: ${symptomsText}
-      
-      Kondisi Ekosistem Tangki Saat Ini (Hasil Health Engine):
-      - Skor Kualitas Air: ${waterHealthStatus.scores.waterQuality}/100
-      - Skor Beban Biologis (Bioload): ${waterHealthStatus.scores.bioload}/100
-      - Indikasi Penalti Lingkungan (Deductions): ${deductionsText}
-      - Alarm Aktif Tangki (Alerts): ${waterHealthStatus.alerts.join(" | ") || "Tidak ada alarm lingkungan"}
+
+      Gejala yang Dikonfirmasi: ${symptomsText}
+
+      Kondisi Tangki Saat Ini:
+      - Kualitas Air: ${waterHealthStatus.scores.waterQuality}/100
+      - Beban Biologis: ${waterHealthStatus.scores.bioload}/100
+      - Penalti Lingkungan: ${deductionsText}
+      - Alarm: ${waterHealthStatus.alerts.join(" | ") || "Tidak ada alarm lingkungan"}
       
       Berikan ulasan diagnosis klinis Anda sekarang.
     `;
@@ -160,16 +152,16 @@ export async function generateDiseaseCommentaryAction({
     let aiSuccess = false;
 
     // =====================================================================
-    // AI ENGINE HIGH-PRIORITY LAYER: GROQ INFRASTRUCTURE
+    // MESIN 1: GROQ CLOUD (UTAMA)
     // =====================================================================
     if (process.env.GROQ_API_KEY && !aiSuccess) {
       const groqController = new AbortController();
       let groqTimeoutId: NodeJS.Timeout | undefined;
-      
+
       try {
         logger.info("[DISEASE AI] Menghubungi Mesin Utama: Groq (Llama 3)...");
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-        
+
         const responsePromise = groq.chat.completions.create({
           messages: [
             { role: "system", content: systemInstruction },
@@ -185,7 +177,7 @@ export async function generateDiseaseCommentaryAction({
             reject(new Error("AI Gateway Timeout"));
           }, 10000);
         });
-        
+
         const aiResult = await Promise.race([responsePromise, timeoutPromise]) as Awaited<typeof responsePromise>;
         if (groqTimeoutId) clearTimeout(groqTimeoutId);
 
@@ -203,11 +195,11 @@ export async function generateDiseaseCommentaryAction({
     }
 
     // =====================================================================
-    // AI ENGINE FALLBACK LAYER: GOOGLE GEN AI (GEMINI 2.5 FLASH)
+    // MESIN 2: GOOGLE GEMINI (CADANGAN)
     // =====================================================================
     if (process.env.GEMINI_API_KEY && !aiSuccess) {
       let geminiTimeoutId: NodeJS.Timeout | undefined;
-      
+
       try {
         logger.info("[DISEASE AI] Menghubungi Mesin Cadangan: Google Gemini...");
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -227,11 +219,10 @@ export async function generateDiseaseCommentaryAction({
             reject(new Error("AI Gateway Timeout"));
           }, 15000);
         });
-        
+
         const aiResult = await Promise.race([responsePromise, timeoutPromise]) as Awaited<typeof responsePromise>;
         if (geminiTimeoutId) clearTimeout(geminiTimeoutId);
-        
-        // FIX: Mengekstrak teks melalui fungsi pembantu yang aman secara Type Safety & Lintas Versi SDK
+
         const rawText = extractGeminiText(aiResult);
         if (rawText) {
           finalCommentary = String(rawText).trim();
@@ -244,29 +235,31 @@ export async function generateDiseaseCommentaryAction({
       }
     }
 
+    // =====================================================================
+    // MESIN 3: GRACEFUL DEGRADATION (SISTEM LOKAL STATIS)
+    // =====================================================================
     if (!aiSuccess) {
-      return {
-        success: false,
-        error: lang === "id"
-          ? "Asisten AI Medis sedang sibuk. Silakan coba beberapa saat lagi."
-          : "The medical AI assistant is currently busy. Please try again shortly."
-      };
+      logger.warn("[DISEASE AI] Fallback ke teks statis lokal karena semua AI eksternal tumbang.");
+      const topDiseaseName = lang === 'id' ? primaryMatch.disease.name_id : primaryMatch.disease.name_en;
+      
+      finalCommentary = lang === 'id'
+        ? `Diagnosis utama terindikasi kuat mengarah pada **${topDiseaseName}** (Kecocokan ${primaryMatch.confidenceScore}%).\n\nKondisi ekosistem tangki Anda saat ini mencatatkan beberapa penalti yang berisiko mempercepat siklus patogen. Meskipun Asisten AI Generatif sedang dalam pemeliharaan, Sistem Pakar kami sangat menyarankan Anda untuk segera mengambil tindakan korektif pada parameter air, memisahkan ikan yang terinfeksi ke tangki karantina, dan meninjau kembali beban biologis tangki Anda.`
+        : `Primary diagnosis strongly indicates **${topDiseaseName}** (${primaryMatch.confidenceScore}% Confidence).\n\nYour tank's current ecosystem condition has recorded environmental penalties that risk accelerating the pathogen lifecycle. Although the Generative AI Assistant is undergoing maintenance, our Expert System highly recommends taking immediate corrective actions on water parameters, isolating infected fish to a quarantine tank, and reviewing the biological load.`;
     }
 
-    // 7. Cache Management & Memory Eviction Strategy
-    if (aiResponseCache.size > MAX_CACHE_SIZE) {
-      aiResponseCache.clear();
-      logger.info("[DISEASE AI] 🧹 Cache dibersihkan untuk menjaga performa memori serverless.");
+    // Memory Eviction Policy
+    if (aiResponseCache.size >= MAX_CACHE_SIZE) {
+      const oldestKey = aiResponseCache.keys().next().value;
+      if (oldestKey) aiResponseCache.delete(oldestKey);
+      logger.info("[DISEASE AI] 🧹 Evicting oldest cache item.");
     }
+
     aiResponseCache.set(cacheKey, { commentary: finalCommentary, timestamp: Date.now() });
 
     return { success: true, commentary: finalCommentary };
 
   } catch (error: unknown) {
     logger.error("[DISEASE AI FATAL]", error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : "Terjadi kegagalan sistem internal." 
-    };
+    return { success: false, error: "Terjadi kesalahan sistem internal." };
   }
 }
