@@ -13,7 +13,7 @@ import {
   Loader2, ArrowLeft, ArrowRight, Fish, Edit, Droplets, Thermometer, MapPin, 
   Ruler, CheckCircle2, Maximize2, X, Info, ImageIcon, ChevronLeft, ChevronRight, 
   Brain, ShieldCheck, Activity, Target, Box, BookOpen, Share2, Link as LinkIcon, 
-  Check, CheckSquare, Waves, AlertTriangle, Users
+  Check, CheckSquare, Waves, AlertTriangle, Users, Heart, Clock, ShieldAlert, Leaf, Bug
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
@@ -23,34 +23,34 @@ import { Button } from "@/components/ui/button";
 import { 
   getDifficultyDesc, getDifficultySubtitle, getFishTypeDesc, 
   getCompatibilityDesc, getCompatibilityBadgeStyle, 
-  getSchoolingDesc, formatTankSize, formatWaterParams
+  getSchoolingDesc, formatTankSize, formatWaterParams, getTankStyleDesc
 } from "@/features/fishes/components/fish-helpers";
 
 // INTERFACE KAMUS FISH DETAIL
 interface FishDetailDict {
-  btnBack: string;
-  tooltipPrev: string;
-  tooltipNext: string;
-  fishLabel: string;
-  of: string;
-  btnEdit: string;
-  btnShare: string;
-  btnCopyLink: string;
-  noScientificName: string;
-  famLabel: string;
-  waterReqTitle: string;
-  tempTitle: string;
-  phTitle: string;
-  tankMinTitle: string;
-  adultSizeTitle: string;
-  schoolingTitle: string;
-  bioloadTitle: string;
-  encyclopediaTitle: string;
-  expertNotesTitle: string;
-  noDesc: string;
-  warningPredator: string;
-  warningPredatorDesc: string;
-  relatedFishesTitle: string;
+  btnBack?: string;
+  tooltipPrev?: string;
+  tooltipNext?: string;
+  fishLabel?: string;
+  of?: string;
+  btnEdit?: string;
+  btnShare?: string;
+  btnCopyLink?: string;
+  noScientificName?: string;
+  famLabel?: string;
+  waterReqTitle?: string;
+  tempTitle?: string;
+  phTitle?: string;
+  tankMinTitle?: string;
+  adultSizeTitle?: string;
+  schoolingTitle?: string;
+  bioloadTitle?: string;
+  encyclopediaTitle?: string;
+  expertNotesTitle?: string;
+  noDesc?: string;
+  warningPredator?: string;
+  warningPredatorDesc?: string;
+  relatedFishesTitle?: string;
 }
 
 export default function FishDetailPage() {
@@ -58,6 +58,7 @@ export default function FishDetailPage() {
   const router = useRouter();
   const { role } = useAuth();
   const { dict, language } = useLanguage(); 
+  const lang = language as "id" | "en";
   
   const [fish, setFish] = useState<FishType | null>(null);
   const [allFishesList, setAllFishesList] = useState<FishType[]>([]);
@@ -115,12 +116,12 @@ export default function FishDetailPage() {
 
   const handleShare = async () => {
     if (!fish) return;
-    const shareName = language === 'en' && fish.name_en ? fish.name_en : fish.name_id;
+    const shareName = lang === 'en' && fish.name_en ? fish.name_en : fish.name_id;
     if (navigator.share) {
       try {
         await navigator.share({
           title: `AquaExpert: ${shareName}`,
-          text: language === 'id' ? `Lihat data ${shareName} di AquaExpert!` : `Check out ${shareName} on AquaExpert!`,
+          text: lang === 'id' ? `Lihat data ${shareName} di AquaExpert!` : `Check out ${shareName} on AquaExpert!`,
           url: window.location.href,
         });
       } catch (err) {}
@@ -194,16 +195,41 @@ export default function FishDetailPage() {
   }, [lightboxIndex, allImages.length]);
 
   if (loading) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-500" /></div>;
-  if (!fish) return <div className="text-center mt-20 text-slate-500 dark:text-slate-400">{language === 'id' ? "Data ikan tidak ditemukan." : "Fish data not found."}</div>;
+  if (!fish) return <div className="text-center mt-20 text-slate-500 dark:text-slate-400">{lang === 'id' ? "Data ikan tidak ditemukan." : "Fish data not found."}</div>;
 
-  // DICTIONARY RESOLVER
-  const rootDict = dict as unknown as { fishDetail: FishDetailDict };
-  const detailDict = rootDict.fishDetail;
-  if (!detailDict) return null;
+  // DICTIONARY RESOLVER DENGAN FALLBACK
+  const rootDict = dict as unknown as { fishDetail?: FishDetailDict };
+  const detailDict: FishDetailDict = rootDict.fishDetail || {};
 
-  const displayName = language === 'en' && fish.name_en ? fish.name_en : fish.name_id;
-  const displayDesc = language === 'en' && fish.description_en ? fish.description_en : fish.description_id;
-  const displayExpertNotes = language === 'en' && fish.expert_notes_en ? fish.expert_notes_en : fish.expert_notes_id;
+  const t = {
+    btnBack: detailDict.btnBack || (lang === 'id' ? "Kembali" : "Back"),
+    tooltipPrev: detailDict.tooltipPrev || (lang === 'id' ? "Ikan Sebelumnya" : "Previous Fish"),
+    tooltipNext: detailDict.tooltipNext || (lang === 'id' ? "Ikan Berikutnya" : "Next Fish"),
+    fishLabel: detailDict.fishLabel || (lang === 'id' ? "Ikan" : "Fish"),
+    of: detailDict.of || (lang === 'id' ? "dari" : "of"),
+    btnEdit: detailDict.btnEdit || (lang === 'id' ? "Edit Data" : "Edit Data"),
+    btnShare: detailDict.btnShare || (lang === 'id' ? "Bagikan" : "Share"),
+    btnCopyLink: detailDict.btnCopyLink || (lang === 'id' ? "Salin Tautan" : "Copy Link"),
+    noScientificName: detailDict.noScientificName || (lang === 'id' ? "Nama ilmiah tidak diketahui" : "Unknown scientific name"),
+    famLabel: detailDict.famLabel || (lang === 'id' ? "Famili / Jenis:" : "Family / Type:"),
+    waterReqTitle: detailDict.waterReqTitle || (lang === 'id' ? "Kebutuhan Parameter Air" : "Water Parameter Requirements"),
+    tempTitle: detailDict.tempTitle || (lang === 'id' ? "Suhu Ideal" : "Ideal Temp"),
+    phTitle: detailDict.phTitle || (lang === 'id' ? "pH Air" : "Water pH"),
+    tankMinTitle: detailDict.tankMinTitle || (lang === 'id' ? "Volume Tank Min." : "Min. Tank Vol"),
+    adultSizeTitle: detailDict.adultSizeTitle || (lang === 'id' ? "Ukuran Dewasa" : "Adult Size"),
+    schoolingTitle: detailDict.schoolingTitle || (lang === 'id' ? "Kebutuhan Schooling" : "Schooling Needs"),
+    bioloadTitle: detailDict.bioloadTitle || (lang === 'id' ? "Tingkat Bioload" : "Bioload Level"),
+    encyclopediaTitle: detailDict.encyclopediaTitle || (lang === 'id' ? "Ensiklopedia Fauna" : "Fauna Encyclopedia"),
+    expertNotesTitle: detailDict.expertNotesTitle || (lang === 'id' ? "Catatan Khusus Pakar" : "Expert Notes"),
+    noDesc: detailDict.noDesc || (lang === 'id' ? "Belum ada deskripsi untuk ikan ini." : "No description available for this fish."),
+    warningPredator: detailDict.warningPredator || (lang === 'id' ? "Peringatan Ikan Predator!" : "Predator Fish Warning!"),
+    warningPredatorDesc: detailDict.warningPredatorDesc || (lang === 'id' ? "Ikan ini sangat agresif dan dapat memangsa fauna lain yang lebih kecil." : "This fish is highly aggressive and may prey on smaller fauna."),
+    relatedFishesTitle: detailDict.relatedFishesTitle || (lang === 'id' ? "Spesies Sejenis" : "Similar Species")
+  };
+
+  const displayName = lang === 'en' && fish.name_en ? fish.name_en : fish.name_id;
+  const displayDesc = lang === 'en' && fish.description_en ? fish.description_en : fish.description_id;
+  const displayExpertNotes = lang === 'en' && fish.expert_notes_en ? fish.expert_notes_en : fish.expert_notes_id;
 
   const relatedFishes = allFishesList
     .filter(p => p.id !== fish.id && p.is_active)
@@ -234,14 +260,14 @@ export default function FishDetailPage() {
                 }} 
                 className="border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white active:scale-95 transition-all"
               >
-                <ArrowLeft className="mr-2 h-4 w-4" /> {detailDict.btnBack}
+                <ArrowLeft className="mr-2 h-4 w-4" /> {t.btnBack}
               </Button>
               
               <div className="flex bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md overflow-hidden transition-colors">
-                <Button variant="ghost" disabled={!prevFishId} onClick={() => prevFishId && router.push(`/dashboard/fishes/${prevFishId}`)} title={detailDict.tooltipPrev} className="rounded-none border-r border-slate-300 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300">
+                <Button variant="ghost" disabled={!prevFishId} onClick={() => prevFishId && router.push(`/dashboard/fishes/${prevFishId}`)} title={t.tooltipPrev} className="rounded-none border-r border-slate-300 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300">
                   <ChevronLeft className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" disabled={!nextFishId} onClick={() => nextFishId && router.push(`/dashboard/fishes/${nextFishId}`)} title={detailDict.tooltipNext} className="rounded-none hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300">
+                <Button variant="ghost" disabled={!nextFishId} onClick={() => nextFishId && router.push(`/dashboard/fishes/${nextFishId}`)} title={t.tooltipNext} className="rounded-none hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300">
                   <ChevronRight className="h-5 w-5" />
                 </Button>
               </div>
@@ -249,7 +275,7 @@ export default function FishDetailPage() {
             
             {totalFishes > 0 && (
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700/50 w-full sm:w-auto text-center transition-colors">
-                {detailDict.fishLabel} <strong className="text-gray-900 dark:text-slate-200">{currentIndex}</strong> {detailDict.of} <strong className="text-gray-900 dark:text-slate-200">{totalFishes}</strong>
+                {t.fishLabel} <strong className="text-gray-900 dark:text-slate-200">{currentIndex}</strong> {t.of} <strong className="text-gray-900 dark:text-slate-200">{totalFishes}</strong>
               </span>
             )}
           </div>
@@ -258,7 +284,7 @@ export default function FishDetailPage() {
             {role !== "user" && (
               <Link href={`/dashboard/fishes/${fish.id}/edit`} className="w-full sm:w-auto">
                 <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/10 dark:shadow-blue-900/20 active:scale-95 transition-all">
-                  <Edit className="mr-2 h-4 w-4" /> {detailDict.btnEdit}
+                  <Edit className="mr-2 h-4 w-4" /> {t.btnEdit}
                 </Button>
               </Link>
             )}
@@ -286,7 +312,7 @@ export default function FishDetailPage() {
                     
                     {/* Badge Compatibility di dalam Foto */}
                     <div className={`absolute top-3 right-3 px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider backdrop-blur-md bg-white/90 shadow-sm ${getCompatibilityBadgeStyle(fish.compatibility)}`}>
-                      {getCompatibilityDesc(fish.compatibility, language as "id" | "en")}
+                      {getCompatibilityDesc(fish.compatibility, lang)}
                     </div>
                   </>
                 ) : (
@@ -310,43 +336,46 @@ export default function FishDetailPage() {
                 
                 {/* SHARE & COPY */}
                 <div className="flex gap-2 justify-end w-full mb-2">
-                   <button onClick={handleShare} className="p-2 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors" title={detailDict.btnShare}>
+                   <button onClick={handleShare} className="p-2 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors" title={t.btnShare}>
                      <Share2 className="h-4 w-4" />
                    </button>
-                   <button onClick={handleCopyLink} className="p-2 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors" title={detailDict.btnCopyLink}>
+                   <button onClick={handleCopyLink} className="p-2 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors" title={t.btnCopyLink}>
                      {copied ? <Check className="h-4 w-4 text-green-600 dark:text-green-500" /> : <LinkIcon className="h-4 w-4" />}
                    </button>
                 </div>
 
-                <h1 className="text-3xl font-extrabold text-blue-700 dark:text-blue-400 tracking-tight leading-tight w-full px-2">{displayName}</h1>
-                <p className="italic text-slate-500 dark:text-slate-400 mt-2 font-serif">{fish.scientific_name || detailDict.noScientificName}</p>
+                <h1 className="text-3xl font-extrabold text-blue-700 dark:text-cyan-400 tracking-tight leading-tight w-full px-2 drop-shadow-sm">{displayName}</h1>
+                <p className="italic text-slate-500 dark:text-slate-400 mt-2 font-serif">{fish.scientific_name || t.noScientificName}</p>
                 
                 <div className="mt-6 flex flex-col items-center justify-center gap-3 w-full">
                   
-                  {/* BADGE TIPE IKAN */}
-                  <div className="flex flex-col items-center justify-center px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 w-full sm:w-auto transition-colors">
-                    <span className="text-base font-black uppercase text-blue-700 dark:text-blue-400 text-center">
-                      {detailDict.famLabel} {getFishTypeDesc(fish.fish_type, language as "id" | "en")}
+                  {/* BADGE TIPE IKAN & ORIGIN */}
+                  <div className="flex flex-col items-center justify-center px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 w-full transition-colors">
+                    <span className="text-sm font-black uppercase text-blue-700 dark:text-blue-400 text-center">
+                      {getFishTypeDesc(fish.fish_type, lang)}
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1">
+                      {fish.origin_region || (lang === 'id' ? "Global" : "Global")} • {fish.water_layer || "All Levels"}
                     </span>
                   </div>
                   
-                  {/* BADGE KESULITAN & SIFAT */}
+                  {/* BADGE KESULITAN */}
                   <div className="flex flex-row gap-3 w-full justify-center">
-                    <div className={`flex flex-col items-center justify-center flex-1 max-w-[150px] px-2 py-2 rounded-lg border shadow-sm transition-colors ${
+                    <div className={`flex flex-col items-center justify-center flex-1 w-full px-2 py-2 rounded-lg border shadow-sm transition-colors ${
                       fish.difficulty?.toLowerCase() === 'easy' ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900/50' :
-                      fish.difficulty?.toLowerCase() === 'medium' ? 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-900/50' :
+                      fish.difficulty?.toLowerCase() === 'medium' ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50' :
                       fish.difficulty?.toLowerCase() === 'hard' ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50' :
                       'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700'
                     }`}>
                       <span className={`text-sm font-black uppercase text-center transition-colors ${
                         fish.difficulty?.toLowerCase() === 'easy' ? 'text-green-700 dark:text-green-400' :
-                        fish.difficulty?.toLowerCase() === 'medium' ? 'text-yellow-700 dark:text-yellow-400' :
+                        fish.difficulty?.toLowerCase() === 'medium' ? 'text-amber-700 dark:text-amber-400' :
                         fish.difficulty?.toLowerCase() === 'hard' ? 'text-red-700 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'
                       }`}>
-                        {getDifficultyDesc(fish.difficulty, language as "id" | "en").split(" ")[0]}
+                        {getDifficultyDesc(fish.difficulty, lang).split(" ")[0]}
                       </span>
                       <span className="text-[10px] opacity-80 font-medium text-center mt-1">
-                        {getDifficultySubtitle(fish.difficulty, language as "id" | "en")}
+                        {getDifficultySubtitle(fish.difficulty, lang)}
                       </span>
                     </div>
                   </div>
@@ -359,17 +388,17 @@ export default function FishDetailPage() {
             {relatedFishes.length > 0 && (
               <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl overflow-hidden mt-6 transition-colors">
                 <div className="bg-slate-50 dark:bg-slate-900/80 px-5 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 transition-colors">
-                  <Fish className="h-5 w-5 text-blue-600 dark:text-blue-500" />
-                  <h3 className="text-sm font-extrabold text-gray-900 dark:text-slate-200 uppercase tracking-wider">{detailDict.relatedFishesTitle}</h3>
+                  <Fish className="h-5 w-5 text-blue-600 dark:text-cyan-400" />
+                  <h3 className="text-sm font-extrabold text-gray-900 dark:text-slate-200 uppercase tracking-wider">{t.relatedFishesTitle}</h3>
                 </div>
                 <CardContent className="p-5">
                   <div className="grid grid-cols-1 gap-4">
                     {relatedFishes.map(related => {
-                      const relatedName = language === 'en' && related.name_en ? related.name_en : related.name_id;
+                      const relatedName = lang === 'en' && related.name_en ? related.name_en : related.name_id;
                       return (
                       <Link href={`/dashboard/fishes/${related.id}`} key={related.id}>
-                        <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-950/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-900/50 p-2.5 rounded-lg transition-colors cursor-pointer relative overflow-hidden group">
-                          <div className="absolute right-0 top-0 bottom-0 w-1 bg-blue-500/20 group-hover:bg-blue-500/50 transition-colors"></div>
+                        <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-950/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 hover:border-cyan-500 dark:hover:border-cyan-500/50 p-2.5 rounded-lg transition-colors cursor-pointer relative overflow-hidden group">
+                          <div className="absolute right-0 top-0 bottom-0 w-1 bg-cyan-500/20 group-hover:bg-cyan-500/50 transition-colors"></div>
                           <div className="h-16 w-16 relative rounded-md overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0">
                             {related.image_url ? (
                               <Image src={related.image_url} alt={relatedName} fill sizes="64px" className="object-cover" />
@@ -382,8 +411,8 @@ export default function FishDetailPage() {
                           <div className="flex flex-col flex-1 overflow-hidden">
                             <p className="font-bold text-gray-900 dark:text-slate-200 text-sm truncate">{relatedName}</p>
                             <div className="flex flex-wrap gap-1.5 mt-1.5">
-                               <span className="text-[9px] bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-900/50 uppercase font-semibold">
-                                 {getFishTypeDesc(related.fish_type, language as "id" | "en").split(" ")[0]}
+                               <span className="text-[9px] bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-cyan-400 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-900/50 uppercase font-semibold">
+                                 {getFishTypeDesc(related.fish_type, lang).split(" ")[0]}
                                </span>
                             </div>
                           </div>
@@ -399,80 +428,180 @@ export default function FishDetailPage() {
           {/* KOLOM KANAN (DATA UTAMA) */}
           <div className="lg:col-span-8 space-y-6">
             
-            {/* ALERT JIKA AGGRESIF */}
-            {fish.compatibility === "Aggressive" && (
-              <div className="bg-red-50 dark:bg-red-950/20 border-l-4 border-red-500 p-4 rounded-r-xl shadow-sm flex items-start gap-4 transition-colors">
+            {/* ALERT JIKA AGGRESIF / PREDATOR */}
+            {(fish.compatibility === "Aggressive" || fish.predatory) && (
+              <div className="bg-red-50 dark:bg-red-950/20 border-l-4 border-red-500 p-4 rounded-r-xl shadow-sm flex items-start gap-4 transition-colors animate-in fade-in slide-in-from-bottom-2">
                 <div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-full shrink-0 mt-0.5 transition-colors">
                   <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-red-800 dark:text-red-300">{detailDict.warningPredator}</h4>
+                  <h4 className="text-sm font-bold text-red-800 dark:text-red-300">{t.warningPredator}</h4>
                   <p className="text-[13px] text-red-700 dark:text-red-400/90 mt-1 leading-relaxed">
-                    {detailDict.warningPredatorDesc}
+                    {t.warningPredatorDesc}
                   </p>
                 </div>
               </div>
             )}
 
-            {/* TABEL PARAMETER LINGKUNGAN */}
+            {/* TABEL PARAMETER LINGKUNGAN UTAMA */}
             <div className="bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
               <div className="bg-slate-50 dark:bg-slate-950/50 px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
-                <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <h3 className="text-sm font-extrabold text-gray-900 dark:text-slate-200 uppercase tracking-wider">{detailDict.waterReqTitle}</h3>
+                <Activity className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                <h3 className="text-sm font-extrabold text-gray-900 dark:text-slate-200 uppercase tracking-wider">{t.waterReqTitle}</h3>
               </div>
               <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4">
                 
-                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-center">
-                  <Thermometer className="h-5 w-5 text-orange-500 mx-auto mb-2" />
-                  <p className="text-[11px] uppercase text-slate-500 font-bold mb-1">{detailDict.tempTitle}</p>
+                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-center transition-colors">
+                  <Thermometer className="h-5 w-5 text-orange-500 dark:text-orange-400 mx-auto mb-2" />
+                  <p className="text-[10px] uppercase text-slate-500 font-bold mb-1">{t.tempTitle}</p>
                   <span className="text-base font-black text-gray-900 dark:text-slate-200">
                     {formatWaterParams(fish.ideal_temp_min, fish.ideal_temp_max, "°C")}
                   </span>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-center">
-                  <Droplets className="h-5 w-5 text-cyan-500 mx-auto mb-2" />
-                  <p className="text-[11px] uppercase text-slate-500 font-bold mb-1">{detailDict.phTitle}</p>
+                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-center transition-colors">
+                  <Droplets className="h-5 w-5 text-cyan-500 dark:text-cyan-400 mx-auto mb-2" />
+                  <p className="text-[10px] uppercase text-slate-500 font-bold mb-1">{t.phTitle}</p>
                   <span className="text-base font-black text-gray-900 dark:text-slate-200">
                     {formatWaterParams(fish.ideal_ph_min, fish.ideal_ph_max, "pH")}
                   </span>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-center">
-                  <Waves className="h-5 w-5 text-blue-500 mx-auto mb-2" />
-                  <p className="text-[11px] uppercase text-slate-500 font-bold mb-1">{detailDict.tankMinTitle}</p>
+                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-center transition-colors">
+                  <Box className="h-5 w-5 text-indigo-500 dark:text-indigo-400 mx-auto mb-2" />
+                  <p className="text-[10px] uppercase text-slate-500 font-bold mb-1">GH (Hardness)</p>
                   <span className="text-base font-black text-gray-900 dark:text-slate-200">
-                    {formatTankSize(fish.min_tank_size, language as "id" | "en")}
+                    {formatWaterParams(fish.hardness_min, fish.hardness_max, "dGH")}
                   </span>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-center">
-                  <Ruler className="h-5 w-5 text-purple-500 mx-auto mb-2" />
-                  <p className="text-[11px] uppercase text-slate-500 font-bold mb-1">{detailDict.adultSizeTitle}</p>
+                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-center transition-colors">
+                  <Waves className="h-5 w-5 text-blue-500 dark:text-blue-400 mx-auto mb-2" />
+                  <p className="text-[10px] uppercase text-slate-500 font-bold mb-1">{t.tankMinTitle}</p>
+                  <span className="text-base font-black text-gray-900 dark:text-slate-200">
+                    {formatTankSize(fish.min_tank_size, lang)}
+                  </span>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-center transition-colors">
+                  <Ruler className="h-5 w-5 text-purple-500 dark:text-purple-400 mx-auto mb-2" />
+                  <p className="text-[10px] uppercase text-slate-500 font-bold mb-1">{t.adultSizeTitle}</p>
                   <span className="text-base font-black text-gray-900 dark:text-slate-200">
                     {fish.estimated_adult_size_cm ? `${fish.estimated_adult_size_cm} cm` : "N/A"}
+                  </span>
+                </div>
+                
+                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-center transition-colors">
+                  <Ruler className="h-5 w-5 text-pink-500 dark:text-pink-400 mx-auto mb-2" />
+                  <p className="text-[10px] uppercase text-slate-500 font-bold mb-1">{lang === 'id' ? 'P. Tangki Min.' : 'Min Tank Length'}</p>
+                  <span className="text-base font-black text-gray-900 dark:text-slate-200">
+                    {fish.minimum_tank_length_cm ? `${fish.minimum_tank_length_cm} cm` : "N/A"}
+                  </span>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-center transition-colors">
+                  <Clock className="h-5 w-5 text-emerald-500 dark:text-emerald-400 mx-auto mb-2" />
+                  <p className="text-[10px] uppercase text-slate-500 font-bold mb-1">{lang === 'id' ? 'Usia Hidup' : 'Lifespan'}</p>
+                  <span className="text-base font-black text-gray-900 dark:text-slate-200">
+                    {fish.lifespan_years ? `${fish.lifespan_years} ${lang === 'id' ? 'Thn' : 'Yrs'}` : "N/A"}
+                  </span>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-center transition-colors">
+                  <Heart className="h-5 w-5 text-rose-500 dark:text-rose-400 mx-auto mb-2" />
+                  <p className="text-[10px] uppercase text-slate-500 font-bold mb-1">{lang === 'id' ? 'Breeding' : 'Breeding'}</p>
+                  <span className="text-sm font-black text-gray-900 dark:text-slate-200 uppercase mt-0.5">
+                    {fish.is_egg_layer ? (lang === 'id' ? 'Bertelur' : 'Egg Layer') : fish.is_livebearer ? (lang === 'id' ? 'Beranak' : 'Livebearer') : "N/A"}
                   </span>
                 </div>
 
               </div>
             </div>
 
+            {/* TABEL KEAMANAN & KOMPATIBILITAS (BADGES) */}
+            <div className="bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
+              <div className="bg-slate-50 dark:bg-slate-950/50 px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <h3 className="text-sm font-extrabold text-gray-900 dark:text-slate-200 uppercase tracking-wider">{lang === 'id' ? 'Keamanan & Kompatibilitas' : 'Safety & Compatibility'}</h3>
+              </div>
+              <div className="p-5 flex flex-wrap gap-2.5">
+                <span className={`px-3 py-1.5 text-xs font-bold rounded border flex items-center gap-1.5 ${fish.shrimp_safe ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50' : 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50'}`}>
+                  {fish.shrimp_safe ? <CheckCircle2 className="w-3.5 h-3.5"/> : <X className="w-3.5 h-3.5"/>}
+                  Shrimp Safe
+                </span>
+                <span className={`px-3 py-1.5 text-xs font-bold rounded border flex items-center gap-1.5 ${fish.plant_safe ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50' : 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/50'}`}>
+                  {fish.plant_safe ? <CheckCircle2 className="w-3.5 h-3.5"/> : <X className="w-3.5 h-3.5"/>}
+                  Plant Safe
+                </span>
+                {fish.jump_risk && (
+                  <span className="px-3 py-1.5 text-xs font-bold rounded border bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-900/50 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5"/>
+                    Jump Risk (Suka Melompat)
+                  </span>
+                )}
+                {fish.uproots_plants && (
+                  <span className="px-3 py-1.5 text-xs font-bold rounded border bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/50 flex items-center gap-1.5">
+                    <Leaf className="w-3.5 h-3.5"/>
+                    Uproots Plants (Suka Menggali)
+                  </span>
+                )}
+                {fish.sensitive_to_nitrate && (
+                  <span className="px-3 py-1.5 text-xs font-bold rounded border bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-900/50 flex items-center gap-1.5">
+                    <ShieldAlert className="w-3.5 h-3.5"/>
+                    Nitrate Sensitive
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* RECOMMENDED STYLES */}
+            {fish.recommended_tank_styles && fish.recommended_tank_styles.length > 0 && (
+              <div className="bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
+                <div className="bg-slate-50 dark:bg-slate-950/50 px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+                  <Box className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                  <h3 className="text-sm font-extrabold text-gray-900 dark:text-slate-200 uppercase tracking-wider">{lang === 'id' ? 'Rekomendasi Tema Tank' : 'Recommended Tank Styles'}</h3>
+                </div>
+                <div className="p-5 flex flex-wrap gap-2">
+                  {fish.recommended_tank_styles.map(style => (
+                    <span key={style} className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-900/50 shadow-sm">
+                      {getTankStyleDesc(style, lang)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* FISH EXPERT INFO */}
-            <div className="grid lg:grid-cols-2 gap-4">
+            <div className="grid lg:grid-cols-3 gap-4">
               <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center text-center">
                 <Users className="h-8 w-8 text-indigo-500 mb-3" />
-                <h4 className="text-sm font-bold text-gray-900 dark:text-slate-200 mb-1">{detailDict.schoolingTitle}</h4>
+                <h4 className="text-sm font-bold text-gray-900 dark:text-slate-200 mb-1">{t.schoolingTitle}</h4>
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {getSchoolingDesc(fish.schooling, fish.min_group_size, language as "id" | "en")}
+                  {getSchoolingDesc(fish.schooling, fish.min_group_size, lang)}
                 </p>
+                {fish.schooling && fish.max_group_size && (
+                  <p className="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-wider">Max: {fish.max_group_size}</p>
+                )}
               </div>
 
               <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center text-center">
-                <Activity className="h-8 w-8 text-amber-500 mb-3" />
-                <h4 className="text-sm font-bold text-gray-900 dark:text-slate-200 mb-1">{detailDict.bioloadTitle}</h4>
+                <Target className="h-8 w-8 text-blue-500 dark:text-cyan-400 mb-3" />
+                <h4 className="text-sm font-bold text-gray-900 dark:text-slate-200 mb-1">{lang === 'id' ? 'Aktivitas & Karakter' : 'Activity & Behavior'}</h4>
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {fish.bioload_factor ? `${fish.bioload_factor} / 10` : "N/A"}
+                  {fish.adult_behavior || "Schooling"}
                 </p>
+                <p className="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-wider">Lvl: {fish.activity_level || "Medium"}</p>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center text-center">
+                <Bug className="h-8 w-8 text-amber-500 mb-3" />
+                <h4 className="text-sm font-bold text-gray-900 dark:text-slate-200 mb-1">{t.bioloadTitle}</h4>
+                <div className="flex flex-col items-center mt-1 w-full px-2">
+                  <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 mb-1">
+                    <div className="bg-amber-500 h-2 rounded-full" style={{ width: `${(fish.waste_production_score || 5) * 10}%` }}></div>
+                  </div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Score: {fish.waste_production_score || 5}/10</p>
+                </div>
               </div>
             </div>
 
@@ -482,22 +611,22 @@ export default function FishDetailPage() {
                 
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-6 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 transition-colors">
-                    <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-500" /> {detailDict.encyclopediaTitle}
+                    <BookOpen className="h-5 w-5 text-cyan-600 dark:text-cyan-500" /> {t.encyclopediaTitle}
                   </h3>
 
                   {displayExpertNotes && (
-                    <div className="mb-6 bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 p-5 rounded-r-xl shadow-sm transition-colors">
-                      <h4 className="text-sm font-bold text-blue-800 dark:text-blue-400 flex items-center gap-2 mb-2 transition-colors">
-                        <Brain className="h-4 w-4" /> {detailDict.expertNotesTitle}
+                    <div className="mb-6 bg-cyan-50 dark:bg-cyan-950/30 border-l-4 border-cyan-500 p-5 rounded-r-xl shadow-sm transition-colors">
+                      <h4 className="text-sm font-bold text-cyan-800 dark:text-cyan-400 flex items-center gap-2 mb-2 transition-colors">
+                        <Brain className="h-4 w-4" /> {t.expertNotesTitle}
                       </h4>
-                      <p className="text-slate-700 dark:text-blue-100/80 text-sm leading-relaxed whitespace-pre-wrap italic transition-colors">
+                      <p className="text-slate-700 dark:text-cyan-100/80 text-sm leading-relaxed whitespace-pre-wrap italic transition-colors">
                         "{displayExpertNotes}"
                       </p>
                     </div>
                   )}
 
                   <p className="text-slate-700 dark:text-slate-300 text-[15px] leading-relaxed text-justify whitespace-pre-line transition-colors">
-                    {displayDesc || detailDict.noDesc}
+                    {displayDesc || t.noDesc}
                   </p>
                 </div>
 
