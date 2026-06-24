@@ -10,6 +10,12 @@ const FISH_COLUMNS = `
   water_layer, origin_region, fish_type, difficulty, 
   shrimp_safe, plant_safe, recommended_tank_styles, 
   breeding_difficulty, is_egg_layer, is_livebearer,
+  minimum_tank_length_cm, territorial, predatory, mouth_size_factor,
+  compatibility_tags, activity_period, compatibility_score, shrimp_predation_risk,
+  native_biotope, preferred_temperature, preferred_ph, preferred_gh,
+  uproots_plants, preferred_aquascape_styles, oxygen_requirement_score,
+  current_preference, minimum_tank_volume_liters, waste_production_score,
+  jump_risk, sensitive_to_nitrate, conservation_status,
   image_url, gallery_urls, expert_notes_id, expert_notes_en, 
   is_active, created_at, updated_at, estimated_adult_size_cm, bioload_factor
 `;
