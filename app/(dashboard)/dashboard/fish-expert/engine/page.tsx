@@ -9,10 +9,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import Image from "next/image";
 import { 
   Loader2, Cpu, Filter, Info, CheckCircle2, Trophy, 
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target, Fish,
-  Plus, X, FishSymbol
+  Plus, X, HeartPulse
 } from "lucide-react";
 
 import { generateFishRecommendations, UserFishAnswers, RecommendedFish, FishExpertDictionary, ExistingFishRecord } from "@/features/fishes/services/fish-expert.service";
@@ -25,32 +26,31 @@ const ITEMS_PAGE_N = 10;
 type ExperienceLevel = "Pemula" | "Menengah" | "Mahir";
 
 interface FishEngineDict {
-  fishExpertEngine?: {
-    title: string; subtitle: string; formTitle: string;
-    q1: string; q1Opt1: string; q1Opt2: string; q1Opt3: string;
-    q2: string; q3: string; q4: string; q5: string;
-    q5Opt1: string; q5Opt2: string; q5Opt3: string;
-    needSchooling: string; btnStart: string; processing: string;
-    idleTitle: string; idleDesc: string; failTitle: string; failDesc: string;
-    successTitle: string; successDesc: string; matchCount: string; bestMatch: string;
-    confidence: string; points: string; defaultReason: string;
-    paginationShowing: string; paginationTo: string; paginationOf: string; paginationData: string;
-    confExcellent: string; confVeryGood: string; confGood: string; confModerate: string;
-  };
+  title?: string; subtitle?: string; formTitle?: string;
+  q1?: string; q1Opt1?: string; q1Opt2?: string; q1Opt3?: string;
+  q2?: string; q3?: string; q4?: string; q5?: string;
+  q5Opt1?: string; q5Opt2?: string; q5Opt3?: string;
+  needSchooling?: string; btnStart?: string; processing?: string;
+  idleTitle?: string; idleDesc?: string; failTitle?: string; failDesc?: string;
+  successTitle?: string; successDesc?: string; matchCount?: string; bestMatch?: string;
+  confidence?: string; points?: string; defaultReason?: string;
+  confExcellent?: string; confVeryGood?: string; confGood?: string; confModerate?: string;
 }
 
 export default function FishExpertEnginePage() {
   const { dict, language } = useLanguage(); 
+  const lang = language as "id" | "en";
   const [fishes, setFishes] = useState<FishType[]>([]);
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<RecommendedFish[] | null>(null);
 
   // USER INPUT STATES 
   const [experience, setExperience] = useState<ExperienceLevel>("Pemula");
-  const [tankVolumeLiters, setTankVolumeLiters] = useState<number>(60);
-  const [tankLengthCm, setTankLengthCm] = useState<number>(60); 
-  const [currentPH, setCurrentPH] = useState<number>(7.0);
-  const [currentTemp, setCurrentTemp] = useState<number>(26.0);
+  const [tankVolumeLiters, setTankVolumeLiters] = useState<number | "">("");
+  const [tankLengthCm, setTankLengthCm] = useState<number | "">(""); 
+  const [currentPH, setCurrentPH] = useState<number | "">("");
+  const [currentTemp, setCurrentTemp] = useState<number | "">("");
+  const [currentGH, setCurrentGH] = useState<number | "">("");
   const [fishTypePref, setFishTypePref] = useState("Community Tank");
   const [wantSchoolingFish, setWantSchoolingFish] = useState(true);
   
@@ -61,7 +61,7 @@ export default function FishExpertEnginePage() {
   // V4 MY AQUARIUM SIMULATOR STATES
   const [existingFishes, setExistingFishes] = useState<ExistingFishRecord[]>([]);
   const [selectedFishId, setSelectedFishId] = useState("");
-  const [selectedQuantity, setSelectedQuantity] = useState(1);
+  const [selectedQuantity, setSelectedQuantity] = useState<number | "">(1);
 
   // PAGINATION STATE
   const [currentPage, setCurrentPage] = useState(1);
@@ -83,13 +83,14 @@ export default function FishExpertEnginePage() {
       try {
         const parsed = JSON.parse(savedSession);
         if (parsed.answers) {
-          setExperience(parsed.answers.experience);
-          setTankVolumeLiters(parsed.answers.tankVolumeLiters);
-          setTankLengthCm(parsed.answers.tankLengthCm || 60);
-          setCurrentPH(parsed.answers.currentPH);
-          setCurrentTemp(parsed.answers.currentTemp);
-          setFishTypePref(parsed.answers.fishTypePref);
-          setWantSchoolingFish(parsed.answers.wantSchoolingFish);
+          setExperience(parsed.answers.experience || "Pemula");
+          setTankVolumeLiters(parsed.answers.tankVolumeLiters || "");
+          setTankLengthCm(parsed.answers.tankLengthCm || "");
+          setCurrentPH(parsed.answers.currentPH || "");
+          setCurrentTemp(parsed.answers.currentTemp || "");
+          setCurrentGH(parsed.answers.currentGH || "");
+          setFishTypePref(parsed.answers.fishTypePref || "Community Tank");
+          setWantSchoolingFish(parsed.answers.wantSchoolingFish ?? true);
           setHasShrimp(parsed.answers.hasShrimp || false);
           setHasPlants(parsed.answers.hasPlants || false);
           setAquascapeStyle(parsed.answers.aquascapeStyle || "Bebas");
@@ -97,7 +98,7 @@ export default function FishExpertEnginePage() {
         }
         if (parsed.results) setResults(parsed.results);
         if (parsed.currentPage) setCurrentPage(parsed.currentPage);
-      } catch (e) {}
+      } catch (e: unknown) {}
     }
   }, []);
 
@@ -109,22 +110,22 @@ export default function FishExpertEnginePage() {
            const parsed = JSON.parse(savedSession);
            parsed.currentPage = currentPage;
            sessionStorage.setItem(SESSION_KEY, JSON.stringify(parsed));
-         } catch (e) {}
+         } catch (e: unknown) {}
        }
     }
   }, [currentPage, results]);
 
   const handleAddFish = () => {
-    if (!selectedFishId || selectedQuantity < 1) return;
+    if (!selectedFishId || !selectedQuantity || selectedQuantity < 1) return;
     const fishObj = fishes.find(f => f.id === selectedFishId);
     if (!fishObj) return;
 
     setExistingFishes(prev => {
       const exists = prev.find(p => p.fish.id === selectedFishId);
       if (exists) {
-        return prev.map(p => p.fish.id === selectedFishId ? { ...p, quantity: p.quantity + selectedQuantity } : p);
+        return prev.map(p => p.fish.id === selectedFishId ? { ...p, quantity: p.quantity + Number(selectedQuantity) } : p);
       }
-      return [...prev, { fish: fishObj, quantity: selectedQuantity }];
+      return [...prev, { fish: fishObj, quantity: Number(selectedQuantity) }];
     });
     setSelectedQuantity(1);
     setSelectedFishId("");
@@ -134,18 +135,52 @@ export default function FishExpertEnginePage() {
     setExistingFishes(prev => prev.filter(p => p.fish.id !== id));
   };
 
-  const dictionary = dict as unknown as FishEngineDict;
-  const engineDict = dictionary.fishExpertEngine || {
-    title: "Fish Compatibility Engine V4", subtitle: "Sistem cerdas evaluasi bioload predator-prey dan kapasitas water layer.", formTitle: "Kuesioner Ekosistem Tangki",
-    q1: "Pengalaman", q1Opt1: "Pemula", q1Opt2: "Menengah", q1Opt3: "Mahir",
-    q2: "Volume Tangki (Liter)", q3: "pH Air", q4: "Suhu Air (°C)", q5: "Rencana Ekosistem",
-    q5Opt1: "Community Tank", q5Opt2: "Semi-Aggressive", q5Opt3: "Species Only",
-    needSchooling: "Suka Ikan Berkelompok", btnStart: "Mulai Analisis V4", processing: "Mengukur Kepadatan Layer...",
-    idleTitle: "Sistem Aktif", idleDesc: "Kirim parameter tangki Anda untuk diagnosis cerdas.", failTitle: "Gagal Menemukan Kecocokan", failDesc: "Tangki terlalu ekstrem atau overstock.",
-    successTitle: "Hasil Analisis", successDesc: "Daftar ikan yang aman digabungkan dengan penghuni lama.", matchCount: "Spesies Aman", bestMatch: "Top Match",
-    confidence: "Keamanan AI", points: "Poin", defaultReason: "Sesuai standar.",
-    paginationShowing: "Menampilkan", paginationTo: "hingga", paginationOf: "dari", paginationData: "data.",
-    confExcellent: "Sangat Cocok", confVeryGood: "Bagus", confGood: "Cocok", confModerate: "Cukup"
+  // MENGAMBIL DICTIONARY DENGAN DOUBLE CASTING
+  const rootDict = dict as unknown as { fishExpertEngine: FishEngineDict; fishList: any };
+  const engineDict = rootDict.fishExpertEngine || {};
+  const listDict = rootDict.fishList || {};
+
+  // PENGAMANAN FALLBACK TEKS BILINGUAL JIKA JSON KOSONG
+  const t = {
+    title: engineDict.title || "Fish Compatibility Engine V4",
+    subtitle: engineDict.subtitle || "Sistem cerdas evaluasi bioload predator-prey dan kapasitas water layer.",
+    formTitle: engineDict.formTitle || "Kuesioner Ekosistem Tangki",
+    q1: engineDict.q1 || "Pengalaman",
+    q1Opt1: engineDict.q1Opt1 || "Pemula",
+    q1Opt2: engineDict.q1Opt2 || "Menengah",
+    q1Opt3: engineDict.q1Opt3 || "Mahir",
+    q2: engineDict.q2 || "Volume Tangki (Liter)",
+    q3: engineDict.q3 || "pH Air",
+    q4: engineDict.q4 || "Suhu Air (°C)",
+    q5: engineDict.q5 || "Rencana Ekosistem",
+    q5Opt1: engineDict.q5Opt1 || "Community Tank",
+    q5Opt2: engineDict.q5Opt2 || "Semi-Aggressive",
+    q5Opt3: engineDict.q5Opt3 || "Species Only",
+    needSchooling: engineDict.needSchooling || "Suka Ikan Berkelompok",
+    btnStart: engineDict.btnStart || "Mulai Analisis V4",
+    processing: engineDict.processing || "Mengukur Kepadatan Layer...",
+    idleTitle: engineDict.idleTitle || "Sistem Aktif",
+    idleDesc: engineDict.idleDesc || "Kirim parameter tangki Anda untuk diagnosis cerdas.",
+    failTitle: engineDict.failTitle || "Gagal Menemukan Kecocokan",
+    failDesc: engineDict.failDesc || "Tangki terlalu ekstrem atau overstock.",
+    successTitle: engineDict.successTitle || "Hasil Analisis",
+    successDesc: engineDict.successDesc || "Daftar ikan yang aman digabungkan dengan penghuni lama.",
+    matchCount: engineDict.matchCount || "Spesies Aman",
+    bestMatch: engineDict.bestMatch || "Top Match",
+    confidence: engineDict.confidence || "Keamanan AI",
+    points: engineDict.points || "Poin",
+    defaultReason: engineDict.defaultReason || "Sesuai standar.",
+    confExcellent: engineDict.confExcellent || "Sangat Cocok",
+    confVeryGood: engineDict.confVeryGood || "Bagus",
+    confGood: engineDict.confGood || "Cocok",
+    confModerate: engineDict.confModerate || "Cukup",
+    
+    // PENYELARASAN TEKS PAGINATION
+    showing: listDict.showing || (lang === 'id' ? "Menampilkan" : "Showing"),
+    to: listDict.to || (lang === 'id' ? "hingga" : "to"),
+    of: listDict.of || (lang === 'id' ? "dari" : "of"),
+    data: listDict.data || (lang === 'id' ? "data" : "data"),
+    page: listDict.page || (lang === 'id' ? "Hal" : "Page")
   };
 
   const runInferenceEngine = () => {
@@ -153,12 +188,21 @@ export default function FishExpertEnginePage() {
     setCurrentPage(1); 
     
     const answers: UserFishAnswers = { 
-      experience, tankVolumeLiters, tankLengthCm, currentPH, currentTemp, 
-      wantSchoolingFish, fishTypePref, hasShrimp, hasPlants, aquascapeStyle, 
-      existingFishes // V4 Injection
+      experience, 
+      tankVolumeLiters: Number(tankVolumeLiters) || 60, 
+      tankLengthCm: Number(tankLengthCm) || 60, 
+      currentPH: Number(currentPH) || 7.0, 
+      currentTemp: Number(currentTemp) || 26.0, 
+      currentGH: Number(currentGH) || 5,
+      wantSchoolingFish, 
+      fishTypePref, 
+      hasShrimp, 
+      hasPlants, 
+      aquascapeStyle, 
+      existingFishes 
     };
     
-    const aiResults = generateFishRecommendations(fishes, answers, dict.fishExpertEngine as unknown as FishExpertDictionary);
+    const aiResults = generateFishRecommendations(fishes, answers, dict as unknown as FishExpertDictionary);
 
     sessionStorage.setItem(SESSION_KEY, JSON.stringify({ answers, results: aiResults, currentPage: 1 }));
 
@@ -177,7 +221,7 @@ export default function FishExpertEnginePage() {
     }
   };
   const getConfidenceLabel = (key: string) => {
-    switch (key) { case "Excellent": return engineDict.confExcellent; case "VeryGood": return engineDict.confVeryGood; case "Good": return engineDict.confGood; default: return engineDict.confModerate; }
+    switch (key) { case "Excellent": return t.confExcellent; case "VeryGood": return t.confVeryGood; case "Good": return t.confGood; default: return t.confModerate; }
   };
 
   let totalPages = 0;
@@ -201,16 +245,18 @@ export default function FishExpertEnginePage() {
   const pageNumbers = [];
   for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
+  const isFormIncomplete = tankVolumeLiters === "" || tankLengthCm === "" || currentPH === "" || currentTemp === "";
+
   return (
     <div className="w-full h-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10">
       <div className="max-w-[1400px] mx-auto space-y-8 pb-10 text-slate-900 dark:text-slate-100">
         
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-extrabold text-blue-600 dark:text-blue-400 flex items-center gap-3">
-            <Cpu className="h-8 w-8 md:h-10 md:w-10" /> {engineDict.title}
+            <Cpu className="h-8 w-8 md:h-10 md:w-10" /> {t.title}
           </h1>
           <p className="mt-3 text-slate-600 dark:text-slate-400 max-w-3xl text-sm md:text-base leading-relaxed">
-            {engineDict.subtitle}
+            {t.subtitle}
           </p>
         </div>
 
@@ -218,112 +264,141 @@ export default function FishExpertEnginePage() {
           
           {/* PANEL KIRI: FORMULIR INPUT V4 */}
           <Card className="border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/80 xl:col-span-5 h-fit shadow-xl shadow-slate-200/50 dark:shadow-none transition-colors duration-300">
-            <CardContent className="p-6 md:p-8 space-y-6">
+            <CardContent className="p-5 sm:p-8 space-y-6">
               
               {/* SECTION: LINGKUNGAN */}
               <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center gap-2 text-gray-900 dark:text-slate-100">
-                <Filter className="h-5 w-5 text-blue-600 dark:text-blue-500" /> Profil Lingkungan Tangki
+                <Filter className="h-5 w-5 text-blue-600 dark:text-blue-500" /> {t.formTitle}
               </h3>
 
               <div className="space-y-5">
                 <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{engineDict.q1}</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{t.q1}</Label>
                   <select value={experience} onChange={(e) => setExperience(e.target.value as ExperienceLevel)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none">
-                    <option value="Pemula">{engineDict.q1Opt1}</option><option value="Menengah">{engineDict.q1Opt2}</option><option value="Mahir">{engineDict.q1Opt3}</option>
+                    <option value="Pemula">{t.q1Opt1}</option>
+                    <option value="Menengah">{t.q1Opt2}</option>
+                    <option value="Mahir">{t.q1Opt3}</option>
                   </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{engineDict.q3}</Label>
-                        <Input type="number" step="0.1" value={currentPH} onChange={(e) => setCurrentPH(Number(e.target.value))} className="bg-slate-50 dark:bg-slate-950 focus:border-blue-500" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{engineDict.q4}</Label>
-                        <Input type="number" step="0.5" value={currentTemp} onChange={(e) => setCurrentTemp(Number(e.target.value))} className="bg-slate-50 dark:bg-slate-950 focus:border-blue-500" />
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{engineDict.q2}</Label>
-                    <Input type="number" value={tankVolumeLiters} onChange={(e) => setTankVolumeLiters(Number(e.target.value))} className="bg-slate-50 dark:bg-slate-950 focus:border-blue-500" />
+                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{t.q2} <span className="text-red-500">*</span></Label>
+                    <Input type="number" required placeholder="Cth: 100" value={tankVolumeLiters} onChange={(e) => setTankVolumeLiters(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">Panjang (cm)</Label>
-                    <Input type="number" value={tankLengthCm} onChange={(e) => setTankLengthCm(Number(e.target.value))} className="bg-slate-50 dark:bg-slate-950 focus:border-blue-500" />
+                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{lang === 'id' ? "P. Tangki (cm)" : "Length (cm)"} <span className="text-red-500">*</span></Label>
+                    <Input type="number" required placeholder="Cth: 60" value={tankLengthCm} onChange={(e) => setTankLengthCm(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500" />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">Style & Tema Akuarium</Label>
-                  <select value={aquascapeStyle} onChange={(e) => setAquascapeStyle(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none">
-                    <option value="Bebas">Bebas / Tanpa Tema</option><option value="Nature">Nature Style</option><option value="Dutch">Dutch Style (Full Tanaman)</option><option value="Iwagumi">Iwagumi</option><option value="Biotope">Biotope</option><option value="Blackwater">Blackwater</option>
-                  </select>
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{t.q3} <span className="text-red-500">*</span></Label>
+                        <Input type="number" step="0.1" required placeholder="Cth: 6.8" value={currentPH} onChange={(e) => setCurrentPH(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{t.q4} <span className="text-red-500">*</span></Label>
+                        <Input type="number" step="0.1" required placeholder="Cth: 25.5" value={currentTemp} onChange={(e) => setCurrentTemp(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">GH Air</Label>
+                        <Input type="number" step="0.5" placeholder="Cth: 4 (Ops)" value={currentGH} onChange={(e) => setCurrentGH(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500" />
+                    </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{engineDict.q5}</Label>
-                  <select value={fishTypePref} onChange={(e) => setFishTypePref(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none">
-                    <option value="Community Tank">{engineDict.q5Opt1}</option><option value="Semi-Aggressive">{engineDict.q5Opt2}</option><option value="Species Only">{engineDict.q5Opt3}</option>
-                  </select>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{t.q5}</Label>
+                    <select value={fishTypePref} onChange={(e) => setFishTypePref(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none">
+                      <option value="Community Tank">{t.q5Opt1}</option>
+                      <option value="Semi-Aggressive">{t.q5Opt2}</option>
+                      <option value="Species Only">{t.q5Opt3}</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{lang === 'id' ? "Style Akuarium" : "Aquascape Style"}</Label>
+                    <select value={aquascapeStyle} onChange={(e) => setAquascapeStyle(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none">
+                      <option value="Bebas">Bebas / Tanpa Tema</option><option value="Nature">Nature Style</option><option value="Dutch">Dutch Style (Full Tanaman)</option><option value="Iwagumi">Iwagumi</option><option value="Biotope">Biotope</option><option value="Blackwater">Blackwater</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="pt-2 pb-2 space-y-4">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <input type="checkbox" checked={hasPlants} onChange={(e) => setHasPlants(e.target.checked)} className="h-5 w-5 accent-teal-600 rounded cursor-pointer" />
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-teal-600 transition-colors">Terdapat Tanaman Hidup</span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <input type="checkbox" checked={hasShrimp} onChange={(e) => setHasShrimp(e.target.checked)} className="h-5 w-5 accent-emerald-600 rounded cursor-pointer" />
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 transition-colors">Terdapat Udang Hias</span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input type="checkbox" checked={hasPlants} onChange={(e) => setHasPlants(e.target.checked)} className="h-5 w-5 accent-teal-600 rounded cursor-pointer" />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-teal-600 transition-colors">{lang === 'id' ? "Ada Tanaman Hidup" : "Has Live Plants"}</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input type="checkbox" checked={hasShrimp} onChange={(e) => setHasShrimp(e.target.checked)} className="h-5 w-5 accent-emerald-600 rounded cursor-pointer" />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 transition-colors">{lang === 'id' ? "Ada Udang Hias" : "Has Shrimp"}</span>
+                    </label>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer group pt-2 border-t border-slate-100 dark:border-slate-800">
                     <input type="checkbox" checked={wantSchoolingFish} onChange={(e) => setWantSchoolingFish(e.target.checked)} className="h-5 w-5 accent-blue-600 rounded cursor-pointer" />
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-blue-600 transition-colors">{engineDict.needSchooling}</span>
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-blue-600 transition-colors">{t.needSchooling}</span>
                   </label>
                 </div>
               </div>
 
-              {/* SECTION: V4 MY AQUARIUM INTEGRATION MOCK */}
-              <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
-                <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center gap-2 text-blue-700 dark:text-blue-400 mb-4">
-                  <FishSymbol className="h-5 w-5" /> Penghuni Saat Ini (My Aquarium)
+              {/* SECTION: V4 MY AQUARIUM INTEGRATION */}
+              <div className="mt-8 pt-6 border-t border-blue-200 dark:border-blue-900/50 bg-blue-50/30 dark:bg-blue-950/10 -mx-6 md:-mx-8 px-6 md:px-8 pb-4">
+                <h3 className="text-lg font-bold pb-3 flex items-center gap-2 text-blue-800 dark:text-blue-400 mb-2">
+                  <HeartPulse className="h-5 w-5" /> {lang === 'id' ? 'Simulator Penghuni (My Aquarium)' : 'My Aquarium Simulator'}
                 </h3>
+                <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+                  {lang === 'id' 
+                    ? "Masukkan jenis ikan yang saat ini SUDAH ADA di dalam tank Anda. AI akan menghitung sisa kapasitas tangki, mencegah overstock, dan menghindari ikan saling memangsa (hukum rimba)."
+                    : "Enter fish that ALREADY exist in your tank. AI will calculate remaining capacity, prevent overstocking, and avoid predatory mismatch."}
+                </p>
                 
-                <div className="flex gap-2 mb-4">
-                  <select value={selectedFishId} onChange={(e) => setSelectedFishId(e.target.value)} className="flex-1 h-10 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none">
-                    <option value="">-- Pilih Ikan --</option>
-                    {fishes.map(f => <option key={f.id} value={f.id}>{language === 'en' && f.name_en ? f.name_en : f.name_id}</option>)}
+                <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                  <select value={selectedFishId} onChange={(e) => setSelectedFishId(e.target.value)} className="flex-1 h-12 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none shadow-sm font-medium">
+                    <option value="">-- {lang === 'id' ? 'Pilih spesies ikan di tank Anda' : 'Select existing species in your tank'} --</option>
+                    {fishes.map(f => <option key={f.id} value={f.id}>{lang === 'en' && f.name_en ? f.name_en : f.name_id}</option>)}
                   </select>
-                  <Input type="number" min={1} value={selectedQuantity} onChange={(e) => setSelectedQuantity(Number(e.target.value))} className="w-20 h-10 bg-slate-50 dark:bg-slate-950" />
-                  <Button type="button" onClick={handleAddFish} className="h-10 w-10 p-0 bg-blue-600 hover:bg-blue-500 text-white shrink-0">
-                    <Plus className="h-5 w-5" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Input type="number" min={1} value={selectedQuantity} onChange={(e) => setSelectedQuantity(e.target.value ? Number(e.target.value) : "")} className="w-24 sm:w-20 h-12 bg-white dark:bg-slate-950 rounded-lg shadow-sm" placeholder="Qty" />
+                    <Button type="button" onClick={handleAddFish} className="h-12 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white shrink-0 shadow-md">
+                      <Plus className="h-5 w-5 mr-1" /> {lang === 'id' ? 'Tambah' : 'Add'}
+                    </Button>
+                  </div>
                 </div>
 
-                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar mt-4">
                   {existingFishes.length === 0 ? (
-                    <p className="text-sm text-slate-500 italic p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-center">Tangki Anda masih kosong.</p>
+                    <p className="text-sm text-slate-500 italic p-4 bg-white/60 dark:bg-slate-900/60 rounded-xl text-center border border-slate-200 dark:border-slate-800 shadow-sm">
+                      {lang === 'id' ? 'Belum ada penghuni. Tangki kosong.' : 'No inhabitants. Tank is empty.'}
+                    </p>
                   ) : (
                     existingFishes.map((ef, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-2.5 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50 rounded-lg">
+                      <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800/60 rounded-xl shadow-sm transition-all hover:border-red-300 group">
                         <div className="flex items-center gap-3">
-                          <span className="font-black text-blue-700 dark:text-blue-400 text-sm bg-white dark:bg-slate-950 px-2 py-0.5 rounded shadow-sm">{ef.quantity}x</span>
-                          <div>
-                            <p className="text-sm font-bold leading-none">{language === 'en' && ef.fish.name_en ? ef.fish.name_en : ef.fish.name_id}</p>
-                            <p className="text-[10px] text-slate-500 mt-1">{ef.fish.water_layer} • Adult: {ef.fish.estimated_adult_size_cm}cm</p>
+                          <div className="h-12 w-12 relative rounded-md overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border border-slate-200 dark:border-slate-700">
+                            {ef.fish.image_url ? (
+                              <Image src={ef.fish.image_url} alt={ef.fish.name_id} fill sizes="48px" className="object-cover" />
+                            ) : (
+                              <Fish className="h-6 w-6 m-auto mt-3 text-slate-400" />
+                            )}
+                          </div>
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                               <span className="font-black text-blue-700 dark:text-blue-400 text-xs bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded shadow-sm border border-blue-100 dark:border-blue-900">{ef.quantity}x</span>
+                               <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-none">{lang === 'en' && ef.fish.name_en ? ef.fish.name_en : ef.fish.name_id}</p>
+                            </div>
+                            <p className="text-[10px] font-bold text-slate-500 mt-1.5 uppercase tracking-wider">{ef.fish.water_layer || 'Mid'} • Adult: {ef.fish.estimated_adult_size_cm || 5}cm</p>
                           </div>
                         </div>
-                        <button type="button" onClick={() => handleRemoveFish(ef.fish.id)} className="text-slate-400 hover:text-red-500 transition-colors p-1"><X className="h-4 w-4"/></button>
+                        <button type="button" onClick={() => handleRemoveFish(ef.fish.id)} className="text-slate-400 hover:text-white hover:bg-red-500 rounded-full transition-colors p-1.5"><X className="h-4 w-4"/></button>
                       </div>
                     ))
                   )}
                 </div>
               </div>
 
-              <Button onClick={runInferenceEngine} disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest h-14 mt-4 text-base shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98]">
-                {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : engineDict.btnStart}
+              <Button onClick={runInferenceEngine} disabled={loading || isFormIncomplete} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest h-14 mt-4 text-base shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98] disabled:opacity-50">
+                {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : t.btnStart}
               </Button>
             </CardContent>
           </Card>
@@ -333,24 +408,24 @@ export default function FishExpertEnginePage() {
             {!results ? (
               <div className="flex flex-col items-center justify-center min-h-[500px] border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-900/20 text-center p-8">
                 <Fish className="h-20 w-20 text-slate-300 dark:text-slate-700 mb-6 animate-pulse" />
-                <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-3">{engineDict.idleTitle}</h3>
-                <p className="text-slate-500 dark:text-slate-400 max-w-lg text-lg">{engineDict.idleDesc}</p>
+                <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-3">{t.idleTitle}</h3>
+                <p className="text-slate-500 dark:text-slate-400 max-w-lg text-lg">{t.idleDesc}</p>
               </div>
             ) : results.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[500px] border-2 border-red-200 dark:border-red-900/30 rounded-2xl bg-red-50 dark:bg-red-950/10 p-8 text-center">
                 <Info className="h-16 w-16 text-red-500 mb-6" />
-                <h3 className="text-2xl font-bold text-red-900 dark:text-red-200 mb-3">{engineDict.failTitle}</h3>
-                <p className="text-base text-slate-600 dark:text-red-400/80 max-w-lg leading-relaxed">{engineDict.failDesc}</p>
+                <h3 className="text-2xl font-bold text-red-900 dark:text-red-200 mb-3">{t.failTitle}</h3>
+                <p className="text-base text-slate-600 dark:text-red-400/80 max-w-lg leading-relaxed">{t.failDesc}</p>
               </div>
             ) : (
               <div className="animate-in fade-in duration-500 slide-in-from-bottom-4">
                 <div className="mb-6 flex flex-col sm:flex-row justify-between border-b border-slate-200 dark:border-slate-800 pb-5">
                   <div>
-                    <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400">{engineDict.successTitle}</h3>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">{engineDict.successDesc}</p>
+                    <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400">{t.successTitle}</h3>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">{t.successDesc}</p>
                   </div>
                   <span className="mt-4 sm:mt-0 inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 px-5 py-2 rounded-full border border-blue-200 font-bold whitespace-nowrap">
-                    <CheckCircle2 className="h-5 w-5" /> {results.length} {engineDict.matchCount}
+                    <CheckCircle2 className="h-5 w-5" /> {results.length} {t.matchCount}
                   </span>
                 </div>
                 
@@ -364,26 +439,26 @@ export default function FishExpertEnginePage() {
                       return (
                         <div key={fish.id} className="lg:col-span-2 relative rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border-2 border-blue-500 shadow-xl shadow-blue-500/10 mb-2 flex flex-col">
                           <div className="bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-2.5 text-white font-black flex items-center gap-2 text-sm tracking-widest uppercase z-10">
-                            <Trophy className="h-5 w-5 text-amber-300" /> {engineDict.bestMatch}
+                            <Trophy className="h-5 w-5 text-amber-300" /> {t.bestMatch}
                           </div>
                           <div className="flex flex-col lg:flex-row items-stretch flex-1">
-                            <div className="p-4 lg:p-5 flex items-start justify-center border-b lg:border-r border-slate-100 dark:border-slate-800 bg-slate-50/30 lg:w-[320px] shrink-0">
+                            <div className="p-4 lg:p-5 flex items-start justify-center border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30 lg:w-[320px] shrink-0">
                               <div className="w-full max-w-[280px] lg:max-w-none"><FishCard fish={fish} /></div>
                             </div>
                             <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 p-4 lg:p-5">
                               <div className="flex flex-col gap-3 pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{engineDict.confidence}</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.confidence}</p>
                                 <div className={`inline-flex max-w-fit items-center px-3 py-2 rounded-lg border ${getConfidenceColor(confidenceKey)}`}>
                                   <Target className="w-4 h-4 mr-2" />
-                                  <span className="font-black text-sm">{fish.matchScore} {engineDict.points}</span>
+                                  <span className="font-black text-sm">{fish.matchScore} {t.points}</span>
                                   <span className="mx-2 opacity-40">|</span>
-                                  <span className="font-bold text-xs uppercase">{getConfidenceLabel(confidenceKey)}</span>
+                                  <span className="font-bold text-xs uppercase tracking-wide">{getConfidenceLabel(confidenceKey)}</span>
                                 </div>
                               </div>
-                              <ul className="space-y-2 border-l-2 border-blue-500/40 pl-3 py-1">
+                              <ul className="space-y-2 border-l-2 border-blue-500/40 pl-3 py-1 flex-1">
                                 {fish.matchReasons.map((reason, i) => (
-                                  <li key={i} className="text-sm text-slate-600 dark:text-slate-300 flex items-start">
-                                    <span className="text-blue-500 mr-2 font-bold">✓</span> <span>{reason}</span>
+                                  <li key={i} className="text-sm text-slate-600 dark:text-slate-300 flex items-start font-medium leading-snug">
+                                    <span className="text-blue-500 mr-2 font-bold mt-0.5">✓</span> <span>{reason}</span>
                                   </li>
                                 ))}
                               </ul>
@@ -396,18 +471,18 @@ export default function FishExpertEnginePage() {
                     return (
                       <div key={fish.id} className="relative rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md flex flex-col">
                         <div className="absolute top-0 left-0 z-20 w-8 h-8 bg-slate-800 text-white rounded-br-xl flex items-center justify-center font-black text-xs">{globalIndex + 1}</div>
-                        <div className="p-4 flex justify-center bg-slate-50/50 border-b border-slate-100 dark:border-slate-800">
+                        <div className="p-4 flex justify-center bg-slate-50/50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800">
                            <div className="w-full max-w-[280px]"><FishCard fish={fish} /></div>
                         </div>
                         <div className="p-5 flex-1 flex flex-col">
-                          <div className={`inline-flex items-center gap-2 text-[10px] font-bold px-2.5 py-1.5 rounded-md border mb-3 ${getConfidenceColor(confidenceKey)}`}>
-                            <span>{fish.matchScore} {engineDict.points}</span>
+                          <div className={`inline-flex items-center gap-2 text-[10px] font-bold px-2.5 py-1.5 rounded-md border mb-4 ${getConfidenceColor(confidenceKey)}`}>
+                            <span>{fish.matchScore} {t.points}</span>
                             <span>•</span>
-                            <span>{getConfidenceLabel(confidenceKey)}</span>
+                            <span className="uppercase tracking-wider">{getConfidenceLabel(confidenceKey)}</span>
                           </div>
                           <ul className="space-y-2 border-l-2 border-blue-500/40 pl-3 py-1">
                             {fish.matchReasons.map((reason, i) => (
-                              <li key={i} className="text-[12px] text-slate-600 dark:text-slate-300 flex items-start">
+                              <li key={i} className="text-[12px] text-slate-600 dark:text-slate-300 flex items-start font-medium leading-tight">
                                 <span className="text-blue-500 mr-2 font-bold">✓</span> <span>{reason}</span>
                               </li>
                             ))}
@@ -418,18 +493,57 @@ export default function FishExpertEnginePage() {
                   })}
                 </div>
 
-                {/* PAGINATION */}
+                {/* PENYELARASAN PAGINATION SESUAI PLANT EXPERT */}
                 {totalPages > 1 && (
-                  <div className="flex flex-col lg:flex-row items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-5 mt-6 gap-4">
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {engineDict.paginationShowing} <span className="font-bold">{startIndex + 1}</span> {engineDict.paginationTo} <span className="font-bold">{Math.min(endIndex, results.length)}</span> {engineDict.paginationOf} <span className="font-bold">{results.length}</span> {engineDict.paginationData}
+                  <div className="flex flex-col lg:flex-row items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-6 mt-6 gap-4 transition-colors">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 text-center lg:text-left w-full lg:w-auto">
+                      {t.showing} <span className="font-medium text-gray-900 dark:text-slate-200">{startIndex + 1}</span> {t.to} <span className="font-medium text-gray-900 dark:text-slate-200">{Math.min(endIndex, results.length)}</span> {t.of} <span className="font-medium text-gray-900 dark:text-slate-200">{results.length}</span> {t.data}
                     </p>
-                    <div className="flex gap-1">
-                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="h-9 w-9"><ChevronLeft className="h-4 w-4" /></Button>
+                    
+                    <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2 w-full lg:w-auto">
+                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      
                       {pageNumbers.map(num => (
-                        <Button key={num} variant={currentPage === num ? "default" : "outline"} onClick={() => setCurrentPage(num)} className={`h-9 w-9 p-0 ${currentPage === num ? 'bg-blue-600 text-white' : ''}`}>{num}</Button>
+                        <Button 
+                          key={num} 
+                          variant={currentPage === num ? "default" : "outline"} 
+                          onClick={() => setCurrentPage(num)} 
+                          className={`h-8 w-8 sm:h-9 sm:w-9 p-0 text-xs sm:text-sm font-medium transition-all shrink-0 ${
+                            currentPage === num 
+                              ? 'bg-blue-600 hover:bg-blue-500 text-white border-blue-600 dark:border-blue-500 shadow-md shadow-blue-600/20 scale-105' 
+                              : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
+                          }`}
+                        >
+                          {num}
+                        </Button>
                       ))}
-                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="h-9 w-9"><ChevronRight className="h-4 w-4" /></Button>
+
+                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
+
+                      {/* FITUR LOMPAT HALAMAN (GO TO PAGE) */}
+                      <div className="flex items-center justify-center gap-2 text-sm border-t lg:border-t-0 lg:border-l border-slate-300 dark:border-slate-700 pt-2.5 lg:pt-0 lg:pl-3 w-full lg:w-auto transition-colors text-slate-600 dark:text-slate-300">
+                        <span className="hidden sm:inline">{t.page}</span>
+                        <Input 
+                          type="number" min={1} max={totalPages} value={currentPage}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (val >= 1 && val <= totalPages) setCurrentPage(val);
+                          }}
+                          className="w-12 sm:w-14 h-8 text-center text-sm bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-gray-900 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:border-blue-500 transition-colors"
+                        />
+                        <span className="whitespace-nowrap sm:hidden">/ {totalPages}</span>
+                        <span className="hidden sm:inline">/ {totalPages}</span>
+                      </div>
                     </div>
                   </div>
                 )}

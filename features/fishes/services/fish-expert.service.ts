@@ -19,7 +19,7 @@ export interface UserFishAnswers {
   hasShrimp: boolean; 
   hasPlants: boolean; 
   aquascapeStyle: string; 
-  existingFishes: ExistingFishRecord[]; // UPGRADE V4: Array ikan yang sudah ada di tangki
+  existingFishes: ExistingFishRecord[]; 
 }
 
 export interface RecommendedFish extends Fish {
@@ -46,20 +46,45 @@ export interface FishExpertDictionary {
   reasonStyleMatch?: string;    
   reasonActivityNeedsSpace?: string; 
   reasonLayerBalance?: string; 
-  reasonLayerCrowded?: string; // V4
-  reasonPredatorRisk?: string; // V4
-  reasonPreyRisk?: string;     // V4
-  reasonFinNipperRisk?: string;// V4
+  reasonLayerCrowded?: string; 
+  reasonPredatorRisk?: string; 
+  reasonPreyRisk?: string;     
+  reasonFinNipperRisk?: string;
 }
 
 export function generateFishRecommendations(
   allFishes: Fish[], 
   answers: UserFishAnswers, 
-  dictEE: FishExpertDictionary
+  // TYPE-SAFE: Merubah any menjadi FishExpertDictionary dengan Fallback
+  dictInput: FishExpertDictionary
 ): RecommendedFish[] {
   const rawEvaluations: RawEvaluation<Fish>[] = [];
 
-  // V4 PRE-CALCULATION: Kalkulasi Kepadatan Layer (Layer Density) & Total Bioload Lama
+  // DEFAULT DICTIONARY FALLBACK (Bahasa Indonesia) jika JSON gagal dimuat
+  const dictEE: FishExpertDictionary = {
+    reasonTankSizeOK: dictInput?.reasonTankSizeOK || "Volume tangki Anda sangat leluasa untuk spesies ini.",
+    reasonTankSizeBad: dictInput?.reasonTankSizeBad || "Tangki terlalu sempit, berisiko mengerdilkan ikan (stunting).",
+    reasonPHMatch: dictInput?.reasonPHMatch || "Kondisi pH air Anda masuk dalam rentang ideal spesies ini.",
+    reasonPHMismatch: dictInput?.reasonPHMismatch || "pH air saat ini berisiko membuat ikan stres atau sakit.",
+    reasonTempMatch: dictInput?.reasonTempMatch || "Suhu air sempurna untuk metabolisme ikan ini.",
+    reasonTempMismatch: dictInput?.reasonTempMismatch || "Suhu tidak sesuai, dapat melemahkan imun ikan.",
+    reasonSchooling: dictInput?.reasonSchooling || "Cocok untuk berenang bergerombol",
+    reasonBeginnerFriendly: dictInput?.reasonBeginnerFriendly || "Sangat kebal penyakit dan mudah dipelihara pemula.",
+    reasonExpertOnly: dictInput?.reasonExpertOnly || "Membutuhkan kualitas air yang super stabil (Hanya untuk ahli).",
+    reasonCompatibility: dictInput?.reasonCompatibility || "Sifatnya cocok dengan rencana ekosistem tangki Anda.",
+    reasonGHMatch: dictInput?.reasonGHMatch || "Tingkat kekerasan air (GH) sudah sesuai habitat aslinya.",
+    reasonGHMismatch: dictInput?.reasonGHMismatch || "Kekerasan air (GH) kurang sesuai untuk spesies ini.",
+    reasonBioloadBad: dictInput?.reasonBioloadBad || "Kapasitas filtrasi tangki Anda sudah mencapai batas (overstock).",
+    reasonNotPlantSafe: dictInput?.reasonNotPlantSafe || "BERBAHAYA: Berisiko memakan dan merusak tanaman aquascape Anda.",
+    reasonStyleMatch: dictInput?.reasonStyleMatch || `Sangat sesuai secara estetika & biologis untuk akuarium tema ${answers.aquascapeStyle}.`,
+    reasonActivityNeedsSpace: dictInput?.reasonActivityNeedsSpace || "Ikan tipe hiperaktif ini membutuhkan panjang akuarium minimal 80cm agar bisa bermanuver lari.",
+    reasonLayerBalance: dictInput?.reasonLayerBalance || "Sempurna untuk mengisi area/zona renang yang masih kosong di akuarium Anda.",
+    reasonLayerCrowded: dictInput?.reasonLayerCrowded || "Area renang (Water Layer) yang biasa dihuni ikan ini sudah cukup padat.",
+    reasonPredatorRisk: dictInput?.reasonPredatorRisk || "BAHAYA PREDATOR: Mulut ikan ini berisiko memangsa penghuni lama tangki Anda.",
+    reasonPreyRisk: dictInput?.reasonPreyRisk || "BAHAYA DIMANGSA: Ikan ini berisiko dimakan hidup-hidup oleh ikan besar/predator yang sudah ada.",
+    reasonFinNipperRisk: dictInput?.reasonFinNipperRisk || "BAHAYA: Ada risiko saling gigit sirip (Fin-nipping) dengan ikan lama Anda."
+  };
+
   const layerBioload: Record<string, number> = { "Top": 0, "Middle": 0, "Bottom": 0, "All Levels": 0 };
   let currentTotalBioload = 0;
 
@@ -85,6 +110,7 @@ export function generateFishRecommendations(
 
     const candidateSize = fish.estimated_adult_size_cm || 5;
     const candidateTempScore = fish.temperament_score || 2;
+    const candidateMouthSize = fish.mouth_size_factor || 1; // Default mulut normal
 
     // ==========================================
     // TAHAP A: V4 EXISTING FISH COMPATIBILITY (HUKUM RIMBA)
@@ -93,33 +119,35 @@ export function generateFishRecommendations(
     for (const record of answers.existingFishes) {
       const existingSize = record.fish.estimated_adult_size_cm || 5;
       const existingTempScore = record.fish.temperament_score || 2;
+      const existingMouthSize = record.fish.mouth_size_factor || 1;
 
       // 1. PREDATOR CHECK: Apakah ikan KANDIDAT akan memakan ikan LAMA?
-      // Jika kandidat agresif (>=4) dan ukurannya 2x lipat lebih besar dari ikan lama = FATAL
-      if (candidateTempScore >= 4 && candidateSize > existingSize * 2) {
+      // Logika Mulut: Jika (Ukuran Ikan Lama) < (Ukuran Mulut Kandidat * Ukuran Kandidat / 2)
+      const candidateEatingCapacity = (candidateSize * candidateMouthSize) / 2.5; 
+      if (candidateTempScore >= 3 && candidateEatingCapacity > existingSize) {
         isFatal = true;
         break;
       }
 
       // 2. PREY CHECK: Apakah ikan LAMA akan memakan ikan KANDIDAT?
-      // Jika ikan lama agresif (>=4) dan ukurannya 2x lipat lebih besar dari kandidat = FATAL
-      if (existingTempScore >= 4 && existingSize > candidateSize * 2) {
+      const existingEatingCapacity = (existingSize * existingMouthSize) / 2.5;
+      if (existingTempScore >= 3 && existingEatingCapacity > candidateSize) {
         isFatal = true;
         break;
       }
 
-      // 3. FIN NIPPER CHECK: Barb/Tetra Jahil vs Ikan Sirip Panjang (Betta/Angelfish)
-      if (fish.fish_type === "Betta" && record.fish.fish_type === "Barb") {
+      // 3. FIN NIPPER CHECK
+      if ((fish.fish_type === "Betta" || fish.fish_type === "Cichlid") && record.fish.fish_type === "Barb") {
         score -= 40;
-        reasons.push(dictEE.reasonFinNipperRisk || "BERBAHAYA: Sirip ikan ini akan digigit oleh kawanan Barb yang sudah ada.");
-      } else if (record.fish.fish_type === "Betta" && fish.fish_type === "Barb") {
+        reasons.push(dictEE.reasonFinNipperRisk!);
+      } else if ((record.fish.fish_type === "Betta" || record.fish.fish_type === "Cichlid") && fish.fish_type === "Barb") {
         score -= 40;
-        reasons.push(dictEE.reasonFinNipperRisk || "BERBAHAYA: Ikan ini berisiko menggigit sirip Cupang/Angelfish Anda.");
+        reasons.push(dictEE.reasonFinNipperRisk!);
       }
     }
 
     // ==========================================
-    // TAHAP B: HARD FILTERS LAMA (Shrimp, Plant, Predator Rule)
+    // TAHAP B: HARD FILTERS LAMA
     // ==========================================
 
     if (answers.hasShrimp && fish.shrimp_safe === false) isFatal = true;
@@ -128,7 +156,7 @@ export function generateFishRecommendations(
       if (answers.aquascapeStyle === "Dutch" || answers.aquascapeStyle === "Nature") isFatal = true;
       else {
         score -= 60;
-        reasons.push(dictEE.reasonNotPlantSafe || "BERBAHAYA: Berisiko merusak tanaman aquascape Anda.");
+        reasons.push(dictEE.reasonNotPlantSafe!);
       }
     }
 
@@ -140,11 +168,10 @@ export function generateFishRecommendations(
     // TAHAP C: V4 WATER LAYER CAPACITY & DYNAMIC BIOLOAD
     // ==========================================
     
-    // TANK SIZE PENALTY
     if (fish.min_tank_size && answers.tankVolumeLiters < fish.min_tank_size) {
       const deficit = fish.min_tank_size - answers.tankVolumeLiters;
       score -= Math.min(50, deficit * 0.8);
-      reasons.push(dictEE.reasonTankSizeBad || "Volume tangki kurang dari kebutuhan minimal spesies ini.");
+      reasons.push(dictEE.reasonTankSizeBad!);
     } else if (fish.min_tank_size && answers.tankVolumeLiters >= fish.min_tank_size * 2) {
       score += 15; 
       reasons.push(dictEE.reasonTankSizeOK);
@@ -158,36 +185,34 @@ export function generateFishRecommendations(
     if (answers.tankVolumeLiters < projectedTotalBioload) {
        const bioloadDeficit = projectedTotalBioload - answers.tankVolumeLiters;
        score -= Math.min(60, bioloadDeficit * 0.5);
-       reasons.push(dictEE.reasonBioloadBad || "Kapasitas filtrasi tangki Anda sudah maksimal/overstock.");
+       reasons.push(dictEE.reasonBioloadBad!);
     }
 
     // V4 WATER LAYER BALANCING
     const layer = fish.water_layer || "Middle";
     if (layer !== "All Levels") {
-      // Asumsi: Satu layer dianggap "padat" jika menyumbang >40% dari volume tangki
       const layerCapacityMax = answers.tankVolumeLiters * 0.4; 
       
       if (layerBioload[layer] >= layerCapacityMax) {
-        score -= 20; // Hukuman karena layer ini sudah sesak
-        reasons.push(dictEE.reasonLayerCrowded || `Area renang ${layer} sudah cukup padat oleh penghuni lama.`);
+        score -= 20; 
+        reasons.push(dictEE.reasonLayerCrowded!);
       } else if (layerBioload[layer] === 0) {
-        score += 20; // Bonus besar karena mengisi slot yang benar-benar kosong
-        reasons.push(dictEE.reasonLayerBalance || `Sempurna untuk mengisi area ${layer} yang masih kosong di akuarium Anda.`);
+        score += 20; 
+        reasons.push(dictEE.reasonLayerBalance!);
       } else {
-        score += 5; // Layer ada isinya tapi belum penuh
+        score += 5; 
       }
     }
 
     // ACTIVITY vs TANK LENGTH 
-    if (fish.activity_level === "High" && answers.tankLengthCm < 80) {
+    if (fish.activity_level === "High" && answers.tankLengthCm < (fish.minimum_tank_length_cm || 80)) {
       score -= 25; 
-      reasons.push(dictEE.reasonActivityNeedsSpace || "Ikan hiperaktif ini butuh panjang akuarium (horizontal) minimal 80cm untuk sprint.");
+      reasons.push(dictEE.reasonActivityNeedsSpace!);
     }
 
-    // STYLE MATCHING
     if (answers.aquascapeStyle !== "Bebas" && fish.recommended_tank_styles?.includes(answers.aquascapeStyle)) {
       score += 15;
-      reasons.push(dictEE.reasonStyleMatch || `Sangat direkomendasikan secara estetika untuk gaya ${answers.aquascapeStyle}.`);
+      reasons.push(dictEE.reasonStyleMatch!);
     }
 
     // ==========================================
@@ -219,10 +244,10 @@ export function generateFishRecommendations(
     if (fish.hardness_min && fish.hardness_max && answers.currentGH) {
       if (answers.currentGH >= fish.hardness_min && answers.currentGH <= fish.hardness_max) {
         score += 10;
-        reasons.push(dictEE.reasonGHMatch || "Tingkat kekerasan air (GH) ideal.");
+        reasons.push(dictEE.reasonGHMatch!);
       } else {
         score -= 15;
-        reasons.push(dictEE.reasonGHMismatch || "Tingkat kekerasan air (GH) kurang sesuai.");
+        reasons.push(dictEE.reasonGHMismatch!);
       }
     }
 

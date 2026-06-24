@@ -334,7 +334,8 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                         <div className="absolute top-2 left-2 w-5 h-5 flex items-center justify-center rounded bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm text-[9px] font-black text-slate-500 z-10">{idx + 1}</div>
                         {isSelected && (<div className={`absolute top-2 right-2 rounded-full bg-white dark:bg-slate-900 z-10 ${isFish ? 'text-blue-500' : 'text-emerald-500'}`}><CheckCircle2 className="w-5 h-5" /></div>)}
                         
-                        <div className={`w-full ${isFish ? 'aspect-[4/3] rounded-xl' : 'aspect-square rounded-full w-3/4 mx-auto'} overflow-hidden shrink-0 relative bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition-transform duration-300 ${isSelected ? 'scale-95' : 'group-hover:scale-95'}`}>
+                        {/* FIX MOBILE FLICKER: Menggunakan ukuran pixel absolut agar tidak layout-thrashing di HP */}
+                        <div className={`${isFish ? 'w-full aspect-[4/3] rounded-xl' : 'w-20 h-20 sm:w-24 sm:h-24 rounded-full mx-auto'} overflow-hidden shrink-0 relative bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition-transform duration-300 ${isSelected ? 'scale-95' : 'group-hover:scale-95'}`}>
                            {item.image_url ? ( 
                              <img src={item.image_url} alt="species" className="w-full h-full object-cover" /> 
                            ) : ( 
