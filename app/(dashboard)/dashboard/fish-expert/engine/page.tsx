@@ -18,10 +18,12 @@ import {
 
 import { generateFishRecommendations, UserFishAnswers, RecommendedFish, FishExpertDictionary, ExistingFishRecord } from "@/features/fishes/services/fish-expert.service";
 import { useLanguage } from "@/providers/LanguageProvider";
+import { getTankStyleDesc } from "@/features/fishes/components/fish-helpers";
 
 const SESSION_KEY = "aquaexpert_fish_inference_v4";
 const ITEMS_PAGE_1 = 11; 
 const ITEMS_PAGE_N = 10; 
+const TANK_STYLES_OPTIONS = ["Nature", "Dutch", "Iwagumi", "Biotope", "Blackwater"];
 
 type ExperienceLevel = "Pemula" | "Menengah" | "Mahir";
 
@@ -162,7 +164,6 @@ export default function FishExpertEnginePage() {
     subtitle: engineDict.subtitle || "Sistem cerdas evaluasi bioload predator-prey dan kapasitas water layer.",
     formTitle: engineDict.formTitle || "Kuesioner Ekosistem Tangki",
     
-    // Pertanyaan
     exp: engineDict.q1 || (lang === 'id' ? "1. Pengalaman Anda" : "1. Your Experience"),
     q1Opt1: engineDict.q1Opt1 || "Pemula",
     q1Opt2: engineDict.q1Opt2 || "Menengah",
@@ -184,19 +185,16 @@ export default function FishExpertEnginePage() {
     shrimp: lang === 'id' ? "Ada Udang Hias" : "Has Shrimp",
     needSchooling: engineDict.needSchooling || (lang === 'id' ? "Suka Ikan Berkelompok" : "I like schooling fish"),
     
-    // UI Simulator
     simTitle: lang === 'id' ? "Simulator Penghuni (My Aquarium)" : "My Aquarium Simulator",
     simDesc: lang === 'id' ? "Masukkan jenis ikan yang saat ini SUDAH ADA di dalam tank Anda. AI akan menghitung sisa kapasitas tangki, mencegah overstock, dan menghindari ikan saling memangsa (hukum rimba)." : "Enter fish that ALREADY exist in your tank. AI will calculate remaining capacity, prevent overstocking, and avoid predatory mismatch.",
     simBtn: lang === 'id' ? "Tambah Fauna" : "Select Fauna",
     simEmpty: lang === 'id' ? "Belum ada penghuni. Tangki kosong." : "No inhabitants. Tank is empty.",
     
-    // Modal
     modalTitle: lang === 'id' ? "Pilih Fauna" : "Select Fauna",
     modalSearch: lang === 'id' ? "Cari spesies..." : "Search species...",
     modalCancel: lang === 'id' ? "BATAL" : "CANCEL",
     modalSave: lang === 'id' ? "SIMPAN" : "SAVE",
     
-    // Hasil Engine
     btnStart: engineDict.btnStart || (lang === 'id' ? "Mulai Analisis" : "Start Analysis"),
     idleTitle: engineDict.idleTitle || "Sistem Aktif",
     idleDesc: engineDict.idleDesc || "Kirim parameter tangki Anda untuk diagnosis cerdas.",
@@ -214,7 +212,6 @@ export default function FishExpertEnginePage() {
     confGood: engineDict.confGood || "Cocok",
     confModerate: engineDict.confModerate || "Cukup",
     
-    // Pagination
     showing: listDict.showing || (lang === 'id' ? "Menampilkan" : "Showing"),
     to: listDict.to || (lang === 'id' ? "hingga" : "to"),
     of: listDict.of || (lang === 'id' ? "dari" : "of"),
@@ -311,7 +308,6 @@ export default function FishExpertEnginePage() {
           <Card className="border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/80 xl:col-span-5 h-fit shadow-xl shadow-slate-200/50 dark:shadow-none transition-colors duration-300">
             <CardContent className="p-5 sm:p-8 space-y-6">
               
-              {/* SECTION: LINGKUNGAN */}
               <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center gap-2 text-gray-900 dark:text-slate-100">
                 <Filter className="h-5 w-5 text-blue-600 dark:text-blue-500" /> {t.formTitle}
               </h3>
@@ -348,7 +344,7 @@ export default function FishExpertEnginePage() {
                     </div>
                     <div className="space-y-2">
                         <Label className="text-slate-700 dark:text-slate-300 text-[11px] sm:text-xs uppercase font-bold tracking-wider">{t.gh}</Label>
-                        <Input type="number" step="0.5" placeholder="Cth: 4" value={currentGH} onChange={(e) => setCurrentGH(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 font-bold" />
+                        <Input type="number" step="0.5" placeholder="Opsional" value={currentGH} onChange={(e) => setCurrentGH(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 font-bold" />
                     </div>
                 </div>
 
@@ -363,13 +359,12 @@ export default function FishExpertEnginePage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{t.style}</Label>
+                    {/* DROP-DOWN AQUASCAPE STYLE MENGGUNAKAN FUNGSI PENERJEMAH */}
                     <select value={aquascapeStyle} onChange={(e) => setAquascapeStyle(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none">
                       <option value="Bebas">{lang === 'id' ? "Bebas / Tanpa Tema" : "No Theme"}</option>
-                      <option value="Nature">Nature Style</option>
-                      <option value="Dutch">Dutch Style</option>
-                      <option value="Iwagumi">Iwagumi</option>
-                      <option value="Biotope">Biotope</option>
-                      <option value="Blackwater">Blackwater</option>
+                      {TANK_STYLES_OPTIONS.map(style => (
+                        <option key={style} value={style}>{getTankStyleDesc(style, lang)}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
