@@ -23,7 +23,7 @@ import InventoryTab from "./InventoryTab";
 import MaintenanceTab from "./MaintenanceTab"; 
 import HealthDashboard from "./health/HealthDashboard"; 
 import AIDeepDiagnosisPanel from "./health/AIDeepDiagnosisPanel";
-import { AquariumSpecsPanel } from "./AquariumSpecsPanel"; // FIX: Panggil komponen modular baru
+import { AquariumSpecsPanel } from "./AquariumSpecsPanel"; 
 
 import { getParametersAction } from "../actions/parameter.actions";
 import { getTankInventoryAction } from "../actions/inventory.actions";
@@ -224,7 +224,9 @@ export default function AquariumDetail() {
 
           <div className="relative z-10 mt-auto p-5 sm:p-8 lg:p-10 w-full">
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-              <div className="space-y-3 w-full lg:w-auto overflow-hidden">
+              
+              {/* HEADER INFO (Title, Type, Liters) */}
+              <div className="space-y-4 w-full lg:w-auto">
                 <div className="flex items-center gap-2 flex-wrap">
                   {isArchived ? (
                     <span className="inline-flex px-3 py-1 bg-amber-500/20 text-amber-400 text-[10px] font-black tracking-widest uppercase rounded-full border border-amber-500/30 backdrop-blur-md items-center gap-1.5"><Archive className="w-3.5 h-3.5" /> ARCHIVED</span>
@@ -233,17 +235,41 @@ export default function AquariumDetail() {
                   )}
                   {aquarium.is_primary && !isArchived && <span className="inline-flex px-3 py-1 bg-blue-500 text-white text-[10px] font-black tracking-widest uppercase rounded-full shadow-lg border border-blue-400">PRIMARY TANK</span>}
                 </div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-white drop-shadow-2xl tracking-tight truncate" title={aquarium.name}>{aquarium.name}</h1>
-                <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-slate-300 font-medium">
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg border border-white/10 backdrop-blur-sm"><Container className="w-4 h-4 text-teal-400" /> <span className="text-sm truncate max-w-[150px] sm:max-w-xs">{tankType}</span></div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg border border-white/10 backdrop-blur-sm"><Droplets className="w-4 h-4 text-blue-400" /> <span className="text-sm">{aquarium.volume_liters} L</span></div>
+                
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-white drop-shadow-2xl tracking-tight break-words" title={aquarium.name}>
+                  {aquarium.name}
+                </h1>
+                
+                {/* PERBAIKAN: Hapus TRUNCATE agar tidak terpotong (...) */}
+                <div className="flex flex-wrap items-center gap-y-3 gap-x-4 text-slate-300 font-medium pt-1">
+                  <div className="flex items-center gap-2 px-3.5 py-2 bg-white/10 rounded-xl border border-white/10 backdrop-blur-sm shadow-sm">
+                    <Container className="w-4 h-4 text-teal-400 shrink-0" /> 
+                    <span className="text-xs sm:text-sm font-semibold leading-snug">{tankType}</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3.5 py-2 bg-white/10 rounded-xl border border-white/10 backdrop-blur-sm shadow-sm">
+                    <Droplets className="w-4 h-4 text-blue-400 shrink-0" /> 
+                    <span className="text-xs sm:text-sm font-semibold">{aquarium.volume_liters} L</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 shrink-0">
-                <Button onClick={() => router.push(`/dashboard/my-aquarium/${aquariumId}/edit`)} className="bg-white/10 hover:bg-white text-white hover:text-slate-900 border border-white/20 transition-all backdrop-blur-md h-11 px-5 rounded-xl font-bold"><Edit className="w-4 h-4 mr-2" /> {detailDict.edit}</Button>
-                <Button onClick={() => setShowArchiveModal(true)} className={`h-11 px-5 rounded-xl font-bold border text-white transition-all backdrop-blur-md ${isArchived ? "bg-emerald-600/80 hover:bg-emerald-500 border-emerald-500/50" : "bg-amber-600/80 hover:bg-amber-500 border-amber-500/50"}`}>{isArchived ? <RefreshCw className="w-4 h-4 mr-2" /> : <Archive className="w-4 h-4 mr-2" />} {isArchived ? detailDict.restore : detailDict.archive}</Button>
-                {isSuperAdmin && <Button onClick={() => setShowDeleteModal(true)} className="bg-red-600/80 hover:bg-red-500 text-white border border-red-500/50 backdrop-blur-md h-11 px-5 rounded-xl font-bold transition-all"><Trash2 className="w-4 h-4 mr-2" /> {detailDict.delete}</Button>}
+              {/* PERBAIKAN: TOMBOL AKSI JADI GRID DI HP */}
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2.5 sm:gap-3 w-full lg:w-auto mt-2 lg:mt-0 shrink-0">
+                <Button onClick={() => router.push(`/dashboard/my-aquarium/${aquariumId}/edit`)} className="col-span-1 w-full sm:w-auto bg-white/10 hover:bg-white text-white hover:text-slate-900 border border-white/20 transition-all backdrop-blur-md h-11 sm:h-12 px-3 sm:px-6 rounded-xl font-bold text-xs sm:text-sm">
+                  <Edit className="w-4 h-4 sm:mr-2 shrink-0" /> <span className="hidden sm:inline">{detailDict.edit}</span><span className="sm:hidden ml-1.5">{detailDict.edit}</span>
+                </Button>
+                
+                <Button onClick={() => setShowArchiveModal(true)} className={`col-span-1 w-full sm:w-auto h-11 sm:h-12 px-3 sm:px-6 rounded-xl font-bold border text-white transition-all backdrop-blur-md text-xs sm:text-sm ${isArchived ? "bg-emerald-600/80 hover:bg-emerald-500 border-emerald-500/50" : "bg-amber-600/80 hover:bg-amber-500 border-amber-500/50"}`}>
+                  {isArchived ? <RefreshCw className="w-4 h-4 sm:mr-2 shrink-0" /> : <Archive className="w-4 h-4 sm:mr-2 shrink-0" />} 
+                  <span className="hidden sm:inline">{isArchived ? detailDict.restore : detailDict.archive}</span>
+                  <span className="sm:hidden ml-1.5">{isArchived ? detailDict.restore : detailDict.archive}</span>
+                </Button>
+                
+                {isSuperAdmin && (
+                  <Button onClick={() => setShowDeleteModal(true)} className="col-span-2 sm:col-auto w-full sm:w-auto bg-red-600/80 hover:bg-red-500 text-white border border-red-500/50 backdrop-blur-md h-11 sm:h-12 px-3 sm:px-6 rounded-xl font-bold transition-all text-xs sm:text-sm">
+                    <Trash2 className="w-4 h-4 mr-2 shrink-0" /> {detailDict.delete}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -267,35 +293,45 @@ export default function AquariumDetail() {
           {activeTab === "overview" && (
             <div className="flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-500">
               
-              {/* INVENTORY QUICK STATS */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                  <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl text-blue-600 dark:text-blue-400"><Fish className="w-6 h-6" /></div>
-                  <div className="overflow-hidden">
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest truncate">{lang === 'id' ? "Total Ikan" : "Fish Stock"}</p>
-                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5 truncate">{totalFishes} {lang === 'id' ? "Ekor" : "pcs"}</p>
+              {/* PERBAIKAN: INVENTORY QUICK STATS (VERTIKAL STYLE AGAR RAPI DI HP) */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                
+                <div className="bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div className="bg-blue-50 dark:bg-blue-900/30 p-2 sm:p-3 rounded-full text-blue-600 dark:text-blue-400 mb-2 shrink-0">
+                    <Fish className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
+                  <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-500 tracking-widest leading-tight mb-1">{lang === 'id' ? "Total Ikan" : "Fish Stock"}</p>
+                  <p className="text-base sm:text-xl font-black text-slate-800 dark:text-slate-100 leading-none">
+                    {totalFishes} <span className="text-xs font-semibold text-slate-500">{lang === 'id' ? "Ekor" : "pcs"}</span>
+                  </p>
                 </div>
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                  <div className="bg-emerald-100 dark:bg-emerald-900/30 p-3 rounded-xl text-emerald-600 dark:text-emerald-400"><Leaf className="w-6 h-6" /></div>
-                  <div className="overflow-hidden">
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest truncate">{lang === 'id' ? "Total Flora" : "Plants"}</p>
-                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5 truncate">{totalPlants} {lang === 'id' ? "Porsi" : "pts"}</p>
+                
+                <div className="bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div className="bg-emerald-50 dark:bg-emerald-900/30 p-2 sm:p-3 rounded-full text-emerald-600 dark:text-emerald-400 mb-2 shrink-0">
+                    <Leaf className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
+                  <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-500 tracking-widest leading-tight mb-1">{lang === 'id' ? "Total Flora" : "Plants"}</p>
+                  <p className="text-base sm:text-xl font-black text-slate-800 dark:text-slate-100 leading-none">
+                    {totalPlants} <span className="text-xs font-semibold text-slate-500">{lang === 'id' ? "Porsi" : "pts"}</span>
+                  </p>
                 </div>
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                  <div className="bg-cyan-100 dark:bg-cyan-900/30 p-3 rounded-xl text-cyan-600 dark:text-cyan-400"><Container className="w-6 h-6" /></div>
-                  <div className="overflow-hidden">
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest truncate">{lang === 'id' ? "Volume Air" : "Capacity"}</p>
-                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5 truncate">{aquarium.volume_liters} L</p>
+                
+                <div className="bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div className="bg-cyan-50 dark:bg-cyan-900/30 p-2 sm:p-3 rounded-full text-cyan-600 dark:text-cyan-400 mb-2 shrink-0">
+                    <Container className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
+                  <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-500 tracking-widest leading-tight mb-1">{lang === 'id' ? "Volume Air" : "Capacity"}</p>
+                  <p className="text-base sm:text-xl font-black text-slate-800 dark:text-slate-100 leading-none">{aquarium.volume_liters} L</p>
                 </div>
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-                  <div className={`p-3 rounded-xl ${bioloadColor} shrink-0`}><Activity className="w-6 h-6" /></div>
-                  <div className="overflow-hidden">
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest truncate">{lang === 'id' ? "Beban Ekologi" : "Bioload"}</p>
-                    <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-none mt-0.5 truncate">{bioloadPercent}%</p>
+                
+                <div className="bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div className={`p-2 sm:p-3 rounded-full mb-2 shrink-0 ${bioloadColor}`}>
+                    <Activity className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
+                  <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-500 tracking-widest leading-tight mb-1">{lang === 'id' ? "Beban Ekologi" : "Bioload"}</p>
+                  <p className={`text-base sm:text-xl font-black leading-none ${bioloadPercent > 80 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-800 dark:text-slate-100'}`}>
+                    {bioloadPercent}%
+                  </p>
                 </div>
               </div>
 
@@ -304,7 +340,7 @@ export default function AquariumDetail() {
                 <HealthDashboard healthResult={healthResult} lang={lang} />
               )}
 
-              {/* FIX: MENGGUNAKAN KOMPONEN MODULAR SPECS PANEL YANG SUDAH DIBUAT */}
+              {/* KOMPONEN MODULAR SPECS PANEL */}
               <div className="mt-2">
                 <AquariumSpecsPanel aquarium={aquarium} lang={lang} />
               </div>
