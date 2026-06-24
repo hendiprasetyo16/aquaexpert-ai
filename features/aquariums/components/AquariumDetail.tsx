@@ -212,90 +212,68 @@ export default function AquariumDetail() {
         </Button>
       </div>
 
-      {/* HERO HEADER - SUDAH DIPISAH GAMBAR DAN TEKS AGAR TIDAK MENGHALANGI */}
+      {/* HERO HEADER */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-8">
-        <div className="flex flex-col bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden shadow-xl border border-slate-200 dark:border-slate-800">
-          
-          {/* BAGIAN 1: GAMBAR COVER (100% BEBAS DARI TEKS/TOMBOL) */}
-          <div className="relative w-full h-48 sm:h-64 md:h-80 lg:h-[40vh] bg-slate-900 overflow-hidden">
-            {aquarium.image_url && !imgError ? (
-              <Image 
-                src={aquarium.image_url} 
-                alt={aquarium.name} 
-                fill 
-                className={`object-cover transition-all duration-1000 ${isArchived ? 'opacity-50 grayscale' : 'opacity-90'}`} 
-                onError={() => setImgError(true)} 
-                unoptimized 
-              />
-            ) : (
-              <div className={`absolute inset-0 bg-gradient-to-br ${isArchived ? 'from-slate-800 to-slate-950' : 'from-teal-900 via-slate-900 to-slate-950'}`} />
-            )}
-          </div>
+        {/* PERBAIKAN: Menyesuaikan min-h agar konten tidak meluber */}
+        <div className="relative w-full min-h-[40vh] sm:min-h-[35vh] flex flex-col bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800">
+          {aquarium.image_url && !imgError ? (
+            <Image src={aquarium.image_url} alt={aquarium.name} fill className={`object-cover transition-all duration-1000 ${isArchived ? 'opacity-30 grayscale' : 'opacity-60'}`} onError={() => setImgError(true)} unoptimized />
+          ) : (
+            <div className={`absolute inset-0 bg-gradient-to-br ${isArchived ? 'from-slate-800 to-slate-950' : 'from-teal-900 via-slate-900 to-slate-950'} opacity-90`} />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent pointer-events-none" />
 
-          {/* BAGIAN 2: AREA INFO & TOMBOL (DI BAWAH GAMBAR, AMAN & RAPI) */}
-          <div className="p-5 sm:p-8 w-full flex flex-col gap-6 bg-white dark:bg-slate-900">
-            <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 w-full">
+          {/* PERBAIKAN: Layout Hero Section -> flex-col di HP, lg:flex-row di desktop */}
+          <div className="relative z-10 mt-auto p-5 sm:p-8 lg:p-10 w-full flex flex-col gap-6">
+            
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 w-full">
               
-              {/* KIRI: JUDUL & STATUS TAGS */}
-              <div className="space-y-3 w-full lg:w-auto">
+              {/* KIRI: INFO AQUARIUM */}
+              <div className="space-y-4 w-full">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {isArchived ? (
+                    <span className="inline-flex px-3 py-1 bg-amber-500/20 text-amber-400 text-[10px] font-black tracking-widest uppercase rounded-full border border-amber-500/30 backdrop-blur-md items-center gap-1.5"><Archive className="w-3.5 h-3.5" /> ARCHIVED</span>
+                  ) : (
+                    <span className="inline-flex px-3 py-1 bg-teal-500/20 text-teal-400 text-[10px] font-black tracking-widest uppercase rounded-full border border-teal-500/30 backdrop-blur-md items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" /> ACTIVE ECOSYSTEM</span>
+                  )}
+                  {aquarium.is_primary && !isArchived && <span className="inline-flex px-3 py-1 bg-blue-500 text-white text-[10px] font-black tracking-widest uppercase rounded-full shadow-lg border border-blue-400">PRIMARY TANK</span>}
+                </div>
                 
                 {/* Judul Teks Penuh */}
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-slate-900 dark:text-white tracking-tight break-words leading-tight">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-white drop-shadow-2xl tracking-tight break-words">
                   {aquarium.name}
                 </h1>
-
-                {/* Status Badges di bawah judul (Warna diperbaiki agar cocok di Light/Dark mode) */}
-                <div className="flex items-center gap-2 flex-wrap pt-1">
-                  {isArchived ? (
-                    <span className="inline-flex px-3 py-1 bg-amber-50 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-black tracking-widest uppercase rounded-full border border-amber-200 dark:border-amber-500/30 items-center gap-1.5">
-                      <Archive className="w-3.5 h-3.5" /> ARCHIVED
-                    </span>
-                  ) : (
-                    <span className="inline-flex px-3 py-1 bg-teal-50 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 text-[10px] font-black tracking-widest uppercase rounded-full border border-teal-200 dark:border-teal-500/30 items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-teal-500 dark:bg-teal-400 animate-pulse" /> ACTIVE ECOSYSTEM
-                    </span>
-                  )}
-                  {aquarium.is_primary && !isArchived && (
-                    <span className="inline-flex px-3 py-1 bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-black tracking-widest uppercase rounded-full border border-blue-200 dark:border-blue-500/30">
-                      PRIMARY TANK
-                    </span>
-                  )}
-                </div>
-              </div>
-              
-              {/* KANAN: TOMBOL AKSI & SPESIFIKASI TANGKI */}
-              <div className="flex flex-col items-start lg:items-end gap-4 w-full lg:w-auto shrink-0 mt-2 lg:mt-0 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-slate-800">
                 
-                {/* Tombol Aksi */}
-                <div className="flex flex-wrap lg:flex-nowrap items-center justify-start lg:justify-end gap-2.5 sm:gap-3 w-full lg:w-auto">
-                  <Button onClick={() => router.push(`/dashboard/my-aquarium/${aquariumId}/edit`)} className="flex-1 lg:flex-none bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-all h-11 sm:h-12 px-4 rounded-xl font-bold text-xs sm:text-sm shadow-sm min-w-fit">
-                    <Edit className="w-4 h-4 mr-2 shrink-0 text-slate-500" /> {detailDict.edit}
-                  </Button>
-                  
-                  <Button onClick={() => setShowArchiveModal(true)} className={`flex-1 lg:flex-none h-11 sm:h-12 px-4 rounded-xl font-bold border transition-all text-xs sm:text-sm min-w-fit shadow-sm ${isArchived ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/50 dark:text-emerald-400 dark:border-emerald-800" : "bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:hover:bg-amber-900/50 dark:text-amber-400 dark:border-amber-800"}`}>
-                    {isArchived ? <RefreshCw className="w-4 h-4 mr-2 shrink-0" /> : <Archive className="w-4 h-4 mr-2 shrink-0" />} 
-                    {isArchived ? detailDict.restore : detailDict.archive}
-                  </Button>
-                  
-                  {isSuperAdmin && (
-                    <Button onClick={() => setShowDeleteModal(true)} className="w-full lg:w-auto bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 dark:bg-red-950/30 dark:hover:bg-red-900/50 dark:text-red-400 dark:border-red-800 h-11 sm:h-12 px-4 rounded-xl font-bold transition-all text-xs sm:text-sm shadow-sm mt-1 lg:mt-0">
-                      <Trash2 className="w-4 h-4 mr-2 shrink-0" /> {detailDict.delete}
-                    </Button>
-                  )}
-                </div>
-
-                {/* Spesifikasi Tangki di bawah tombol */}
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-slate-700 dark:text-slate-300 font-medium w-full lg:w-auto lg:justify-end">
-                  <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm shrink-0">
-                    <Container className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" /> 
+                {/* Badges Info Lebar Bebas, bisa membungkus ke baris baru */}
+                <div className="flex flex-wrap items-center gap-y-3 gap-x-3 text-slate-300 font-medium pt-1 w-full">
+                  <div className="flex items-center gap-2 px-3.5 py-2 bg-white/10 rounded-xl border border-white/10 backdrop-blur-sm shadow-sm shrink-0">
+                    <Container className="w-4 h-4 text-teal-400 shrink-0" /> 
                     <span className="text-xs sm:text-sm font-semibold">{tankType}</span>
                   </div>
-                  <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm shrink-0">
-                    <Droplets className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" /> 
+                  <div className="flex items-center gap-2 px-3.5 py-2 bg-white/10 rounded-xl border border-white/10 backdrop-blur-sm shadow-sm shrink-0">
+                    <Droplets className="w-4 h-4 text-blue-400 shrink-0" /> 
                     <span className="text-xs sm:text-sm font-semibold">{aquarium.volume_liters} L</span>
                   </div>
                 </div>
-
+              </div>
+              
+              {/* KANAN: TOMBOL AKSI (Disusun grid/flex-wrap agar rapi dan jatuh ke bawah judul di HP) */}
+              <div className="flex flex-wrap items-center justify-start lg:justify-end gap-2.5 sm:gap-3 w-full lg:w-auto shrink-0 mt-2 lg:mt-0">
+                <Button onClick={() => router.push(`/dashboard/my-aquarium/${aquariumId}/edit`)} className="flex-1 lg:flex-none bg-white/10 hover:bg-white text-white hover:text-slate-900 border border-white/20 transition-all backdrop-blur-md h-11 sm:h-12 px-4 rounded-xl font-bold text-xs sm:text-sm shadow-sm min-w-fit">
+                  <Edit className="w-4 h-4 mr-2 shrink-0" /> {detailDict.edit}
+                </Button>
+                
+                <Button onClick={() => setShowArchiveModal(true)} className={`flex-1 lg:flex-none h-11 sm:h-12 px-4 rounded-xl font-bold border text-white transition-all backdrop-blur-md text-xs sm:text-sm min-w-fit shadow-sm ${isArchived ? "bg-emerald-600/80 hover:bg-emerald-500 border-emerald-500/50" : "bg-amber-600/80 hover:bg-amber-500 border-amber-500/50"}`}>
+                  {isArchived ? <RefreshCw className="w-4 h-4 mr-2 shrink-0" /> : <Archive className="w-4 h-4 mr-2 shrink-0" />} 
+                  {isArchived ? detailDict.restore : detailDict.archive}
+                </Button>
+                
+                {/* Tombol Delete akan mengambil sisa ruang penuh (w-full) di HP */}
+                {isSuperAdmin && (
+                  <Button onClick={() => setShowDeleteModal(true)} className="w-full lg:w-auto bg-red-600/80 hover:bg-red-500 text-white border border-red-500/50 backdrop-blur-md h-11 sm:h-12 px-4 rounded-xl font-bold transition-all text-xs sm:text-sm shadow-sm mt-1 lg:mt-0">
+                    <Trash2 className="w-4 h-4 mr-2 shrink-0" /> {detailDict.delete}
+                  </Button>
+                )}
               </div>
 
             </div>
@@ -320,7 +298,7 @@ export default function AquariumDetail() {
           {activeTab === "overview" && (
             <div className="flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-500">
               
-              {/* GRID RINGKASAN */}
+              {/* PERBAIKAN: GRID RINGKASAN AMAN DI HP (Vertikal Box) */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 
                 <div className="bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
