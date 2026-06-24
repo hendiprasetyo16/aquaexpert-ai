@@ -8,7 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/providers/LanguageProvider"; 
-import { getDifficultyDesc, getCompatibilityDesc, getCompatibilityBadgeStyle } from "./fish-helpers";
+import { getCompatibilityDesc, getCompatibilityBadgeStyle } from "./fish-helpers";
 
 interface FishCardProps {
   fish: FishType;
@@ -26,15 +26,38 @@ interface FishCardDict {
   difficulty?: string;
 }
 
+// KITA BUAT FUNGSI HELPER LOKAL UNTUK MEMECAH TEKS DIFFICULTY MENJADI 2 BARIS
+const renderDifficultyBadge = (level: string | null | undefined, lang: "id" | "en") => {
+  if (!level) {
+    return (
+      <>
+        <span className="font-black leading-none mb-0.5">{lang === 'id' ? "TIDAK TAHU" : "UNKNOWN"}</span>
+      </>
+    );
+  }
+
+  const l = level.toLowerCase();
+  
+  if (lang === "id") {
+    if (l === "easy") return <><span className="font-black leading-none mb-0.5">MUDAH</span><span className="text-[8px] sm:text-[9px] opacity-80">(PEMULA)</span></>;
+    if (l === "medium") return <><span className="font-black leading-none mb-0.5">SEDANG</span><span className="text-[8px] sm:text-[9px] opacity-80">(MENENGAH)</span></>;
+    if (l === "hard") return <><span className="font-black leading-none mb-0.5">SULIT</span><span className="text-[8px] sm:text-[9px] opacity-80">(MAHIR)</span></>;
+  } else {
+    if (l === "easy") return <><span className="font-black leading-none mb-0.5">EASY</span><span className="text-[8px] sm:text-[9px] opacity-80">(BEGINNER)</span></>;
+    if (l === "medium") return <><span className="font-black leading-none mb-0.5">MEDIUM</span><span className="text-[8px] sm:text-[9px] opacity-80">(INTERMEDIATE)</span></>;
+    if (l === "hard") return <><span className="font-black leading-none mb-0.5">HARD</span><span className="text-[8px] sm:text-[9px] opacity-80">(ADVANCED)</span></>;
+  }
+
+  return <span className="font-black leading-none">{level.toUpperCase()}</span>;
+};
+
 export default function FishCard({ fish }: FishCardProps) {
   const { role } = useAuth(); 
   const { dict, language } = useLanguage(); 
   const lang = language as "id" | "en";
 
-  // TYPE-SAFE DICTIONARY ACCESS DENGAN DOUBLE CASTING
   const rootDict = dict as unknown as { fishCard?: FishCardDict };
   
-  // FALLBACK TRANSLATIONS (Jika JSON lambat dimuat)
   const cardDict = rootDict.fishCard || {
     editTooltip: lang === 'id' ? "Edit Ikan" : "Edit Fish",
     noScientificName: lang === 'id' ? "Nama ilmiah tidak diketahui" : "Unknown scientific name",
@@ -62,6 +85,7 @@ export default function FishCard({ fish }: FishCardProps) {
       <Link href={`/dashboard/fishes/${fish.id}`} className="block cursor-pointer flex-shrink-0">
         <div className="h-48 sm:h-52 w-full overflow-hidden bg-slate-100 dark:bg-slate-800 relative transition-colors duration-300">
           {fish.image_url ? (
+            // PERBAIKAN: Menghapus unoptimized yang error dan menggunakan Image standar yang aman
             <Image 
               src={fish.image_url} 
               alt={displayName} 
@@ -76,7 +100,6 @@ export default function FishCard({ fish }: FishCardProps) {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
           
-          {/* Badge Agresivitas di pojok kiri atas foto */}
           <div className={`absolute top-3 left-3 px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider backdrop-blur-md bg-white/90 shadow-sm ${getCompatibilityBadgeStyle(fish.compatibility)}`}>
             {getCompatibilityDesc(fish.compatibility, lang)}
           </div>
@@ -119,23 +142,22 @@ export default function FishCard({ fish }: FishCardProps) {
             </span>
           </div>
 
-          {/* PERBAIKAN: Kotak Badge Difficulty Dibuat Paling Rapi, Anti Overflow (Menembus Batas) */}
+          {/* PERBAIKAN FINAL: DIBUAT DUA BARIS AGAR TIDAK BOCOR / OVERFLOW */}
           <div className="flex flex-col xl:flex-row xl:items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800/60 mt-3 transition-colors duration-300 gap-2.5">
             <div className="flex items-center gap-1.5 shrink-0">
               <Info className="h-4 w-4 text-slate-400 shrink-0" />
               <span className="font-semibold text-[11px] sm:text-xs uppercase tracking-wide opacity-80 shrink-0">{cardDict.difficulty}</span>
             </div>
             
-            {/* KUNCI PERBAIKAN DI SINI: flex-col agar teks numpuk ke bawah otomatis jika panjang */}
             <div
-              className={`flex flex-col items-center justify-center text-center rounded-md px-3 py-1.5 min-h-[36px] text-[9px] sm:text-[10px] leading-tight font-black uppercase tracking-wider border shadow-sm transition-colors w-full xl:w-fit xl:ml-auto break-words ${
+              className={`flex flex-col items-center justify-center text-center rounded-md px-3 py-1.5 min-h-[36px] uppercase tracking-wider border shadow-sm transition-colors w-full xl:w-fit xl:ml-auto break-words ${
                 fish.difficulty?.toLowerCase() === 'easy' ? 'bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-400 border-green-300 dark:border-green-700' 
                 : fish.difficulty?.toLowerCase() === 'medium' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700' 
                 : fish.difficulty?.toLowerCase() === 'hard' ? 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 border-red-300 dark:border-red-700' 
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
               }`}
             >
-              <span>{getDifficultyDesc(fish.difficulty, lang)}</span>
+              {renderDifficultyBadge(fish.difficulty, lang)}
             </div>
           </div>
 
