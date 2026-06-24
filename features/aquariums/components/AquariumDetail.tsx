@@ -214,7 +214,8 @@ export default function AquariumDetail() {
 
       {/* HERO HEADER */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-8">
-        <div className="relative w-full min-h-[40vh] flex flex-col bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800">
+        {/* PERBAIKAN: Menyesuaikan min-h agar konten tidak meluber */}
+        <div className="relative w-full min-h-[40vh] sm:min-h-[35vh] flex flex-col bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800">
           {aquarium.image_url && !imgError ? (
             <Image src={aquarium.image_url} alt={aquarium.name} fill className={`object-cover transition-all duration-1000 ${isArchived ? 'opacity-30 grayscale' : 'opacity-60'}`} onError={() => setImgError(true)} unoptimized />
           ) : (
@@ -222,7 +223,7 @@ export default function AquariumDetail() {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent pointer-events-none" />
 
-          {/* PERBAIKAN: Layout Hero Section */}
+          {/* PERBAIKAN: Layout Hero Section -> flex-col di HP, lg:flex-row di desktop */}
           <div className="relative z-10 mt-auto p-5 sm:p-8 lg:p-10 w-full flex flex-col gap-6">
             
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 w-full">
@@ -238,12 +239,12 @@ export default function AquariumDetail() {
                   {aquarium.is_primary && !isArchived && <span className="inline-flex px-3 py-1 bg-blue-500 text-white text-[10px] font-black tracking-widest uppercase rounded-full shadow-lg border border-blue-400">PRIMARY TANK</span>}
                 </div>
                 
-                {/* Judul Teks Penuh (Tanpa Truncate) */}
+                {/* Judul Teks Penuh */}
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-white drop-shadow-2xl tracking-tight break-words">
                   {aquarium.name}
                 </h1>
                 
-                {/* Badges Info Lebar Bebas */}
+                {/* Badges Info Lebar Bebas, bisa membungkus ke baris baru */}
                 <div className="flex flex-wrap items-center gap-y-3 gap-x-3 text-slate-300 font-medium pt-1 w-full">
                   <div className="flex items-center gap-2 px-3.5 py-2 bg-white/10 rounded-xl border border-white/10 backdrop-blur-sm shadow-sm shrink-0">
                     <Container className="w-4 h-4 text-teal-400 shrink-0" /> 
@@ -256,8 +257,8 @@ export default function AquariumDetail() {
                 </div>
               </div>
               
-              {/* KANAN: TOMBOL AKSI (Aman di HP dan Desktop) */}
-              <div className="flex flex-wrap lg:flex-nowrap items-center justify-start lg:justify-end gap-2.5 sm:gap-3 w-full lg:w-auto shrink-0 mt-2 lg:mt-0">
+              {/* KANAN: TOMBOL AKSI (Disusun grid/flex-wrap agar rapi dan jatuh ke bawah judul di HP) */}
+              <div className="flex flex-wrap items-center justify-start lg:justify-end gap-2.5 sm:gap-3 w-full lg:w-auto shrink-0 mt-2 lg:mt-0">
                 <Button onClick={() => router.push(`/dashboard/my-aquarium/${aquariumId}/edit`)} className="flex-1 lg:flex-none bg-white/10 hover:bg-white text-white hover:text-slate-900 border border-white/20 transition-all backdrop-blur-md h-11 sm:h-12 px-4 rounded-xl font-bold text-xs sm:text-sm shadow-sm min-w-fit">
                   <Edit className="w-4 h-4 mr-2 shrink-0" /> {detailDict.edit}
                 </Button>
@@ -267,6 +268,7 @@ export default function AquariumDetail() {
                   {isArchived ? detailDict.restore : detailDict.archive}
                 </Button>
                 
+                {/* Tombol Delete akan mengambil sisa ruang penuh (w-full) di HP */}
                 {isSuperAdmin && (
                   <Button onClick={() => setShowDeleteModal(true)} className="w-full lg:w-auto bg-red-600/80 hover:bg-red-500 text-white border border-red-500/50 backdrop-blur-md h-11 sm:h-12 px-4 rounded-xl font-bold transition-all text-xs sm:text-sm shadow-sm mt-1 lg:mt-0">
                     <Trash2 className="w-4 h-4 mr-2 shrink-0" /> {detailDict.delete}
