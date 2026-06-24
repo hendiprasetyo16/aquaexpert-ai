@@ -18,14 +18,14 @@ const ITEMS_PER_PAGE = 12;
 export default function AlgaeList() {
   const { role } = useAuth();
   const { dict, language } = useLanguage();
-  const lang = language as "id" | "en"; // <--- TAMBAHKAN BARIS INI DI SINI
+  const lang = language as "id" | "en"; 
   
   const [algaeData, setAlgaeData] = useState<Algae[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
-  const [severityFilter, setSeverityFilter] = useState("all"); // all, low, medium, high
+  const [severityFilter, setSeverityFilter] = useState("all"); 
   
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -157,7 +157,7 @@ export default function AlgaeList() {
         </div>
       </div>
 
-{/* FILTER BAR - RESPONSIVE WRAP */}
+      {/* FILTER BAR - RESPONSIVE WRAP */}
       <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-5 w-full">
         
         {/* PENCARIAN (SEARCH) */}
@@ -178,10 +178,10 @@ export default function AlgaeList() {
           <div className="relative flex-1 sm:flex-none shrink-0 sm:w-56">
             <Filter className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <select value={severityFilter} onChange={(e) => { setSeverityFilter(e.target.value); setCurrentPage(1); }} className="w-full h-12 appearance-none rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 pl-11 pr-8 text-sm font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-teal-500 transition-colors shadow-sm cursor-pointer">
-              <option value="all">{dict.algaeExpert?.allSeverities}</option>
-              <option value="high">{dict.algaeExpert?.statHighRisk}</option>
-              <option value="medium">{dict.algaeExpert?.statMediumRisk}</option>
-              <option value="low">{dict.algaeExpert?.statLowRisk}</option>
+              <option value="all">{dict.algaeExpert?.allSeverities || "Semua Risiko"}</option>
+              <option value="high">{dict.algaeExpert?.statHighRisk || "Risiko Tinggi"}</option>
+              <option value="medium">{dict.algaeExpert?.statMediumRisk || "Risiko Sedang"}</option>
+              <option value="low">{dict.algaeExpert?.statLowRisk || "Risiko Rendah"}</option>
             </select>
           </div>
 
@@ -190,12 +190,12 @@ export default function AlgaeList() {
             <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 mt-1 lg:mt-0">
               <Link href="/dashboard/algae/archive" className="flex-1 sm:flex-none">
                 <Button variant="outline" className="w-full h-12 px-5 rounded-xl font-bold border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-sm transition-colors active:scale-95">
-                  <Archive className="mr-2 h-4 w-4" /> {dict.algaeExpert?.btnArchive}
+                  <Archive className="mr-2 h-4 w-4" /> {dict.algaeExpert?.btnArchive || "Arsip"}
                 </Button>
               </Link>
               <Link href="/dashboard/algae/create" className="flex-1 sm:flex-none">
                 <Button className="w-full h-12 px-5 rounded-xl font-bold bg-teal-600 text-white hover:bg-teal-500 transition-colors active:scale-95 shadow-lg shadow-teal-600/20">
-                  <Plus className="mr-2 h-5 w-5" /> {dict.algaeExpert?.btnAdd}
+                  <Plus className="mr-2 h-5 w-5" /> {dict.algaeExpert?.btnAdd || "Tambah"}
                 </Button>
               </Link>
             </div>
@@ -206,9 +206,9 @@ export default function AlgaeList() {
       {processedAlgae.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/30 py-20 text-center transition-colors">
           <Bug className="mb-4 h-12 w-12 text-slate-400 dark:text-slate-600" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-200">{dict.algaeExpert?.notFoundTitle}</h3>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{dict.algaeExpert?.notFoundDesc}</p>
-          <Button variant="link" onClick={() => handleQuickFilter("total")} className="mt-4 text-teal-600 dark:text-teal-400">{dict.algaeExpert?.btnReset}</Button>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-200">{dict.algaeExpert?.notFoundTitle || "Alga Tidak Ditemukan"}</h3>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{dict.algaeExpert?.notFoundDesc || "Coba kurangi filter."}</p>
+          <Button variant="link" onClick={() => handleQuickFilter("total")} className="mt-4 text-teal-600 dark:text-teal-400">{dict.algaeExpert?.btnReset || "Reset Filter"}</Button>
         </div>
       ) : (
         <>
@@ -216,8 +216,8 @@ export default function AlgaeList() {
             {displayedAlgae.map((algae, index) => {
               const globalIndex = (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
               return (
-                <div key={algae.id} className="relative group animate-in fade-in zoom-in duration-300">
-                  <div className="absolute -left-3 -top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white shadow-lg border-2 border-white dark:border-slate-950 transition-all group-hover:scale-110">
+                <div key={algae.id} className="relative group animate-in fade-in zoom-in duration-300 h-full">
+                  <div className="absolute -left-3 -top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white shadow-lg shadow-black/20 dark:shadow-black border-2 border-white dark:border-slate-950 transition-all group-hover:scale-110">
                     {globalIndex}
                   </div>
                   <AlgaeCard algae={algae} />
@@ -226,32 +226,56 @@ export default function AlgaeList() {
             })}
           </div>
 
+          {/* PAGINATION SESUAI DENGAN PLANT LIST */}
           {totalPages > 1 && (
             <div className="flex flex-col xl:flex-row items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-6 mt-6 gap-4 transition-colors">
               <p className="text-sm text-slate-600 dark:text-slate-400 text-center xl:text-left w-full xl:w-auto">
-                {dict.algaeExpert?.showing} <span className="font-medium text-gray-900 dark:text-slate-200">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> {dict.algaeExpert?.to} <span className="font-medium text-gray-900 dark:text-slate-200">{Math.min(currentPage * ITEMS_PER_PAGE, processedAlgae.length)}</span> {dict.algaeExpert?.of} <span className="font-medium text-gray-900 dark:text-slate-200">{processedAlgae.length}</span> {dict.algaeExpert?.data}
+                {lang === 'id' ? "Menampilkan" : "Showing"} <span className="font-medium text-gray-900 dark:text-slate-200">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> {lang === 'id' ? "hingga" : "to"} <span className="font-medium text-gray-900 dark:text-slate-200">{Math.min(currentPage * ITEMS_PER_PAGE, processedAlgae.length)}</span> {lang === 'id' ? "dari" : "of"} <span className="font-medium text-gray-900 dark:text-slate-200">{processedAlgae.length}</span> data
               </p>
               
               <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
-                <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
                   <ChevronsLeft className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 
                 {pageNumbers.map(num => (
-                  <Button key={num} variant={currentPage === num ? "default" : "outline"} onClick={() => setCurrentPage(num)} className={`h-8 w-8 sm:h-9 sm:w-9 p-0 text-xs sm:text-sm font-medium ${currentPage === num ? 'bg-teal-600 text-white' : 'bg-white dark:bg-slate-900'}`}>
+                  <Button
+                    key={num}
+                    variant={currentPage === num ? "default" : "outline"}
+                    onClick={() => setCurrentPage(num)}
+                    className={`h-8 w-8 sm:h-9 sm:w-9 p-0 text-xs sm:text-sm font-medium transition-all ${
+                      currentPage === num 
+                        ? 'bg-teal-600 hover:bg-teal-500 text-white border-teal-600 dark:border-teal-500 shadow-md shadow-teal-600/20 scale-105' 
+                        : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
                     {num}
                   </Button>
                 ))}
 
-                <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
                   <ChevronRight className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
+                <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
                   <ChevronsRight className="h-4 w-4" />
                 </Button>
+
+                {/* FITUR LOMPAT HALAMAN TERBARU */}
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 ml-2 sm:ml-4 border-l border-slate-300 dark:border-slate-700 pl-2 sm:pl-4 transition-colors">
+                  <span className="hidden sm:inline">{lang === 'id' ? "Halaman" : "Page"}</span>
+                  <Input 
+                    type="number" min={1} max={totalPages} value={currentPage}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (val >= 1 && val <= totalPages) setCurrentPage(val);
+                    }}
+                    className="w-14 h-8 text-center bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-gray-900 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:border-teal-500 transition-colors"
+                  />
+                  <span className="hidden sm:inline">/ {totalPages}</span>
+                </div>
               </div>
             </div>
           )}

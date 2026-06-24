@@ -8,6 +8,7 @@ import AlgaeCard from "@/features/algae/components/AlgaeCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { 
   Loader2, Cpu, Filter, Info, CheckCircle2, Trophy, 
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target, AlertTriangle, ShieldCheck, Stethoscope, Droplets
@@ -39,6 +40,14 @@ interface ExpertEngineDict {
   confVeryGood?: string;
   confGood?: string;
   confModerate?: string;
+  paginationShowing?: string;
+  paginationTo?: string;
+  paginationOf?: string;
+  paginationData?: string;
+  defaultReason?: string;
+  points?: string;
+  bestMatch?: string;
+  confidence?: string;
 }
 
 export default function AlgaeExpertEngine() {
@@ -531,26 +540,56 @@ export default function AlgaeExpertEngine() {
                   })}
                 </div>
                 
-                {/* PAGINATION */}
+                {/* PAGINATION (Diperbarui dengan Fitur Go to Page) */}
                 {totalPages > 1 && (
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between border-t border-slate-200 dark:border-slate-800 pt-5 mt-6 gap-4 transition-colors">
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 text-center lg:text-left mb-1 lg:mb-0">
-                       {language === 'id' ? "Menampilkan" : "Showing"} <span className="font-bold text-gray-900 dark:text-slate-200">{startIndex + 1}</span> - <span className="font-bold text-gray-900 dark:text-slate-200">{Math.min(endIndex, results.length)}</span> {language === 'id' ? "dari" : "of"} <span className="font-bold text-gray-900 dark:text-slate-200">{results.length}</span> data
+                       {dictRoot.expertEngine?.paginationShowing || (language === 'id' ? "Menampilkan" : "Showing")} <span className="font-bold text-gray-900 dark:text-slate-200">{startIndex + 1}</span> {dictRoot.expertEngine?.paginationTo || (language === 'id' ? "hingga" : "to")} <span className="font-bold text-gray-900 dark:text-slate-200">{Math.min(endIndex, results.length)}</span> {dictRoot.expertEngine?.paginationOf || (language === 'id' ? "dari" : "of")} <span className="font-bold text-gray-900 dark:text-slate-200">{results.length}</span> {dictRoot.expertEngine?.paginationData || "data"}
                     </p>
                     
-                    <div className="flex flex-col lg:flex-row items-center justify-center lg:justify-end gap-3 w-full lg:w-auto">
-                      <div className="flex flex-wrap lg:flex-nowrap justify-center gap-1 sm:gap-1.5 w-full lg:w-auto">
-                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-8 w-8 shrink-0"><ChevronsLeft className="h-4 w-4" /></Button>
-                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="h-8 w-8 shrink-0"><ChevronLeft className="h-4 w-4" /></Button>
+                    <div className="flex flex-col lg:flex-row items-center lg:items-center justify-center lg:justify-end gap-3 w-full lg:w-auto">
+                      <div className="flex flex-wrap lg:flex-nowrap justify-center lg:justify-end gap-1 sm:gap-1.5 w-full lg:w-auto">
+                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-8 w-8 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
+                          <ChevronsLeft className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="h-8 w-8 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
                         
                         {pageNumbers.map(num => (
-                          <Button key={num} variant={currentPage === num ? "default" : "outline"} onClick={() => setCurrentPage(num)} className={`h-8 w-8 p-0 text-sm font-medium shrink-0 ${currentPage === num ? 'bg-teal-600 hover:bg-teal-500 text-white' : ''}`}>
+                          <Button
+                            key={num}
+                            variant={currentPage === num ? "default" : "outline"}
+                            onClick={() => setCurrentPage(num)}
+                            className={`h-8 w-8 p-0 text-sm font-medium transition-all shrink-0 ${
+                              currentPage === num 
+                                ? 'bg-teal-600 hover:bg-teal-500 text-white border-teal-600 dark:border-teal-500 shadow-md shadow-teal-600/20 scale-105' 
+                                : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
+                            }`}
+                          >
                             {num}
                           </Button>
                         ))}
 
-                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="h-8 w-8 shrink-0"><ChevronRight className="h-4 w-4" /></Button>
-                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-8 w-8 shrink-0"><ChevronsRight className="h-4 w-4" /></Button>
+                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="h-8 w-8 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-8 w-8 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
+                          <ChevronsRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      {/* FITUR LOMPAT HALAMAN */}
+                      <div className="flex items-center justify-center gap-2 text-sm border-t lg:border-t-0 lg:border-l border-slate-300 dark:border-slate-700 pt-2.5 lg:pt-0 lg:pl-3 w-full lg:w-auto transition-colors text-slate-600 dark:text-slate-300">
+                        <Input 
+                          type="number" min={1} max={totalPages} value={currentPage}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (val >= 1 && val <= totalPages) setCurrentPage(val);
+                          }}
+                          className="w-12 h-8 text-center text-sm bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-gray-900 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:border-teal-500 transition-colors"
+                        />
+                        <span className="whitespace-nowrap">/ {totalPages}</span>
                       </div>
                     </div>
                   </div>
