@@ -17,7 +17,7 @@ import { Loader2, ImagePlus, Archive, Trash2, X, Images, Brain, AlertTriangle, F
 import toast from "react-hot-toast";
 import { useLanguage } from "@/providers/LanguageProvider"; 
 
-import { getDifficultyDesc, getFishTypeDesc, getCompatibilityDesc } from "./fish-helpers";
+import { getFishTypeDesc, getCompatibilityDesc } from "./fish-helpers";
 
 interface FishFormProps {
   mode?: "create" | "edit";
@@ -28,22 +28,20 @@ const TANK_STYLES_OPTIONS = ["Nature", "Dutch", "Iwagumi", "Biotope", "Blackwate
 
 // DEFINISI TYPE-SAFE UNTUK KAMUS FISH FORM
 interface FishFormDict {
-  fishForm?: {
-    visualSection: string; coverLabel: string; changeCover: string; uploadCover: string;
-    galleryLabel: string; addGallery: string; saved: string; new: string;
-    identitasSection: string; nameIdLabel: string; nameEnLabel: string;
-    nameIdPlaceholder: string; nameEnPlaceholder: string; scientificNameLabel: string;
-    difficultyLabel: string; fishTypeLabel: string; compatibilityLabel: string;
-    waterParamSection: string; tempMin: string; tempMax: string; phMin: string; phMax: string;
-    descSectionId: string; descSectionEn: string; descIdPlaceholder: string; descEnPlaceholder: string;
-    expertEngineSection: string; minTankSize: string; adultSize: string; bioloadFactor: string;
-    schoolingFish: string; minGroupSize: string; expertNotesId: string; expertNotesEn: string;
-    expertNotesIdPlaceholder: string; expertNotesEnPlaceholder: string;
-    btnArchive: string; btnHardDelete: string; btnCancel: string; btnSave: string; btnUpdate: string; processing: string;
-    modalArchiveTitle: string; modalArchiveDesc1: string; modalArchiveDesc2: string; btnConfirmArchive: string;
-    modalDeleteTitle: string; modalDeleteDesc1: string; modalDeleteDesc2: string; modalDeleteDesc3: string;
-    modalDeleteDesc4: string; typeFishName: string; btnConfirmDelete: string;
-  };
+  visualSection: string; coverLabel: string; changeCover: string; uploadCover: string;
+  galleryLabel: string; addGallery: string; saved: string; new: string;
+  identitasSection: string; nameIdLabel: string; nameEnLabel: string;
+  nameIdPlaceholder: string; nameEnPlaceholder: string; scientificNameLabel: string;
+  difficultyLabel: string; fishTypeLabel: string; compatibilityLabel: string;
+  waterParamSection: string; tempMin: string; tempMax: string; phMin: string; phMax: string;
+  descSectionId: string; descSectionEn: string; descIdPlaceholder: string; descEnPlaceholder: string;
+  expertEngineSection: string; minTankSize: string; adultSize: string; bioloadFactor: string;
+  schoolingFish: string; minGroupSize: string; expertNotesId: string; expertNotesEn: string;
+  expertNotesIdPlaceholder: string; expertNotesEnPlaceholder: string;
+  btnArchive: string; btnHardDelete: string; btnCancel: string; btnSave: string; btnUpdate: string; processing: string;
+  modalArchiveTitle: string; modalArchiveDesc1: string; modalArchiveDesc2: string; btnConfirmArchive: string;
+  modalDeleteTitle: string; modalDeleteDesc1: string; modalDeleteDesc2: string; modalDeleteDesc3: string;
+  modalDeleteDesc4: string; typeFishName: string; btnConfirmDelete: string;
 }
 
 export default function FishForm({ mode = "create", fish }: FishFormProps) {
@@ -157,8 +155,8 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-      if (!validTypes.includes(file.type)) { setError("Format harus JPG, PNG atau WEBP."); return; }
-      if (file.size > 2 * 1024 * 1024) { setError("Ukuran maksimal 2MB."); return; }
+      if (!validTypes.includes(file.type)) { setError(language === 'id' ? "Format harus JPG, PNG atau WEBP." : "Format must be JPG, PNG or WEBP."); return; }
+      if (file.size > 2 * 1024 * 1024) { setError(language === 'id' ? "Ukuran maksimal 2MB." : "Max size is 2MB."); return; }
 
       setError(null); setCoverFile(file); setCoverPreview(URL.createObjectURL(file));
       if (mode === "edit" && fish?.image_url && !imagesToDeleteRef.current.includes(fish.image_url)) imagesToDeleteRef.current.push(fish.image_url);
@@ -172,7 +170,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
       const newValidFiles = filesArray.filter(f => validTypes.includes(f.type) && f.size <= 2 * 1024 * 1024);
 
       const spaceLeft = 8 - (existingGallery.length + newGallery.length);
-      if (spaceLeft <= 0) { toast.error("Maksimal 8 gambar galeri."); return; }
+      if (spaceLeft <= 0) { toast.error(language === 'id' ? "Maksimal 8 gambar galeri." : "Maximum 8 gallery images."); return; }
 
       const filesToAdd = newValidFiles.slice(0, spaceLeft).map(f => ({ file: f, preview: URL.createObjectURL(f) }));
       setNewGallery([...newGallery, ...filesToAdd]);
@@ -189,16 +187,16 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
   // VALIDASI BIOLOGIS SEBELUM SUBMIT
   function validateBiologicalData() {
     if (formData.ideal_ph_min && formData.ideal_ph_max && Number(formData.ideal_ph_min) > Number(formData.ideal_ph_max)) {
-      throw new Error(language === 'id' ? "Validasi Gagal: pH Minimum tidak boleh lebih besar dari pH Maks." : "Validation Failed: Min pH cannot be greater than Max pH.");
+      throw new Error(language === 'id' ? "Validasi Gagal: pH Min tidak boleh lebih besar dari pH Max." : "Validation Failed: Min pH cannot be greater than Max pH.");
     }
     if (formData.ideal_temp_min && formData.ideal_temp_max && Number(formData.ideal_temp_min) > Number(formData.ideal_temp_max)) {
-      throw new Error(language === 'id' ? "Validasi Gagal: Suhu Minimum tidak boleh lebih besar dari Suhu Maks." : "Validation Failed: Min Temp cannot be greater than Max Temp.");
+      throw new Error(language === 'id' ? "Validasi Gagal: Suhu Min tidak boleh lebih besar dari Suhu Max." : "Validation Failed: Min Temp cannot be greater than Max Temp.");
     }
     if (formData.hardness_min && formData.hardness_max && Number(formData.hardness_min) > Number(formData.hardness_max)) {
-      throw new Error(language === 'id' ? "Validasi Gagal: GH (Hardness) Min tidak boleh lebih besar dari GH Maks." : "Validation Failed: Min GH cannot be greater than Max GH.");
+      throw new Error(language === 'id' ? "Validasi Gagal: GH (Hardness) Min tidak boleh lebih besar dari GH Max." : "Validation Failed: Min GH cannot be greater than Max GH.");
     }
     if (formData.min_group_size && formData.max_group_size && Number(formData.min_group_size) > Number(formData.max_group_size)) {
-      throw new Error(language === 'id' ? "Validasi Gagal: Group Size Min tidak boleh melebihi Group Size Maks." : "Validation Failed: Min Group Size cannot exceed Max Group Size.");
+      throw new Error(language === 'id' ? "Validasi Gagal: Group Size Min tidak boleh melebihi Group Size Max." : "Validation Failed: Min Group Size cannot exceed Max Group Size.");
     }
     if (formData.min_tank_size && Number(formData.min_tank_size) < 0) {
       throw new Error(language === 'id' ? "Validasi Gagal: Volume Tangki tidak boleh minus." : "Validation Failed: Tank Volume cannot be negative.");
@@ -300,7 +298,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
       router.refresh();
 
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : "Gagal menyimpan data.";
+      const errMsg = err instanceof Error ? err.message : (language === 'id' ? "Gagal menyimpan data." : "Failed to save data.");
       setError(errMsg);
       toast.error(errMsg);
       if (uploadedImagesToRollback.length > 0) {
@@ -309,17 +307,15 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
     } finally { setLoading(false); }
   }
 
-  // EKSEKUSI ARSIP
   function triggerArchiveModal() { if (!fish || mode !== "edit") return; setIsArchiveModalOpen(true); }
   async function executeArchive() {
     if (!fish || mode !== "edit") return;
     try { 
       setLoading(true); await deleteFish(fish.id); toast.success(language === 'id' ? "Diarsipkan." : "Archived."); 
       router.push("/dashboard/fishes"); router.refresh();
-    } catch (error: unknown) { toast.error("Gagal."); } finally { setLoading(false); setIsArchiveModalOpen(false); }
+    } catch (error: unknown) { toast.error(language === 'id' ? "Gagal mengarsipkan." : "Failed to archive."); } finally { setLoading(false); setIsArchiveModalOpen(false); }
   }
 
-  // EKSEKUSI HAPUS PERMANEN
   function triggerHardDeleteModal() { if (!fish) return; setDeleteConfirmText(""); setIsDeleteModalOpen(true); }
   async function executeHardDelete(e: React.FormEvent) {
     e.preventDefault(); if (!fish) return;
@@ -330,65 +326,13 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
       const result = await hardDeleteFishAction(fish.id); 
       if (!result.success) throw new Error(result.error);
       toast.success(language === 'id' ? "Dihapus permanen." : "Deleted permanently."); router.push("/dashboard/fishes"); router.refresh();
-    } catch (error: unknown) { toast.error("Gagal."); } finally { setLoading(false); setIsDeleteModalOpen(false); }
+    } catch (error: unknown) { toast.error(language === 'id' ? "Gagal menghapus." : "Failed to delete."); } finally { setLoading(false); setIsDeleteModalOpen(false); }
   }
 
-  // PENGGUNAAN KAMUS SECARA TYPE-SAFE
-  const dictionary = dict as unknown as FishFormDict;
-  const formDict = dictionary.fishForm || {
-    visualSection: language === 'id' ? "Visual Ikan" : "Fish Visuals", 
-    coverLabel: language === 'id' ? "Foto Utama" : "Main Photo", 
-    changeCover: language === 'id' ? "Ganti Foto" : "Change Photo", 
-    uploadCover: language === 'id' ? "Upload Foto" : "Upload Photo",
-    galleryLabel: language === 'id' ? "Galeri" : "Gallery", 
-    addGallery: language === 'id' ? "+ Tambah Galeri" : "+ Add Gallery", 
-    saved: language === 'id' ? "Tersimpan" : "Saved", 
-    new: language === 'id' ? "Baru" : "New",
-    identitasSection: language === 'id' ? "Identitas & Asal" : "Identity & Origin", 
-    nameIdLabel: language === 'id' ? "Nama Ikan (ID)" : "Fish Name (ID)", 
-    nameEnLabel: language === 'id' ? "Nama Ikan (EN)" : "Fish Name (EN)", 
-    nameIdPlaceholder: "Contoh: Neon Tetra", 
-    nameEnPlaceholder: "Example: Neon Tetra",
-    scientificNameLabel: language === 'id' ? "Nama Ilmiah" : "Scientific Name", 
-    difficultyLabel: language === 'id' ? "Tingkat Kesulitan" : "Difficulty Level", 
-    fishTypeLabel: language === 'id' ? "Klasifikasi Ikan" : "Fish Classification", 
-    compatibilityLabel: language === 'id' ? "Kompatibilitas" : "Compatibility",
-    waterParamSection: language === 'id' ? "Parameter Air & Lingkungan" : "Water Parameters & Environment", 
-    tempMin: language === 'id' ? "Suhu Min (°C)" : "Min Temp (°C)", 
-    tempMax: language === 'id' ? "Suhu Max (°C)" : "Max Temp (°C)", 
-    phMin: "pH Min", phMax: "pH Max",
-    descSectionId: language === 'id' ? "Deskripsi (ID)" : "Description (ID)", 
-    descSectionEn: language === 'id' ? "Deskripsi (EN)" : "Description (EN)", 
-    descIdPlaceholder: language === 'id' ? "Tulis deskripsi..." : "Write description...", 
-    descEnPlaceholder: language === 'id' ? "Write description..." : "Write description...",
-    expertEngineSection: language === 'id' ? "Data Sistem Pakar (AI Engine)" : "Expert System Data (AI Engine)", 
-    minTankSize: language === 'id' ? "Volume Tangki Min (Liter)" : "Min Tank Volume (Liters)", 
-    adultSize: language === 'id' ? "Ukuran Dewasa (cm)" : "Adult Size (cm)", 
-    bioloadFactor: language === 'id' ? "Beban Biologis (Bioload)" : "Bioload Factor",
-    schoolingFish: language === 'id' ? "Ikan Kawanan (Schooling)" : "Schooling Fish", 
-    minGroupSize: language === 'id' ? "Minimal Kawanan" : "Min Group Size", 
-    expertNotesId: language === 'id' ? "Catatan Rahasia Pakar (ID)" : "Secret Expert Notes (ID)", 
-    expertNotesEn: language === 'id' ? "Catatan Rahasia Pakar (EN)" : "Secret Expert Notes (EN)",
-    expertNotesIdPlaceholder: language === 'id' ? "Trik khusus..." : "Special tricks...", 
-    expertNotesEnPlaceholder: language === 'id' ? "Special tricks..." : "Special tricks...",
-    btnArchive: language === 'id' ? "Arsipkan" : "Archive", 
-    btnHardDelete: language === 'id' ? "Hapus Permanen" : "Hard Delete", 
-    btnCancel: language === 'id' ? "Batal" : "Cancel", 
-    btnSave: language === 'id' ? "Simpan Ikan" : "Save Fish", 
-    btnUpdate: language === 'id' ? "Perbarui Data" : "Update Data", 
-    processing: language === 'id' ? "Memproses..." : "Processing...",
-    modalArchiveTitle: language === 'id' ? "Arsipkan Ikan" : "Archive Fish", 
-    modalArchiveDesc1: language === 'id' ? "Anda yakin ingin mengarsipkan" : "Are you sure you want to archive", 
-    modalArchiveDesc2: "?", 
-    btnConfirmArchive: language === 'id' ? "Ya, Arsipkan" : "Yes, Archive",
-    modalDeleteTitle: language === 'id' ? "Hapus Permanen" : "Hard Delete", 
-    modalDeleteDesc1: language === 'id' ? "Tindakan ini" : "This action", 
-    modalDeleteDesc2: language === 'id' ? "tidak dapat dibatalkan" : "cannot be undone", 
-    modalDeleteDesc3: language === 'id' ? "dan akan menghapus foto. Ketik nama ikan" : "and will delete photos. Type fish name",
-    modalDeleteDesc4: language === 'id' ? "untuk konfirmasi:" : "to confirm:", 
-    typeFishName: language === 'id' ? "Ketik nama ikan..." : "Type fish name...", 
-    btnConfirmDelete: language === 'id' ? "Hapus Permanen" : "Hard Delete"
-  };
+  // PENGGUNAAN KAMUS SECARA TYPE-SAFE (BILINGUAL)
+  const rootDict = dict as unknown as { fishForm: FishFormDict };
+  if (!rootDict.fishForm) return null; // Safety render
+  const formDict = rootDict.fishForm;
 
   return (
     <div className="w-full transition-colors duration-300">
@@ -476,7 +420,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                 </h3>
                 <div className="grid gap-5 md:grid-cols-2 mt-4">
                   <div className="space-y-2">
-                    <Label className="text-slate-700 dark:text-slate-300 font-semibold">{formDict.nameIdLabel} <span className="text-red-500">*</span></Label>
+                    <Label className="text-slate-700 dark:text-slate-300 font-semibold">{formDict.nameIdLabel}</Label>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{language === 'id' ? "Nama umum ikan di pasar Indonesia." : "Common fish name in Indonesian market."}</p>
                     <Input name="name_id" required value={formData.name_id} onChange={handleChange} placeholder={formDict.nameIdPlaceholder} className="bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 focus:border-blue-500 text-slate-900 dark:text-slate-100 h-11" />
                   </div>
@@ -571,7 +515,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
             <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 font-semibold">{formDict.descSectionId}</Label>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">Penjelasan singkat tentang ikan ini untuk dibaca pengguna berbahasa Indonesia.</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{language === 'id' ? "Penjelasan singkat tentang ikan ini untuk dibaca pengguna berbahasa Indonesia." : "Short explanation for Indonesian readers."}</p>
                   <textarea name="description_id" rows={4} value={formData.description_id} onChange={handleChange} className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-3 outline-none resize-y focus:border-blue-500 text-sm text-slate-900 dark:text-slate-100" placeholder={formDict.descIdPlaceholder} />
                 </div>
                 <div className="space-y-2">
@@ -587,7 +531,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                 <h3 className="text-lg font-black text-blue-800 dark:text-blue-400 flex items-center gap-2">
                   <Brain className="h-5 w-5" /> {formDict.expertEngineSection}
                 </h3>
-                <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1 mb-2">Parameter tingkat lanjut. Diperlukan agar mesin rekomendasi AI (Fish Expert) bekerja 100% akurat.</p>
+                <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1 mb-2">{language === 'id' ? "Parameter tingkat lanjut. Diperlukan agar mesin rekomendasi AI (Fish Expert) bekerja 100% akurat." : "Advanced parameters. Required for the AI recommendation engine to work 100% accurately."}</p>
               </div>
               
               <div className="grid gap-5 md:grid-cols-3">
@@ -607,13 +551,13 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
 
               <div className="grid gap-5 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">Skor Agresi (1-5)</Label>
+                  <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{language === 'id' ? "Skor Agresi (1-5)" : "Aggression Score (1-5)"}</Label>
                   <select name="temperament_score" value={formData.temperament_score} onChange={handleChange} className="h-11 w-full rounded-md border border-blue-300 dark:border-blue-800/60 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500 font-medium text-sm text-slate-900 dark:text-slate-100">
-                    <option value="1">1 - Sangat Damai (Pemalu)</option>
-                    <option value="2">2 - Damai (Normal)</option>
-                    <option value="3">3 - Semi-Agresif / Teritorial</option>
-                    <option value="4">4 - Pemarah / Usil Gigit Sirip</option>
-                    <option value="5">5 - Predator Mutlak</option>
+                    <option value="1">{language === 'id' ? "1 - Sangat Damai (Pemalu)" : "1 - Very Peaceful (Shy)"}</option>
+                    <option value="2">{language === 'id' ? "2 - Damai (Normal)" : "2 - Peaceful (Normal)"}</option>
+                    <option value="3">{language === 'id' ? "3 - Semi-Agresif / Teritorial" : "3 - Semi-Aggressive / Territorial"}</option>
+                    <option value="4">{language === 'id' ? "4 - Pemarah / Usil Gigit Sirip" : "4 - Aggressive / Fin Nipper"}</option>
+                    <option value="5">{language === 'id' ? "5 - Predator Mutlak" : "5 - Absolute Predator"}</option>
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -626,13 +570,13 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">Gaya Hidup Dewasa</Label>
+                  <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{language === 'id' ? "Gaya Hidup Dewasa" : "Adult Behavior"}</Label>
                   <select name="adult_behavior" value={formData.adult_behavior} onChange={handleChange} className="h-11 w-full rounded-md border border-blue-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500 font-medium text-sm text-slate-900 dark:text-slate-100">
-                    <option value="Schooling">Schooling (Berkerumun)</option>
-                    <option value="Pair">Pair (Sepasang Jantan Betina)</option>
-                    <option value="Solitary">Solitary (Menyendiri / Penguasa)</option>
-                    <option value="Harem">Harem (1 Jantan Banyak Betina)</option>
-                    <option value="Colony">Colony (Berkoloni bebas)</option>
+                    <option value="Schooling">{language === 'id' ? "Schooling (Berkerumun)" : "Schooling (Swarm)"}</option>
+                    <option value="Pair">{language === 'id' ? "Pair (Sepasang Jantan Betina)" : "Pair (Male & Female)"}</option>
+                    <option value="Solitary">{language === 'id' ? "Solitary (Menyendiri / Penguasa)" : "Solitary (Loner / Boss)"}</option>
+                    <option value="Harem">{language === 'id' ? "Harem (1 Jantan Banyak Betina)" : "Harem (1 Male Many Females)"}</option>
+                    <option value="Colony">{language === 'id' ? "Colony (Berkoloni bebas)" : "Colony (Free roaming)"}</option>
                   </select>
                 </div>
               </div>
@@ -640,33 +584,33 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               <div className="grid gap-5 md:grid-cols-3">
                 <div className="flex items-center gap-3 bg-white dark:bg-slate-950 p-4 rounded-xl border border-blue-200 dark:border-blue-800/60 shadow-sm h-11 md:h-auto mt-0 md:mt-[22px]">
                   <input type="checkbox" name="schooling" checked={formData.schooling} onChange={handleChange} className="w-5 h-5 accent-blue-600 rounded cursor-pointer shrink-0" />
-                  <Label className="font-bold text-sm cursor-pointer whitespace-nowrap">Ikan Kawanan (Schooling)</Label>
+                  <Label className="font-bold text-sm cursor-pointer whitespace-nowrap">{formDict.schoolingFish}</Label>
                 </div>
                 <div className={`space-y-2 transition-opacity ${!formData.schooling ? 'opacity-40 pointer-events-none' : ''}`}>
-                  <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">Group Size Minimum</Label>
+                  <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{formDict.minGroupSize}</Label>
                   <Input type="number" min="1" name="min_group_size" value={formData.min_group_size} onChange={handleChange} className="bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-800/60 h-11" placeholder="Cth: 6" />
                 </div>
                 <div className={`space-y-2 transition-opacity ${!formData.schooling ? 'opacity-40 pointer-events-none' : ''}`}>
-                  <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">Group Size Maksimum</Label>
-                  <Input type="number" min="1" name="max_group_size" value={formData.max_group_size} onChange={handleChange} className="bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-800/60 h-11" placeholder="Cth: 20 (opsional)" />
+                  <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{language === 'id' ? "Group Size Maksimum" : "Max Group Size"}</Label>
+                  <Input type="number" min="1" name="max_group_size" value={formData.max_group_size} onChange={handleChange} className="bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-800/60 h-11" placeholder={language === 'id' ? "Cth: 20 (opsional)" : "Ex: 20 (optional)"} />
                 </div>
               </div>
 
               <div className="grid gap-5 md:grid-cols-2 pt-6 border-t border-blue-200 dark:border-blue-900/50">
                  <div className="flex flex-col gap-3 p-5 bg-white dark:bg-slate-950 rounded-xl border border-blue-100 dark:border-blue-800/60 shadow-sm">
-                   <Label className="text-blue-800 dark:text-blue-400 font-bold border-b border-slate-100 dark:border-slate-800 pb-2.5">Aman Untuk Fauna Lain?</Label>
+                   <Label className="text-blue-800 dark:text-blue-400 font-bold border-b border-slate-100 dark:border-slate-800 pb-2.5">{language === 'id' ? "Aman Untuk Fauna Lain?" : "Safe for other fauna?"}</Label>
                    <label className="flex items-center gap-3 cursor-pointer group mt-1">
                      <input type="checkbox" name="shrimp_safe" checked={formData.shrimp_safe} onChange={handleChange} className="w-5 h-5 accent-emerald-600 rounded" />
-                     <span className="font-semibold text-sm group-hover:text-emerald-600 transition-colors">Shrimp Safe (Aman untuk Udang)</span>
+                     <span className="font-semibold text-sm group-hover:text-emerald-600 transition-colors">{language === 'id' ? "Shrimp Safe (Aman untuk Udang)" : "Shrimp Safe"}</span>
                    </label>
                    <label className="flex items-center gap-3 cursor-pointer group">
                      <input type="checkbox" name="plant_safe" checked={formData.plant_safe} onChange={handleChange} className="w-5 h-5 accent-teal-600 rounded" />
-                     <span className="font-semibold text-sm group-hover:text-teal-600 transition-colors">Plant Safe (Aman untuk Tanaman)</span>
+                     <span className="font-semibold text-sm group-hover:text-teal-600 transition-colors">{language === 'id' ? "Plant Safe (Aman untuk Tanaman)" : "Plant Safe"}</span>
                    </label>
                  </div>
                  
                  <div className="flex flex-col gap-2 p-5 bg-white dark:bg-slate-950 rounded-xl border border-blue-100 dark:border-blue-800/60 shadow-sm">
-                   <Label className="text-blue-800 dark:text-blue-400 font-bold border-b border-slate-100 dark:border-slate-800 pb-2.5">Rekomendasi Tema Tank (Styles)</Label>
+                   <Label className="text-blue-800 dark:text-blue-400 font-bold border-b border-slate-100 dark:border-slate-800 pb-2.5">{language === 'id' ? "Rekomendasi Tema Tank (Styles)" : "Recommended Tank Styles"}</Label>
                    <div className="flex flex-wrap gap-2 pt-3">
                      {TANK_STYLES_OPTIONS.map(style => (
                        <button
@@ -683,26 +627,26 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
 
               <div className="grid gap-5 md:grid-cols-3 pt-6 border-t border-blue-200 dark:border-blue-900/50">
                  <div className="space-y-2">
-                   <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">Kesulitan Pemijahan (Breeding)</Label>
+                   <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{language === 'id' ? "Kesulitan Pemijahan (Breeding)" : "Breeding Difficulty"}</Label>
                    <select name="breeding_difficulty" value={formData.breeding_difficulty} onChange={handleChange} className="h-11 w-full rounded-md border border-blue-300 dark:border-blue-800/60 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500 font-medium text-sm text-slate-900 dark:text-slate-100">
-                     <option value="Easy">Mudah</option>
-                     <option value="Medium">Sedang</option>
-                     <option value="Hard">Sulit / Butuh Perlakuan Khusus</option>
+                     <option value="Easy">{language === 'id' ? "Mudah" : "Easy"}</option>
+                     <option value="Medium">{language === 'id' ? "Sedang" : "Medium"}</option>
+                     <option value="Hard">{language === 'id' ? "Sulit / Butuh Perlakuan Khusus" : "Hard / Needs Special Treatment"}</option>
                    </select>
                  </div>
                  <div className="space-y-2">
-                    <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">Tipe Reproduksi</Label>
-                    <div className="flex gap-4 mt-3 bg-white dark:bg-slate-950 px-3 py-3 rounded-md border border-blue-300 dark:border-blue-800/60">
-                      <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer"><input type="checkbox" name="is_egg_layer" checked={formData.is_egg_layer} onChange={handleChange} className="w-4 h-4 accent-blue-600" /> Bertelur (Egg)</label>
-                      <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer"><input type="checkbox" name="is_livebearer" checked={formData.is_livebearer} onChange={handleChange} className="w-4 h-4 accent-blue-600" /> Beranak (Live)</label>
+                    <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{language === 'id' ? "Tipe Reproduksi" : "Reproduction Type"}</Label>
+                    <div className="flex gap-4 mt-3 bg-white dark:bg-slate-950 px-3 py-3 rounded-md border border-blue-300 dark:border-blue-800/60 h-11 items-center">
+                      <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer"><input type="checkbox" name="is_egg_layer" checked={formData.is_egg_layer} onChange={handleChange} className="w-4 h-4 accent-blue-600" /> {language === 'id' ? "Bertelur (Egg)" : "Egg Layer"}</label>
+                      <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer"><input type="checkbox" name="is_livebearer" checked={formData.is_livebearer} onChange={handleChange} className="w-4 h-4 accent-blue-600" /> {language === 'id' ? "Beranak (Live)" : "Livebearer"}</label>
                     </div>
                  </div>
                  <div className="space-y-2">
-                    <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">Tingkat Aktivitas Bergerak</Label>
+                    <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{language === 'id' ? "Tingkat Aktivitas Gerak" : "Activity Level"}</Label>
                     <select name="activity_level" value={formData.activity_level} onChange={handleChange} className="h-11 w-full rounded-md border border-blue-300 dark:border-blue-800/60 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500 font-medium text-sm text-slate-900 dark:text-slate-100">
-                      <option value="Low">Low (Suka Berdiam diri / Lambat)</option>
-                      <option value="Medium">Medium (Renang Normal)</option>
-                      <option value="High">High (Perenang Cepat / Hiperaktif)</option>
+                      <option value="Low">{language === 'id' ? "Low (Suka Berdiam diri / Lambat)" : "Low (Static / Slow)"}</option>
+                      <option value="Medium">{language === 'id' ? "Medium (Renang Normal)" : "Medium (Normal Swimming)"}</option>
+                      <option value="High">{language === 'id' ? "High (Perenang Cepat / Hiperaktif)" : "High (Fast / Hyperactive)"}</option>
                     </select>
                  </div>
               </div>
@@ -710,12 +654,12 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               <div className="grid gap-6 md:grid-cols-2 pt-6 border-t border-blue-200 dark:border-blue-900/50">
                 <div className="space-y-2">
                   <Label className="text-teal-700 dark:text-teal-400 flex items-center gap-2 font-bold"><Brain className="h-4 w-4" /> {formDict.expertNotesId}</Label>
-                  <p className="text-[10px] text-teal-600/70 dark:text-teal-400/70 leading-tight">Tips spesifik yang akan dimunculkan oleh AI saat memberi rekomendasi.</p>
+                  <p className="text-[10px] text-teal-600/70 dark:text-teal-400/70 leading-tight">Tips spesifik yang akan dimunculkan oleh AI saat memberi rekomendasi (Bahasa Indonesia).</p>
                   <textarea name="expert_notes_id" rows={3} value={formData.expert_notes_id} onChange={handleChange} className="w-full rounded-md border border-teal-200 dark:border-teal-900/50 bg-teal-50/50 dark:bg-teal-950/20 p-3 text-teal-900 dark:text-slate-100 focus:border-teal-500 outline-none resize-y text-sm" placeholder={formDict.expertNotesIdPlaceholder} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-teal-700 dark:text-teal-400 flex items-center gap-2 font-bold"><Brain className="h-4 w-4" /> {formDict.expertNotesEn}</Label>
-                  <p className="text-[10px] text-teal-600/70 dark:text-teal-400/70 leading-tight">Specific tips that AI will reveal when making recommendations.</p>
+                  <p className="text-[10px] text-teal-600/70 dark:text-teal-400/70 leading-tight">Specific tips that AI will reveal when making recommendations (English).</p>
                   <textarea name="expert_notes_en" rows={3} value={formData.expert_notes_en} onChange={handleChange} className="w-full rounded-md border border-teal-200 dark:border-teal-900/50 bg-teal-50/50 dark:bg-teal-950/20 p-3 text-teal-900 dark:text-slate-100 focus:border-teal-500 outline-none resize-y text-sm" placeholder={formDict.expertNotesEnPlaceholder} />
                 </div>
               </div>
