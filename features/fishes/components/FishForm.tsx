@@ -17,7 +17,7 @@ import { Loader2, ImagePlus, Archive, Trash2, X, Images, Brain, AlertTriangle, F
 import toast from "react-hot-toast";
 import { useLanguage } from "@/providers/LanguageProvider"; 
 
-// IMPORT getTankStyleDesc di sini
+// MENGAMBIL HELPER TANK STYLE
 import { getFishTypeDesc, getCompatibilityDesc, getTankStyleDesc } from "./fish-helpers";
 
 interface FishFormProps {
@@ -80,18 +80,30 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
     adult_behavior: "Schooling", 
     activity_level: "Medium", 
     schooling: false, 
-    min_group_size: "", 
-    max_group_size: "", 
+    min_group_size: "", max_group_size: "", 
     fish_type: "Tetra", 
     difficulty: "Easy",
-    estimated_adult_size_cm: "", 
-    bioload_factor: "",
-    shrimp_safe: true,
-    plant_safe: true,
+    estimated_adult_size_cm: "", bioload_factor: "",
+    shrimp_safe: true, plant_safe: true,
     recommended_tank_styles: [] as string[],
     breeding_difficulty: "Medium",
-    is_egg_layer: false,
-    is_livebearer: false
+    is_egg_layer: false, is_livebearer: false,
+    
+    // NEW EXPERT METRICS COLUMNS
+    minimum_tank_length_cm: "",
+    territorial: false,
+    predatory: false,
+    mouth_size_factor: "1",
+    activity_period: "Diurnal",
+    shrimp_predation_risk: "0",
+    native_biotope: "",
+    uproots_plants: false,
+    oxygen_requirement_score: "5",
+    current_preference: "Medium",
+    waste_production_score: "5",
+    jump_risk: false,
+    sensitive_to_nitrate: false,
+    conservation_status: "Least Concern"
   });
 
   useEffect(() => {
@@ -127,7 +139,23 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
         recommended_tank_styles: fish.recommended_tank_styles || [],
         breeding_difficulty: fish.breeding_difficulty?.toString() || "Medium",
         is_egg_layer: fish.is_egg_layer || false,
-        is_livebearer: fish.is_livebearer || false
+        is_livebearer: fish.is_livebearer || false,
+        
+        // NEW EXPERT METRICS COLUMNS
+        minimum_tank_length_cm: fish.minimum_tank_length_cm != null ? fish.minimum_tank_length_cm.toString() : "",
+        territorial: fish.territorial || false,
+        predatory: fish.predatory || false,
+        mouth_size_factor: fish.mouth_size_factor != null ? fish.mouth_size_factor.toString() : "1",
+        activity_period: fish.activity_period || "Diurnal",
+        shrimp_predation_risk: fish.shrimp_predation_risk != null ? fish.shrimp_predation_risk.toString() : "0",
+        native_biotope: fish.native_biotope || "",
+        uproots_plants: fish.uproots_plants || false,
+        oxygen_requirement_score: fish.oxygen_requirement_score != null ? fish.oxygen_requirement_score.toString() : "5",
+        current_preference: fish.current_preference || "Medium",
+        waste_production_score: fish.waste_production_score != null ? fish.waste_production_score.toString() : "5",
+        jump_risk: fish.jump_risk || false,
+        sensitive_to_nitrate: fish.sensitive_to_nitrate || false,
+        conservation_status: fish.conservation_status || "Least Concern"
       });
 
       if (fish.image_url) setCoverPreview(fish.image_url);
@@ -276,6 +304,23 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
         breeding_difficulty: formData.breeding_difficulty ? parseInt(formData.breeding_difficulty.toString()) : null,
         is_egg_layer: formData.is_egg_layer,
         is_livebearer: formData.is_livebearer,
+        
+        // NEW EXPERT METRICS COLUMNS
+        minimum_tank_length_cm: formData.minimum_tank_length_cm ? parseInt(formData.minimum_tank_length_cm.toString()) : null,
+        territorial: formData.territorial,
+        predatory: formData.predatory,
+        mouth_size_factor: formData.mouth_size_factor ? parseFloat(formData.mouth_size_factor.toString()) : null,
+        activity_period: formData.activity_period,
+        shrimp_predation_risk: formData.shrimp_predation_risk ? parseInt(formData.shrimp_predation_risk.toString()) : null,
+        native_biotope: formData.native_biotope,
+        uproots_plants: formData.uproots_plants,
+        oxygen_requirement_score: formData.oxygen_requirement_score ? parseInt(formData.oxygen_requirement_score.toString()) : null,
+        current_preference: formData.current_preference,
+        waste_production_score: formData.waste_production_score ? parseInt(formData.waste_production_score.toString()) : null,
+        jump_risk: formData.jump_risk,
+        sensitive_to_nitrate: formData.sensitive_to_nitrate,
+        conservation_status: formData.conservation_status,
+
         image_url: finalCoverUrl,
         gallery_urls: finalGalleryUrls,
       };
@@ -339,6 +384,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
         <CardContent className="p-4 sm:p-6 md:p-8">
           <form onSubmit={handleSubmit} className="space-y-8">
             
+            {/* BAGIAN 1: VISUAL IKAN */}
             <div className="space-y-4 bg-slate-50 dark:bg-slate-950/50 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
               <h3 className="text-lg font-bold text-gray-900 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-2">
                 <Images className="h-5 w-5 text-blue-600 dark:text-blue-500" /> {formDict.visualSection}
@@ -410,6 +456,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               </div>
             </div>
 
+            {/* BAGIAN 2: IDENTITAS & ASAL-USUL */}
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-4 md:col-span-2 bg-slate-50 dark:bg-slate-950/30 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800">
                 <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-2 text-gray-900 dark:text-slate-200 flex items-center gap-2">
@@ -485,6 +532,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               </div>
             </div>
 
+            {/* BAGIAN 3: PARAMETER LINGKUNGAN AIR */}
             <div className="bg-slate-50 dark:bg-slate-950/30 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 space-y-6">
               <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-2">
@@ -507,6 +555,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               </div>
             </div>
 
+            {/* BAGIAN DESKRIPSI SPESIES */}
             <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 font-semibold">{formDict.descSectionId}</Label>
@@ -520,6 +569,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                 </div>
             </div>
 
+            {/* BAGIAN 4: FISH EXPERT SYSTEM KUSTOMISASI KETAT */}
             <div className="bg-blue-50/50 dark:bg-blue-950/20 p-4 sm:p-6 rounded-xl border border-blue-200 dark:border-blue-900/50 space-y-6 shadow-inner">
               <div>
                 <h3 className="text-lg font-black text-blue-800 dark:text-blue-400 flex items-center gap-2">
@@ -528,10 +578,14 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                 <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1 mb-2">{lang === 'id' ? "Parameter tingkat lanjut. Diperlukan agar mesin rekomendasi AI (Fish Expert) bekerja 100% akurat." : "Advanced parameters. Required for the AI recommendation engine to work 100% accurately."}</p>
               </div>
               
-              <div className="grid gap-5 md:grid-cols-3">
+              <div className="grid gap-5 md:grid-cols-4">
                 <div className="space-y-2">
                   <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{formDict.minTankSize}</Label>
                   <Input type="number" min="0" name="min_tank_size" value={formData.min_tank_size} onChange={handleChange} className="bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-800/60 h-11" placeholder="Cth: 60" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{lang === 'id' ? "P. Tangki Min (cm)" : "Min Tank Length (cm)"}</Label>
+                  <Input type="number" min="0" name="minimum_tank_length_cm" value={formData.minimum_tank_length_cm} onChange={handleChange} className="bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-800/60 h-11" placeholder="Cth: 45" />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{formDict.adultSize}</Label>
@@ -588,6 +642,48 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                   <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{lang === 'id' ? "Group Size Maksimum" : "Max Group Size"}</Label>
                   <Input type="number" min="1" name="max_group_size" value={formData.max_group_size} onChange={handleChange} className="bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-800/60 h-11" placeholder={lang === 'id' ? "Cth: 20 (opsional)" : "Ex: 20 (optional)"} />
                 </div>
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-4">
+                 <div className="space-y-2">
+                   <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{lang === 'id' ? "Mouth Size Factor" : "Mouth Size Factor"}</Label>
+                   <Input type="number" min="0" step="0.1" name="mouth_size_factor" value={formData.mouth_size_factor} onChange={handleChange} className="bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-800/60 h-11" placeholder="1.0" />
+                 </div>
+                 <div className="space-y-2">
+                   <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{lang === 'id' ? "Risiko Makan Udang (0-10)" : "Shrimp Predation Risk"}</Label>
+                   <Input type="number" min="0" max="10" name="shrimp_predation_risk" value={formData.shrimp_predation_risk} onChange={handleChange} className="bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-800/60 h-11" placeholder="0" />
+                 </div>
+                 <div className="space-y-2">
+                   <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{lang === 'id' ? "Kebutuhan Oksigen (1-10)" : "Oxygen Req. Score"}</Label>
+                   <Input type="number" min="1" max="10" name="oxygen_requirement_score" value={formData.oxygen_requirement_score} onChange={handleChange} className="bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-800/60 h-11" placeholder="5" />
+                 </div>
+                 <div className="space-y-2">
+                   <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{lang === 'id' ? "Produksi Kotoran (1-10)" : "Waste Prod. Score"}</Label>
+                   <Input type="number" min="1" max="10" name="waste_production_score" value={formData.waste_production_score} onChange={handleChange} className="bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-800/60 h-11" placeholder="5" />
+                 </div>
+              </div>
+
+              <div className="flex flex-wrap gap-4 pt-4 border-t border-blue-200 dark:border-blue-900/50">
+                 <label className="flex items-center gap-2 cursor-pointer border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 px-3 py-2 rounded-lg">
+                   <input type="checkbox" name="territorial" checked={formData.territorial} onChange={handleChange} className="h-4 w-4 accent-red-600 rounded" />
+                   <span className="text-xs font-bold text-red-600 dark:text-red-400">{lang === 'id' ? 'Teritorial' : 'Territorial'}</span>
+                 </label>
+                 <label className="flex items-center gap-2 cursor-pointer border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 px-3 py-2 rounded-lg">
+                   <input type="checkbox" name="predatory" checked={formData.predatory} onChange={handleChange} className="h-4 w-4 accent-red-600 rounded" />
+                   <span className="text-xs font-bold text-red-600 dark:text-red-400">{lang === 'id' ? 'Predator / Pemangsa' : 'Predatory'}</span>
+                 </label>
+                 <label className="flex items-center gap-2 cursor-pointer border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 px-3 py-2 rounded-lg">
+                   <input type="checkbox" name="uproots_plants" checked={formData.uproots_plants} onChange={handleChange} className="h-4 w-4 accent-amber-600 rounded" />
+                   <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{lang === 'id' ? 'Merusak Tanaman' : 'Uproots Plants'}</span>
+                 </label>
+                 <label className="flex items-center gap-2 cursor-pointer border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 px-3 py-2 rounded-lg">
+                   <input type="checkbox" name="jump_risk" checked={formData.jump_risk} onChange={handleChange} className="h-4 w-4 accent-orange-600 rounded" />
+                   <span className="text-xs font-bold text-orange-600 dark:text-orange-400">{lang === 'id' ? 'Suka Melompat' : 'Jump Risk'}</span>
+                 </label>
+                 <label className="flex items-center gap-2 cursor-pointer border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 px-3 py-2 rounded-lg">
+                   <input type="checkbox" name="sensitive_to_nitrate" checked={formData.sensitive_to_nitrate} onChange={handleChange} className="h-4 w-4 accent-indigo-600 rounded" />
+                   <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{lang === 'id' ? 'Sensitif Nitrat' : 'Nitrate Sensitive'}</span>
+                 </label>
               </div>
 
               <div className="grid gap-5 md:grid-cols-2 pt-6 border-t border-blue-200 dark:border-blue-900/50">
