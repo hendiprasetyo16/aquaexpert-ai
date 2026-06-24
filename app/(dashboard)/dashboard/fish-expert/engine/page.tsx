@@ -109,18 +109,35 @@ export default function FishExpertEnginePage() {
     }
   }, []);
 
+  // SIMPAN DAN RE-GENERATE RESULTS SETIAP KALI STATE INPUT BERUBAH ATAU BAHASA DITUKAR
+  // PERBAIKAN: Fungsi ini telah diisolasi agar engine bisa meng-update dirinya secara real-time.
   useEffect(() => {
-    if (results !== null) {
-       const savedSession = sessionStorage.getItem(SESSION_KEY);
-       if (savedSession) {
-         try {
-           const parsed = JSON.parse(savedSession);
-           parsed.currentPage = currentPage;
-           sessionStorage.setItem(SESSION_KEY, JSON.stringify(parsed));
-         } catch (e: unknown) {}
-       }
+    if (results !== null && fishes.length > 0 && dict.fishExpertEngine) {
+      
+      const answers: UserFishAnswers = { 
+        experience, 
+        tankVolumeLiters: Number(tankVolumeLiters) || 60, 
+        tankLengthCm: Number(tankLengthCm) || 60, 
+        currentPH: Number(currentPH) || 7.0, 
+        currentTemp: Number(currentTemp) || 26.0, 
+        currentGH: Number(currentGH) || 5,
+        wantSchoolingFish, 
+        fishTypePref, 
+        hasShrimp, 
+        hasPlants, 
+        aquascapeStyle, 
+        existingFishes 
+      };
+      
+      // SOLUSI REAL-TIME AUTO UPDATE
+      const aiResults = generateFishRecommendations(fishes, answers, dict.fishExpertEngine as unknown as FishExpertDictionary, lang);
+      setResults(aiResults);
+      
+      const sessionData = { answers, results: aiResults, currentPage };
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
     }
-  }, [currentPage, results]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, dict.fishExpertEngine, fishes.length, experience, tankVolumeLiters, tankLengthCm, currentPH, currentTemp, currentGH, wantSchoolingFish, fishTypePref, hasShrimp, hasPlants, aquascapeStyle, existingFishes, currentPage]); 
 
   const handleModalSave = () => {
     if (!modalSelectedFishId || !modalQty || modalQty < 1) return;
@@ -290,14 +307,14 @@ export default function FishExpertEnginePage() {
   const isFormIncomplete = tankVolumeLiters === "" || tankLengthCm === "" || currentPH === "" || currentTemp === "";
 
   return (
-    <div className="w-full h-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10">
+    <div className="w-full h-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors">
       <div className="max-w-[1400px] mx-auto space-y-8 pb-10 text-slate-900 dark:text-slate-100">
         
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-blue-600 dark:text-blue-400 flex items-center gap-3">
+          <h1 className="text-3xl md:text-4xl font-extrabold text-blue-600 dark:text-blue-400 flex items-center gap-3 transition-colors">
             <Cpu className="h-8 w-8 md:h-10 md:w-10" /> {t.title}
           </h1>
-          <p className="mt-3 text-slate-600 dark:text-slate-400 max-w-3xl text-sm md:text-base leading-relaxed">
+          <p className="mt-3 text-slate-600 dark:text-slate-400 max-w-3xl text-sm md:text-base leading-relaxed transition-colors">
             {t.subtitle}
           </p>
         </div>
@@ -308,14 +325,14 @@ export default function FishExpertEnginePage() {
           <Card className="border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/80 xl:col-span-5 h-fit shadow-xl shadow-slate-200/50 dark:shadow-none transition-colors duration-300">
             <CardContent className="p-5 sm:p-8 space-y-6">
               
-              <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center gap-2 text-gray-900 dark:text-slate-100">
+              <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center gap-2 text-gray-900 dark:text-slate-100 transition-colors">
                 <Filter className="h-5 w-5 text-blue-600 dark:text-blue-500" /> {t.formTitle}
               </h3>
 
               <div className="space-y-5">
                 <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{t.exp}</Label>
-                  <select value={experience} onChange={(e) => setExperience(e.target.value as ExperienceLevel)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none">
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider transition-colors">{t.exp}</Label>
+                  <select value={experience} onChange={(e) => setExperience(e.target.value as ExperienceLevel)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none transition-colors text-slate-900 dark:text-slate-200">
                     <option value="Pemula">{t.q1Opt1}</option>
                     <option value="Menengah">{t.q1Opt2}</option>
                     <option value="Mahir">{t.q1Opt3}</option>
@@ -324,43 +341,42 @@ export default function FishExpertEnginePage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider flex items-center gap-1">{t.vol} <span className="text-red-500">*</span></Label>
-                    <Input type="number" required placeholder="Cth: 100" value={tankVolumeLiters} onChange={(e) => setTankVolumeLiters(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 font-bold" />
+                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider flex items-center gap-1 transition-colors">{t.vol} <span className="text-red-500">*</span></Label>
+                    <Input type="number" required placeholder="Cth: 100" value={tankVolumeLiters} onChange={(e) => setTankVolumeLiters(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 font-bold text-slate-900 dark:text-slate-200 border-slate-300 dark:border-slate-700 transition-colors" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider flex items-center gap-1">{t.len} <span className="text-red-500">*</span></Label>
-                    <Input type="number" required placeholder="Cth: 60" value={tankLengthCm} onChange={(e) => setTankLengthCm(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 font-bold" />
+                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider flex items-center gap-1 transition-colors">{t.len} <span className="text-red-500">*</span></Label>
+                    <Input type="number" required placeholder="Cth: 60" value={tankLengthCm} onChange={(e) => setTankLengthCm(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 font-bold text-slate-900 dark:text-slate-200 border-slate-300 dark:border-slate-700 transition-colors" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-slate-300 text-[11px] sm:text-xs uppercase font-bold tracking-wider flex items-center gap-1">{t.ph} <span className="text-red-500">*</span></Label>
-                        <Input type="number" step="0.1" required placeholder="Cth: 6.8" value={currentPH} onChange={(e) => setCurrentPH(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 font-bold" />
+                        <Label className="text-slate-700 dark:text-slate-300 text-[11px] sm:text-xs uppercase font-bold tracking-wider flex items-center gap-1 transition-colors">{t.ph} <span className="text-red-500">*</span></Label>
+                        <Input type="number" step="0.1" required placeholder="Cth: 6.8" value={currentPH} onChange={(e) => setCurrentPH(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 font-bold text-slate-900 dark:text-slate-200 border-slate-300 dark:border-slate-700 transition-colors" />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-slate-300 text-[11px] sm:text-xs uppercase font-bold tracking-wider flex items-center gap-1">{t.temp} <span className="text-red-500">*</span></Label>
-                        <Input type="number" step="0.1" required placeholder="Cth: 25.5" value={currentTemp} onChange={(e) => setCurrentTemp(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 font-bold" />
+                        <Label className="text-slate-700 dark:text-slate-300 text-[11px] sm:text-xs uppercase font-bold tracking-wider flex items-center gap-1 transition-colors">{t.temp} <span className="text-red-500">*</span></Label>
+                        <Input type="number" step="0.1" required placeholder="Cth: 25.5" value={currentTemp} onChange={(e) => setCurrentTemp(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 font-bold text-slate-900 dark:text-slate-200 border-slate-300 dark:border-slate-700 transition-colors" />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-slate-300 text-[11px] sm:text-xs uppercase font-bold tracking-wider">{t.gh}</Label>
-                        <Input type="number" step="0.5" placeholder="Opsional" value={currentGH} onChange={(e) => setCurrentGH(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 font-bold" />
+                        <Label className="text-slate-700 dark:text-slate-300 text-[11px] sm:text-xs uppercase font-bold tracking-wider transition-colors">{t.gh}</Label>
+                        <Input type="number" step="0.5" placeholder="Opsional" value={currentGH} onChange={(e) => setCurrentGH(e.target.value ? Number(e.target.value) : "")} className="h-11 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 font-bold text-slate-900 dark:text-slate-200 border-slate-300 dark:border-slate-700 transition-colors" />
                     </div>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{t.eco}</Label>
-                    <select value={fishTypePref} onChange={(e) => setFishTypePref(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none">
+                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider transition-colors">{t.eco}</Label>
+                    <select value={fishTypePref} onChange={(e) => setFishTypePref(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none transition-colors text-slate-900 dark:text-slate-200">
                       <option value="Community Tank">{t.q5Opt1}</option>
                       <option value="Semi-Aggressive">{t.q5Opt2}</option>
                       <option value="Species Only">{t.q5Opt3}</option>
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider">{t.style}</Label>
-                    {/* DROP-DOWN AQUASCAPE STYLE MENGGUNAKAN FUNGSI PENERJEMAH */}
-                    <select value={aquascapeStyle} onChange={(e) => setAquascapeStyle(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none">
+                    <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider transition-colors">{t.style}</Label>
+                    <select value={aquascapeStyle} onChange={(e) => setAquascapeStyle(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none transition-colors text-slate-900 dark:text-slate-200">
                       <option value="Bebas">{lang === 'id' ? "Bebas / Tanpa Tema" : "No Theme"}</option>
                       {TANK_STYLES_OPTIONS.map(style => (
                         <option key={style} value={style}>{getTankStyleDesc(style, lang)}</option>
@@ -369,65 +385,65 @@ export default function FishExpertEnginePage() {
                   </div>
                 </div>
 
-                <div className="pt-2 pb-2 space-y-4 border-b border-slate-200 dark:border-slate-800 pb-6">
+                <div className="pt-2 pb-2 space-y-4 border-b border-slate-200 dark:border-slate-800 pb-6 transition-colors">
                   <div className="grid grid-cols-2 gap-4">
                     <label className="flex items-center gap-2 cursor-pointer group">
-                      <input type="checkbox" checked={hasPlants} onChange={(e) => setHasPlants(e.target.checked)} className="h-5 w-5 accent-teal-600 rounded cursor-pointer" />
-                      <span className="text-[13px] sm:text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-teal-600 transition-colors">{t.plants}</span>
+                      <input type="checkbox" checked={hasPlants} onChange={(e) => setHasPlants(e.target.checked)} className="h-5 w-5 accent-teal-600 rounded cursor-pointer transition-colors" />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">{t.plants}</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer group">
-                      <input type="checkbox" checked={hasShrimp} onChange={(e) => setHasShrimp(e.target.checked)} className="h-5 w-5 accent-emerald-600 rounded cursor-pointer" />
-                      <span className="text-[13px] sm:text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 transition-colors">{t.shrimp}</span>
+                      <input type="checkbox" checked={hasShrimp} onChange={(e) => setHasShrimp(e.target.checked)} className="h-5 w-5 accent-emerald-600 rounded cursor-pointer transition-colors" />
+                      <span className="text-[13px] sm:text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{t.shrimp}</span>
                     </label>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer group pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <input type="checkbox" checked={wantSchoolingFish} onChange={(e) => setWantSchoolingFish(e.target.checked)} className="h-5 w-5 accent-blue-600 rounded cursor-pointer" />
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-blue-600 transition-colors">{t.needSchooling}</span>
+                  <label className="flex items-center gap-2 cursor-pointer group pt-2 border-t border-slate-100 dark:border-slate-800 transition-colors">
+                    <input type="checkbox" checked={wantSchoolingFish} onChange={(e) => setWantSchoolingFish(e.target.checked)} className="h-5 w-5 accent-blue-600 rounded cursor-pointer transition-colors" />
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{t.needSchooling}</span>
                   </label>
                 </div>
               </div>
 
               {/* SECTION: V4 MY AQUARIUM INTEGRATION */}
               <div className="pt-2">
-                <h3 className="text-xl font-extrabold pb-2 flex items-center gap-2 text-blue-600 dark:text-blue-500 mb-2">
+                <h3 className="text-xl font-extrabold pb-2 flex items-center gap-2 text-blue-600 dark:text-blue-500 mb-2 transition-colors">
                   <HeartPulse className="h-6 w-6" /> {t.simTitle}
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed transition-colors">
                   {t.simDesc}
                 </p>
                 
-                <Button type="button" onClick={() => setIsModalOpen(true)} className="w-full h-14 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-500 border border-blue-500/30 border-dashed rounded-xl font-bold flex items-center justify-center transition-all mb-4 text-sm sm:text-base">
+                <Button type="button" onClick={() => setIsModalOpen(true)} className="w-full h-14 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 border-dashed rounded-xl font-bold flex items-center justify-center transition-all mb-4 text-sm sm:text-base">
                   <Plus className="w-5 h-5 mr-2" /> {t.simBtn}
                 </Button>
 
                 {/* DAFTAR IKAN EXISTING (INVENTORY) */}
                 <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                   {existingFishes.length === 0 ? (
-                    <div className="flex items-center justify-center h-24 border border-slate-200 dark:border-slate-800/60 rounded-xl bg-slate-50/50 dark:bg-slate-900/40">
-                      <p className="text-sm text-slate-500 italic text-center">
+                    <div className="flex items-center justify-center h-24 border border-slate-200 dark:border-slate-800/60 rounded-xl bg-slate-50/50 dark:bg-slate-900/40 transition-colors">
+                      <p className="text-sm text-slate-500 dark:text-slate-400 italic text-center transition-colors">
                         {t.simEmpty}
                       </p>
                     </div>
                   ) : (
                     existingFishes.map((ef, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm transition-all hover:border-red-300 group">
+                      <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm transition-all hover:border-red-300 dark:hover:border-red-800/80 group">
                         <div className="flex items-center gap-3">
-                          <div className="h-12 w-12 relative rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border border-slate-200 dark:border-slate-700">
+                          <div className="h-12 w-12 relative rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border border-slate-200 dark:border-slate-700 transition-colors">
                             {ef.fish.image_url ? (
                               <Image src={ef.fish.image_url} alt={ef.fish.name_id} fill sizes="48px" className="object-cover" unoptimized />
                             ) : (
-                              <Fish className="h-6 w-6 m-auto mt-3 text-slate-400" />
+                              <Fish className="h-6 w-6 m-auto mt-3 text-slate-400 dark:text-slate-500" />
                             )}
                           </div>
                           <div className="flex flex-col">
                             <div className="flex items-center gap-2">
-                               <span className="font-black text-blue-700 dark:text-cyan-400 text-xs bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded shadow-sm border border-blue-100 dark:border-blue-900">{ef.quantity}x</span>
-                               <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-none">{lang === 'en' && ef.fish.name_en ? ef.fish.name_en : ef.fish.name_id}</p>
+                               <span className="font-black text-blue-700 dark:text-cyan-400 text-xs bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded shadow-sm border border-blue-100 dark:border-blue-900 transition-colors">{ef.quantity}x</span>
+                               <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-none transition-colors">{lang === 'en' && ef.fish.name_en ? ef.fish.name_en : ef.fish.name_id}</p>
                             </div>
-                            <p className="text-[10px] font-bold text-slate-500 mt-1.5 uppercase tracking-wider">{ef.fish.water_layer || 'Mid'} • Adult: {ef.fish.estimated_adult_size_cm || 5}cm</p>
+                            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 uppercase tracking-wider transition-colors">{ef.fish.water_layer || 'Mid'} • Adult: {ef.fish.estimated_adult_size_cm || 5}cm</p>
                           </div>
                         </div>
-                        <button type="button" onClick={() => handleRemoveFish(ef.fish.id)} className="text-slate-400 hover:text-white hover:bg-red-500 rounded-full transition-colors p-1.5"><X className="h-4 w-4"/></button>
+                        <button type="button" onClick={() => handleRemoveFish(ef.fish.id)} className="text-slate-400 dark:text-slate-500 hover:text-white dark:hover:text-white hover:bg-red-500 dark:hover:bg-red-600 rounded-full transition-colors p-1.5"><X className="h-4 w-4"/></button>
                       </div>
                     ))
                   )}
@@ -443,25 +459,25 @@ export default function FishExpertEnginePage() {
           {/* PANEL KANAN: HASIL REKOMENDASI AI */}
           <div className="xl:col-span-7 space-y-6">
             {!results ? (
-              <div className="flex flex-col items-center justify-center min-h-[500px] border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-900/20 text-center p-8">
+              <div className="flex flex-col items-center justify-center min-h-[500px] border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-900/20 text-center p-8 transition-colors">
                 <Fish className="h-20 w-20 text-slate-300 dark:text-slate-700 mb-6 animate-pulse" />
-                <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-3">{t.idleTitle}</h3>
-                <p className="text-slate-500 dark:text-slate-400 max-w-lg text-lg">{t.idleDesc}</p>
+                <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-3 transition-colors">{t.idleTitle}</h3>
+                <p className="text-slate-500 dark:text-slate-400 max-w-lg text-lg transition-colors">{t.idleDesc}</p>
               </div>
             ) : results.length === 0 ? (
-              <div className="flex flex-col items-center justify-center min-h-[500px] border-2 border-red-200 dark:border-red-900/30 rounded-2xl bg-red-50 dark:bg-red-950/10 p-8 text-center">
+              <div className="flex flex-col items-center justify-center min-h-[500px] border-2 border-red-200 dark:border-red-900/30 rounded-2xl bg-red-50 dark:bg-red-950/10 p-8 text-center transition-colors">
                 <Info className="h-16 w-16 text-red-500 mb-6" />
-                <h3 className="text-2xl font-bold text-red-900 dark:text-red-200 mb-3">{t.failTitle}</h3>
-                <p className="text-base text-slate-600 dark:text-red-400/80 max-w-lg leading-relaxed">{t.failDesc}</p>
+                <h3 className="text-2xl font-bold text-red-900 dark:text-red-200 mb-3 transition-colors">{t.failTitle}</h3>
+                <p className="text-base text-slate-600 dark:text-red-400/80 max-w-lg leading-relaxed transition-colors">{t.failDesc}</p>
               </div>
             ) : (
               <div className="animate-in fade-in duration-500 slide-in-from-bottom-4">
-                <div className="mb-6 flex flex-col sm:flex-row justify-between border-b border-slate-200 dark:border-slate-800 pb-5">
+                <div className="mb-6 flex flex-col sm:flex-row justify-between border-b border-slate-200 dark:border-slate-800 pb-5 transition-colors">
                   <div>
-                    <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400">{t.successTitle}</h3>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">{t.successDesc}</p>
+                    <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400 transition-colors">{t.successTitle}</h3>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1 transition-colors">{t.successDesc}</p>
                   </div>
-                  <span className="mt-4 sm:mt-0 inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-cyan-400 px-5 py-2 rounded-full border border-blue-200 dark:border-blue-900 font-bold whitespace-nowrap">
+                  <span className="mt-4 sm:mt-0 inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-cyan-400 px-5 py-2 rounded-full border border-blue-200 dark:border-blue-900 font-bold whitespace-nowrap transition-colors">
                     <CheckCircle2 className="h-5 w-5" /> {results.length} {t.matchCount}
                   </span>
                 </div>
@@ -474,27 +490,27 @@ export default function FishExpertEnginePage() {
 
                     if (isTopMatch) {
                       return (
-                        <div key={fish.id} className="lg:col-span-2 relative rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border-2 border-blue-500 shadow-xl shadow-blue-500/10 mb-2 flex flex-col">
-                          <div className="bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-2.5 text-white font-black flex items-center gap-2 text-sm tracking-widest uppercase z-10">
+                        <div key={fish.id} className="lg:col-span-2 relative rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border-2 border-blue-500 shadow-xl shadow-blue-500/10 mb-2 flex flex-col transition-colors">
+                          <div className="bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-2.5 text-white font-black flex items-center gap-2 text-sm tracking-widest uppercase z-10 transition-colors">
                             <Trophy className="h-5 w-5 text-amber-300" /> {t.bestMatch}
                           </div>
                           <div className="flex flex-col lg:flex-row items-stretch flex-1">
-                            <div className="p-4 lg:p-5 flex items-start justify-center border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30 lg:w-[320px] shrink-0">
+                            <div className="p-4 lg:p-5 flex items-start justify-center border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30 lg:w-[320px] shrink-0 transition-colors">
                               <div className="w-full max-w-[280px] lg:max-w-none"><FishCard fish={fish} /></div>
                             </div>
-                            <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 p-4 lg:p-5">
-                              <div className="flex flex-col gap-3 pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.confidence}</p>
-                                <div className={`inline-flex max-w-fit items-center px-3 py-2 rounded-lg border ${getConfidenceColor(confidenceKey)}`}>
+                            <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 p-4 lg:p-5 transition-colors">
+                              <div className="flex flex-col gap-3 pb-4 mb-4 border-b border-slate-100 dark:border-slate-800 transition-colors">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest transition-colors">{t.confidence}</p>
+                                <div className={`inline-flex max-w-fit items-center px-3 py-2 rounded-lg border transition-colors ${getConfidenceColor(confidenceKey)}`}>
                                   <Target className="w-4 h-4 mr-2" />
                                   <span className="font-black text-sm">{fish.matchScore} {t.points}</span>
                                   <span className="mx-2 opacity-40">|</span>
                                   <span className="font-bold text-xs uppercase tracking-wide">{getConfidenceLabel(confidenceKey)}</span>
                                 </div>
                               </div>
-                              <ul className="space-y-2 border-l-2 border-blue-500/40 pl-3 py-1 flex-1">
+                              <ul className="space-y-2 border-l-2 border-blue-500/40 pl-3 py-1 flex-1 transition-colors">
                                 {fish.matchReasons.map((reason, i) => (
-                                  <li key={i} className="text-[13px] text-slate-700 dark:text-slate-300 flex items-start font-medium leading-snug">
+                                  <li key={i} className="text-[13px] text-slate-700 dark:text-slate-300 flex items-start font-medium leading-snug transition-colors">
                                     <span className="text-blue-500 mr-2 font-bold mt-0.5">✓</span> <span>{reason}</span>
                                   </li>
                                 ))}
@@ -506,20 +522,20 @@ export default function FishExpertEnginePage() {
                     }
 
                     return (
-                      <div key={fish.id} className="relative rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md flex flex-col">
-                        <div className="absolute top-0 left-0 z-20 w-8 h-8 bg-slate-800 text-white rounded-br-xl flex items-center justify-center font-black text-xs">{globalIndex + 1}</div>
-                        <div className="p-4 flex justify-center bg-slate-50/50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800">
+                      <div key={fish.id} className="relative rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md flex flex-col transition-colors">
+                        <div className="absolute top-0 left-0 z-20 w-8 h-8 bg-slate-800 dark:bg-slate-700 text-white rounded-br-xl flex items-center justify-center font-black text-xs transition-colors">{globalIndex + 1}</div>
+                        <div className="p-4 flex justify-center bg-slate-50/50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800 transition-colors">
                            <div className="w-full max-w-[280px]"><FishCard fish={fish} /></div>
                         </div>
-                        <div className="p-5 flex-1 flex flex-col">
-                          <div className={`inline-flex items-center gap-2 text-[10px] font-bold px-2.5 py-1.5 rounded-md border mb-4 ${getConfidenceColor(confidenceKey)}`}>
+                        <div className="p-5 flex-1 flex flex-col transition-colors">
+                          <div className={`inline-flex items-center gap-2 text-[10px] font-bold px-2.5 py-1.5 rounded-md border mb-4 transition-colors ${getConfidenceColor(confidenceKey)}`}>
                             <span>{fish.matchScore} {t.points}</span>
                             <span>•</span>
                             <span className="uppercase tracking-wider">{getConfidenceLabel(confidenceKey)}</span>
                           </div>
-                          <ul className="space-y-2 border-l-2 border-blue-500/40 pl-3 py-1">
+                          <ul className="space-y-2 border-l-2 border-blue-500/40 pl-3 py-1 transition-colors">
                             {fish.matchReasons.map((reason, i) => (
-                              <li key={i} className="text-[12px] text-slate-700 dark:text-slate-300 flex items-start font-medium leading-tight">
+                              <li key={i} className="text-[12px] text-slate-700 dark:text-slate-300 flex items-start font-medium leading-tight transition-colors">
                                 <span className="text-blue-500 mr-2 font-bold">✓</span> <span>{reason}</span>
                               </li>
                             ))}
@@ -530,10 +546,9 @@ export default function FishExpertEnginePage() {
                   })}
                 </div>
 
-                {/* PENYELARASAN PAGINATION SESUAI PLANT EXPERT */}
                 {totalPages > 1 && (
                   <div className="flex flex-col lg:flex-row items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-6 mt-6 gap-4 transition-colors">
-                    <p className="text-sm text-slate-600 dark:text-slate-400 text-center lg:text-left w-full lg:w-auto">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 text-center lg:text-left w-full lg:w-auto transition-colors">
                       {t.showing} <span className="font-medium text-gray-900 dark:text-slate-200">{startIndex + 1}</span> {t.to} <span className="font-medium text-gray-900 dark:text-slate-200">{Math.min(endIndex, results.length)}</span> {t.of} <span className="font-medium text-gray-900 dark:text-slate-200">{results.length}</span> {t.data}
                     </p>
                     
@@ -567,7 +582,6 @@ export default function FishExpertEnginePage() {
                         <ChevronsRight className="h-4 w-4" />
                       </Button>
 
-                      {/* FITUR LOMPAT HALAMAN (GO TO PAGE) */}
                       <div className="flex items-center justify-center gap-2 text-sm border-t lg:border-t-0 lg:border-l border-slate-300 dark:border-slate-700 pt-2.5 lg:pt-0 lg:pl-3 w-full lg:w-auto transition-colors text-slate-600 dark:text-slate-300">
                         <span className="hidden sm:inline">{t.page}</span>
                         <Input 
@@ -596,44 +610,44 @@ export default function FishExpertEnginePage() {
       {/* ========================================== */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-[#0f172a] border border-slate-700 w-full max-w-4xl rounded-2xl flex flex-col overflow-hidden shadow-2xl scale-in-95">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 w-full max-w-4xl rounded-3xl flex flex-col overflow-hidden shadow-2xl scale-in-95 transition-colors">
             
             {/* HEADER MODAL */}
-            <div className="p-5 sm:p-6 border-b border-slate-800">
+            <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-slate-800 transition-colors">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-extrabold text-white">{t.modalTitle}</h2>
-                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 hover:bg-slate-700 p-1.5 rounded-full"><X className="w-5 h-5"/></button>
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white transition-colors">{t.modalTitle}</h2>
+                <button onClick={() => setIsModalOpen(false)} className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 p-1.5 rounded-full"><X className="w-5 h-5"/></button>
               </div>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                <Input placeholder={t.modalSearch} value={modalSearch} onChange={e => setModalSearch(e.target.value)} className="bg-[#1e293b] border-slate-700 text-white pl-10 h-12 rounded-xl focus:border-blue-500 placeholder:text-slate-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 transition-colors" />
+                <Input placeholder={t.modalSearch} value={modalSearch} onChange={e => setModalSearch(e.target.value)} className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white pl-10 h-12 rounded-xl focus:border-blue-500 placeholder:text-slate-500 transition-colors" />
               </div>
             </div>
             
             {/* GRID GAMBAR IKAN */}
-            <div className="p-6 overflow-y-auto max-h-[50vh] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 bg-[#0b1120] custom-scrollbar">
+            <div className="p-6 overflow-y-auto max-h-[50vh] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 bg-slate-100/50 dark:bg-slate-950/50 custom-scrollbar transition-colors">
                {filteredModalFishes.map(f => (
-                 <div key={f.id} onClick={() => setModalSelectedFishId(f.id)} className={`cursor-pointer rounded-xl border-2 overflow-hidden flex flex-col items-center p-3 transition-all ${modalSelectedFishId === f.id ? 'border-blue-500 bg-blue-500/10 scale-[1.02]' : 'border-slate-800 bg-[#1e293b] hover:border-slate-600'}`}>
-                   <div className="w-16 h-16 rounded-lg bg-slate-800 mb-3 relative overflow-hidden flex items-center justify-center shadow-inner">
-                     {f.image_url ? <Image src={f.image_url} fill sizes="64px" className="object-cover" alt="" unoptimized /> : <Fish className="w-8 h-8 text-slate-500"/>}
+                 <div key={f.id} onClick={() => setModalSelectedFishId(f.id)} className={`cursor-pointer rounded-2xl border-2 overflow-hidden flex flex-col items-center p-3 transition-all ${modalSelectedFishId === f.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 scale-[1.02] shadow-md' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm'}`}>
+                   <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 mb-3 relative overflow-hidden flex items-center justify-center shadow-inner transition-colors">
+                     {f.image_url ? <Image src={f.image_url} fill sizes="64px" className="object-cover" alt="" unoptimized /> : <Fish className="w-8 h-8 text-slate-400 dark:text-slate-500 transition-colors"/>}
                    </div>
-                   <p className="text-xs font-bold text-center text-slate-200 line-clamp-2 leading-tight">{lang === 'en' && f.name_en ? f.name_en : f.name_id}</p>
+                   <p className="text-xs font-bold text-center text-slate-800 dark:text-slate-200 line-clamp-2 leading-tight transition-colors">{lang === 'en' && f.name_en ? f.name_en : f.name_id}</p>
                  </div>
                ))}
                {filteredModalFishes.length === 0 && (
-                 <div className="col-span-full py-10 text-center text-slate-500 italic">Data tidak ditemukan.</div>
+                 <div className="col-span-full py-10 text-center text-slate-500 italic transition-colors">Data tidak ditemukan.</div>
                )}
             </div>
             
             {/* BOTTOM ACTION BAR */}
-            <div className="p-5 sm:p-6 border-t border-slate-800 bg-[#0f172a] flex flex-col sm:flex-row items-end sm:items-center justify-between gap-4">
+            <div className="p-5 sm:p-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col sm:flex-row items-end sm:items-center justify-between gap-4 transition-colors">
               <div className="w-full sm:w-32 space-y-2">
-                <Label className="text-[10px] uppercase text-slate-400 font-bold tracking-widest">QTY</Label>
-                <Input type="number" min={1} value={modalQty} onChange={e => setModalQty(e.target.value ? Number(e.target.value) : "")} className="bg-[#1e293b] border-slate-700 text-white h-12 font-bold focus:border-blue-500 text-center sm:text-left" />
+                <Label className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold tracking-widest transition-colors">QTY</Label>
+                <Input type="number" min={1} value={modalQty} onChange={e => setModalQty(e.target.value ? Number(e.target.value) : "")} className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white h-12 font-black focus:border-blue-500 text-center sm:text-left transition-colors" />
               </div>
               <div className="flex w-full sm:w-auto gap-3">
-                 <Button variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1 sm:w-auto h-12 bg-transparent border-slate-700 text-slate-300 hover:bg-slate-800 font-bold uppercase tracking-wider">{t.modalCancel}</Button>
-                 <Button onClick={handleModalSave} disabled={!modalSelectedFishId || !modalQty} className="flex-1 sm:w-auto h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold w-full sm:w-32 uppercase tracking-wider shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all">
+                 <Button variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1 sm:w-auto h-12 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold uppercase tracking-wider transition-colors">{t.modalCancel}</Button>
+                 <Button onClick={handleModalSave} disabled={!modalSelectedFishId || !modalQty} className="flex-1 sm:w-auto h-12 bg-blue-600 hover:bg-blue-500 text-white font-black w-full sm:w-32 uppercase tracking-wider shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all">
                    {t.modalSave}
                  </Button>
               </div>
