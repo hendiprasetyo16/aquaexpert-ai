@@ -87,7 +87,7 @@ export const getSchoolingDesc = (isSchooling: boolean | null | undefined, minGro
   if (isSchooling === null || isSchooling === undefined) return "-";
   if (!isSchooling) return lang === "id" ? "Bisa dipelihara sendiri/sepasang" : "Can be kept solitary/pair";
   
-  const min = minGroup || 6; // Default standard schooling
+  const min = minGroup || 6; 
   return lang === "id" 
     ? `Ikan Koloni (Wajib min. ${min} ekor)` 
     : `Schooling Fish (Min. ${min} pcs)`;
@@ -104,4 +104,27 @@ export const formatWaterParams = (min: number | null | undefined, max: number | 
   if (min) return `> ${min} ${unit}`;
   if (max) return `< ${max} ${unit}`;
   return "-";
+};
+
+// --- FUNGSI BARU UNTUK TANK STYLES ---
+export const getTankStyleDesc = (style: string, lang: "id" | "en" = "id") => {
+  const s = style.toLowerCase();
+  if (lang === "id") {
+    if (s === "nature") return "Nature (Alami)";
+    if (s === "dutch") return "Dutch (Gaya Belanda)";
+    if (s === "iwagumi") return "Iwagumi (Batu)";
+    if (s === "biotope") return "Biotope (Sesuai Habitat Asli)";
+    if (s === "blackwater") return "Blackwater (Air Gelap)";
+    if (s === "community") return "Community (Campur)";
+    if (s === "predator") return "Predator Tank";
+  } else {
+    if (s === "nature") return "Nature Style";
+    if (s === "dutch") return "Dutch Style";
+    if (s === "iwagumi") return "Iwagumi Style";
+    if (s === "biotope") return "Biotope Setup";
+    if (s === "blackwater") return "Blackwater Setup";
+    if (s === "community") return "Community Tank";
+    if (s === "predator") return "Predator Tank";
+  }
+  return style;
 };

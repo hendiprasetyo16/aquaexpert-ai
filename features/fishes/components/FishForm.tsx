@@ -17,7 +17,8 @@ import { Loader2, ImagePlus, Archive, Trash2, X, Images, Brain, AlertTriangle, F
 import toast from "react-hot-toast";
 import { useLanguage } from "@/providers/LanguageProvider"; 
 
-import { getFishTypeDesc, getCompatibilityDesc } from "./fish-helpers";
+// IMPORT getTankStyleDesc di sini
+import { getFishTypeDesc, getCompatibilityDesc, getTankStyleDesc } from "./fish-helpers";
 
 interface FishFormProps {
   mode?: "create" | "edit";
@@ -26,7 +27,6 @@ interface FishFormProps {
 
 const TANK_STYLES_OPTIONS = ["Nature", "Dutch", "Iwagumi", "Biotope", "Blackwater", "Community", "Predator"];
 
-// DEFINISI TYPE-SAFE UNTUK KAMUS FISH FORM
 interface FishFormDict {
   visualSection: string; coverLabel: string; changeCover: string; uploadCover: string;
   galleryLabel: string; addGallery: string; saved: string; new: string;
@@ -48,6 +48,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
   const router = useRouter();
   const { role } = useAuth();
   const { dict, language } = useLanguage(); 
+  const lang = language as "id" | "en";
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -155,8 +156,8 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-      if (!validTypes.includes(file.type)) { setError(language === 'id' ? "Format harus JPG, PNG atau WEBP." : "Format must be JPG, PNG or WEBP."); return; }
-      if (file.size > 2 * 1024 * 1024) { setError(language === 'id' ? "Ukuran maksimal 2MB." : "Max size is 2MB."); return; }
+      if (!validTypes.includes(file.type)) { setError(lang === 'id' ? "Format harus JPG, PNG atau WEBP." : "Format must be JPG, PNG or WEBP."); return; }
+      if (file.size > 2 * 1024 * 1024) { setError(lang === 'id' ? "Ukuran maksimal 2MB." : "Max size is 2MB."); return; }
 
       setError(null); setCoverFile(file); setCoverPreview(URL.createObjectURL(file));
       if (mode === "edit" && fish?.image_url && !imagesToDeleteRef.current.includes(fish.image_url)) imagesToDeleteRef.current.push(fish.image_url);
@@ -170,7 +171,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
       const newValidFiles = filesArray.filter(f => validTypes.includes(f.type) && f.size <= 2 * 1024 * 1024);
 
       const spaceLeft = 8 - (existingGallery.length + newGallery.length);
-      if (spaceLeft <= 0) { toast.error(language === 'id' ? "Maksimal 8 gambar galeri." : "Maximum 8 gallery images."); return; }
+      if (spaceLeft <= 0) { toast.error(lang === 'id' ? "Maksimal 8 gambar galeri." : "Maximum 8 gallery images."); return; }
 
       const filesToAdd = newValidFiles.slice(0, spaceLeft).map(f => ({ file: f, preview: URL.createObjectURL(f) }));
       setNewGallery([...newGallery, ...filesToAdd]);
@@ -184,22 +185,21 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
   }
   function removeNewGallery(index: number) { setNewGallery(prev => prev.filter((_, i) => i !== index)); }
 
-  // VALIDASI BIOLOGIS SEBELUM SUBMIT
   function validateBiologicalData() {
     if (formData.ideal_ph_min && formData.ideal_ph_max && Number(formData.ideal_ph_min) > Number(formData.ideal_ph_max)) {
-      throw new Error(language === 'id' ? "Validasi Gagal: pH Min tidak boleh lebih besar dari pH Max." : "Validation Failed: Min pH cannot be greater than Max pH.");
+      throw new Error(lang === 'id' ? "Validasi Gagal: pH Min tidak boleh lebih besar dari pH Max." : "Validation Failed: Min pH cannot be greater than Max pH.");
     }
     if (formData.ideal_temp_min && formData.ideal_temp_max && Number(formData.ideal_temp_min) > Number(formData.ideal_temp_max)) {
-      throw new Error(language === 'id' ? "Validasi Gagal: Suhu Min tidak boleh lebih besar dari Suhu Max." : "Validation Failed: Min Temp cannot be greater than Max Temp.");
+      throw new Error(lang === 'id' ? "Validasi Gagal: Suhu Min tidak boleh lebih besar dari Suhu Max." : "Validation Failed: Min Temp cannot be greater than Max Temp.");
     }
     if (formData.hardness_min && formData.hardness_max && Number(formData.hardness_min) > Number(formData.hardness_max)) {
-      throw new Error(language === 'id' ? "Validasi Gagal: GH (Hardness) Min tidak boleh lebih besar dari GH Max." : "Validation Failed: Min GH cannot be greater than Max GH.");
+      throw new Error(lang === 'id' ? "Validasi Gagal: GH Min tidak boleh lebih besar dari GH Max." : "Validation Failed: Min GH cannot be greater than Max GH.");
     }
     if (formData.min_group_size && formData.max_group_size && Number(formData.min_group_size) > Number(formData.max_group_size)) {
-      throw new Error(language === 'id' ? "Validasi Gagal: Group Size Min tidak boleh melebihi Group Size Max." : "Validation Failed: Min Group Size cannot exceed Max Group Size.");
+      throw new Error(lang === 'id' ? "Validasi Gagal: Group Size Min tidak boleh melebihi Max." : "Validation Failed: Min Group Size cannot exceed Max.");
     }
     if (formData.min_tank_size && Number(formData.min_tank_size) < 0) {
-      throw new Error(language === 'id' ? "Validasi Gagal: Volume Tangki tidak boleh minus." : "Validation Failed: Tank Volume cannot be negative.");
+      throw new Error(lang === 'id' ? "Validasi Gagal: Volume Tangki tidak boleh minus." : "Validation Failed: Tank Volume cannot be negative.");
     }
   }
 
@@ -222,7 +222,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
       const { data: existingFish, error: checkError } = await query.maybeSingle();
       if (checkError) throw new Error(checkError.message);
       if (existingFish) { 
-        setError(language === 'id' ? "Nama ikan duplikat." : "Duplicate fish name."); 
+        setError(lang === 'id' ? "Nama ikan duplikat." : "Duplicate fish name."); 
         return; 
       }
 
@@ -283,11 +283,11 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
       if (mode === "create") {
         const result = await createFishAction(payload);
         if (!result.success) throw new Error(result.error);
-        toast.success(language === 'id' ? "Ikan berhasil ditambahkan!" : "Fish added successfully!");
+        toast.success(lang === 'id' ? "Ikan berhasil ditambahkan!" : "Fish added successfully!");
       } else {
         const result = await updateFishAction(fish!.id, payload);
         if (!result.success) throw new Error(result.error);
-        toast.success(language === 'id' ? "Ikan berhasil diperbarui!" : "Fish updated successfully!");
+        toast.success(lang === 'id' ? "Ikan berhasil diperbarui!" : "Fish updated successfully!");
       }
 
       for (const urlToDelete of imagesToDeleteRef.current) {
@@ -298,7 +298,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
       router.refresh();
 
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : (language === 'id' ? "Gagal menyimpan data." : "Failed to save data.");
+      const errMsg = err instanceof Error ? err.message : (lang === 'id' ? "Gagal menyimpan data." : "Failed to save data.");
       setError(errMsg);
       toast.error(errMsg);
       if (uploadedImagesToRollback.length > 0) {
@@ -311,27 +311,26 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
   async function executeArchive() {
     if (!fish || mode !== "edit") return;
     try { 
-      setLoading(true); await deleteFish(fish.id); toast.success(language === 'id' ? "Diarsipkan." : "Archived."); 
+      setLoading(true); await deleteFish(fish.id); toast.success(lang === 'id' ? "Diarsipkan." : "Archived."); 
       router.push("/dashboard/fishes"); router.refresh();
-    } catch (error: unknown) { toast.error(language === 'id' ? "Gagal mengarsipkan." : "Failed to archive."); } finally { setLoading(false); setIsArchiveModalOpen(false); }
+    } catch (error: unknown) { toast.error(lang === 'id' ? "Gagal mengarsipkan." : "Failed to archive."); } finally { setLoading(false); setIsArchiveModalOpen(false); }
   }
 
   function triggerHardDeleteModal() { if (!fish) return; setDeleteConfirmText(""); setIsDeleteModalOpen(true); }
   async function executeHardDelete(e: React.FormEvent) {
     e.preventDefault(); if (!fish) return;
-    const currentName = language === 'en' && fish.name_en ? fish.name_en : fish.name_id;
-    if (deleteConfirmText !== currentName) { toast.error(language === 'id' ? "Nama tidak cocok." : "Name mismatch."); return; }
+    const currentName = lang === 'en' && fish.name_en ? fish.name_en : fish.name_id;
+    if (deleteConfirmText !== currentName) { toast.error(lang === 'id' ? "Nama tidak cocok." : "Name mismatch."); return; }
     try { 
       setLoading(true); 
       const result = await hardDeleteFishAction(fish.id); 
       if (!result.success) throw new Error(result.error);
-      toast.success(language === 'id' ? "Dihapus permanen." : "Deleted permanently."); router.push("/dashboard/fishes"); router.refresh();
-    } catch (error: unknown) { toast.error(language === 'id' ? "Gagal menghapus." : "Failed to delete."); } finally { setLoading(false); setIsDeleteModalOpen(false); }
+      toast.success(lang === 'id' ? "Dihapus permanen." : "Deleted permanently."); router.push("/dashboard/fishes"); router.refresh();
+    } catch (error: unknown) { toast.error(lang === 'id' ? "Gagal menghapus." : "Failed to delete."); } finally { setLoading(false); setIsDeleteModalOpen(false); }
   }
 
-  // PENGGUNAAN KAMUS SECARA TYPE-SAFE (BILINGUAL)
   const rootDict = dict as unknown as { fishForm: FishFormDict };
-  if (!rootDict.fishForm) return null; // Safety render
+  if (!rootDict.fishForm) return null; 
   const formDict = rootDict.fishForm;
 
   return (
@@ -340,7 +339,6 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
         <CardContent className="p-4 sm:p-6 md:p-8">
           <form onSubmit={handleSubmit} className="space-y-8">
             
-            {/* BAGIAN 1: VISUAL IKAN */}
             <div className="space-y-4 bg-slate-50 dark:bg-slate-950/50 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
               <h3 className="text-lg font-bold text-gray-900 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-2">
                 <Images className="h-5 w-5 text-blue-600 dark:text-blue-500" /> {formDict.visualSection}
@@ -350,7 +348,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 font-semibold">{formDict.coverLabel}</Label>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 leading-tight">
-                    {language === 'id' ? "Foto rasio lanskap/lebar (Max 2MB). Akan jadi foto utama." : "Landscape ratio photo (Max 2MB). Will be the main cover."}
+                    {lang === 'id' ? "Foto rasio lanskap/lebar (Max 2MB). Akan jadi foto utama." : "Landscape ratio photo (Max 2MB). Will be the main cover."}
                   </p>
                   <input id="cover-image" type="file" accept="image/*" onChange={handleCoverChange} className="hidden" />
                   <label htmlFor="cover-image" className="cursor-pointer block">
@@ -378,7 +376,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                     <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">({existingGallery.length + newGallery.length}/8 Max)</span>
                   </div>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 leading-tight">
-                    {language === 'id' ? "Foto rasio persegi/kotak sangat disarankan (Max 2MB/foto)." : "Square ratio photos highly recommended (Max 2MB/photo)."}
+                    {lang === 'id' ? "Foto rasio persegi/kotak sangat disarankan (Max 2MB/foto)." : "Square ratio photos highly recommended (Max 2MB/photo)."}
                   </p>
                   
                   {existingGallery.length + newGallery.length < 8 && (
@@ -412,7 +410,6 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               </div>
             </div>
 
-            {/* BAGIAN 2: IDENTITAS & ASAL-USUL */}
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-4 md:col-span-2 bg-slate-50 dark:bg-slate-950/30 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800">
                 <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-2 text-gray-900 dark:text-slate-200 flex items-center gap-2">
@@ -421,81 +418,80 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                 <div className="grid gap-5 md:grid-cols-2 mt-4">
                   <div className="space-y-2">
                     <Label className="text-slate-700 dark:text-slate-300 font-semibold">{formDict.nameIdLabel}</Label>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{language === 'id' ? "Nama umum ikan di pasar Indonesia." : "Common fish name in Indonesian market."}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{lang === 'id' ? "Nama umum ikan di pasar Indonesia." : "Common fish name in Indonesian market."}</p>
                     <Input name="name_id" required value={formData.name_id} onChange={handleChange} placeholder={formDict.nameIdPlaceholder} className="bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 focus:border-blue-500 text-slate-900 dark:text-slate-100 h-11" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-slate-700 dark:text-slate-300 font-semibold">{formDict.nameEnLabel}</Label>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{language === 'id' ? "Nama umum ikan dalam bahasa Inggris." : "Common fish name in English."}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{lang === 'id' ? "Nama umum ikan dalam bahasa Inggris." : "Common fish name in English."}</p>
                     <Input name="name_en" value={formData.name_en} onChange={handleChange} placeholder={formDict.nameEnPlaceholder} className="bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 focus:border-blue-500 text-slate-900 dark:text-slate-100 h-11" />
                   </div>
                 </div>
                 <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800/50">
                   <Label className="text-slate-700 dark:text-slate-300 font-semibold">{formDict.scientificNameLabel}</Label>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{language === 'id' ? "Nama latin untuk identifikasi akurat secara global." : "Latin name for accurate global identification."}</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{lang === 'id' ? "Nama latin untuk identifikasi akurat secara global." : "Latin name for accurate global identification."}</p>
                   <Input name="scientific_name" value={formData.scientific_name} onChange={handleChange} className="italic bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 focus:border-blue-500 text-slate-900 dark:text-slate-100 h-11" placeholder="Cth: Paracheirodon innesi" />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label className="text-slate-700 dark:text-slate-300 font-semibold">{formDict.fishTypeLabel}</Label>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{language === 'id' ? "Pilih keluarga besar ikan." : "Select the fish family."}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{lang === 'id' ? "Pilih keluarga besar ikan." : "Select the fish family."}</p>
                 <select name="fish_type" value={formData.fish_type} onChange={handleChange} className="h-11 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500 text-slate-900 dark:text-slate-100 font-medium">
-                  <option value="Tetra">{getFishTypeDesc("Tetra", language)}</option>
-                  <option value="Cichlid">{getFishTypeDesc("Cichlid", language)}</option>
-                  <option value="Livebearer">{getFishTypeDesc("Livebearer", language)}</option>
-                  <option value="Betta">{getFishTypeDesc("Betta", language)}</option>
-                  <option value="Labyrinth">{getFishTypeDesc("Labyrinth", language)}</option>
-                  <option value="Loach">{getFishTypeDesc("Loach", language)}</option>
-                  <option value="Catfish">{getFishTypeDesc("Catfish", language)}</option>
-                  <option value="Rasbora">{getFishTypeDesc("Rasbora", language)}</option>
-                  <option value="Invertebrate">{getFishTypeDesc("Invertebrate", language)}</option>
+                  <option value="Tetra">{getFishTypeDesc("Tetra", lang)}</option>
+                  <option value="Cichlid">{getFishTypeDesc("Cichlid", lang)}</option>
+                  <option value="Livebearer">{getFishTypeDesc("Livebearer", lang)}</option>
+                  <option value="Betta">{getFishTypeDesc("Betta", lang)}</option>
+                  <option value="Labyrinth">{getFishTypeDesc("Labyrinth", lang)}</option>
+                  <option value="Loach">{getFishTypeDesc("Loach", lang)}</option>
+                  <option value="Catfish">{getFishTypeDesc("Catfish", lang)}</option>
+                  <option value="Rasbora">{getFishTypeDesc("Rasbora", lang)}</option>
+                  <option value="Invertebrate">{getFishTypeDesc("Invertebrate", lang)}</option>
                 </select>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-700 dark:text-slate-300 font-semibold">{language === 'id' ? "Wilayah Asal (Origin Region)" : "Origin Region"}</Label>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{language === 'id' ? "Berguna untuk setup tank bertema biotope." : "Useful for biotope themed tank setups."}</p>
+                <Label className="text-slate-700 dark:text-slate-300 font-semibold">{lang === 'id' ? "Wilayah Asal (Origin Region)" : "Origin Region"}</Label>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{lang === 'id' ? "Berguna untuk setup tank bertema biotope." : "Useful for biotope themed tank setups."}</p>
                 <select name="origin_region" value={formData.origin_region} onChange={handleChange} className="h-11 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500 text-slate-900 dark:text-slate-100 font-medium">
-                  <option value="South America">{language === 'id' ? "Amerika Selatan (Amazon)" : "South America (Amazon)"}</option>
+                  <option value="South America">{lang === 'id' ? "Amerika Selatan (Amazon)" : "South America (Amazon)"}</option>
                   <option value="Asia">Asia</option>
-                  <option value="Africa">{language === 'id' ? "Afrika" : "Africa"}</option>
-                  <option value="Central America">{language === 'id' ? "Amerika Tengah" : "Central America"}</option>
-                  <option value="North America">{language === 'id' ? "Amerika Utara" : "North America"}</option>
-                  <option value="Australia">{language === 'id' ? "Australia & Oceania" : "Australia & Oceania"}</option>
-                  <option value="Global (Bred)">{language === 'id' ? "Global (Hasil Budidaya)" : "Global (Captive Bred)"}</option>
+                  <option value="Africa">{lang === 'id' ? "Afrika" : "Africa"}</option>
+                  <option value="Central America">{lang === 'id' ? "Amerika Tengah" : "Central America"}</option>
+                  <option value="North America">{lang === 'id' ? "Amerika Utara" : "North America"}</option>
+                  <option value="Australia">{lang === 'id' ? "Australia & Oceania" : "Australia & Oceania"}</option>
+                  <option value="Global (Bred)">{lang === 'id' ? "Global (Hasil Budidaya)" : "Global (Captive Bred)"}</option>
                 </select>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-700 dark:text-slate-300 font-semibold">{language === 'id' ? "Zona Renang (Water Layer)" : "Swimming Zone"}</Label>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{language === 'id' ? "Area utama ikan ini berenang di dalam akuarium." : "Primary area where the fish swims in the tank."}</p>
+                <Label className="text-slate-700 dark:text-slate-300 font-semibold">{lang === 'id' ? "Zona Renang (Water Layer)" : "Swimming Zone"}</Label>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{lang === 'id' ? "Area utama ikan ini berenang di dalam akuarium." : "Primary area where the fish swims in the tank."}</p>
                 <select name="water_layer" value={formData.water_layer} onChange={handleChange} className="h-11 w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500 text-slate-900 dark:text-slate-100 font-medium">
-                  <option value="Top">{language === 'id' ? "Top (Permukaan Atas)" : "Top (Surface)"}</option>
-                  <option value="Middle">{language === 'id' ? "Middle (Area Tengah)" : "Middle (Mid-water)"}</option>
-                  <option value="Bottom">{language === 'id' ? "Bottom (Dasar Pasir)" : "Bottom (Substrate)"}</option>
-                  <option value="All Levels">{language === 'id' ? "Semua Level (Aktif ke Atas & Bawah)" : "All Levels"}</option>
+                  <option value="Top">{lang === 'id' ? "Top (Permukaan Atas)" : "Top (Surface)"}</option>
+                  <option value="Middle">{lang === 'id' ? "Middle (Area Tengah)" : "Middle (Mid-water)"}</option>
+                  <option value="Bottom">{lang === 'id' ? "Bottom (Dasar Pasir)" : "Bottom (Substrate)"}</option>
+                  <option value="All Levels">{lang === 'id' ? "Semua Level (Aktif ke Atas & Bawah)" : "All Levels"}</option>
                 </select>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-700 dark:text-slate-300 font-semibold">{language === 'id' ? "Usia Maksimal" : "Max Lifespan"}</Label>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{language === 'id' ? "Angka estimasi dalam hitungan Tahun." : "Estimated numbers in Years."}</p>
+                <Label className="text-slate-700 dark:text-slate-300 font-semibold">{lang === 'id' ? "Usia Maksimal" : "Max Lifespan"}</Label>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{lang === 'id' ? "Angka estimasi dalam hitungan Tahun." : "Estimated numbers in Years."}</p>
                 <div className="relative">
                   <Input type="number" min="0" name="lifespan_years" value={formData.lifespan_years} onChange={handleChange} className="bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 focus:border-blue-500 text-slate-900 dark:text-slate-100 h-11 pr-16" placeholder="Cth: 5" />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">{language === 'id' ? 'Tahun' : 'Years'}</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">{lang === 'id' ? 'Tahun' : 'Years'}</span>
                 </div>
               </div>
             </div>
 
-            {/* BAGIAN 3: PARAMETER LINGKUNGAN AIR */}
             <div className="bg-slate-50 dark:bg-slate-950/30 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 space-y-6">
               <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-2">
                   <Droplets className="h-5 w-5 text-blue-600 dark:text-blue-500" /> {formDict.waterParamSection}
                 </h3>
                 <p className="text-[11px] mt-2 text-slate-500 dark:text-slate-400 leading-tight">
-                  {language === 'id' 
+                  {lang === 'id' 
                     ? "Isikan batas minimum dan maksimum toleransi air agar sistem AI dapat menghitung kecocokan akuarium user." 
                     : "Fill in the minimum and maximum water tolerance limits so the AI can calculate tank suitability."}
                 </p>
@@ -511,11 +507,10 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               </div>
             </div>
 
-            {/* BAGIAN DESKRIPSI SPESIES */}
             <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 font-semibold">{formDict.descSectionId}</Label>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{language === 'id' ? "Penjelasan singkat tentang ikan ini untuk dibaca pengguna berbahasa Indonesia." : "Short explanation for Indonesian readers."}</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{lang === 'id' ? "Penjelasan singkat tentang ikan ini untuk dibaca pengguna berbahasa Indonesia." : "Short explanation for Indonesian readers."}</p>
                   <textarea name="description_id" rows={4} value={formData.description_id} onChange={handleChange} className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-3 outline-none resize-y focus:border-blue-500 text-sm text-slate-900 dark:text-slate-100" placeholder={formDict.descIdPlaceholder} />
                 </div>
                 <div className="space-y-2">
@@ -525,13 +520,12 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                 </div>
             </div>
 
-            {/* BAGIAN 4: FISH EXPERT SYSTEM KUSTOMISASI KETAT */}
             <div className="bg-blue-50/50 dark:bg-blue-950/20 p-4 sm:p-6 rounded-xl border border-blue-200 dark:border-blue-900/50 space-y-6 shadow-inner">
               <div>
                 <h3 className="text-lg font-black text-blue-800 dark:text-blue-400 flex items-center gap-2">
                   <Brain className="h-5 w-5" /> {formDict.expertEngineSection}
                 </h3>
-                <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1 mb-2">{language === 'id' ? "Parameter tingkat lanjut. Diperlukan agar mesin rekomendasi AI (Fish Expert) bekerja 100% akurat." : "Advanced parameters. Required for the AI recommendation engine to work 100% accurately."}</p>
+                <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1 mb-2">{lang === 'id' ? "Parameter tingkat lanjut. Diperlukan agar mesin rekomendasi AI (Fish Expert) bekerja 100% akurat." : "Advanced parameters. Required for the AI recommendation engine to work 100% accurately."}</p>
               </div>
               
               <div className="grid gap-5 md:grid-cols-3">
@@ -551,32 +545,32 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
 
               <div className="grid gap-5 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{language === 'id' ? "Skor Agresi (1-5)" : "Aggression Score (1-5)"}</Label>
+                  <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{lang === 'id' ? "Skor Agresi (1-5)" : "Aggression Score (1-5)"}</Label>
                   <select name="temperament_score" value={formData.temperament_score} onChange={handleChange} className="h-11 w-full rounded-md border border-blue-300 dark:border-blue-800/60 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500 font-medium text-sm text-slate-900 dark:text-slate-100">
-                    <option value="1">{language === 'id' ? "1 - Sangat Damai (Pemalu)" : "1 - Very Peaceful (Shy)"}</option>
-                    <option value="2">{language === 'id' ? "2 - Damai (Normal)" : "2 - Peaceful (Normal)"}</option>
-                    <option value="3">{language === 'id' ? "3 - Semi-Agresif / Teritorial" : "3 - Semi-Aggressive / Territorial"}</option>
-                    <option value="4">{language === 'id' ? "4 - Pemarah / Usil Gigit Sirip" : "4 - Aggressive / Fin Nipper"}</option>
-                    <option value="5">{language === 'id' ? "5 - Predator Mutlak" : "5 - Absolute Predator"}</option>
+                    <option value="1">{lang === 'id' ? "1 - Sangat Damai (Pemalu)" : "1 - Very Peaceful (Shy)"}</option>
+                    <option value="2">{lang === 'id' ? "2 - Damai (Normal)" : "2 - Peaceful (Normal)"}</option>
+                    <option value="3">{lang === 'id' ? "3 - Semi-Agresif / Teritorial" : "3 - Semi-Aggressive / Territorial"}</option>
+                    <option value="4">{lang === 'id' ? "4 - Pemarah / Usil Gigit Sirip" : "4 - Aggressive / Fin Nipper"}</option>
+                    <option value="5">{lang === 'id' ? "5 - Predator Mutlak" : "5 - Absolute Predator"}</option>
                   </select>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{formDict.compatibilityLabel}</Label>
                   <select name="compatibility" value={formData.compatibility} onChange={handleChange} className="h-11 w-full rounded-md border border-blue-300 dark:border-blue-800/60 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500 font-medium text-sm text-slate-900 dark:text-slate-100">
-                    <option value="Peaceful">{getCompatibilityDesc("Peaceful", language)}</option>
-                    <option value="Semi-Aggressive">{getCompatibilityDesc("Semi-Aggressive", language)}</option>
-                    <option value="Aggressive">{getCompatibilityDesc("Aggressive", language)}</option>
-                    <option value="Species Only">{getCompatibilityDesc("Species Only", language)}</option>
+                    <option value="Peaceful">{getCompatibilityDesc("Peaceful", lang)}</option>
+                    <option value="Semi-Aggressive">{getCompatibilityDesc("Semi-Aggressive", lang)}</option>
+                    <option value="Aggressive">{getCompatibilityDesc("Aggressive", lang)}</option>
+                    <option value="Species Only">{getCompatibilityDesc("Species Only", lang)}</option>
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{language === 'id' ? "Gaya Hidup Dewasa" : "Adult Behavior"}</Label>
+                  <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{lang === 'id' ? "Gaya Hidup Dewasa" : "Adult Behavior"}</Label>
                   <select name="adult_behavior" value={formData.adult_behavior} onChange={handleChange} className="h-11 w-full rounded-md border border-blue-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500 font-medium text-sm text-slate-900 dark:text-slate-100">
-                    <option value="Schooling">{language === 'id' ? "Schooling (Berkerumun)" : "Schooling (Swarm)"}</option>
-                    <option value="Pair">{language === 'id' ? "Pair (Sepasang Jantan Betina)" : "Pair (Male & Female)"}</option>
-                    <option value="Solitary">{language === 'id' ? "Solitary (Menyendiri / Penguasa)" : "Solitary (Loner / Boss)"}</option>
-                    <option value="Harem">{language === 'id' ? "Harem (1 Jantan Banyak Betina)" : "Harem (1 Male Many Females)"}</option>
-                    <option value="Colony">{language === 'id' ? "Colony (Berkoloni bebas)" : "Colony (Free roaming)"}</option>
+                    <option value="Schooling">{lang === 'id' ? "Schooling (Berkerumun)" : "Schooling (Swarm)"}</option>
+                    <option value="Pair">{lang === 'id' ? "Pair (Sepasang Jantan Betina)" : "Pair (Male & Female)"}</option>
+                    <option value="Solitary">{lang === 'id' ? "Solitary (Menyendiri / Penguasa)" : "Solitary (Loner / Boss)"}</option>
+                    <option value="Harem">{lang === 'id' ? "Harem (1 Jantan Banyak Betina)" : "Harem (1 Male Many Females)"}</option>
+                    <option value="Colony">{lang === 'id' ? "Colony (Berkoloni bebas)" : "Colony (Free roaming)"}</option>
                   </select>
                 </div>
               </div>
@@ -591,26 +585,26 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                   <Input type="number" min="1" name="min_group_size" value={formData.min_group_size} onChange={handleChange} className="bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-800/60 h-11" placeholder="Cth: 6" />
                 </div>
                 <div className={`space-y-2 transition-opacity ${!formData.schooling ? 'opacity-40 pointer-events-none' : ''}`}>
-                  <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{language === 'id' ? "Group Size Maksimum" : "Max Group Size"}</Label>
-                  <Input type="number" min="1" name="max_group_size" value={formData.max_group_size} onChange={handleChange} className="bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-800/60 h-11" placeholder={language === 'id' ? "Cth: 20 (opsional)" : "Ex: 20 (optional)"} />
+                  <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{lang === 'id' ? "Group Size Maksimum" : "Max Group Size"}</Label>
+                  <Input type="number" min="1" name="max_group_size" value={formData.max_group_size} onChange={handleChange} className="bg-white dark:bg-slate-950 border-blue-300 dark:border-blue-800/60 h-11" placeholder={lang === 'id' ? "Cth: 20 (opsional)" : "Ex: 20 (optional)"} />
                 </div>
               </div>
 
               <div className="grid gap-5 md:grid-cols-2 pt-6 border-t border-blue-200 dark:border-blue-900/50">
                  <div className="flex flex-col gap-3 p-5 bg-white dark:bg-slate-950 rounded-xl border border-blue-100 dark:border-blue-800/60 shadow-sm">
-                   <Label className="text-blue-800 dark:text-blue-400 font-bold border-b border-slate-100 dark:border-slate-800 pb-2.5">{language === 'id' ? "Aman Untuk Fauna Lain?" : "Safe for other fauna?"}</Label>
+                   <Label className="text-blue-800 dark:text-blue-400 font-bold border-b border-slate-100 dark:border-slate-800 pb-2.5">{lang === 'id' ? "Aman Untuk Fauna Lain?" : "Safe for other fauna?"}</Label>
                    <label className="flex items-center gap-3 cursor-pointer group mt-1">
                      <input type="checkbox" name="shrimp_safe" checked={formData.shrimp_safe} onChange={handleChange} className="w-5 h-5 accent-emerald-600 rounded" />
-                     <span className="font-semibold text-sm group-hover:text-emerald-600 transition-colors">{language === 'id' ? "Shrimp Safe (Aman untuk Udang)" : "Shrimp Safe"}</span>
+                     <span className="font-semibold text-sm group-hover:text-emerald-600 transition-colors">{lang === 'id' ? "Shrimp Safe (Aman untuk Udang)" : "Shrimp Safe"}</span>
                    </label>
                    <label className="flex items-center gap-3 cursor-pointer group">
                      <input type="checkbox" name="plant_safe" checked={formData.plant_safe} onChange={handleChange} className="w-5 h-5 accent-teal-600 rounded" />
-                     <span className="font-semibold text-sm group-hover:text-teal-600 transition-colors">{language === 'id' ? "Plant Safe (Aman untuk Tanaman)" : "Plant Safe"}</span>
+                     <span className="font-semibold text-sm group-hover:text-teal-600 transition-colors">{lang === 'id' ? "Plant Safe (Aman untuk Tanaman)" : "Plant Safe"}</span>
                    </label>
                  </div>
                  
                  <div className="flex flex-col gap-2 p-5 bg-white dark:bg-slate-950 rounded-xl border border-blue-100 dark:border-blue-800/60 shadow-sm">
-                   <Label className="text-blue-800 dark:text-blue-400 font-bold border-b border-slate-100 dark:border-slate-800 pb-2.5">{language === 'id' ? "Rekomendasi Tema Tank (Styles)" : "Recommended Tank Styles"}</Label>
+                   <Label className="text-blue-800 dark:text-blue-400 font-bold border-b border-slate-100 dark:border-slate-800 pb-2.5">{lang === 'id' ? "Rekomendasi Tema Tank (Styles)" : "Recommended Tank Styles"}</Label>
                    <div className="flex flex-wrap gap-2 pt-3">
                      {TANK_STYLES_OPTIONS.map(style => (
                        <button
@@ -618,7 +612,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                          onClick={() => handleStyleToggle(style)}
                          className={`px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold rounded-lg transition-all border ${formData.recommended_tank_styles.includes(style) ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/30 scale-105" : "bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700"}`}
                        >
-                         {style}
+                         {getTankStyleDesc(style, lang)}
                        </button>
                      ))}
                    </div>
@@ -627,26 +621,26 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
 
               <div className="grid gap-5 md:grid-cols-3 pt-6 border-t border-blue-200 dark:border-blue-900/50">
                  <div className="space-y-2">
-                   <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{language === 'id' ? "Kesulitan Pemijahan (Breeding)" : "Breeding Difficulty"}</Label>
+                   <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{lang === 'id' ? "Kesulitan Pemijahan (Breeding)" : "Breeding Difficulty"}</Label>
                    <select name="breeding_difficulty" value={formData.breeding_difficulty} onChange={handleChange} className="h-11 w-full rounded-md border border-blue-300 dark:border-blue-800/60 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500 font-medium text-sm text-slate-900 dark:text-slate-100">
-                     <option value="Easy">{language === 'id' ? "Mudah" : "Easy"}</option>
-                     <option value="Medium">{language === 'id' ? "Sedang" : "Medium"}</option>
-                     <option value="Hard">{language === 'id' ? "Sulit / Butuh Perlakuan Khusus" : "Hard / Needs Special Treatment"}</option>
+                     <option value="Easy">{lang === 'id' ? "Mudah" : "Easy"}</option>
+                     <option value="Medium">{lang === 'id' ? "Sedang" : "Medium"}</option>
+                     <option value="Hard">{lang === 'id' ? "Sulit / Butuh Perlakuan Khusus" : "Hard / Needs Special Treatment"}</option>
                    </select>
                  </div>
                  <div className="space-y-2">
-                    <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{language === 'id' ? "Tipe Reproduksi" : "Reproduction Type"}</Label>
+                    <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{lang === 'id' ? "Tipe Reproduksi" : "Reproduction Type"}</Label>
                     <div className="flex gap-4 mt-3 bg-white dark:bg-slate-950 px-3 py-3 rounded-md border border-blue-300 dark:border-blue-800/60 h-11 items-center">
-                      <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer"><input type="checkbox" name="is_egg_layer" checked={formData.is_egg_layer} onChange={handleChange} className="w-4 h-4 accent-blue-600" /> {language === 'id' ? "Bertelur (Egg)" : "Egg Layer"}</label>
-                      <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer"><input type="checkbox" name="is_livebearer" checked={formData.is_livebearer} onChange={handleChange} className="w-4 h-4 accent-blue-600" /> {language === 'id' ? "Beranak (Live)" : "Livebearer"}</label>
+                      <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer"><input type="checkbox" name="is_egg_layer" checked={formData.is_egg_layer} onChange={handleChange} className="w-4 h-4 accent-blue-600" /> {lang === 'id' ? "Bertelur (Egg)" : "Egg Layer"}</label>
+                      <label className="flex items-center gap-2 text-sm font-semibold cursor-pointer"><input type="checkbox" name="is_livebearer" checked={formData.is_livebearer} onChange={handleChange} className="w-4 h-4 accent-blue-600" /> {lang === 'id' ? "Beranak (Live)" : "Livebearer"}</label>
                     </div>
                  </div>
                  <div className="space-y-2">
-                    <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{language === 'id' ? "Tingkat Aktivitas Gerak" : "Activity Level"}</Label>
+                    <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{lang === 'id' ? "Tingkat Aktivitas Gerak" : "Activity Level"}</Label>
                     <select name="activity_level" value={formData.activity_level} onChange={handleChange} className="h-11 w-full rounded-md border border-blue-300 dark:border-blue-800/60 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500 font-medium text-sm text-slate-900 dark:text-slate-100">
-                      <option value="Low">{language === 'id' ? "Low (Suka Berdiam diri / Lambat)" : "Low (Static / Slow)"}</option>
-                      <option value="Medium">{language === 'id' ? "Medium (Renang Normal)" : "Medium (Normal Swimming)"}</option>
-                      <option value="High">{language === 'id' ? "High (Perenang Cepat / Hiperaktif)" : "High (Fast / Hyperactive)"}</option>
+                      <option value="Low">{lang === 'id' ? "Low (Suka Berdiam diri / Lambat)" : "Low (Static / Slow)"}</option>
+                      <option value="Medium">{lang === 'id' ? "Medium (Renang Normal)" : "Medium (Normal Swimming)"}</option>
+                      <option value="High">{lang === 'id' ? "High (Perenang Cepat / Hiperaktif)" : "High (Fast / Hyperactive)"}</option>
                     </select>
                  </div>
               </div>
@@ -672,7 +666,6 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               </div>
             )}
 
-            {/* ACTION BUTTONS UTAMA */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-200 dark:border-slate-800">
               <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
                 {mode === "edit" && fish && (
@@ -702,7 +695,6 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
         </CardContent>
       </Card>
 
-      {/* MODAL ARSIP */}
       {isArchiveModalOpen && fish && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-sm rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl scale-in-95">
@@ -711,7 +703,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">{formDict.modalArchiveTitle}</h3>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
-              {formDict.modalArchiveDesc1} <strong className="text-gray-900 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{language === 'en' && fish.name_en ? fish.name_en : fish.name_id}</strong>{formDict.modalArchiveDesc2}
+              {formDict.modalArchiveDesc1} <strong className="text-gray-900 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{lang === 'en' && fish.name_en ? fish.name_en : fish.name_id}</strong> {formDict.modalArchiveDesc2}
             </p>
             <div className="flex justify-end gap-3 pt-4">
               <button type="button" disabled={loading} onClick={() => setIsArchiveModalOpen(false)} className="rounded-xl px-5 h-11 text-sm font-bold transition-colors bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-50 flex items-center justify-center border border-slate-200 dark:border-slate-700">
@@ -725,7 +717,6 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
         </div>
       )}
 
-      {/* MODAL HAPUS PERMANEN (HANYA SUPER ADMIN) */}
       {isDeleteModalOpen && fish && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
           <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-500 scale-in-95">
@@ -736,7 +727,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
             
             <form onSubmit={executeHardDelete} className="flex flex-col gap-2">
               <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-                {formDict.modalDeleteDesc1} <strong>{formDict.modalDeleteDesc2}</strong> {formDict.modalDeleteDesc3} <strong className="text-gray-900 dark:text-slate-100 bg-red-50 dark:bg-red-900/30 px-1 py-0.5 rounded select-all">{language === 'en' && fish.name_en ? fish.name_en : fish.name_id}</strong> {formDict.modalDeleteDesc4}
+                {formDict.modalDeleteDesc1} <strong>{formDict.modalDeleteDesc2}</strong> {formDict.modalDeleteDesc3} <strong className="text-gray-900 dark:text-slate-100 bg-red-50 dark:bg-red-900/30 px-1 py-0.5 rounded select-all">{lang === 'en' && fish.name_en ? fish.name_en : fish.name_id}</strong> {formDict.modalDeleteDesc4}
               </p>
               
               <Input 
@@ -751,7 +742,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               <div className="flex flex-col gap-3 pt-2">
                 <button 
                   type="submit" 
-                  disabled={loading || deleteConfirmText !== (language === 'en' && fish.name_en ? fish.name_en : fish.name_id)} 
+                  disabled={loading || deleteConfirmText !== (lang === 'en' && fish.name_en ? fish.name_en : fish.name_id)} 
                   className="w-full h-12 flex items-center justify-center rounded-xl bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest shadow-lg shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : formDict.btnConfirmDelete}
