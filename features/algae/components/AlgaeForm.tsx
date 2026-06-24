@@ -24,6 +24,9 @@ const TEXTURE_TAGS = ["tuft", "hairy", "dust", "hard_spot", "slime", "branching"
 const LOCATION_TAGS = ["glass", "hardscape", "leaf_edges", "plants", "substrate", "slow_leaves", "equipment", "moss", "everywhere", "high_flow"];
 const TRIGGER_TAGS = ["new_tank", "co2_fluctuation", "high_light", "poor_circulation", "nutrient_imbalance", "low_phosphate", "low_flow", "high_ammonia", "iron_imbalance", "low_co2", "low_nitrate", "high_silicate", "high_organics"];
 
+// --- TAMBAHKAN BARIS INI ---
+const AFFECTED_CONDITIONS_TAGS = ["plant_melt", "stunted_growth", "oxygen_depletion", "fish_gasping", "foul_odor", "cloudy_water", "filter_clogged"];
+
 interface AlgaeFormProps {
   mode?: "create" | "edit";
   algae?: Algae;
@@ -56,7 +59,8 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
     causes_id: "", causes_en: "", 
     solutions_id: "", solutions_en: "",
     color_tags: [] as string[], texture_tags: [] as string[], 
-    location_tags: [] as string[], trigger_tags: [] as string[]
+    location_tags: [] as string[], trigger_tags: [] as string[],
+    affected_conditions: [] as string[] // <-- TAMBAHKAN INI
   });
 
   useEffect(() => {
@@ -69,7 +73,8 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
         causes_id: (algae.causes_id || []).join("\n"), causes_en: (algae.causes_en || []).join("\n"),
         solutions_id: (algae.solutions_id || []).join("\n"), solutions_en: (algae.solutions_en || []).join("\n"),
         color_tags: algae.color_tags || [], texture_tags: algae.texture_tags || [],
-        location_tags: algae.location_tags || [], trigger_tags: algae.trigger_tags || []
+        location_tags: algae.location_tags || [], trigger_tags: algae.trigger_tags || [],
+        affected_conditions: algae.affected_conditions || [] // <-- TAMBAHKAN INI
       });
 
       if (algae.image_url) setCoverPreview(algae.image_url);
@@ -88,7 +93,8 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
   }
 
-  function handleArrayCheckboxChange(e: React.ChangeEvent<HTMLInputElement>, field: "color_tags" | "texture_tags" | "location_tags" | "trigger_tags") {
+  // TAMBAHKAN "affected_conditions" KE DALAM UNION TYPE PARAMETER 'field'
+  function handleArrayCheckboxChange(e: React.ChangeEvent<HTMLInputElement>, field: "color_tags" | "texture_tags" | "location_tags" | "trigger_tags" | "affected_conditions") {
     const { value, checked } = e.target;
     setFormData(prev => {
       const currentArray = prev[field];
@@ -183,6 +189,7 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
         texture_tags: formData.texture_tags,
         location_tags: formData.location_tags,
         trigger_tags: formData.trigger_tags,
+        affected_conditions: formData.affected_conditions,
         image_url: finalCoverUrl || null,
         gallery_urls: finalGalleryUrls.length > 0 ? finalGalleryUrls : null,
       };
@@ -471,6 +478,34 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
                 </div>
               </div>
             </div>
+
+            {/* BAGIAN AFFECTED CONDITIONS */}
+              <div className="space-y-3 pt-2 mt-4">
+                <div>
+                  <Label className="text-teal-700 dark:text-teal-400 font-bold uppercase">
+                    {language === "id" ? "Dampak Ekosistem" : "Affected Conditions"}
+                  </Label>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
+                    {language === "id" ? "Dampak/kerusakan sekunder yang ditimbulkan alga ini." : "Secondary damages caused by this algae."}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 bg-white dark:bg-slate-950 p-4 rounded-lg border border-teal-200 dark:border-teal-900/50">
+                  {AFFECTED_CONDITIONS_TAGS.map((tag) => (
+                    <label key={tag} className="flex items-center space-x-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        value={tag} 
+                        checked={formData.affected_conditions.includes(tag)} 
+                        onChange={(e) => handleArrayCheckboxChange(e, "affected_conditions")} 
+                        className="h-4 w-4 accent-teal-600 rounded shrink-0 border-slate-300 dark:border-slate-700" 
+                      />
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        {getAlgaeTagDesc(tag, language)}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
 
             {error && <div className="rounded-md bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 p-4 text-sm text-red-600 dark:text-red-400">{error}</div>}
 

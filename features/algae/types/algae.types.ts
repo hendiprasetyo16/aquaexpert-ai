@@ -28,6 +28,9 @@ export interface Algae {
   
   image_url: string | null;
   gallery_urls: string[] | null;
+
+  // --- ATRIBUT BARU DARI SQL ---
+  affected_conditions: string[] | null;
   
   is_active: boolean;
   created_at: string;

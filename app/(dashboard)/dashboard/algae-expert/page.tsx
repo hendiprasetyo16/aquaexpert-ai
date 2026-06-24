@@ -15,10 +15,31 @@ import {
 
 import { generateAlgaeDiagnosis, UserAnswersAlgae, RecommendedAlgae } from "@/features/algae/services/expert.service";
 import { useLanguage } from "@/providers/LanguageProvider";
+import { getAlgaeTagDesc } from "@/features/algae/components/algae-helpers"; 
 
 const SESSION_KEY = "aquaexpert_algae_inference_v1";
 const ITEMS_PAGE_1 = 11; 
 const ITEMS_PAGE_N = 10; 
+
+// ==========================================
+// INTERFACE UNTUK TYPE-SAFE DICTIONARY
+// ==========================================
+interface AlgaeExpertDict {
+  title?: string;
+  subtitle?: string;
+  q1_color?: string;
+  q2_texture?: string;
+  q3_location?: string;
+  q4_trigger?: string;
+  btn_diagnose?: string;
+}
+
+interface ExpertEngineDict {
+  confExcellent?: string;
+  confVeryGood?: string;
+  confGood?: string;
+  confModerate?: string;
+}
 
 export default function AlgaeExpertEngine() {
   const { dict, language } = useLanguage(); 
@@ -33,12 +54,20 @@ export default function AlgaeExpertEngine() {
 
   const [currentPage, setCurrentPage] = useState(1);
 
+  // ==========================================
+  // TYPE-SAFE DICTIONARY ACCESS DENGAN DOUBLE CASTING
+  // ==========================================
+  const dictRoot = dict as unknown as { 
+    algaeExpert?: AlgaeExpertDict; 
+    expertEngine?: ExpertEngineDict; 
+  };
+
   useEffect(() => {
     async function loadKnowledgeBase() {
       try {
         const data = await getAlgaeList();
         setAlgaeList(data);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Gagal memuat Knowledge Base Algae:", error);
       } finally {
         setLoading(false);
@@ -60,7 +89,7 @@ export default function AlgaeExpertEngine() {
         }
         if (parsed.results) setResults(parsed.results);
         if (parsed.currentPage) setCurrentPage(parsed.currentPage);
-      } catch (e) {}
+      } catch (e: unknown) {}
     }
   }, []);
 
@@ -72,7 +101,7 @@ export default function AlgaeExpertEngine() {
            const parsed = JSON.parse(savedSession);
            parsed.currentPage = currentPage;
            sessionStorage.setItem(SESSION_KEY, JSON.stringify(parsed));
-         } catch (e) {}
+         } catch (e: unknown) {}
        }
     }
   }, [currentPage, results]);
@@ -80,7 +109,7 @@ export default function AlgaeExpertEngine() {
   useEffect(() => {
     if (results !== null && algaeList.length > 0) {
       const answers: UserAnswersAlgae = { color, texture, location, trigger };
-      const aiResults = generateAlgaeDiagnosis(algaeList, answers, dict.algaeExpert, language);
+      const aiResults = generateAlgaeDiagnosis(algaeList, answers, dictRoot.algaeExpert, language);
       setResults(aiResults);
       
       const savedSession = sessionStorage.getItem(SESSION_KEY);
@@ -89,18 +118,18 @@ export default function AlgaeExpertEngine() {
           const parsed = JSON.parse(savedSession);
           parsed.results = aiResults;
           sessionStorage.setItem(SESSION_KEY, JSON.stringify(parsed));
-        } catch(e) {}
+        } catch(e: unknown) {}
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language, dict.algaeExpert, algaeList.length]); 
+  }, [language, dictRoot.algaeExpert, algaeList.length]); 
 
   const runDiagnosisEngine = () => {
     setLoading(true);
     setCurrentPage(1); 
     
     const answers: UserAnswersAlgae = { color, texture, location, trigger };
-    const aiResults = generateAlgaeDiagnosis(algaeList, answers, dict.algaeExpert, language);
+    const aiResults = generateAlgaeDiagnosis(algaeList, answers, dictRoot.algaeExpert, language);
 
     sessionStorage.setItem(SESSION_KEY, JSON.stringify({ 
       answers, 
@@ -125,10 +154,10 @@ export default function AlgaeExpertEngine() {
 
   const getConfidenceLabel = (key: string) => {
     switch (key) {
-      case "Excellent": return dict.expertEngine?.confExcellent || "Excellent Match";
-      case "VeryGood": return dict.expertEngine?.confVeryGood || "Very Good Match";
-      case "Good": return dict.expertEngine?.confGood || "Good Match";
-      default: return dict.expertEngine?.confModerate || "Moderate Match";
+      case "Excellent": return dictRoot.expertEngine?.confExcellent || (language === 'id' ? "Sangat Cocok" : "Excellent Match");
+      case "VeryGood": return dictRoot.expertEngine?.confVeryGood || (language === 'id' ? "Kemungkinan Besar" : "Very Good Match");
+      case "Good": return dictRoot.expertEngine?.confGood || (language === 'id' ? "Cukup Cocok" : "Good Match");
+      default: return dictRoot.expertEngine?.confModerate || (language === 'id' ? "Kemungkinan Kecil" : "Moderate Match");
     }
   };
 
@@ -163,7 +192,7 @@ export default function AlgaeExpertEngine() {
   const pageNumbers = [];
   for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
-  if (!dict.algaeExpert) return null;
+  if (!dictRoot.algaeExpert) return null;
 
   return (
     <div className="w-full h-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10">
@@ -171,10 +200,10 @@ export default function AlgaeExpertEngine() {
         
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-extrabold text-teal-600 dark:text-teal-400 flex items-center gap-3">
-            <Cpu className="h-8 w-8 md:h-10 md:w-10" /> {dict.algaeExpert.title}
+            <Cpu className="h-8 w-8 md:h-10 md:w-10" /> {dictRoot.algaeExpert.title}
           </h1>
           <p className="mt-3 text-slate-600 dark:text-slate-400 max-w-3xl text-sm md:text-base leading-relaxed">
-            {dict.algaeExpert.subtitle}
+            {dictRoot.algaeExpert.subtitle}
           </p>
         </div>
 
@@ -188,7 +217,7 @@ export default function AlgaeExpertEngine() {
 
               <div className="space-y-5">
                 <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.algaeExpert.q1_color}</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dictRoot.algaeExpert.q1_color || "1. Warna"}</Label>
                   <select value={color} onChange={(e) => setColor(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
                     <option value="">-- {language === 'id' ? "Pilih Warna" : "Select Color"} --</option>
                     <option value="green">{language === 'id' ? "Hijau" : "Green"}</option>
@@ -205,7 +234,7 @@ export default function AlgaeExpertEngine() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.algaeExpert.q2_texture}</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dictRoot.algaeExpert.q2_texture || "2. Tekstur Visual"}</Label>
                   <select value={texture} onChange={(e) => setTexture(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
                     <option value="">-- {language === 'id' ? "Pilih Tekstur" : "Select Texture"} --</option>
                     <option value="tuft">{language === 'id' ? "Mengelompok (Kuas)" : "Tuft / Brush-like"}</option>
@@ -226,7 +255,7 @@ export default function AlgaeExpertEngine() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.algaeExpert.q3_location}</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dictRoot.algaeExpert.q3_location || "3. Lokasi Penyebaran"}</Label>
                   <select value={location} onChange={(e) => setLocation(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
                     <option value="">-- {language === 'id' ? "Pilih Lokasi" : "Select Location"} --</option>
                     <option value="glass">{language === 'id' ? "Kaca Akuarium" : "Aquarium Glass"}</option>
@@ -243,7 +272,7 @@ export default function AlgaeExpertEngine() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dict.algaeExpert.q4_trigger}</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 text-xs md:text-sm uppercase font-bold tracking-wider">{dictRoot.algaeExpert.q4_trigger || "4. Pemicu / Trigger (Opsional)"}</Label>
                   <select value={trigger} onChange={(e) => setTrigger(e.target.value)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-all">
                     <option value="">-- {language === 'id' ? "Pilih Pemicu (Opsional)" : "Select Trigger (Optional)"} --</option>
                     <option value="new_tank">{language === 'id' ? "Tank Baru (< 2 Bulan)" : "New Tank (< 2 Months)"}</option>
@@ -264,7 +293,7 @@ export default function AlgaeExpertEngine() {
               </div>
 
               <Button onClick={runDiagnosisEngine} disabled={loading || (!color && !texture && !location && !trigger)} className="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold h-14 mt-6 text-base shadow-lg shadow-teal-600/20 dark:shadow-teal-900/30 transition-all active:scale-[0.98]">
-                {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : dict.algaeExpert.btn_diagnose}
+                {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : dictRoot.algaeExpert.btn_diagnose || "Analisis Diagnosis"}
               </Button>
             </CardContent>
           </Card>
@@ -305,7 +334,7 @@ export default function AlgaeExpertEngine() {
                     const isTopMatch = globalIndex === 0;
 
                     // ==========================================
-                    // EKSKLUSIF JUARA 1 (KONSULTASI PAKAR MEWAH)
+                    // EKSKLUSIF JUARA 1 (GABUNGAN UI TERBARU)
                     // ==========================================
                     if (isTopMatch) {
                       const topCauses = language === 'en' && algae.causes_en?.length ? algae.causes_en : algae.causes_id || [];
@@ -375,6 +404,23 @@ export default function AlgaeExpertEngine() {
                             </div>
                           </div>
 
+                          {/* DARI SNIPPET 1: DAMPAK EKOSISTEM (Affected Conditions) */}
+                          {algae.affected_conditions && algae.affected_conditions.length > 0 && (
+                             <div className="p-4 bg-rose-50/50 dark:bg-rose-950/20 border-b border-rose-100 dark:border-rose-900/40">
+                               <h5 className="font-bold text-rose-700 dark:text-rose-500 mb-2.5 flex items-center gap-2 uppercase tracking-wider text-xs">
+                                 <AlertTriangle className="h-4 w-4" /> {language === 'id' ? "Dampak Kerusakan Ekosistem" : "Ecosystem Damages"}
+                               </h5>
+                               <div className="flex flex-wrap gap-2">
+                                 {algae.affected_conditions.map(c => (
+                                   <span key={c} className="bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 px-3 py-1.5 rounded-md text-xs font-semibold shadow-sm border border-rose-200 dark:border-rose-800/60">
+                                     {getAlgaeTagDesc(c, language)}
+                                   </span>
+                                 ))}
+                               </div>
+                             </div>
+                          )}
+
+                          {/* DARI SNIPPET 2: 3-KOLOM (Penyebab, Penanganan, Pencegahan) */}
                           <div className="grid md:grid-cols-3 bg-slate-50/50 dark:bg-slate-950/50 divide-y md:divide-y-0 md:divide-x divide-slate-200 dark:divide-slate-800">
                              <div className="p-5 flex flex-col h-full bg-amber-50/30 dark:bg-amber-950/10">
                                <h5 className="font-bold text-amber-700 dark:text-amber-500 mb-4 flex items-center gap-2 uppercase tracking-wider text-xs">
@@ -415,6 +461,7 @@ export default function AlgaeExpertEngine() {
                                </ul>
                              </div>
                           </div>
+
                         </div>
                       );
                     }
@@ -460,6 +507,25 @@ export default function AlgaeExpertEngine() {
                             <p className="text-xs text-slate-500 italic pl-3 border-l-2 border-slate-200 dark:border-slate-800 py-1 flex-1">-</p>
                           )}
                         </div>
+
+                        {/* DAMPAK EKOSISTEM UNTUK KANDIDAT LAIN */}
+                        {algae.affected_conditions && algae.affected_conditions.length > 0 && (
+                          <div className="px-5 pb-5 pt-0">
+                            <div className="flex flex-wrap gap-1.5">
+                              {algae.affected_conditions.slice(0, 3).map(c => (
+                                <span key={c} className="bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 px-2 py-1 rounded text-[10px] font-semibold border border-rose-100 dark:border-rose-900/50">
+                                  {getAlgaeTagDesc(c, language)}
+                                </span>
+                              ))}
+                              {algae.affected_conditions.length > 3 && (
+                                <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-1 rounded text-[10px] font-semibold border border-slate-200 dark:border-slate-700">
+                                  +{algae.affected_conditions.length - 3} {language === 'id' ? 'lainnya' : 'more'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                       </div>
                     );
                   })}

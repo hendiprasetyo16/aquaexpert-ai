@@ -81,6 +81,14 @@ export const getAlgaeTagDesc = (tag: string, lang: "id" | "en" = "id") => {
     if (t === "low_nitrate") return "Nitrat (NO3) Rendah";
     if (t === "high_silicate") return "Silikat Tinggi";
     if (t === "high_organics") return "Penumpukan Sisa Organik";
+    // Affected Conditions (Dampak Ekosistem)
+    if (t === "plant_melt") return "Tanaman Meleleh (Melt)";
+    if (t === "stunted_growth") return "Pertumbuhan Kerdil";
+    if (t === "oxygen_depletion") return "Oksigen Menurun";
+    if (t === "fish_gasping") return "Ikan Megap-megap";
+    if (t === "foul_odor") return "Air Bau Busuk";
+    if (t === "cloudy_water") return "Air Keruh / Berkabut";
+    if (t === "filter_clogged") return "Filter Cepat Mampet";
   } else {
     // English Formatting (Fallback)
     if (t === "light_green") return "Light Green";
@@ -106,6 +114,14 @@ export const getAlgaeTagDesc = (tag: string, lang: "id" | "en" = "id") => {
     if (t === "low_nitrate") return "Low Nitrate";
     if (t === "high_silicate") return "High Silicate";
     if (t === "high_organics") return "High Organics";
+    // Affected Conditions (Dampak Ekosistem)
+    if (t === "plant_melt") return "Plant Melt";
+    if (t === "stunted_growth") return "Stunted Growth";
+    if (t === "oxygen_depletion") return "Oxygen Depletion";
+    if (t === "fish_gasping") return "Fish Gasping";
+    if (t === "foul_odor") return "Foul Odor";
+    if (t === "cloudy_water") return "Cloudy Water";
+    if (t === "filter_clogged") return "Clogged Filter";
   }
   
   // Format bawaan jika tidak ada di list: ganti "_" dengan spasi dan jadikan huruf kapital awal

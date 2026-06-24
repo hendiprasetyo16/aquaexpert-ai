@@ -322,7 +322,7 @@ export default function AlgaeDetailPage() {
               </CardContent>
             </Card>
 
-            {/* RELATED ALGAE CARD */}
+            {/* RELATED ALGAE CARD (DENGAN EFEK NEON) */}
             {relatedAlgae.length > 0 && (
               <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xl overflow-hidden mt-6 transition-colors">
                 <div className="bg-slate-50 dark:bg-slate-900/80 px-5 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 transition-colors">
@@ -335,7 +335,8 @@ export default function AlgaeDetailPage() {
                       const relatedName = language === 'en' && related.name_en ? related.name_en : related.name_id;
                       return (
                       <Link href={`/dashboard/algae/${related.id}`} key={related.id}>
-                        <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-950/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 hover:border-teal-500 dark:hover:border-teal-900/50 p-2.5 rounded-lg transition-colors cursor-pointer relative overflow-hidden group">
+                        {/* EFEK NEON DITAMBAHKAN DI SINI */}
+                        <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 hover:border-teal-500 hover:shadow-[0_0_15px_rgba(20,184,166,0.3)] hover:-translate-y-0.5 p-2.5 rounded-lg transition-all duration-300 cursor-pointer relative overflow-hidden group">
                           <div className="absolute right-0 top-0 bottom-0 w-1 bg-teal-500/20 group-hover:bg-teal-500/50 transition-colors"></div>
                           <div className="h-16 w-16 relative rounded-md overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0">
                             {related.image_url ? (
@@ -430,8 +431,7 @@ export default function AlgaeDetailPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <p className="text-[11px] font-bold text-teal-700 dark:text-teal-400 uppercase">{language === 'id' ? "Warna" : "Colors"}</p>
-                  {formDict?.colorHint && <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 mb-2 leading-tight">{formDict.colorHint}</p>}
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1.5 mt-2">
                     {algae.color_tags && algae.color_tags.length > 0 ? algae.color_tags.map(t => (
                       <span key={t} className="bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 text-xs px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700 shadow-sm">{getAlgaeTagDesc(t, language)}</span>
                     )) : <span className="text-xs italic text-slate-400">-</span>}
@@ -440,8 +440,7 @@ export default function AlgaeDetailPage() {
                 
                 <div>
                   <p className="text-[11px] font-bold text-teal-700 dark:text-teal-400 uppercase">{language === 'id' ? "Tekstur" : "Textures"}</p>
-                  {formDict?.textureHint && <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 mb-2 leading-tight">{formDict.textureHint}</p>}
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1.5 mt-2">
                     {algae.texture_tags && algae.texture_tags.length > 0 ? algae.texture_tags.map(t => (
                       <span key={t} className="bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 text-xs px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700 shadow-sm">{getAlgaeTagDesc(t, language)}</span>
                     )) : <span className="text-xs italic text-slate-400">-</span>}
@@ -450,8 +449,7 @@ export default function AlgaeDetailPage() {
 
                 <div>
                   <p className="text-[11px] font-bold text-teal-700 dark:text-teal-400 uppercase">{language === 'id' ? "Lokasi Tumbuh" : "Locations"}</p>
-                  {formDict?.locationHint && <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 mb-2 leading-tight">{formDict.locationHint}</p>}
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1.5 mt-2">
                     {algae.location_tags && algae.location_tags.length > 0 ? algae.location_tags.map(t => (
                       <span key={t} className="bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 text-xs px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700 shadow-sm">{getAlgaeTagDesc(t, language)}</span>
                     )) : <span className="text-xs italic text-slate-400">-</span>}
@@ -460,13 +458,31 @@ export default function AlgaeDetailPage() {
 
                 <div>
                   <p className="text-[11px] font-bold text-teal-700 dark:text-teal-400 uppercase">{language === 'id' ? "Pemicu" : "Triggers"}</p>
-                  {formDict?.triggerHint && <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 mb-2 leading-tight">{formDict.triggerHint}</p>}
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1.5 mt-2">
                     {algae.trigger_tags && algae.trigger_tags.length > 0 ? algae.trigger_tags.map(t => (
                       <span key={t} className="bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 text-xs px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700 shadow-sm">{getAlgaeTagDesc(t, language)}</span>
                     )) : <span className="text-xs italic text-slate-400">-</span>}
                   </div>
                 </div>
+
+                {/* --- BLOK BARU: AFFECTED CONDITIONS --- */}
+                <div className="sm:col-span-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 mt-1">
+                  <p className="text-[11px] font-bold text-rose-700 dark:text-rose-400 uppercase">
+                    {language === 'id' ? "Dampak Ekosistem" : "Affected Ecosystem"}
+                  </p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 mb-2 leading-tight">
+                    {language === 'id' ? "Kerusakan sekunder yang diakibatkan oleh alga ini." : "Secondary damages caused by this algae."}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {algae.affected_conditions && algae.affected_conditions.length > 0 ? algae.affected_conditions.map(t => (
+                      <span key={t} className="bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 font-medium text-xs px-2.5 py-1 rounded border border-rose-200 dark:border-rose-800/60 shadow-sm">
+                        {getAlgaeTagDesc(t, language)}
+                      </span>
+                    )) : <span className="text-xs italic text-slate-400">-</span>}
+                  </div>
+                </div>
+                {/* ------------------------------------- */}
+
               </div>
             </div>
 

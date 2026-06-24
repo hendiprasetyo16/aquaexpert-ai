@@ -53,7 +53,9 @@ export default function AlgaeCard({ algae }: AlgaeCardProps) {
   };
 
   return (
-    <div className="w-full h-full bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col group transition-all hover:border-teal-500 dark:hover:border-teal-700 hover:shadow-lg hover:shadow-teal-600/10 dark:hover:shadow-teal-900/20 relative z-0">
+    // PERBAIKAN: Menambahkan hover:shadow-[0_0_25px_rgba(20,184,166,0.4)] untuk efek NEON Glow
+    // dan hover:-translate-y-1 agar melayang.
+    <div className="w-full h-full bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col group transition-all duration-300 hover:-translate-y-1 hover:border-teal-500 dark:hover:border-teal-400 hover:shadow-[0_0_25px_rgba(20,184,166,0.4)] dark:hover:shadow-[0_0_25px_rgba(45,212,191,0.3)] relative z-0">
       
       {/* UKIRAN / ORNAMEN AKUARIUM */}
       <div className="absolute -bottom-6 -right-6 z-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none group-hover:opacity-10 dark:group-hover:opacity-10 transition-opacity duration-700 rotate-12">
@@ -66,7 +68,7 @@ export default function AlgaeCard({ algae }: AlgaeCardProps) {
       {role !== "user" && (
         <Link
           href={`/dashboard/algae/${algae.id}/edit`}
-          className="absolute right-3 top-3 z-20 rounded-lg bg-teal-600 p-2 text-white opacity-0 transition-all hover:bg-teal-500 group-hover:opacity-100 shadow-md"
+          className="absolute right-3 top-3 z-20 rounded-lg bg-teal-600 p-2 text-white opacity-0 transition-all hover:bg-teal-500 group-hover:opacity-100 shadow-[0_0_15px_rgba(20,184,166,0.6)]"
           title={lang === 'id' ? "Edit Alga" : "Edit Algae"}
         >
           <Edit className="h-4 w-4" />
@@ -88,7 +90,10 @@ export default function AlgaeCard({ algae }: AlgaeCardProps) {
               <AlertTriangle className="h-12 w-12 opacity-50" />
             </div>
           )}
+          {/* OVERLAY GELAP SAAT DI-HOVER */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent transition-opacity duration-300 opacity-0 group-hover:opacity-100 pointer-events-none" />
+          <div className="absolute inset-0 bg-teal-900/10 dark:bg-black/20 opacity-0 group-hover:opacity-100 transition-colors duration-300 pointer-events-none" />
+          
           <div className="absolute top-2 left-2 z-10">
             {getSeverityBadge(algae.severity)}
           </div>
