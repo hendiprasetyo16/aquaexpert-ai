@@ -16,7 +16,14 @@ export async function getDiseaseMatchAction(
     // 1. LAPIS KEAMANAN: Validasi kepemilikan tangki (Anti-IDOR)
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: "Unauthorized" };
-    await verifyAquariumOwnership(supabase, aquariumId, user.id);
+    
+    // ========================================================
+    // SUPER ADMIN BYPASS: Izinkan jika role adalah super_admin
+    // ========================================================
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'super_admin') {
+       await verifyAquariumOwnership(supabase, aquariumId, user.id);
+    }
 
     if (!selectedSymptomIds || selectedSymptomIds.length === 0) {
       return { success: true, matches: [] };
@@ -46,7 +53,6 @@ export async function getDiseaseMatchAction(
     }
 
     // 3. TARIK SELURUH PROFIL GEJALA MASALAH (SIGNATURE) UNTUK SETIAP KANDIDAT PENYAKIT
-    // Diperlukan untuk menghitung bobot total maksimal penyakit (Relative Probability Engine)
     const { data: fullDiseaseSignatures, error: signatureError } = await supabase
       .from("disease_symptoms")
       .select(`
@@ -80,7 +86,6 @@ export async function getDiseaseMatchAction(
     }
 
     // 5. STRUKTURISASI DATA PROFIL SIGNATURE PENYAKIT KEDALAM MAP MEMORI
-    // Mengelompokkan total bobot potensial penyakit vs bobot yang berhasil dicocokkan
     const profileMap = new Map<string, {
       disease: Disease;
       totalPossibleWeight: number;
@@ -127,7 +132,6 @@ export async function getDiseaseMatchAction(
       let baseConfidence = (p.matchedWeight / p.totalPossibleWeight) * 100;
 
       // FIX TEMUAN 3: Penghukuman Gejala Asing / Tidak Cocok (Negative Symptom Penalty Engine)
-      // Menghitung berapa banyak gejala yang dipilih user, yang TIDAK masuk dalam signature penyakit ini
       let alienSymptomCount = 0;
       selectedSet.forEach(sId => {
         if (!p.totalDiseaseSymptomIds.has(sId)) {
