@@ -1,4 +1,4 @@
-// D:\aquaexpert-ai\app\(dashboard)\dashboard\users\page.tsx
+// app/(dashboard)/dashboard/users/page.tsx
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -69,7 +69,6 @@ export default function UsersPage() {
       toast.success("Success!");
       await loadUsersData(); 
       setRoleChangeData(null); 
-    // REFAKTOR 1: Hapus any
     } catch (error: unknown) { 
       toast.error(error instanceof Error ? error.message : "Error"); 
     } finally { setIsSubmitting(false); }
@@ -86,7 +85,6 @@ export default function UsersPage() {
       toast.success("Success!");
       await loadUsersData(); 
       setUserToToggle(null);
-    // REFAKTOR 2: Hapus any
     } catch (error: unknown) { 
       toast.error(error instanceof Error ? error.message : "Error"); 
     } finally { setIsSubmitting(false); }
@@ -105,7 +103,6 @@ export default function UsersPage() {
       toast.success("Success!");
       await loadUsersData(); 
       setUserToDelete(null); setDeleteConfirmText("");
-    // REFAKTOR 3: Hapus any
     } catch (error: unknown) { 
       toast.error(error instanceof Error ? error.message : "Error"); 
     } finally { setIsSubmitting(false); }
@@ -123,7 +120,6 @@ export default function UsersPage() {
       toast.success("Success!");
       await loadUsersData();
       setIsEditModalOpen(false); 
-    // REFAKTOR 4: Hapus any
     } catch (error: unknown) { 
       toast.error(error instanceof Error ? error.message : "Error"); 
     } finally { setIsSubmitting(false); }
@@ -146,7 +142,6 @@ export default function UsersPage() {
         setShowAddPassword(false);
         await loadUsersData(); 
       } else { throw new Error(result.error || "Error"); }
-    // REFAKTOR 5: Hapus any
     } catch (error: unknown) { 
       toast.error(error instanceof Error ? error.message : "Error"); 
     } finally { setIsSubmitting(false); }
@@ -163,7 +158,6 @@ export default function UsersPage() {
         toast.success("Success!");
         setIsResetModalOpen(false); setResetPasswordValue(""); setShowResetPassword(false);
       } else { throw new Error(result.error || "Error"); }
-    // REFAKTOR 6: Hapus any
     } catch (error: unknown) { 
       toast.error(error instanceof Error ? error.message : "Error"); 
     } finally { setIsSubmitting(false); }
@@ -198,6 +192,13 @@ export default function UsersPage() {
       });
   }, [users, currentUserRole, searchQuery, roleFilter, statusFilter]);
 
+  // FUNGSI HELPER UNTUK MENDAPATKAN WARNA NEON BERDASARKAN ROLE PENGGUNA
+  const getRoleNeonGlow = (role: UserRole) => {
+    if (role === "super_admin") return "hover:border-red-400 dark:hover:border-red-500 hover:shadow-[0_0_20px_rgba(248,113,113,0.3)] dark:hover:shadow-[0_0_25px_rgba(239,68,68,0.5)]";
+    if (role === "admin") return "hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-[0_0_20px_rgba(251,191,36,0.3)] dark:hover:shadow-[0_0_25px_rgba(245,158,11,0.5)]";
+    return "hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-[0_0_20px_rgba(45,212,191,0.3)] dark:hover:shadow-[0_0_25px_rgba(20,184,166,0.5)]";
+  };
+
   if (currentUserRole !== "super_admin" && currentUserRole !== "admin") return null;
 
   return (
@@ -212,16 +213,16 @@ export default function UsersPage() {
         
         <button 
           onClick={() => { setIsAddModalOpen(true); setShowAddPassword(false); }}
-          className="flex items-center justify-center gap-2 rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-500 shadow-md shadow-teal-600/10 dark:shadow-teal-900/20"
+          className="flex items-center justify-center gap-2 rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-500 shadow-[0_0_15px_rgba(13,148,136,0.4)] dark:shadow-[0_0_20px_rgba(13,148,136,0.6)]"
         >
           <UserPlus className="h-4 w-4" /> {dict.usersMgmt.addUser}
         </button>
       </div>
 
-      {/* STATISTIK */}
+      {/* STATISTIK DENGAN NEON RINGAN SAAT HOVER */}
       {!loading && (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm transition-colors duration-300">
+          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm transition-all duration-500 hover:border-blue-400 hover:shadow-[0_0_20px_rgba(59,130,246,0.2)]">
             <CardContent className="flex items-center gap-4 p-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400"><Users className="h-6 w-6" /></div>
               <div><p className="text-sm font-medium text-slate-500 dark:text-slate-400">{dict.usersMgmt.totalAccounts}</p><p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{stats.total}</p></div>
@@ -229,7 +230,7 @@ export default function UsersPage() {
           </Card>
 
           {currentUserRole === "super_admin" && (
-            <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm transition-colors duration-300">
+            <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm transition-all duration-500 hover:border-red-400 hover:shadow-[0_0_20px_rgba(239,68,68,0.2)]">
               <CardContent className="flex items-center gap-4 p-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400"><ShieldAlert className="h-6 w-6" /></div>
                 <div><p className="text-sm font-medium text-slate-500 dark:text-slate-400">{dict.usersMgmt.superAdmin}</p><p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{stats.superAdmin}</p></div>
@@ -238,7 +239,7 @@ export default function UsersPage() {
           )}
 
           {currentUserRole === "super_admin" && (
-            <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm transition-colors duration-300">
+            <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm transition-all duration-500 hover:border-amber-400 hover:shadow-[0_0_20px_rgba(245,158,11,0.2)]">
               <CardContent className="flex items-center gap-4 p-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-50 dark:bg-yellow-950/50 text-yellow-600 dark:text-yellow-400"><ShieldCheck className="h-6 w-6" /></div>
                 <div><p className="text-sm font-medium text-slate-500 dark:text-slate-400">{dict.usersMgmt.admin}</p><p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{stats.admin}</p></div>
@@ -246,7 +247,7 @@ export default function UsersPage() {
             </Card>
           )}
 
-          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm transition-colors duration-300">
+          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm transition-all duration-500 hover:border-teal-400 hover:shadow-[0_0_20px_rgba(20,184,166,0.2)]">
             <CardContent className="flex items-center gap-4 p-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400"><Shield className="h-6 w-6" /></div>
               <div><p className="text-sm font-medium text-slate-500 dark:text-slate-400">{dict.usersMgmt.user}</p><p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{stats.user}</p></div>
@@ -260,13 +261,12 @@ export default function UsersPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
-            <input type="text" placeholder={dict.usersMgmt.searchPlaceholder} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors" />
+            <input type="text" placeholder={dict.usersMgmt.searchPlaceholder} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors shadow-sm" />
           </div>
           
           <div className="relative w-full sm:w-40">
             <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            {/* REFAKTOR 7: Menggunakan casting explicit as "all" | UserRole ketimbang as any */}
-            <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as "all" | UserRole)} className="w-full appearance-none rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors">
+            <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as "all" | UserRole)} className="w-full appearance-none rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors shadow-sm">
               <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.allRoles}</option>
               <option value="user" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.user}</option>
               {currentUserRole === "super_admin" && (
@@ -277,8 +277,7 @@ export default function UsersPage() {
 
           <div className="relative w-full sm:w-40">
             <Activity className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            {/* REFAKTOR 8: Menggunakan casting explicit ketimbang as any */}
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")} className="w-full appearance-none rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")} className="w-full appearance-none rounded-md border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors shadow-sm">
               <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.accessStatus}</option>
               <option value="active" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.allowed}</option>
               <option value="inactive" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.blocked}</option>
@@ -287,7 +286,7 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* GRIDS KARTU PENGGUNA */}
+      {/* GRIDS KARTU PENGGUNA DENGAN NEON GLOW */}
       {loading ? (
         <div className="flex h-40 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-500" /></div>
       ) : filteredUsers.length === 0 ? (
@@ -295,9 +294,10 @@ export default function UsersPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredUsers.map((user, index) => (
-            <Card key={user.id} className={`border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm transition-all relative ${!user.is_active ? 'opacity-60 grayscale-[40%]' : ''}`}>
+            <Card key={user.id} className={`border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 transition-all duration-500 relative flex flex-col h-full ${!user.is_active ? 'opacity-60 grayscale-[40%]' : ''} ${getRoleNeonGlow(user.role)}`}>
               <div className="absolute top-2 right-3 text-4xl font-black text-slate-200/60 dark:text-slate-800/50 pointer-events-none select-none z-0 transition-colors">#{index + 1}</div>
-              <CardContent className="p-5 relative z-10">
+              <CardContent className="p-5 relative z-10 flex-1 flex flex-col justify-between">
+                
                 <div className="flex items-start justify-between">
                   <div className="flex gap-3 overflow-hidden w-full">
                     <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${user.is_active ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400' : 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-500'}`}>
@@ -333,7 +333,7 @@ export default function UsersPage() {
                   </div>
                 </div>
 
-                <div className="mt-5 flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-4 transition-colors">
+                <div className="mt-5 flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-4 transition-colors relative z-20">
                   <select
                     value={user.role}
                     onChange={(e) => { setRoleChangeData({ user, newRole: e.target.value as UserRole }); }}
@@ -416,7 +416,7 @@ export default function UsersPage() {
             </p>
             <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
               <button disabled={isSubmitting} onClick={() => setUserToToggle(null)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
-              <button disabled={isSubmitting} onClick={executeToggleStatus} className={`rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 ${userToToggle.is_active ? 'bg-red-600 hover:bg-red-500' : 'bg-teal-600 hover:bg-teal-500'}`}>
+              <button disabled={isSubmitting} onClick={executeToggleStatus} className={`rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 shadow-md ${userToToggle.is_active ? 'bg-red-600 hover:bg-red-500 shadow-red-600/20' : 'bg-teal-600 hover:bg-teal-500 shadow-teal-600/20'}`}>
                 {isSubmitting ? dict.usersMgmt.processing : (userToToggle.is_active ? dict.usersMgmt.btnBlock : dict.usersMgmt.btnAllow)}
               </button>
             </div>
@@ -437,7 +437,7 @@ export default function UsersPage() {
             </p>
             <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
               <button disabled={isSubmitting} onClick={() => setRoleChangeData(null)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
-              <button disabled={isSubmitting} onClick={executeRoleChange} className="rounded-md px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 transition-colors disabled:opacity-50">
+              <button disabled={isSubmitting} onClick={executeRoleChange} className="rounded-md px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 transition-colors disabled:opacity-50 shadow-md shadow-blue-600/20">
                 {isSubmitting ? dict.usersMgmt.processing : dict.usersMgmt.btnChangeRole}
               </button>
             </div>
@@ -460,7 +460,7 @@ export default function UsersPage() {
               <input required type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder={dict.usersMgmt.typeUserEmail} className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-200 outline-none focus:border-red-500 transition-colors mb-6" />
               <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
                 <button type="button" disabled={isSubmitting} onClick={() => {setUserToDelete(null); setDeleteConfirmText("");}} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
-                <button type="submit" disabled={isSubmitting || deleteConfirmText !== userToDelete.email} className="rounded-md px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <button type="submit" disabled={isSubmitting || deleteConfirmText !== userToDelete.email} className="rounded-md px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-red-600/20">
                   {isSubmitting ? dict.usersMgmt.deleting : dict.usersMgmt.btnDeleteAccount}
                 </button>
               </div>
@@ -504,7 +504,7 @@ export default function UsersPage() {
               </div>
               <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4 transition-colors">
                 <button type="button" onClick={() => setIsAddModalOpen(false)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
-                <button type="submit" disabled={isSubmitting} className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50 transition-colors">{isSubmitting ? dict.usersMgmt.saving : dict.usersMgmt.btnSaveUser}</button>
+                <button type="submit" disabled={isSubmitting} className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50 shadow-md shadow-teal-600/20 transition-colors">{isSubmitting ? dict.usersMgmt.saving : dict.usersMgmt.btnSaveUser}</button>
               </div>
             </form>
           </div>
@@ -527,7 +527,7 @@ export default function UsersPage() {
               </div>
               <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4 transition-colors">
                 <button type="button" onClick={() => { setIsEditModalOpen(false); setEditNameValue(""); }} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
-                <button type="submit" disabled={isSubmitting} className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50 transition-colors">{isSubmitting ? dict.usersMgmt.saving : dict.usersMgmt.btnSaveChanges}</button>
+                <button type="submit" disabled={isSubmitting} className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50 shadow-md shadow-teal-600/20 transition-colors">{isSubmitting ? dict.usersMgmt.saving : dict.usersMgmt.btnSaveChanges}</button>
               </div>
             </form>
           </div>
@@ -554,7 +554,7 @@ export default function UsersPage() {
 
               <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4 transition-colors">
                 <button type="button" onClick={() => {setIsResetModalOpen(false); setResetPasswordValue("");}} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
-                <button type="submit" disabled={isSubmitting} className="rounded-md bg-yellow-600 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-500 disabled:opacity-50 transition-colors">{isSubmitting ? dict.usersMgmt.processing : dict.usersMgmt.btnResetPass}</button>
+                <button type="submit" disabled={isSubmitting} className="rounded-md bg-yellow-600 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-500 disabled:opacity-50 shadow-md shadow-yellow-600/20 transition-colors">{isSubmitting ? dict.usersMgmt.processing : dict.usersMgmt.btnResetPass}</button>
               </div>
             </form>
           </div>
