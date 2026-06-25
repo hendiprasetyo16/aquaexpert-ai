@@ -86,7 +86,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
     estimated_adult_size_cm: "", bioload_factor: "",
     shrimp_safe: true, plant_safe: true,
     recommended_tank_styles: [] as string[],
-    breeding_difficulty: "Medium",
+    breeding_difficulty: "2", // Diubah ke string numerik "2"
     is_egg_layer: false, is_livebearer: false,
     
     // NEW EXPERT METRICS COLUMNS
@@ -137,7 +137,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
         shrimp_safe: fish.shrimp_safe ?? true,
         plant_safe: fish.plant_safe ?? true,
         recommended_tank_styles: fish.recommended_tank_styles || [],
-        breeding_difficulty: fish.breeding_difficulty?.toString() || "Medium",
+        breeding_difficulty: fish.breeding_difficulty?.toString() || "2",
         is_egg_layer: fish.is_egg_layer || false,
         is_livebearer: fish.is_livebearer || false,
         
@@ -719,9 +719,9 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
                  <div className="space-y-2">
                    <Label className="text-blue-900 dark:text-blue-300 font-bold text-xs uppercase tracking-wide">{lang === 'id' ? "Kesulitan Pemijahan (Breeding)" : "Breeding Difficulty"}</Label>
                    <select name="breeding_difficulty" value={formData.breeding_difficulty} onChange={handleChange} className="h-11 w-full rounded-md border border-blue-300 dark:border-blue-800/60 bg-white dark:bg-slate-950 px-3 outline-none focus:border-blue-500 font-medium text-sm text-slate-900 dark:text-slate-100">
-                     <option value="Easy">{lang === 'id' ? "Mudah" : "Easy"}</option>
-                     <option value="Medium">{lang === 'id' ? "Sedang" : "Medium"}</option>
-                     <option value="Hard">{lang === 'id' ? "Sulit / Butuh Perlakuan Khusus" : "Hard / Needs Special Treatment"}</option>
+                     <option value="1">{lang === 'id' ? "Mudah" : "Easy"}</option>
+                     <option value="2">{lang === 'id' ? "Sedang" : "Medium"}</option>
+                     <option value="3">{lang === 'id' ? "Sulit / Butuh Perlakuan Khusus" : "Hard / Needs Special Treatment"}</option>
                    </select>
                  </div>
                  <div className="space-y-2">
@@ -799,7 +799,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">{formDict.modalArchiveTitle}</h3>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
-              {formDict.modalArchiveDesc1} <strong className="text-gray-900 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{lang === 'en' && fish.name_en ? fish.name_en : fish.name_id}</strong> {formDict.modalArchiveDesc2}
+              {formDict.modalArchiveDesc1} <strong className="text-gray-900 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{lang === 'en' && fish?.name_en ? fish.name_en : fish?.name_id}</strong> {formDict.modalArchiveDesc2}
             </p>
             <div className="flex justify-end gap-3 pt-4">
               <button type="button" disabled={loading} onClick={() => setIsArchiveModalOpen(false)} className="rounded-xl px-5 h-11 text-sm font-bold transition-colors bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-50 flex items-center justify-center border border-slate-200 dark:border-slate-700">
@@ -823,7 +823,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
             
             <form onSubmit={executeHardDelete} className="flex flex-col gap-2">
               <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-                {formDict.modalDeleteDesc1} <strong>{formDict.modalDeleteDesc2}</strong> {formDict.modalDeleteDesc3} <strong className="text-gray-900 dark:text-slate-100 bg-red-50 dark:bg-red-900/30 px-1 py-0.5 rounded select-all">{lang === 'en' && fish.name_en ? fish.name_en : fish.name_id}</strong> {formDict.modalDeleteDesc4}
+                {formDict.modalDeleteDesc1} <strong>{formDict.modalDeleteDesc2}</strong> {formDict.modalDeleteDesc3} <strong className="text-gray-900 dark:text-slate-100 bg-red-50 dark:bg-red-900/30 px-1 py-0.5 rounded select-all">{lang === 'en' && fish?.name_en ? fish.name_en : fish?.name_id}</strong> {formDict.modalDeleteDesc4}
               </p>
               
               <Input 
@@ -838,7 +838,7 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
               <div className="flex flex-col gap-3 pt-2">
                 <button 
                   type="submit" 
-                  disabled={loading || deleteConfirmText !== (lang === 'en' && fish.name_en ? fish.name_en : fish.name_id)} 
+                  disabled={loading || deleteConfirmText !== (lang === 'en' && fish?.name_en ? fish.name_en : fish?.name_id)} 
                   className="w-full h-12 flex items-center justify-center rounded-xl bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest shadow-lg shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : formDict.btnConfirmDelete}
