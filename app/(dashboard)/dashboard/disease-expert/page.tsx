@@ -1,24 +1,23 @@
 // app/(dashboard)/dashboard/disease-expert/page.tsx
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { 
-  Stethoscope, Activity, Loader2, AlertTriangle, ChevronRight, Container, ShieldPlus 
+  Stethoscope, AlertTriangle, Activity, Fish, ShieldPlus
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-// Komponen Modular yang sudah Bapak buat sebelumnya
+// KOMPONEN UI
 import { SymptomPicker } from "@/features/diseases/components/SymptomPicker";
 import { DiseaseResultCard } from "@/features/diseases/components/DiseaseResultCard";
 import { DiseaseDetailModal } from "@/features/diseases/components/DiseaseDetailModal";
 
-// Actions & Types
+// ACTIONS & TYPES
 import { getDiseaseMatchAction } from "@/features/diseases/actions/disease-match.actions";
 import { getUserAquariumsAction } from "@/features/aquariums/actions/aquarium.actions";
-// CATATAN: Pastikan Bapak memiliki Action untuk memanggil seluruh daftar Gejala (Symptoms) dari database
-// Jika belum ada, Bapak bisa membuat file symptom.actions.ts nantinya.
-// import { getAllSymptomsAction } from "@/features/diseases/actions/symptom.actions";
+// Pastikan Anda sudah membuat action ini untuk mengambil list gejala dari DB
+// import { getSymptomsAction } from "@/features/diseases/actions/symptom.actions";
 
 import type { Symptom, DiseaseMatchResult, Disease } from "@/features/diseases/types/disease.types";
 import type { Aquarium } from "@/features/aquariums/types/aquarium.types";
@@ -27,170 +26,153 @@ export default function DiseaseExpertPage() {
   const { dict, language } = useLanguage();
   const lang = language as "id" | "en";
 
-  const [isHydrated, setIsHydrated] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-
   const [aquariums, setAquariums] = useState<Aquarium[]>([]);
   const [selectedAquariumId, setSelectedAquariumId] = useState<string>("");
   const [availableSymptoms, setAvailableSymptoms] = useState<Symptom[]>([]);
-
-  const [diagnosisResults, setDiagnosisResults] = useState<DiseaseMatchResult[] | null>(null);
+  
+  const [diagnosisResults, setDiagnosisResults] = useState<DiseaseMatchResult[]>([]);
+  const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [selectedDiseaseDetail, setSelectedDiseaseDetail] = useState<Disease | null>(null);
+  const [isLoadingInitial, setIsLoadingInitial] = useState(true);
 
-  // MENGAMBIL DICTIONARY SECARA AMAN & TYPE-SAFE
-  const rootDict = dict as unknown as Record<string, any>;
-  const pageDict = useMemo(() => rootDict.diseaseExpert || {}, [rootDict.diseaseExpert]);
-
-  const tDict = useMemo(() => ({
-    title: pageDict.title || "Disease Expert AI",
-    subtitle: pageDict.subtitle || (lang === 'id' ? "Sistem diagnostik patologi akuatik presisi tinggi." : "High-precision aquatic pathology diagnostic system."),
-    selectTank: lang === 'id' ? "Pilih Akuarium Terdampak" : "Select Affected Aquarium",
-    selectTankDesc: lang === 'id' ? "Pilih ekosistem tangki untuk menganalisis kerentanan silang antar spesies." : "Choose a tank ecosystem to analyze cross-species susceptibility.",
-    resultsTitle: lang === 'id' ? "Hasil Analisis Klinis" : "Clinical Analysis Results",
-    noResults: lang === 'id' ? "Tidak ada patogen yang terdeteksi dengan gejala tersebut." : "No pathogens detected matching those symptoms.",
-  }), [pageDict, lang]);
-
-  // INITIAL DATA FETCH (Akuarium & Gejala)
+  // 1. LOAD DATA AWAL (Akuarium & Gejala)
   useEffect(() => {
-    async function fetchInitialData() {
+    async function loadInitialData() {
       try {
-        const aqRes = await getUserAquariumsAction();
+        const [aqRes /*, symRes */] = await Promise.all([
+          getUserAquariumsAction(),
+          // getSymptomsAction() // Uncomment jika action getSymptomsAction sudah ada
+        ]);
+
         if (aqRes.success && aqRes.data) {
           setAquariums(aqRes.data);
-          if (aqRes.data.length > 0) {
-            setSelectedAquariumId(aqRes.data[0].id);
-          }
+          if (aqRes.data.length > 0) setSelectedAquariumId(aqRes.data[0].id);
         }
 
-        // TODO: Ganti dengan panggilan ke database yang sebenarnya (misal: getAllSymptomsAction())
-        // Untuk saat ini kita gunakan dummy kosong agar UI bisa dirender
-        const mockSymptoms: Symptom[] = []; 
+        // Mock sementara jika getSymptomsAction belum siap. Ganti dengan hasil DB (symRes.data)
+        const mockSymptoms: Symptom[] = [
+          { id: "sym_gen_01", name_id: "Napas Cepat (Megap-megap)", name_en: "Rapid Breathing", body_region: "General" },
+          { id: "sym_skn_01", name_id: "Bintik Putih (White Spot)", name_en: "White Spots", body_region: "Skin/Scales" },
+          { id: "sym_eye_01", name_id: "Mata Bengkak Keluar", name_en: "Popeye", body_region: "Eyes" },
+        ];
         setAvailableSymptoms(mockSymptoms);
 
       } catch (error) {
-        console.error("Gagal memuat data inisial:", error);
+        toast.error(lang === 'id' ? "Gagal memuat data." : "Failed to load data.");
       } finally {
-        setLoading(false);
-        setIsHydrated(true);
+        setIsLoadingInitial(false);
       }
     }
-    fetchInitialData();
-  }, []);
+    loadInitialData();
+  }, [lang]);
 
-  // HANDLER: SAAT USER KLIK "ANALISIS PATOLOGI" DI SYMPTOM PICKER
-  const handleDiagnosisSubmit = useCallback(async (aquariumId: string, selectedSymptomIds: string[]) => {
-    setIsAnalyzing(true);
-    setDiagnosisResults(null);
+  // 2. FUNGSI EKSEKUSI DIAGNOSA
+  const handleDiagnose = async (aquariumId: string, selectedSymptomIds: string[]) => {
+    if (!aquariumId) {
+      toast.error(lang === 'id' ? "Pilih akuarium terlebih dahulu!" : "Please select an aquarium first!");
+      return;
+    }
+    
+    setIsDiagnosing(true);
+    setDiagnosisResults([]);
 
     try {
       const response = await getDiseaseMatchAction(aquariumId, selectedSymptomIds, lang);
       
-      if (response.success && response.matches) {
-        setDiagnosisResults(response.matches);
-        toast.success(lang === 'id' ? "Analisis selesai." : "Analysis complete.");
-      } else {
-        throw new Error(response.error || "Gagal mendapatkan hasil diagnosis.");
+      if (!response.success || !response.matches) {
+        throw new Error(response.error || "Gagal melakukan diagnosa");
       }
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Terjadi kesalahan sistem.");
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }, [lang]);
 
-  if (!isHydrated || loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh]">
-        <Loader2 className="h-10 w-10 animate-spin text-teal-600 mb-4" />
-        <p className="text-slate-500 font-bold animate-pulse">
-          {lang === 'id' ? "Menyiapkan Modul Kecerdasan Buatan..." : "Initializing AI Module..."}
-        </p>
-      </div>
-    );
+      setDiagnosisResults(response.matches);
+      
+      if (response.matches.length === 0) {
+        toast(lang === 'id' ? "Tidak ditemukan kecocokan penyakit." : "No disease matches found.", { icon: "ℹ️" });
+      } else {
+        toast.success(lang === 'id' ? "Diagnosa selesai!" : "Diagnosis complete!");
+      }
+
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsDiagnosing(false);
+    }
+  };
+
+  if (isLoadingInitial) {
+    return <div className="flex h-screen items-center justify-center"><Activity className="w-8 h-8 animate-spin text-blue-600" /></div>;
   }
 
   return (
-    <div className="w-full h-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors bg-slate-50 dark:bg-slate-950">
-      <div className="max-w-[1200px] mx-auto space-y-8 pb-10">
+    <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors">
+      <div className="max-w-[1200px] mx-auto space-y-8">
         
         {/* HEADER */}
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-teal-600 dark:text-teal-400 flex items-center gap-3 transition-colors">
-            <Stethoscope className="h-8 w-8 md:h-10 md:w-10" /> {tDict.title}
+        <div>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-blue-700 dark:text-blue-400 flex items-center gap-3">
+            <Stethoscope className="w-8 h-8 md:w-10 md:h-10" /> 
+            {lang === 'id' ? "Pakar Diagnosa Penyakit" : "Disease Diagnosis Expert"}
           </h1>
-          <p className="mt-3 text-slate-600 dark:text-slate-400 max-w-3xl text-sm md:text-base leading-relaxed transition-colors">
-            {tDict.subtitle}
+          <p className="mt-2 text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
+            {lang === 'id' 
+              ? "Pilih gejala klinis yang dialami ikan Anda. Sistem pakar AI kami akan mencocokkan gejala dengan database patogen untuk memberikan rekomendasi medis yang aman." 
+              : "Select the clinical symptoms your fish are experiencing. Our expert system will match them against our pathogen database to provide safe medical recommendations."}
           </p>
         </div>
 
-        {/* PEMILIH AKUARIUM */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                <Container className="w-5 h-5 text-teal-500" /> {tDict.selectTank}
-              </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{tDict.selectTankDesc}</p>
-            </div>
+        {aquariums.length > 0 ? (
+          <div className="grid lg:grid-cols-12 gap-8">
             
-            <div className="w-full md:w-72">
-              <select 
-                value={selectedAquariumId} 
-                onChange={(e) => { setSelectedAquariumId(e.target.value); setDiagnosisResults(null); }}
-                className="w-full h-12 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-4 font-bold text-slate-800 dark:text-slate-200 focus:border-teal-500 outline-none transition-colors cursor-pointer"
-              >
-                {aquariums.length === 0 ? (
-                  <option value="">{lang === 'id' ? "-- Belum ada akuarium --" : "-- No aquariums --"}</option>
-                ) : (
-                  aquariums.map(aq => (
+            {/* KOLOM KIRI: INPUT GEJALA */}
+            <div className="lg:col-span-5 space-y-6">
+              
+              {/* SELECT AQUARIUM */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block flex items-center gap-2">
+                  <Fish className="w-4 h-4" /> {lang === 'id' ? "Pilih Akuarium Terdampak" : "Select Affected Aquarium"}
+                </label>
+                <select 
+                  value={selectedAquariumId} 
+                  onChange={(e) => setSelectedAquariumId(e.target.value)}
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 focus:border-blue-500 outline-none font-semibold text-slate-700 dark:text-slate-200"
+                >
+                  {aquariums.map(aq => (
                     <option key={aq.id} value={aq.id}>{aq.name}</option>
-                  ))
-                )}
-              </select>
-            </div>
-          </div>
-        </div>
+                  ))}
+                </select>
+              </div>
 
-        {/* AREA KOMPONEN UTAMA (PICKER & HASIL) */}
-        {selectedAquariumId ? (
-          <div className="space-y-8 animate-in fade-in duration-500">
-            
-            {/* 1. SYMPTOM PICKER COMPONENT */}
-            <div className="relative">
-               {/* Overlay loading saat sedang analisis */}
-               {isAnalyzing && (
-                 <div className="absolute inset-0 z-10 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                   <div className="flex flex-col items-center bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700">
-                     <Loader2 className="w-10 h-10 animate-spin text-teal-600 mb-4" />
-                     <p className="font-bold text-slate-700 dark:text-slate-200">Menganalisis Probabilitas...</p>
-                   </div>
-                 </div>
-               )}
-               
-               <SymptomPicker 
-                 aquariumId={selectedAquariumId}
-                 availableSymptoms={availableSymptoms}
-                 onSubmitDiagnosis={handleDiagnosisSubmit}
-                 isLoading={isAnalyzing}
-               />
+              {/* PICKER GEJALA */}
+              <SymptomPicker 
+                aquariumId={selectedAquariumId}
+                availableSymptoms={availableSymptoms}
+                onSubmitDiagnosis={handleDiagnose}
+                isLoading={isDiagnosing}
+              />
             </div>
 
-            {/* 2. HASIL DIAGNOSIS */}
-            {diagnosisResults !== null && (
-              <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xl animate-in slide-in-from-bottom-8 duration-700">
-                <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
-                  <Activity className="w-6 h-6 text-rose-500" /> {tDict.resultsTitle}
+            {/* KOLOM KANAN: HASIL DIAGNOSA */}
+            <div className="lg:col-span-7">
+              <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 min-h-[400px]">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+                  <ShieldPlus className="w-5 h-5 text-blue-600" /> 
+                  {lang === 'id' ? "Hasil Analisis Klinis" : "Clinical Analysis Results"}
                 </h3>
-                
-                {diagnosisResults.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 px-4 text-center bg-slate-50 dark:bg-slate-950 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
-                    <ShieldPlus className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
-                    <p className="text-lg font-bold text-slate-600 dark:text-slate-400">{tDict.noResults}</p>
+
+                {isDiagnosing ? (
+                  <div className="flex flex-col items-center justify-center h-[300px] text-slate-500 animate-pulse">
+                    <Activity className="w-12 h-12 mb-4 text-blue-500" />
+                    <p>{lang === 'id' ? "Mencocokkan patogen & mengevaluasi keamanan obat..." : "Matching pathogens & evaluating medication safety..."}</p>
+                  </div>
+                ) : diagnosisResults.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-[300px] text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50">
+                    <Stethoscope className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">
+                      {lang === 'id' ? "Pilih gejala di samping lalu klik proses untuk melihat hasil." : "Select symptoms on the left and process to see results."}
+                    </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {diagnosisResults.map((res, index) => (
+                  <div className="flex flex-col gap-4">
+                    {diagnosisResults.map((res) => (
                        <DiseaseResultCard 
                          key={res.disease.id}
                          result={res}
@@ -201,14 +183,14 @@ export default function DiseaseExpertPage() {
                   </div>
                 )}
               </div>
-            )}
+            </div>
 
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center p-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800">
              <AlertTriangle className="w-12 h-12 text-amber-500 mb-4 opacity-50" />
              <p className="font-bold text-slate-500 dark:text-slate-400">
-               {lang === 'id' ? "Anda harus membuat atau memilih akuarium terlebih dahulu." : "You must create or select an aquarium first."}
+               {lang === 'id' ? "Anda harus membuat akuarium di menu Inventory terlebih dahulu." : "You must create an aquarium in the Inventory menu first."}
              </p>
           </div>
         )}
@@ -222,7 +204,6 @@ export default function DiseaseExpertPage() {
             lang={lang}
           />
         )}
-
       </div>
     </div>
   );
