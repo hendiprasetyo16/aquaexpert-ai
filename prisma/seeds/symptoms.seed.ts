@@ -1,3 +1,4 @@
+// D:\aquaexpert-ai\prisma\seeds\symptoms.seed.ts
 import { Symptom } from "@/features/diseases/types/disease.types";
 
 export const SYMPTOMS_SEED: Partial<Symptom>[] = [
