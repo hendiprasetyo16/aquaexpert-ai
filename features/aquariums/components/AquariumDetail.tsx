@@ -17,7 +17,6 @@ import {
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
-// Tabs & Panels
 import ParameterTab from "./ParameterTab";
 import InventoryTab from "./InventoryTab"; 
 import MaintenanceTab from "./MaintenanceTab"; 
@@ -203,7 +202,7 @@ export default function AquariumDetail() {
   const bioloadColor = bioloadPercent < 50 ? "text-teal-500 bg-teal-50 dark:bg-teal-900/30" : bioloadPercent < 80 ? "text-amber-500 bg-amber-50 dark:bg-amber-900/30" : "text-rose-500 bg-rose-50 dark:bg-rose-900/30";
 
   return (
-    <div className="w-full pb-24 animate-in fade-in duration-700">
+    <div className="w-full pb-24 animate-in fade-in duration-700 transition-colors">
       
       {/* HERO NAVIGATION */}
       <div className="w-full bg-transparent px-4 sm:px-8 pt-4 pb-2 max-w-[1400px] mx-auto">
@@ -213,12 +212,12 @@ export default function AquariumDetail() {
       </div>
 
       {/* =========================================
-          HERO HEADER (KEMBALI KE FULL COVER GLASSMORPHISM)
+          HERO HEADER: TRUE GLASSMORPHISM (100% IMMERSIVE)
       ========================================= */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-8">
         <div className="relative w-full min-h-[45vh] sm:min-h-[50vh] flex flex-col bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800">
           
-          {/* IMAGE BACKGROUND */}
+          {/* BACKGROUND COVER */}
           {aquarium.image_url && !imgError ? (
             <Image 
               src={aquarium.image_url} 
@@ -232,13 +231,15 @@ export default function AquariumDetail() {
             <div className={`absolute inset-0 bg-gradient-to-br ${isArchived ? 'from-slate-800 to-slate-950' : 'from-teal-900 via-slate-900 to-slate-950'} opacity-90`} />
           )}
 
-          {/* GRADIENT ATAS (Untuk menonjolkan badge Kiri Atas) */}
-          <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-slate-950/80 to-transparent pointer-events-none" />
+          {/* GRADIENT ATAS (Tipis, untuk status) */}
+          <div className="absolute top-0 inset-x-0 h-28 bg-gradient-to-b from-slate-950/70 to-transparent pointer-events-none z-0" />
           
-          {/* GRADIENT BAWAH (Untuk menonjolkan teks & tombol Kiri Bawah & Kanan Bawah) */}
-          <div className="absolute bottom-0 inset-x-0 h-[65%] sm:h-1/2 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent pointer-events-none" />
+          {/* GRADIENT BAWAH (Gelap pekat, untuk Judul & Tombol) */}
+          <div className="absolute bottom-0 inset-x-0 h-1/2 sm:h-2/5 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent pointer-events-none z-0" />
 
-          {/* 1. KIRI ATAS: BADGES STATUS */}
+          {/* ===================================== */}
+          {/* ELEMEN 1: KIRI ATAS (STATUS BADGES)   */}
+          {/* ===================================== */}
           <div className="absolute top-5 sm:top-8 left-5 sm:left-8 flex flex-wrap gap-2 z-20">
             {isArchived ? (
               <span className="inline-flex px-3 py-1.5 bg-amber-500/20 text-amber-300 text-[10px] font-black tracking-widest uppercase rounded-full border border-amber-500/30 backdrop-blur-md items-center gap-1.5 shadow-lg">
@@ -256,12 +257,14 @@ export default function AquariumDetail() {
             )}
           </div>
 
-          {/* 2. BAWAH: KONTEN UTAMA (Judul & Tombol Aksi) */}
-          <div className="relative z-20 mt-auto p-5 sm:p-8 flex flex-col lg:flex-row lg:items-end justify-between gap-6 w-full">
+          {/* ===================================== */}
+          {/* ELEMEN 2: BAWAH (JUDUL & ACTION BAR)  */}
+          {/* ===================================== */}
+          <div className="relative z-20 mt-auto p-5 sm:p-8 flex flex-col lg:flex-row lg:items-end justify-between gap-5 sm:gap-6 w-full pointer-events-none">
             
-            {/* KIRI BAWAH: Judul & Spesifikasi Tangki */}
-            <div className="space-y-3 w-full lg:w-auto">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-white drop-shadow-xl tracking-tight break-words">
+            {/* KIRI BAWAH: Judul & Spesifikasi Ekosistem */}
+            <div className="space-y-3 w-full lg:w-auto flex-1 flex flex-col pointer-events-auto">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white drop-shadow-xl tracking-tight break-words">
                 {aquarium.name}
               </h1>
               
@@ -277,19 +280,19 @@ export default function AquariumDetail() {
               </div>
             </div>
 
-            {/* KANAN BAWAH (Mepet Bawah): Tombol Aksi */}
-            <div className="flex flex-wrap items-center justify-start lg:justify-end gap-2.5 sm:gap-3 w-full lg:w-auto shrink-0 mt-2 lg:mt-0">
-              <Button onClick={() => router.push(`/dashboard/my-aquarium/${aquariumId}/edit`)} className="flex-1 lg:flex-none bg-white/10 hover:bg-white text-white hover:text-slate-900 border border-white/20 transition-all backdrop-blur-md h-11 sm:h-12 px-4 rounded-xl font-bold text-xs sm:text-sm shadow-sm min-w-fit">
+            {/* KANAN BAWAH (MEPET KANAN/BAWAH): Tombol Aksi */}
+            <div className="flex flex-wrap items-center justify-start lg:justify-end gap-2.5 sm:gap-3 w-full lg:w-auto shrink-0 mt-2 lg:mt-0 pointer-events-auto">
+              <Button onClick={() => router.push(`/dashboard/my-aquarium/${aquariumId}/edit`)} className="flex-1 lg:flex-none bg-slate-900/60 hover:bg-white text-white hover:text-slate-900 border border-white/20 transition-all backdrop-blur-md h-11 sm:h-12 px-5 rounded-xl font-bold text-xs sm:text-sm shadow-sm min-w-fit">
                 <Edit className="w-4 h-4 mr-2 shrink-0" /> {detailDict.edit}
               </Button>
               
-              <Button onClick={() => setShowArchiveModal(true)} className={`flex-1 lg:flex-none h-11 sm:h-12 px-4 rounded-xl font-bold border text-white transition-all backdrop-blur-md text-xs sm:text-sm min-w-fit shadow-sm ${isArchived ? "bg-emerald-600/80 hover:bg-emerald-500 border-emerald-500/50" : "bg-amber-500/80 hover:bg-amber-400 border-amber-400/50"}`}>
+              <Button onClick={() => setShowArchiveModal(true)} className={`flex-1 lg:flex-none h-11 sm:h-12 px-5 rounded-xl font-bold border transition-all backdrop-blur-md text-xs sm:text-sm min-w-fit shadow-sm ${isArchived ? "bg-emerald-600/40 text-emerald-300 hover:bg-emerald-500 hover:text-white border-emerald-500/50" : "bg-amber-600/40 text-amber-300 hover:bg-amber-500 hover:text-white border-amber-500/50"}`}>
                 {isArchived ? <RefreshCw className="w-4 h-4 mr-2 shrink-0" /> : <Archive className="w-4 h-4 mr-2 shrink-0" />} 
                 {isArchived ? detailDict.restore : detailDict.archive}
               </Button>
               
               {isSuperAdmin && (
-                <Button onClick={() => setShowDeleteModal(true)} className="w-full lg:w-auto bg-red-600/80 hover:bg-red-500 text-white border border-red-500/50 backdrop-blur-md h-11 sm:h-12 px-4 rounded-xl font-bold transition-all text-xs sm:text-sm shadow-sm mt-1 lg:mt-0">
+                <Button onClick={() => setShowDeleteModal(true)} className="w-full lg:w-auto bg-red-600/40 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/50 backdrop-blur-md h-11 sm:h-12 px-5 rounded-xl font-bold transition-all text-xs sm:text-sm shadow-sm mt-1 lg:mt-0">
                   <Trash2 className="w-4 h-4 mr-2 shrink-0" /> {detailDict.delete}
                 </Button>
               )}
@@ -318,7 +321,6 @@ export default function AquariumDetail() {
               
               {/* GRID RINGKASAN */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-                
                 <div className="bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
                   <div className="bg-blue-50 dark:bg-blue-900/30 p-2 sm:p-3 rounded-full text-blue-600 dark:text-blue-400 mb-2 shrink-0">
                     <Fish className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -384,6 +386,7 @@ export default function AquariumDetail() {
         </div>
       </div>
 
+      {/* MODAL ARCHIVE */}
       {showArchiveModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
           <div className={`w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 ${isArchived ? 'border-emerald-500' : 'border-amber-500'}`}>
@@ -406,6 +409,7 @@ export default function AquariumDetail() {
         </div>
       )}
 
+      {/* MODAL DELETE */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
           <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600">

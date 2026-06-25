@@ -330,16 +330,18 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                   {currentList.map((item, idx) => {
                     const isSelected = selectedItemId === item.id;
                     return (
-                      <div key={item.id} onClick={() => setSelectedItemId(item.id)} className={`relative cursor-pointer rounded-2xl border-2 p-2 sm:p-3 flex flex-col items-center gap-2.5 transition-all duration-200 bg-white dark:bg-slate-900 group ${isSelected ? (isFish ? "border-blue-500 bg-blue-50/30" : "border-emerald-500 bg-emerald-50/30") : "border-slate-100 hover:border-slate-300 dark:border-slate-800"}`}>
+                      <div key={item.id} onClick={() => setSelectedItemId(item.id)} className={`relative cursor-pointer rounded-2xl border-2 p-2 sm:p-3 flex flex-col items-center gap-2.5 bg-white dark:bg-slate-900 group ${isSelected ? (isFish ? "border-blue-500 bg-blue-50/30" : "border-emerald-500 bg-emerald-50/30") : "border-slate-100 hover:border-slate-300 dark:border-slate-800"}`}>
                         <div className="absolute top-2 left-2 w-5 h-5 flex items-center justify-center rounded bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm text-[9px] font-black text-slate-500 z-10">{idx + 1}</div>
                         
-                        {/* FIX MOBILE FLICKER: Ikon centang tidak dihapus dari DOM, hanya dikontrol lewat CSS opacity agar tidak memicu recalculation layout di Safari/Chrome Mobile */}
-                        <div className={`absolute top-2 right-2 rounded-full bg-white dark:bg-slate-900 z-10 transition-all duration-200 ${isFish ? 'text-blue-500' : 'text-emerald-500'} ${isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
-                          <CheckCircle2 className="w-5 h-5" />
-                        </div>
+                        {/* FIX FLICKER: Gunakan display block/none daripada opacity untuk CheckCircle, dan hilangkan animasi scale di elemen ini */}
+                        {isSelected && (
+                          <div className={`absolute top-2 right-2 rounded-full bg-white dark:bg-slate-900 z-10 ${isFish ? 'text-blue-500' : 'text-emerald-500'}`}>
+                            <CheckCircle2 className="w-5 h-5" />
+                          </div>
+                        )}
                         
-                        {/* FIX MOBILE FLICKER: Menggunakan width absolut dengan aspect-ratio yang aman */}
-                        <div className={`w-full ${isFish ? 'aspect-[4/3] rounded-xl max-w-[140px]' : 'aspect-square rounded-full max-w-[80px] sm:max-w-[100px]'} overflow-hidden shrink-0 relative bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition-transform duration-300 ${isSelected ? 'scale-95' : 'group-hover:scale-95'}`}>
+                        {/* FIX FLICKER: Gunakan w/h statis, jangan gunakan aspect-square atau scale group-hover */}
+                        <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 relative bg-slate-100 dark:bg-slate-800 flex items-center justify-center`}>
                            {item.image_url ? ( 
                              <img src={item.image_url} alt="species" className="w-full h-full object-cover" /> 
                            ) : ( 
