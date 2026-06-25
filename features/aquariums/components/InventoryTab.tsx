@@ -85,6 +85,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
     setMounted(true);
     loadInventory();
     loadMasterData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aquariumId]);
 
   const resetForm = () => {
@@ -333,14 +334,14 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                       <div key={item.id} onClick={() => setSelectedItemId(item.id)} className={`relative cursor-pointer rounded-2xl border-2 p-2 sm:p-3 flex flex-col items-center gap-2.5 bg-white dark:bg-slate-900 group ${isSelected ? (isFish ? "border-blue-500 bg-blue-50/30" : "border-emerald-500 bg-emerald-50/30") : "border-slate-100 hover:border-slate-300 dark:border-slate-800"}`}>
                         <div className="absolute top-2 left-2 w-5 h-5 flex items-center justify-center rounded bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm text-[9px] font-black text-slate-500 z-10">{idx + 1}</div>
                         
-                        {/* FIX FLICKER: Gunakan display block/none daripada opacity untuk CheckCircle, dan hilangkan animasi scale di elemen ini */}
+                        {/* FIX FLICKER: Gunakan display block/none daripada opacity untuk CheckCircle */}
                         {isSelected && (
                           <div className={`absolute top-2 right-2 rounded-full bg-white dark:bg-slate-900 z-10 ${isFish ? 'text-blue-500' : 'text-emerald-500'}`}>
                             <CheckCircle2 className="w-5 h-5" />
                           </div>
                         )}
                         
-                        {/* FIX FLICKER: Gunakan w/h statis, jangan gunakan aspect-square atau scale group-hover */}
+                        {/* FIX FLICKER: Gunakan width/height absolut, TIDAK MENGGUNAKAN aspect-square agar browser HP tidak bingung me-render ukurannya */}
                         <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 relative bg-slate-100 dark:bg-slate-800 flex items-center justify-center`}>
                            {item.image_url ? ( 
                              <img src={item.image_url} alt="species" className="w-full h-full object-cover" /> 

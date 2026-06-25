@@ -1,7 +1,7 @@
 // app/(dashboard)/dashboard/fish-expert/engine/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { getFishes } from "@/features/fishes/repositories/fish.repository";
 import { Fish as FishType } from "@/features/fishes/types/fish.types";
 import FishCard from "@/features/fishes/components/FishCard";
@@ -43,20 +43,18 @@ export default function FishExpertEnginePage() {
   const [currentGH, setCurrentGH] = useState<number | "">("");
   const [fishTypePref, setFishTypePref] = useState("Community Tank");
   const [wantSchoolingFish, setWantSchoolingFish] = useState(true);
-  
   const [hasShrimp, setHasShrimp] = useState(false); 
   const [hasPlants, setHasPlants] = useState(true);  
   const [aquascapeStyle, setAquascapeStyle] = useState("Bebas"); 
   
-  // V4 MY AQUARIUM SIMULATOR STATES
   const [existingFishes, setExistingFishes] = useState<ExistingFishRecord[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalSearch, setModalSearch] = useState("");
   const [modalSelectedFishId, setModalSelectedFishId] = useState("");
   const [modalQty, setModalQty] = useState<number | "">(1);
 
-  // PAGINATION STATE
   const [currentPage, setCurrentPage] = useState(1);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
     async function loadKnowledgeBase() {
@@ -92,20 +90,19 @@ export default function FishExpertEnginePage() {
         if (parsed.currentPage) setCurrentPage(parsed.currentPage);
       } catch (e: unknown) {}
     }
+    setIsHydrated(true);
   }, []);
 
-  // MENGAMBIL DICTIONARY DENGAN AMAN
+  // MENGAMBIL DICTIONARY SECARA AMAN (Menggunakan useMemo agar array dependencies di useEffect tidak berteriak)
   const rootDict = dict as unknown as Record<string, any>;
-  const engineDict = rootDict.fishExpertEngine || {};
-  const listDict = rootDict.fishList || {};
+  const engineDict = useMemo(() => rootDict.fishExpertEngine || {}, [rootDict.fishExpertEngine]);
+  const listDict = useMemo(() => rootDict.fishList || {}, [rootDict.fishList]);
 
-  // PENGAMANAN FALLBACK TEKS BILINGUAL SANGAT KUAT
-  const tDict = {
+  const tDict = useMemo(() => ({
     title: engineDict.title || "Fish Compatibility Engine V4",
     subtitle: engineDict.subtitle || (lang === 'id' ? "Sistem cerdas evaluasi bioload predator-prey dan kapasitas water layer." : "Smart evaluation system for predator-prey bioload and water layer capacity."),
     formTitle: engineDict.formTitle || (lang === 'id' ? "Kuesioner Ekosistem Tangki" : "Tank Ecosystem Questionnaire"),
     
-    // Pertanyaan
     exp: engineDict.q1 || (lang === 'id' ? "1. Pengalaman Anda" : "1. Your Experience"),
     q1Opt1: engineDict.q1Opt1 || (lang === 'id' ? "Pemula" : "Beginner"),
     q1Opt2: engineDict.q1Opt2 || (lang === 'id' ? "Menengah" : "Intermediate"),
@@ -127,19 +124,16 @@ export default function FishExpertEnginePage() {
     shrimp: lang === 'id' ? "Ada Udang Hias" : "Has Shrimp",
     needSchooling: engineDict.needSchooling || (lang === 'id' ? "Suka Ikan Berkelompok" : "I like schooling fish"),
     
-    // UI Simulator
     simTitle: lang === 'id' ? "Simulator Penghuni (My Aquarium)" : "My Aquarium Simulator",
     simDesc: lang === 'id' ? "Masukkan jenis ikan yang saat ini SUDAH ADA di dalam tank Anda. AI akan menghitung sisa kapasitas tangki, mencegah overstock, dan menghindari ikan saling memangsa (hukum rimba)." : "Enter fish that ALREADY exist in your tank. AI will calculate remaining capacity, prevent overstocking, and avoid predatory mismatch.",
     simBtn: lang === 'id' ? "Tambah Fauna" : "Select Fauna",
     simEmpty: lang === 'id' ? "Belum ada penghuni. Tangki kosong." : "No inhabitants. Tank is empty.",
     
-    // Modal
     modalTitle: lang === 'id' ? "Pilih Fauna" : "Select Fauna",
     modalSearch: lang === 'id' ? "Cari spesies..." : "Search species...",
     modalCancel: lang === 'id' ? "BATAL" : "CANCEL",
     modalSave: lang === 'id' ? "SIMPAN" : "SAVE",
     
-    // Hasil Engine
     btnStart: engineDict.btnStart || (lang === 'id' ? "Mulai Analisis" : "Start Analysis"),
     idleTitle: engineDict.idleTitle || (lang === 'id' ? "Sistem Aktif" : "System Active"),
     idleDesc: engineDict.idleDesc || (lang === 'id' ? "Kirim parameter tangki Anda untuk diagnosis cerdas." : "Submit your tank parameters for smart diagnosis."),
@@ -157,23 +151,17 @@ export default function FishExpertEnginePage() {
     confGood: engineDict.confGood || (lang === 'id' ? "Cocok" : "Good"),
     confModerate: engineDict.confModerate || (lang === 'id' ? "Cukup" : "Moderate"),
     
-    // Pagination
     showing: listDict.showing || (lang === 'id' ? "Menampilkan" : "Showing"),
     to: listDict.to || (lang === 'id' ? "hingga" : "to"),
     of: listDict.of || (lang === 'id' ? "dari" : "of"),
     data: listDict.data || (lang === 'id' ? "data" : "items"),
     page: listDict.page || (lang === 'id' ? "Hal" : "Page")
-  };
+  }), [engineDict, listDict, lang]);
 
-  useEffect(() => {
-    // TRIGGER RE-RUN JIKA BAHASA BERUBAH DAN HASIL SUDAH ADA
-    if (results !== null && fishes.length > 0) {
-      runInferenceEngine();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language]); 
-
-  const runInferenceEngine = () => {
+  // KITA GUNAKAN useCallback AGAR FUNGSI INI STABIL DAN BISA DI-PANGGIL OLEH useEffect
+  const runInferenceEngine = useCallback(() => {
+    if (!isHydrated || fishes.length === 0) return;
+    
     setLoading(true);
     setCurrentPage(1); 
     
@@ -199,8 +187,20 @@ export default function FishExpertEnginePage() {
     setTimeout(() => {
       setResults(aiResults);
       setLoading(false);
-    }, 800); 
-  };
+    }, 500); 
+  }, [
+    isHydrated, fishes, engineDict, lang,
+    experience, tankVolumeLiters, tankLengthCm, currentPH, currentTemp, currentGH,
+    wantSchoolingFish, fishTypePref, hasShrimp, hasPlants, aquascapeStyle, existingFishes
+  ]);
+
+  // EFEK INI HANYA MENYALA JIKA USER GANTI BAHASA (DAN HASIL SEBELUMNYA SUDAH ADA)
+  useEffect(() => {
+    if (isHydrated && results !== null && fishes.length > 0) {
+      runInferenceEngine();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]); 
 
   const handleModalSave = () => {
     if (!modalSelectedFishId || !modalQty || modalQty < 1) return;
@@ -288,11 +288,9 @@ export default function FishExpertEnginePage() {
 
         <div className="grid gap-8 xl:grid-cols-12">
           
-          {/* PANEL KIRI: FORMULIR INPUT V4 */}
           <Card className="border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/80 xl:col-span-5 h-fit shadow-xl shadow-slate-200/50 dark:shadow-none transition-colors duration-300">
             <CardContent className="p-5 sm:p-8 space-y-6">
               
-              {/* SECTION: LINGKUNGAN */}
               <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center gap-2 text-gray-900 dark:text-slate-100 transition-colors">
                 <Filter className="h-5 w-5 text-blue-600 dark:text-blue-500" /> {tDict.formTitle}
               </h3>
@@ -514,7 +512,6 @@ export default function FishExpertEnginePage() {
                   })}
                 </div>
 
-                {/* PENYELARASAN PAGINATION SESUAI PLANT EXPERT */}
                 {totalPages > 1 && (
                   <div className="flex flex-col lg:flex-row items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-6 mt-6 gap-4 transition-colors">
                     <p className="text-sm text-slate-600 dark:text-slate-400 text-center lg:text-left w-full lg:w-auto transition-colors">
@@ -551,7 +548,6 @@ export default function FishExpertEnginePage() {
                         <ChevronsRight className="h-4 w-4" />
                       </Button>
 
-                      {/* FITUR LOMPAT HALAMAN (GO TO PAGE) */}
                       <div className="flex items-center justify-center gap-2 text-sm border-t lg:border-t-0 lg:border-l border-slate-300 dark:border-slate-700 pt-2.5 lg:pt-0 lg:pl-3 w-full lg:w-auto transition-colors text-slate-600 dark:text-slate-300">
                         <span className="hidden sm:inline">{tDict.page}</span>
                         <Input 
@@ -580,7 +576,7 @@ export default function FishExpertEnginePage() {
       {/* ========================================== */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 w-full max-w-4xl rounded-2xl flex flex-col overflow-hidden shadow-2xl scale-in-95 transition-colors">
+          <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 w-full max-w-4xl rounded-3xl flex flex-col overflow-hidden shadow-2xl scale-in-95 transition-colors">
             
             {/* HEADER MODAL */}
             <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-slate-800 transition-colors">
@@ -597,8 +593,8 @@ export default function FishExpertEnginePage() {
             {/* GRID GAMBAR IKAN */}
             <div className="p-6 overflow-y-auto max-h-[50vh] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 bg-slate-50 dark:bg-[#0b1120] custom-scrollbar transition-colors">
                {filteredModalFishes.map(f => (
-                 <div key={f.id} onClick={() => setModalSelectedFishId(f.id)} className={`cursor-pointer rounded-xl border-2 overflow-hidden flex flex-col items-center p-3 transition-all ${modalSelectedFishId === f.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 scale-[1.02] shadow-md' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1e293b] hover:border-slate-300 dark:hover:border-slate-600 shadow-sm'}`}>
-                   <div className="w-16 h-16 rounded-lg bg-slate-100 dark:bg-slate-800 mb-3 relative overflow-hidden flex items-center justify-center shadow-inner transition-colors">
+                 <div key={f.id} onClick={() => setModalSelectedFishId(f.id)} className={`cursor-pointer rounded-2xl border-2 overflow-hidden flex flex-col items-center p-3 transition-all ${modalSelectedFishId === f.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 scale-[1.02] shadow-md' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1e293b] hover:border-slate-300 dark:hover:border-slate-600 shadow-sm'}`}>
+                   <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 mb-3 relative overflow-hidden flex items-center justify-center shadow-inner transition-colors">
                      {f.image_url ? <Image src={f.image_url} fill sizes="64px" className="object-cover" alt="" unoptimized /> : <Fish className="w-8 h-8 text-slate-300 dark:text-slate-500 transition-colors"/>}
                    </div>
                    <p className="text-xs font-bold text-center text-slate-700 dark:text-slate-200 line-clamp-2 leading-tight transition-colors">{lang === 'en' && f.name_en ? f.name_en : f.name_id}</p>
@@ -613,11 +609,11 @@ export default function FishExpertEnginePage() {
             <div className="p-5 sm:p-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] flex flex-col sm:flex-row items-end sm:items-center justify-between gap-4 transition-colors">
               <div className="w-full sm:w-32 space-y-2">
                 <Label className="text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold tracking-widest transition-colors">QTY</Label>
-                <Input type="number" min={1} value={modalQty} onChange={e => setModalQty(e.target.value ? Number(e.target.value) : "")} className="bg-slate-50 dark:bg-[#1e293b] border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-12 font-bold focus:border-blue-500 text-center sm:text-left transition-colors" />
+                <Input type="number" min={1} value={modalQty} onChange={e => setModalQty(e.target.value ? Number(e.target.value) : "")} className="bg-slate-50 dark:bg-[#1e293b] border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-12 font-black focus:border-blue-500 text-center sm:text-left transition-colors" />
               </div>
               <div className="flex w-full sm:w-auto gap-3">
                  <Button variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1 sm:w-auto h-12 bg-white dark:bg-transparent border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold uppercase tracking-wider transition-colors">{tDict.modalCancel}</Button>
-                 <Button onClick={handleModalSave} disabled={!modalSelectedFishId || !modalQty} className="flex-1 sm:w-auto h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold w-full sm:w-32 uppercase tracking-wider shadow-[0_0_15px_rgba(37,99,235,0.2)] dark:shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all">
+                 <Button onClick={handleModalSave} disabled={!modalSelectedFishId || !modalQty} className="flex-1 sm:w-auto h-12 bg-blue-600 hover:bg-blue-500 text-white font-black w-full sm:w-32 uppercase tracking-wider shadow-[0_0_15px_rgba(37,99,235,0.2)] dark:shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all">
                    {tDict.modalSave}
                  </Button>
               </div>

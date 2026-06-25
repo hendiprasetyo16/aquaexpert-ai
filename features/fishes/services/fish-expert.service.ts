@@ -28,7 +28,6 @@ export interface RecommendedFish extends Fish {
   matchConfidenceKey: ConfidenceKey;
 }
 
-// Menyesuaikan persis dengan JSON Bapak + metrik V4 opsional
 export interface FishExpertDictionary {
   reasonTankSizeOK?: string;
   reasonTankSizeBad?: string;
@@ -40,18 +39,6 @@ export interface FishExpertDictionary {
   reasonBeginnerFriendly?: string;
   reasonExpertOnly?: string;
   reasonCompatibility?: string;
-  // V4 Fallbacks
-  reasonGHMatch?: string;     
-  reasonGHMismatch?: string;  
-  reasonBioloadBad?: string;  
-  reasonNotPlantSafe?: string; 
-  reasonStyleMatch?: string;    
-  reasonActivityNeedsSpace?: string; 
-  reasonLayerBalance?: string; 
-  reasonLayerCrowded?: string; 
-  reasonPredatorRisk?: string; 
-  reasonPreyRisk?: string;     
-  reasonFinNipperRisk?: string;
 }
 
 export function generateFishRecommendations(
@@ -63,32 +50,32 @@ export function generateFishRecommendations(
   const rawEvaluations: RawEvaluation<Fish>[] = [];
 
   // ==========================================
-  // BILINGUAL FALLBACKS (MENGAMBIL DARI JSON)
+  // HARDCODE BILINGUAL FALLBACKS MUTLAK
   // ==========================================
   const dictEE = {
-    reasonTankSizeOK: dictInput?.reasonTankSizeOK || (lang === 'en' ? "Your tank volume is very spacious for this species." : "Volume tangki Anda sangat leluasa untuk spesies ini."),
-    reasonTankSizeBad: dictInput?.reasonTankSizeBad || (lang === 'en' ? "Tank is too small, risking stunting the fish's growth." : "Tangki terlalu sempit, berisiko mengerdilkan ikan (stunting)."),
-    reasonPHMatch: dictInput?.reasonPHMatch || (lang === 'en' ? "Your water pH falls within the ideal range for this species." : "Kondisi pH air Anda masuk dalam rentang ideal spesies ini."),
-    reasonPHMismatch: dictInput?.reasonPHMismatch || (lang === 'en' ? "Current water pH risks causing stress or illness to the fish." : "pH air saat ini berisiko membuat ikan stres atau sakit."),
-    reasonTempMatch: dictInput?.reasonTempMatch || (lang === 'en' ? "Perfect water temperature for this fish's metabolism." : "Suhu air sempurna untuk metabolisme ikan ini."),
-    reasonTempMismatch: dictInput?.reasonTempMismatch || (lang === 'en' ? "Temperature mismatch, may weaken the fish's immune system." : "Suhu tidak sesuai, dapat melemahkan imun ikan."),
-    reasonSchooling: dictInput?.reasonSchooling || (lang === 'en' ? "Perfect for swimming in groups" : "Cocok untuk berenang bergerombol"),
-    reasonBeginnerFriendly: dictInput?.reasonBeginnerFriendly || (lang === 'en' ? "Very disease-resistant and easy for beginners to keep." : "Sangat kebal penyakit dan mudah dipelihara pemula."),
-    reasonExpertOnly: dictInput?.reasonExpertOnly || (lang === 'en' ? "Requires highly stable water quality (For experts only)." : "Membutuhkan kualitas air yang super stabil (Hanya untuk ahli)."),
-    reasonCompatibility: dictInput?.reasonCompatibility || (lang === 'en' ? "Its behavior matches your planned tank ecosystem." : "Sifatnya cocok dengan rencana ekosistem tangki Anda."),
+    reasonTankSizeOK: lang === 'en' ? "Your tank volume is perfectly spacious for this species." : "Volume tangki Anda sangat leluasa untuk spesies ini.",
+    reasonTankSizeBad: lang === 'en' ? "Tank is too narrow, risking stunting the fish's growth." : "Tangki terlalu sempit, berisiko mengerdilkan ikan (stunting).",
+    reasonPHMatch: lang === 'en' ? "Your water pH falls within the ideal range for this species." : "Kondisi pH air Anda masuk dalam rentang ideal spesies ini.",
+    reasonPHMismatch: lang === 'en' ? "Current water pH risks causing stress or illness to the fish." : "pH air saat ini berisiko membuat ikan stres atau sakit.",
+    reasonTempMatch: lang === 'en' ? "Perfect water temperature for this fish's metabolism." : "Suhu air sempurna untuk metabolisme ikan ini.",
+    reasonTempMismatch: lang === 'en' ? "Temperature mismatch, may weaken the fish's immune system." : "Suhu tidak sesuai, dapat melemahkan imun ikan.",
+    reasonSchooling: lang === 'en' ? "Perfect for swimming in groups" : "Cocok untuk berenang bergerombol",
+    reasonBeginnerFriendly: lang === 'en' ? "Very disease-resistant and easy for beginners to keep." : "Sangat kebal penyakit dan mudah dipelihara pemula.",
+    reasonExpertOnly: lang === 'en' ? "Requires highly stable water quality (For experts only)." : "Membutuhkan kualitas air yang super stabil (Hanya untuk ahli).",
+    reasonCompatibility: lang === 'en' ? "Its behavior matches your planned tank ecosystem." : "Sifatnya cocok dengan rencana ekosistem tangki Anda.",
     
-    // V4 SPECIFIC REASONS (Karena belum ada di JSON, kita beri bahasa manual sesuai 'lang')
-    reasonGHMatch: (lang === 'en' ? "Water hardness (GH) is ideal for this species." : "Tingkat kekerasan air (GH) sudah sesuai habitat aslinya."),
-    reasonGHMismatch: (lang === 'en' ? "Water hardness (GH) is not optimal." : "Kekerasan air (GH) kurang sesuai untuk spesies ini."),
-    reasonBioloadBad: (lang === 'en' ? "Your tank's filtration capacity has reached its limit (overstocked)." : "Kapasitas filtrasi tangki Anda sudah mencapai batas (overstock)."),
-    reasonNotPlantSafe: (lang === 'en' ? "DANGER: Risks eating and destroying your aquascape plants." : "BERBAHAYA: Berisiko memakan dan merusak tanaman aquascape Anda."),
-    reasonStyleMatch: (lang === 'en' ? `Aesthetically and biologically perfect for ${answers.aquascapeStyle} style.` : `Sangat sesuai secara estetika & biologis untuk akuarium tema ${answers.aquascapeStyle}.`),
-    reasonActivityNeedsSpace: (lang === 'en' ? "This hyperactive fish needs a tank length of at least 80cm to sprint." : "Ikan hiperaktif ini membutuhkan panjang akuarium minimal 80cm agar bisa bermanuver lari."),
-    reasonLayerBalance: (lang === 'en' ? "Perfect for filling the empty swimming layer in your aquarium." : "Sempurna untuk mengisi area/zona renang yang masih kosong di akuarium Anda."),
-    reasonLayerCrowded: (lang === 'en' ? "The swimming layer (Water Layer) for this fish is already quite crowded." : "Area renang (Water Layer) yang biasa dihuni ikan ini sudah cukup padat."),
-    reasonPredatorRisk: (lang === 'en' ? "PREDATOR DANGER: This fish's mouth size poses a risk of eating your existing tank inhabitants." : "BAHAYA PREDATOR: Mulut ikan ini berisiko memangsa penghuni lama tangki Anda."),
-    reasonPreyRisk: (lang === 'en' ? "PREY DANGER: This fish risks being eaten alive by existing larger/predatory fish." : "BAHAYA DIMANGSA: Ikan ini berisiko dimakan hidup-hidup oleh ikan besar/predator yang sudah ada."),
-    reasonFinNipperRisk: (lang === 'en' ? "DANGER: High risk of fin-nipping conflicts with your existing fish." : "BAHAYA: Ada risiko saling gigit sirip (Fin-nipping) dengan ikan lama Anda.")
+    // V4 SPECIFIC REASONS
+    reasonGHMatch: lang === 'en' ? "Water hardness (GH) is ideal for this species." : "Tingkat kekerasan air (GH) sudah sesuai habitat aslinya.",
+    reasonGHMismatch: lang === 'en' ? "Water hardness (GH) is not optimal." : "Kekerasan air (GH) kurang sesuai untuk spesies ini.",
+    reasonBioloadBad: lang === 'en' ? "Your tank's filtration capacity has reached its limit (overstocked)." : "Kapasitas filtrasi tangki Anda sudah mencapai batas (overstock).",
+    reasonNotPlantSafe: lang === 'en' ? "DANGER: Risks eating and destroying your aquascape plants." : "BERBAHAYA: Berisiko memakan dan merusak tanaman aquascape Anda.",
+    reasonStyleMatch: lang === 'en' ? `Aesthetically and biologically perfect for ${answers.aquascapeStyle} style.` : `Sangat sesuai secara estetika & biologis untuk akuarium tema ${answers.aquascapeStyle}.`,
+    reasonActivityNeedsSpace: lang === 'en' ? "This hyperactive fish needs a tank length of at least 80cm to sprint." : "Ikan hiperaktif ini membutuhkan panjang akuarium minimal 80cm agar bisa bermanuver lari.",
+    reasonLayerBalance: lang === 'en' ? "Perfect for filling the empty swimming layer in your aquarium." : "Sempurna untuk mengisi area/zona renang yang masih kosong di akuarium Anda.",
+    reasonLayerCrowded: lang === 'en' ? "The swimming layer (Water Layer) for this fish is already quite crowded." : "Area renang (Water Layer) yang biasa dihuni ikan ini sudah cukup padat.",
+    reasonPredatorRisk: lang === 'en' ? "PREDATOR DANGER: This fish's mouth size poses a risk of eating your existing tank inhabitants." : "BAHAYA PREDATOR: Mulut ikan ini berisiko memangsa penghuni lama tangki Anda.",
+    reasonPreyRisk: lang === 'en' ? "PREY DANGER: This fish risks being eaten alive by existing larger/predatory fish." : "BAHAYA DIMANGSA: Ikan ini berisiko dimakan hidup-hidup oleh ikan besar/predator yang sudah ada.",
+    reasonFinNipperRisk: lang === 'en' ? "DANGER: High risk of fin-nipping conflicts with your existing fish." : "BAHAYA: Ada risiko saling gigit sirip (Fin-nipping) dengan ikan lama Anda."
   };
 
   const layerBioload: Record<string, number> = { "Top": 0, "Middle": 0, "Bottom": 0, "All Levels": 0 };
@@ -117,6 +104,7 @@ export function generateFishRecommendations(
     const candidateTempScore = fish.temperament_score || 2;
     const candidateMouthSize = fish.mouth_size_factor || 1; 
 
+    // TAHAP A: V4 EXISTING FISH COMPATIBILITY (HUKUM RIMBA)
     for (const record of answers.existingFishes) {
       const existingSize = record.fish.estimated_adult_size_cm || 5;
       const existingTempScore = record.fish.temperament_score || 2;
@@ -143,6 +131,7 @@ export function generateFishRecommendations(
       }
     }
 
+    // TAHAP B: HARD FILTERS
     if (answers.hasShrimp && fish.shrimp_safe === false) isFatal = true;
 
     if (answers.hasPlants && fish.plant_safe === false) {
@@ -157,6 +146,7 @@ export function generateFishRecommendations(
 
     if (isFatal) continue; 
 
+    // TAHAP C: V4 WATER LAYER & BIOLOAD
     if (fish.min_tank_size && answers.tankVolumeLiters < fish.min_tank_size) {
       const deficit = fish.min_tank_size - answers.tankVolumeLiters;
       score -= Math.min(50, deficit * 0.8);
@@ -200,6 +190,7 @@ export function generateFishRecommendations(
       reasons.push(dictEE.reasonStyleMatch);
     }
 
+    // TAHAP D: PARAMETER AIR (pH, Temp, GH)
     if (fish.ideal_ph_min && fish.ideal_ph_max) {
       if (answers.currentPH >= fish.ideal_ph_min && answers.currentPH <= fish.ideal_ph_max) {
         score += 15;
@@ -232,6 +223,7 @@ export function generateFishRecommendations(
       }
     }
 
+    // TAHAP E: PENGALAMAN & KELOMPOK
     if (answers.experience === "Pemula") {
       if (fish.difficulty === "Easy") { score += 20; reasons.push(dictEE.reasonBeginnerFriendly); } 
       else if (fish.difficulty === "Hard") { score -= 40; }

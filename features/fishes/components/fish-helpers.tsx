@@ -106,11 +106,12 @@ export const formatWaterParams = (min: number | null | undefined, max: number | 
   return "-";
 };
 
-// --- FUNGSI BARU UNTUK TANK STYLES ---
+// --- FUNGSI TANK STYLE UNTUK BILINGUAL ---
 export const getTankStyleDesc = (style: string, lang: "id" | "en" = "id") => {
+  if (!style) return "-";
   const s = style.toLowerCase();
   if (lang === "id") {
-    if (s === "nature") return "Nature (Alami)";
+    if (s === "nature") return "Nature Style";
     if (s === "dutch") return "Dutch (Gaya Belanda)";
     if (s === "iwagumi") return "Iwagumi (Batu)";
     if (s === "biotope") return "Biotope (Sesuai Habitat Asli)";

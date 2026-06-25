@@ -14,9 +14,6 @@ interface FishCardProps {
   fish: FishType;
 }
 
-// ==========================================
-// INTERFACE UNTUK TYPE-SAFE DICTIONARY
-// ==========================================
 interface FishCardDict {
   editTooltip?: string;
   noScientificName?: string;
@@ -26,29 +23,31 @@ interface FishCardDict {
   difficulty?: string;
 }
 
-// KITA BUAT FUNGSI HELPER LOKAL UNTUK MEMECAH TEKS DIFFICULTY MENJADI 2 BARIS
+// ==========================================
+// RENDER KHUSUS DIFFICULTY (TIDAK OVERFLOW)
+// ==========================================
 const renderDifficultyBadge = (level: string | null | undefined, lang: "id" | "en") => {
-  if (!level) {
-    return (
-      <>
-        <span className="font-black leading-none mb-0.5">{lang === 'id' ? "TIDAK TAHU" : "UNKNOWN"}</span>
-      </>
-    );
-  }
-
+  if (!level) return <span className="font-black text-[10px]">UNKNOWN</span>;
   const l = level.toLowerCase();
+  let main = level.toUpperCase();
+  let sub = "";
   
   if (lang === "id") {
-    if (l === "easy") return <><span className="font-black leading-none mb-0.5">MUDAH</span><span className="text-[8px] sm:text-[9px] opacity-80">(PEMULA)</span></>;
-    if (l === "medium") return <><span className="font-black leading-none mb-0.5">SEDANG</span><span className="text-[8px] sm:text-[9px] opacity-80">(MENENGAH)</span></>;
-    if (l === "hard") return <><span className="font-black leading-none mb-0.5">SULIT</span><span className="text-[8px] sm:text-[9px] opacity-80">(MAHIR)</span></>;
+    if (l === "easy") { main = "MUDAH"; sub = "(PEMULA)"; }
+    else if (l === "medium") { main = "SEDANG"; sub = "(MENENGAH)"; }
+    else if (l === "hard") { main = "SULIT"; sub = "(MAHIR)"; }
   } else {
-    if (l === "easy") return <><span className="font-black leading-none mb-0.5">EASY</span><span className="text-[8px] sm:text-[9px] opacity-80">(BEGINNER)</span></>;
-    if (l === "medium") return <><span className="font-black leading-none mb-0.5">MEDIUM</span><span className="text-[8px] sm:text-[9px] opacity-80">(INTERMEDIATE)</span></>;
-    if (l === "hard") return <><span className="font-black leading-none mb-0.5">HARD</span><span className="text-[8px] sm:text-[9px] opacity-80">(ADVANCED)</span></>;
+    if (l === "easy") { main = "EASY"; sub = "(BEGINNER)"; }
+    else if (l === "medium") { main = "MEDIUM"; sub = "(INTERMEDIATE)"; }
+    else if (l === "hard") { main = "HARD"; sub = "(ADVANCED)"; }
   }
 
-  return <span className="font-black leading-none">{level.toUpperCase()}</span>;
+  return (
+    <div className="flex flex-col items-center justify-center leading-none pt-0.5">
+      <span className="font-black text-[10px] sm:text-[11px] leading-tight">{main}</span>
+      {sub && <span className="font-bold text-[8px] sm:text-[9px] opacity-80 leading-none mt-0.5">{sub}</span>}
+    </div>
+  );
 };
 
 export default function FishCard({ fish }: FishCardProps) {
@@ -85,13 +84,13 @@ export default function FishCard({ fish }: FishCardProps) {
       <Link href={`/dashboard/fishes/${fish.id}`} className="block cursor-pointer flex-shrink-0">
         <div className="h-48 sm:h-52 w-full overflow-hidden bg-slate-100 dark:bg-slate-800 relative transition-colors duration-300">
           {fish.image_url ? (
-            // PERBAIKAN: Menghapus unoptimized yang error dan menggunakan Image standar yang aman
             <Image 
               src={fish.image_url} 
               alt={displayName} 
               fill 
               sizes="(max-width: 768px) 100vw, 33vw"
               className="object-cover transition-transform duration-700 group-hover:scale-110" 
+              unoptimized
             />
           ) : (
             <div className="flex h-full items-center justify-center">
@@ -142,7 +141,6 @@ export default function FishCard({ fish }: FishCardProps) {
             </span>
           </div>
 
-          {/* PERBAIKAN FINAL: DIBUAT DUA BARIS AGAR TIDAK BOCOR / OVERFLOW */}
           <div className="flex flex-col xl:flex-row xl:items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800/60 mt-3 transition-colors duration-300 gap-2.5">
             <div className="flex items-center gap-1.5 shrink-0">
               <Info className="h-4 w-4 text-slate-400 shrink-0" />
@@ -150,7 +148,7 @@ export default function FishCard({ fish }: FishCardProps) {
             </div>
             
             <div
-              className={`flex flex-col items-center justify-center text-center rounded-md px-3 py-1.5 min-h-[36px] uppercase tracking-wider border shadow-sm transition-colors w-full xl:w-fit xl:ml-auto break-words ${
+              className={`flex items-center justify-center rounded-md px-2 h-10 min-w-[85px] border shadow-sm transition-colors w-full xl:w-fit xl:ml-auto ${
                 fish.difficulty?.toLowerCase() === 'easy' ? 'bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-400 border-green-300 dark:border-green-700' 
                 : fish.difficulty?.toLowerCase() === 'medium' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700' 
                 : fish.difficulty?.toLowerCase() === 'hard' ? 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 border-red-300 dark:border-red-700' 
