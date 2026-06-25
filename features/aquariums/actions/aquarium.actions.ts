@@ -32,12 +32,18 @@ export async function getAquariumByIdAction(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    const { data, error } = await supabase
-      .from("my_aquariums")
-      .select("*")
-      .eq("id", id)
-      .eq("user_id", user.id) // SECURITY FIX 1: Mencegah akses ke tank orang lain
-      .single();
+    // CEK ROLE USER SAAT INI UNTUK BYPASS
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    const isSuperAdmin = profile?.role === 'super_admin';
+
+    // Jika bukan Super Admin, filter secara ketat berdasarkan user.id
+    // Jika Super Admin, biarkan dia melihat semuanya
+    let query = supabase.from("my_aquariums").select("*").eq("id", id);
+    if (!isSuperAdmin) {
+       query = query.eq("user_id", user.id);
+    }
+
+    const { data, error } = await query.single();
 
     if (error) throw new Error(error.message);
     return { success: true, data };
@@ -109,11 +115,22 @@ export async function updateAquariumAction(id: string, payload: UpdateAquariumIn
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
+    // CEK ROLE USER SAAT INI UNTUK BYPASS
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    const isSuperAdmin = profile?.role === 'super_admin';
+
     if (payload.is_primary) {
       await clearPrimaryAquarium(supabase, user.id);
     }
 
-    const data = await updateAquarium(supabase, id, user.id, payload);
+    // Jika Super Admin, berikan ID dari data aslinya (bukan user.id login) agar owner tidak berubah saat admin mengedit
+    let targetUserId = user.id;
+    if (isSuperAdmin) {
+       const { data: aq } = await supabase.from("my_aquariums").select("user_id").eq("id", id).single();
+       if (aq) targetUserId = aq.user_id;
+    }
+
+    const data = await updateAquarium(supabase, id, targetUserId, payload);
     revalidatePath("/dashboard/my-aquarium");
     revalidatePath(`/dashboard/my-aquarium/${id}`);
     return { success: true, data };
@@ -132,7 +149,17 @@ export async function deleteAquariumAction(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    await deleteAquarium(supabase, id, user.id);
+    // CEK ROLE USER SAAT INI UNTUK BYPASS
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    const isSuperAdmin = profile?.role === 'super_admin';
+
+    let targetUserId = user.id;
+    if (isSuperAdmin) {
+       const { data: aq } = await supabase.from("my_aquariums").select("user_id").eq("id", id).single();
+       if (aq) targetUserId = aq.user_id;
+    }
+
+    await deleteAquarium(supabase, id, targetUserId);
     revalidatePath("/dashboard/my-aquarium");
     return { success: true };
   } catch (error: unknown) {
