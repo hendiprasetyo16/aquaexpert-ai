@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/providers/LanguageProvider";
-import { Loader2, ArrowLeft, Save } from "lucide-react";
+import { Loader2, ArrowLeft, Save, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
@@ -22,9 +22,9 @@ export function DiseaseForm({ initialData, mode }: Props) {
   const lang = language as "id" | "en";
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Ambil kamus secara aman
-  const rootDict = dict as any;
-  const formDict = rootDict.diseaseForm || {};
+  // Ambil kamus secara aman (Bilingual)
+  const rootDict = dict as Record<string, any>;
+  const formDict = rootDict?.diseaseForm || {};
 
   const [formData, setFormData] = useState<Partial<Disease>>({
     name_id: initialData?.name_id || "",
@@ -61,7 +61,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
       router.push("/dashboard/diseases");
       router.refresh();
     } else {
-      toast.error(res.error || "Gagal menyimpan data.");
+      toast.error(res.error || (lang === 'id' ? "Gagal menyimpan data." : "Failed to save data."));
     }
     setIsSubmitting(false);
   };
@@ -72,20 +72,23 @@ export function DiseaseForm({ initialData, mode }: Props) {
       {/* 1. INFORMASI DASAR */}
       <div className="space-y-4">
         <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-2">
-          {formDict.basicInfo || "Informasi Dasar Patogen"}
+          {formDict.basicInfo || "Informasi Dasar Penyakit"}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.nameId || "Nama Penyakit (ID) *"}</label>
-            <input required type="text" placeholder={formDict.descName} value={formData.name_id} onChange={(e) => handleChange("name_id", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100" />
+            <input required type="text" placeholder="Contoh: Bintik Putih" value={formData.name_id} onChange={(e) => handleChange("name_id", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100" />
+            <p className="text-[10px] text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3 h-3 shrink-0"/> {lang === 'id' ? "Nama umum penyakit yang dikenal oleh orang Indonesia." : "Common Indonesian name for this disease."}</p>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.nameEn || "Nama Penyakit (EN) *"}</label>
             <input required type="text" placeholder="E.g., White Spot, Dropsy" value={formData.name_en} onChange={(e) => handleChange("name_en", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100" />
+            <p className="text-[10px] text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3 h-3 shrink-0"/> {lang === 'id' ? "Nama umum penyakit secara internasional." : "Common international name for this disease."}</p>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Scientific Name</label>
-            <input type="text" placeholder={formDict.descScientific} value={formData.scientific_name || ""} onChange={(e) => handleChange("scientific_name", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-bold italic text-slate-800 dark:text-slate-100" />
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Nama Ilmiah (Latin)" : "Scientific Name"}</label>
+            <input type="text" placeholder="Cth: Ichthyophthirius multifiliis" value={formData.scientific_name || ""} onChange={(e) => handleChange("scientific_name", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-bold italic text-slate-800 dark:text-slate-100" />
+            <p className="text-[10px] text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3 h-3 shrink-0"/> {lang === 'id' ? "Nama biologis dari bakteri/parasit penyebab penyakit (opsional)." : "Biological name of the pathogen (optional)."}</p>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.category || "Kategori"}</label>
@@ -98,14 +101,14 @@ export function DiseaseForm({ initialData, mode }: Props) {
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.severity || "Tingkat Keparahan"}</label>
             <input type="number" min="1" max="5" value={formData.severity || 3} onChange={(e) => handleChange("severity", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100" />
-            <p className="text-[11px] text-slate-400 mt-1">{formDict.descSeverity}</p>
+            <p className="text-[10px] text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3 h-3 shrink-0"/> {lang === 'id' ? "Skala 1 (Ringan) sampai 5 (Sangat Mematikan)." : "Scale 1 (Mild) to 5 (Extremely Lethal)."}</p>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.urgency || "Tingkat Urgensi"}</label>
             <select value={formData.urgency_level || ""} onChange={(e) => handleChange("urgency_level", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100">
               <option value="Low">Low (Bisa ditunda)</option><option value="Medium">Medium (Segera tangani)</option><option value="High">High (Berbahaya)</option><option value="Critical">Critical (Darurat / Karantina)</option>
             </select>
-            <p className="text-[11px] text-slate-400 mt-1">{formDict.descUrgency}</p>
+            <p className="text-[10px] text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3 h-3 shrink-0"/> {lang === 'id' ? "Tindakan apa yang harus segera dilakukan saat penyakit terdeteksi." : "What action should be taken immediately upon detection."}</p>
           </div>
         </div>
       </div>
@@ -113,16 +116,16 @@ export function DiseaseForm({ initialData, mode }: Props) {
       {/* 2. DESKRIPSI & GEJALA */}
       <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
         <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-2">
-          {formDict.clinicalSigns || "Tanda Klinis & Penjelasan"}
+          {formDict.clinicalSigns || "Gejala Klinis & Deskripsi"}
         </h3>
-        <p className="text-xs text-slate-500 mb-4">{formDict.descSymptom}</p>
+        <p className="text-xs text-slate-500 mb-4">{lang === 'id' ? "Beri penjelasan rinci tentang penyakit dan gejala kasat mata untuk panduan deteksi pengguna." : "Provide detailed explanation of the disease and visual symptoms for user detection guidance."}</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Deskripsi Penyakit (ID)</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Deskripsi Patologi (ID)" : "Pathology Description (ID)"}</label>
             <textarea rows={3} placeholder="Penjelasan singkat tentang penyakit ini..." value={formData.description_id || ""} onChange={(e) => handleChange("description_id", e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Disease Description (EN)</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'en' ? "Deskripsi Patologi (EN)" : "Pathology Description (EN)"}</label>
             <textarea rows={3} placeholder="Brief explanation of the disease..." value={formData.description_en || ""} onChange={(e) => handleChange("description_en", e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100" />
           </div>
           <div className="space-y-1.5">
@@ -141,7 +144,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
         <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-2">
           {formDict.treatmentSection || "Protokol Pengobatan Klinis"}
         </h3>
-        <p className="text-xs text-slate-500 mb-4">{formDict.descTreatment}</p>
+        <p className="text-xs text-slate-500 mb-4">{lang === 'id' ? "Urutan tata cara pengobatan dari ahli yang akan ditampilkan di aplikasi." : "Sequential treatment procedures from experts to be displayed in the app."}</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.treatmentsId || "Langkah Pengobatan (ID)"}</label>
@@ -160,7 +163,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
         </Button>
         <Button type="submit" disabled={isSubmitting} className="h-12 px-8 rounded-xl font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 flex items-center gap-2">
           {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-4 h-4" />}
-          {isSubmitting ? "PROCESSING..." : (mode === "create" ? (formDict.btnSave || "SIMPAN") : (formDict.btnUpdate || "UPDATE"))}
+          {isSubmitting ? (formDict.processing || "PROCESSING...") : (mode === "create" ? (formDict.btnSave || "SIMPAN") : (formDict.btnUpdate || "UPDATE"))}
         </Button>
       </div>
 
