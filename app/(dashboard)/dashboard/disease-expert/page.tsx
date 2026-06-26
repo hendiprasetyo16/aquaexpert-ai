@@ -16,8 +16,7 @@ import { DiseaseDetailModal } from "@/features/diseases/components/DiseaseDetail
 // ACTIONS & TYPES
 import { getDiseaseMatchAction } from "@/features/diseases/actions/disease-match.actions";
 import { getUserAquariumsAction } from "@/features/aquariums/actions/aquarium.actions";
-// Pastikan Anda sudah membuat action ini untuk mengambil list gejala dari DB
-// import { getSymptomsAction } from "@/features/diseases/actions/symptom.actions";
+import { getSymptomsAction } from "@/features/diseases/actions/symptom.actions"; // <-- SEKARANG SUDAH AKTIF
 
 import type { Symptom, DiseaseMatchResult, Disease } from "@/features/diseases/types/disease.types";
 import type { Aquarium } from "@/features/aquariums/types/aquarium.types";
@@ -35,13 +34,13 @@ export default function DiseaseExpertPage() {
   const [selectedDiseaseDetail, setSelectedDiseaseDetail] = useState<Disease | null>(null);
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
 
-  // 1. LOAD DATA AWAL (Akuarium & Gejala)
+  // 1. LOAD DATA AWAL (Akuarium & Gejala dari Database)
   useEffect(() => {
     async function loadInitialData() {
       try {
-        const [aqRes /*, symRes */] = await Promise.all([
+        const [aqRes, symRes] = await Promise.all([
           getUserAquariumsAction(),
-          // getSymptomsAction() // Uncomment jika action getSymptomsAction sudah ada
+          getSymptomsAction() // <-- MEMANGGIL DATA GEJALA DARI DATABASE
         ]);
 
         if (aqRes.success && aqRes.data) {
@@ -49,13 +48,11 @@ export default function DiseaseExpertPage() {
           if (aqRes.data.length > 0) setSelectedAquariumId(aqRes.data[0].id);
         }
 
-        // Mock sementara jika getSymptomsAction belum siap. Ganti dengan hasil DB (symRes.data)
-        const mockSymptoms: Symptom[] = [
-          { id: "sym_gen_01", name_id: "Napas Cepat (Megap-megap)", name_en: "Rapid Breathing", body_region: "General" },
-          { id: "sym_skn_01", name_id: "Bintik Putih (White Spot)", name_en: "White Spots", body_region: "Skin/Scales" },
-          { id: "sym_eye_01", name_id: "Mata Bengkak Keluar", name_en: "Popeye", body_region: "Eyes" },
-        ];
-        setAvailableSymptoms(mockSymptoms);
+        if (symRes.success && symRes.data) {
+          setAvailableSymptoms(symRes.data); // <-- MEMASUKKAN DATA ASLI
+        } else {
+          toast.error(lang === 'id' ? "Gagal memuat daftar gejala." : "Failed to load symptoms.");
+        }
 
       } catch (error) {
         toast.error(lang === 'id' ? "Gagal memuat data." : "Failed to load data.");

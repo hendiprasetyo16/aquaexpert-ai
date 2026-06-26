@@ -1,23 +1,35 @@
-import { getMedicationLeaderboardAction } from "@/features/analytics/actions/get-medication-leaderboard";
-import { MedicationLeaderboard } from "@/features/analytics/components/MedicationLeaderboard";
+// app/(dashboard)/dashboard/analytics/page.tsx
+import { getMedicationLeaderboardAction } from "@/features/analytics/actions/analytics.actions";
+import MedicationLeaderboard from "@/features/analytics/components/MedicationLeaderboard";
+import { Activity } from "lucide-react";
 
 export const dynamic = "force-dynamic"; // Memastikan data selalu segar
 
+// SERVER COMPONENT: Fetching data terjadi di server secara instan
 export default async function AnalyticsDashboardPage() {
-  // Action yang baru saja kita buat untuk menarik peringkat obat
-  const result = await getMedicationLeaderboardAction({ limit: 15 });
+  // Panggil action langsung tanpa useEffect
+  const leaderboardRes = await getMedicationLeaderboardAction(20);
+  
+  const initialData = leaderboardRes.success && leaderboardRes.data ? leaderboardRes.data : [];
 
   return (
-    <main className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Clinical Intelligence</h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Analitik performa obat berdasarkan rekam medis dunia nyata (Evidence-Based).
-        </p>
+    <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors bg-slate-50 dark:bg-slate-950">
+      <div className="max-w-[1400px] mx-auto space-y-8 pb-10">
+        
+        {/* HEADER */}
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-extrabold text-teal-600 dark:text-teal-400 flex items-center gap-3 transition-colors">
+            <Activity className="h-8 w-8 md:h-10 md:w-10" /> Clinical Intelligence
+          </h1>
+          <p className="mt-3 text-slate-600 dark:text-slate-400 max-w-3xl text-sm md:text-base leading-relaxed transition-colors">
+            Dashboard analitik berbasis bukti nyata (Evidence-Based). Menampilkan tingkat kemanjuran obat, laju pemulihan, dan risiko kambuh berdasarkan ribuan rekam medis di AquaExpert.
+          </p>
+        </div>
+
+        {/* KOMPONEN LEADERBOARD CLIENT (Menerima Data Awal) */}
+        <MedicationLeaderboard initialData={initialData} />
+
       </div>
-      
-      {/* Memanggil komponen visualisasi tabel */}
-      <MedicationLeaderboard initialData={result.data || []} />
-    </main>
+    </div>
   );
 }
