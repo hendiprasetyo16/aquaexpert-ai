@@ -49,11 +49,17 @@ export function DiseaseForm({ initialData, mode }: Props) {
     e.preventDefault();
     setIsSubmitting(true);
 
+    // LOGIKA FALLBACK: Jika name_en kosong, samakan dengan name_id
+    const finalData = { ...formData };
+    if (!finalData.name_en || finalData.name_en.trim() === "") {
+      finalData.name_en = finalData.name_id;
+    }
+
     let res;
     if (mode === "create") {
-      res = await createDiseaseAction(formData);
+      res = await createDiseaseAction(finalData);
     } else {
-      res = await updateDiseaseAction(initialData!.id, formData);
+      res = await updateDiseaseAction(initialData!.id, finalData);
     }
 
     if (res.success) {
@@ -81,9 +87,10 @@ export function DiseaseForm({ initialData, mode }: Props) {
             <p className="text-[10px] text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3 h-3 shrink-0"/> {lang === 'id' ? "Nama umum penyakit yang dikenal oleh orang Indonesia." : "Common Indonesian name for this disease."}</p>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.nameEn || "Nama Penyakit (EN) *"}</label>
-            <input required type="text" placeholder="E.g., White Spot, Dropsy" value={formData.name_en} onChange={(e) => handleChange("name_en", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100" />
-            <p className="text-[10px] text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3 h-3 shrink-0"/> {lang === 'id' ? "Nama umum penyakit secara internasional." : "Common international name for this disease."}</p>
+            {/* Hapus required dari input EN agar sistem fallback bisa bekerja */}
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{(formDict.nameEn || "Nama Penyakit (EN)").replace(' *', '')}</label>
+            <input type="text" placeholder="E.g., White Spot, Dropsy" value={formData.name_en} onChange={(e) => handleChange("name_en", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100" />
+            <p className="text-[10px] text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3 h-3 shrink-0"/> {lang === 'id' ? "Dibiarkan kosong pun akan otomatis mengikuti nama (ID)." : "Leave empty to automatically copy the (ID) name."}</p>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Nama Ilmiah (Latin)" : "Scientific Name"}</label>
