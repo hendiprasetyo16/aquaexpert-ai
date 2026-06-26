@@ -1,7 +1,7 @@
 // features/diseases/components/DiseaseDetailModal.tsx
 "use client";
 
-import { X, AlertTriangle, ShieldCheck, Clock, Heart, Zap } from "lucide-react";
+import { X, AlertTriangle, ShieldCheck, Clock, Heart, Zap, Info } from "lucide-react";
 import type { Disease } from "@/features/diseases/types/disease.types";
 
 interface Props {
@@ -16,9 +16,10 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
 
   const diseaseName = lang === "id" ? disease.name_id : disease.name_en;
   
-  // SEKARANG MEMBACA LANGSUNG DARI KOLOM RESMI SUPABASE
+  // SEKARANG KITA PISAH KARENA KOLOMNYA SUDAH RESMI ADA DI DATABASE!
   const descriptionText = lang === "id" ? disease.description_id : disease.description_en;
   const symptomsText = lang === "id" ? disease.symptoms_id : disease.symptoms_en;
+  
   const treatmentText = lang === "id" ? disease.treatments_id : disease.treatments_en;
   const preventionText = lang === "id" ? disease.prevention_id : disease.prevention_en;
   const expertNotes = lang === "id" ? disease.expert_notes_id : disease.expert_notes_en;
@@ -27,7 +28,7 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
   const isEmergency = urgency === "critical" || urgency === "emergency" || urgency === "high";
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="absolute inset-0" onClick={onClose} />
 
       <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-3xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
@@ -74,8 +75,10 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
             </div>
           )}
 
-          {/* GRID INFO */}
+          {/* GRID INFO PENULARAN & DESKRIPSI AWAL */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            
+            {/* KARAKTER PENULARAN */}
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/60 dark:border-slate-800/60 space-y-3">
                 <h4 className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">{lang === "id" ? "Karakter Penularan" : "Transmission Traits"}</h4>
                 <div className="space-y-1.5">
@@ -89,28 +92,37 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
                   </div>
                 </div>
             </div>
-            {disease.quarantine_required && (
+
+            {/* ALERT KARANTINA (JIKA WAJIB) */}
+            {disease.quarantine_required ? (
               <div className="flex items-center gap-2 p-4 rounded-xl bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/10 text-xs font-medium">
                 <AlertTriangle className="w-6 h-6 shrink-0" />
                 <span>{lang === "id" ? "Pindahkan ikan terinfeksi ke wadah terisolasi secepatnya untuk mencegah penyebaran wabah." : "Move infected fish to an isolated tank immediately to prevent outbreak."}</span>
               </div>
+            ) : (
+              <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border border-emerald-500/10 text-xs font-medium">
+                <ShieldCheck className="w-6 h-6 shrink-0" />
+                <span>{lang === "id" ? "Aman dirawat di tangki utama. Tidak memerlukan pemindahan karantina darurat." : "Safe to treat in the main display tank. No emergency isolation required."}</span>
+              </div>
             )}
           </div>
 
-          {/* DESKRIPSI PATOLOGI (BARU DITAMBAHKAN) */}
+          {/* DESKRIPSI PATOLOGI UMUM */}
           {descriptionText && (
-            <div className="space-y-2">
-              <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">{lang === "id" ? "Deskripsi Patologi" : "Pathology Description"}</h4>
-              <p className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60">
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <Info className="w-4 h-4" /> {lang === "id" ? "Gambaran Umum Penyakit" : "Disease Overview"}
+              </h4>
+              <p className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-blue-50/30 dark:bg-blue-950/10 p-4 rounded-xl border border-blue-100/50 dark:border-blue-900/30 whitespace-pre-line">
                 {descriptionText}
               </p>
             </div>
           )}
 
-          {/* GEJALA */}
+          {/* GEJALA KLINIS SPESIFIK */}
           {symptomsText && (
             <div className="space-y-2">
-              <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">{lang === "id" ? "Karakteristik Klinis Lengkap" : "Full Clinical Symptoms"}</h4>
+              <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">{lang === "id" ? "Karakteristik Klinis (Gejala)" : "Clinical Symptoms"}</h4>
               <div className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 whitespace-pre-line">
                 {symptomsText}
               </div>
