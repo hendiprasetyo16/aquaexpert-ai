@@ -15,11 +15,10 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
   if (!isOpen) return null;
 
   const diseaseName = lang === "id" ? disease.name_id : disease.name_en;
-  // Karena description_id tidak ada, kita gabungkan deskripsi dan gejala di variabel ini
-  const symptomsText = lang === "id" 
-    ? `${disease.description_id ? disease.description_id + '\n\n' : ''}${disease.symptoms_id || ''}` 
-    : `${disease.description_en ? disease.description_en + '\n\n' : ''}${disease.symptoms_en || ''}`;
-    
+  
+  // SEKARANG MEMBACA LANGSUNG DARI KOLOM RESMI SUPABASE
+  const descriptionText = lang === "id" ? disease.description_id : disease.description_en;
+  const symptomsText = lang === "id" ? disease.symptoms_id : disease.symptoms_en;
   const treatmentText = lang === "id" ? disease.treatments_id : disease.treatments_en;
   const preventionText = lang === "id" ? disease.prevention_id : disease.prevention_en;
   const expertNotes = lang === "id" ? disease.expert_notes_id : disease.expert_notes_en;
@@ -97,6 +96,16 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
               </div>
             )}
           </div>
+
+          {/* DESKRIPSI PATOLOGI (BARU DITAMBAHKAN) */}
+          {descriptionText && (
+            <div className="space-y-2">
+              <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">{lang === "id" ? "Deskripsi Patologi" : "Pathology Description"}</h4>
+              <p className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60">
+                {descriptionText}
+              </p>
+            </div>
+          )}
 
           {/* GEJALA */}
           {symptomsText && (
