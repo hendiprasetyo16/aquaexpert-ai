@@ -1,6 +1,7 @@
+// features/diseases/components/DiseaseDetailModal.tsx
 "use client";
 
-import { X, AlertTriangle, ShieldAlert, Clock, Heart, ShieldCheck, Zap } from "lucide-react";
+import { X, AlertTriangle, ShieldCheck, Clock, Heart, Zap } from "lucide-react";
 import type { Disease } from "@/features/diseases/types/disease.types";
 
 interface Props {
@@ -14,8 +15,11 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
   if (!isOpen) return null;
 
   const diseaseName = lang === "id" ? disease.name_id : disease.name_en;
-  // Karena description_id dan description_en tidak ada di tabel, kita langsung ke symptomsText
-  const symptomsText = lang === "id" ? disease.symptoms_id : disease.symptoms_en;
+  // Karena description_id tidak ada, kita gabungkan deskripsi dan gejala di variabel ini
+  const symptomsText = lang === "id" 
+    ? `${disease.description_id ? disease.description_id + '\n\n' : ''}${disease.symptoms_id || ''}` 
+    : `${disease.description_en ? disease.description_en + '\n\n' : ''}${disease.symptoms_en || ''}`;
+    
   const treatmentText = lang === "id" ? disease.treatments_id : disease.treatments_en;
   const preventionText = lang === "id" ? disease.prevention_id : disease.prevention_en;
   const expertNotes = lang === "id" ? disease.expert_notes_id : disease.expert_notes_en;
@@ -28,10 +32,15 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
       <div className="absolute inset-0" onClick={onClose} />
 
       <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-3xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+        
+        {/* HEADER MODAL */}
         <div className={`p-5 sm:p-6 border-b flex items-start justify-between gap-4 ${isEmergency ? "bg-rose-50/50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/30" : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"}`}>
           <div>
             <div className="flex flex-wrap items-center gap-2.5 mb-1">
               <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100">{diseaseName}</h2>
+              {disease.scientific_name && (
+                <span className="text-sm font-medium italic text-slate-500">({disease.scientific_name})</span>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-2">
               <span className={`text-[10px] sm:text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider ${isEmergency ? "bg-rose-500 text-white shadow-sm" : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300"}`}>
@@ -45,8 +54,10 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
           <button onClick={onClose} className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors shrink-0"><X className="w-5 h-5" /></button>
         </div>
 
+        {/* BODY MODAL */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 custom-scrollbar">
           
+          {/* EMERGENCY ACTIONS */}
           {isEmergency && disease.emergency_actions && disease.emergency_actions.length > 0 && (
             <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
               <div className="flex items-center gap-2 text-rose-800 dark:text-rose-400 mb-3">
@@ -64,6 +75,7 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
             </div>
           )}
 
+          {/* GRID INFO */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/60 dark:border-slate-800/60 space-y-3">
                 <h4 className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">{lang === "id" ? "Karakter Penularan" : "Transmission Traits"}</h4>
@@ -80,12 +92,13 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
             </div>
             {disease.quarantine_required && (
               <div className="flex items-center gap-2 p-4 rounded-xl bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-500/10 text-xs font-medium">
-                <ShieldAlert className="w-6 h-6 shrink-0" />
-                <span>{lang === "id" ? "Pindahkan ikan terinfeksi ke wadah terisolasi secepatnya untuk mencegah wabah." : "Move infected fish to an isolated tank immediately."}</span>
+                <AlertTriangle className="w-6 h-6 shrink-0" />
+                <span>{lang === "id" ? "Pindahkan ikan terinfeksi ke wadah terisolasi secepatnya untuk mencegah penyebaran wabah." : "Move infected fish to an isolated tank immediately to prevent outbreak."}</span>
               </div>
             )}
           </div>
 
+          {/* GEJALA */}
           {symptomsText && (
             <div className="space-y-2">
               <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">{lang === "id" ? "Karakteristik Klinis Lengkap" : "Full Clinical Symptoms"}</h4>
@@ -95,11 +108,13 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
             </div>
           )}
 
+          {/* PENGOBATAN */}
           <div className="p-4 sm:p-5 rounded-xl border border-blue-100 dark:border-blue-900/30 bg-blue-50/30 dark:bg-blue-950/20 space-y-4 shadow-inner">
             <div className="flex items-center gap-2 text-blue-800 dark:text-blue-400">
               <ShieldCheck className="w-5 h-5" />
               <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider">{lang === "id" ? "Panduan Pengobatan Klinis" : "Clinical Treatment Protocol"}</h4>
             </div>
+            
             <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-white dark:bg-slate-950 p-3 rounded-lg border border-slate-200/60 dark:border-slate-800 shadow-sm">
               <div className="flex items-center gap-2 sm:gap-3">
                 <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 shrink-0" />
@@ -116,6 +131,7 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
                 </div>
               </div>
             </div>
+            
             {treatmentText && (
               <div className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line pt-3 border-t border-blue-200/60 dark:border-blue-900/50 mt-3">
                 {treatmentText}
@@ -123,12 +139,32 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
             )}
           </div>
 
-          {preventionText && (
-            <div className="space-y-2">
-              <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">{lang === "id" ? "Langkah Pencegahan" : "Prevention Protocol"}</h4>
-              <p className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60">{preventionText}</p>
+          {/* PENCEGAHAN & CATATAN PAKAR */}
+          {(preventionText || expertNotes) && (
+            <div className="space-y-4">
+              {preventionText && (
+                <div className="space-y-2">
+                  <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">{lang === "id" ? "Langkah Pencegahan" : "Prevention Protocol"}</h4>
+                  <p className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 whitespace-pre-line">
+                    {preventionText}
+                  </p>
+                </div>
+              )}
+
+              {expertNotes && (
+                <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800/60">
+                  <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mt-4">
+                    <AlertTriangle className="w-4 h-4 text-amber-500" />
+                    {lang === "id" ? "Catatan Khusus Pakar Akuatik" : "Aquatic Expert Notes"}
+                  </h4>
+                  <div className="text-xs sm:text-sm italic text-slate-500 dark:text-slate-400 border-l-4 border-amber-500 pl-4 py-1">
+                    {expertNotes}
+                  </div>
+                </div>
+              )}
             </div>
           )}
+
         </div>
       </div>
     </div>
