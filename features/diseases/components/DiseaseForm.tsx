@@ -488,18 +488,39 @@ export function DiseaseForm({ initialData, mode }: Props) {
 
           <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-4 pt-6 border-t border-slate-200 dark:border-slate-800/60 mt-8">
             <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
-              {mode === "edit" && initialData && (
-                <>
-                  <Button type="button" onClick={() => setIsArchiveModalOpen(true)} disabled={isSubmitting || loadingAction} className="w-full sm:w-auto h-12 px-6 rounded-xl font-bold uppercase tracking-widest border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors">
-                    <Archive className="mr-2 h-4 w-4" /> {formDict.btnArchive || "Arsipkan"}
+            {/* TOMBOL AKSI: ARSIP & HAPUS */}
+            {mode === "edit" && initialData && (
+              <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800/60">
+                
+                {/* Tombol Arsip bisa diakses admin/super_admin */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsArchiveModalOpen(true)}
+                  disabled={loadingAction || isSubmitting}
+                  className="h-11 px-4 rounded-xl font-bold text-xs uppercase tracking-widest border-amber-200 dark:border-amber-900/40 bg-amber-50/30 dark:bg-amber-950/10 hover:bg-amber-100 dark:hover:bg-amber-950/30 text-amber-700 dark:text-amber-400 flex items-center gap-2 transition-all"
+                >
+                  <Archive className="w-4 h-4" />
+                  {initialData.is_active === false 
+                    ? (arcDict.unarchive || (lang === 'id' ? "Pulihkan" : "Restore")) 
+                    : (arcDict.archive || (lang === 'id' ? "Arsipkan" : "Archive"))}
+                </Button>
+
+                {/* HANYA MUNCUL JIKA ROLE ADALAH SUPER ADMIN */}
+                {role === "super_admin" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    disabled={loadingAction || isSubmitting}
+                    className="h-11 px-4 rounded-xl font-bold text-xs uppercase tracking-widest border-red-200 dark:border-red-900/40 bg-red-50/30 dark:bg-red-950/10 hover:bg-red-100 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 flex items-center gap-2 transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {arcDict.deletePermanent || (lang === 'id' ? "Hapus Permanen" : "Delete Permanently")}
                   </Button>
-                  {role === "super_admin" && (
-                    <Button type="button" onClick={() => setIsDeleteModalOpen(true)} disabled={isSubmitting || loadingAction} className="w-full sm:w-auto h-12 px-6 rounded-xl font-bold uppercase tracking-widest border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-colors">
-                      <Trash2 className="mr-2 h-4 w-4" /> {formDict.btnHardDelete || "Hapus Permanen"}
-                    </Button>
-                  )}
-                </>
-              )}
+                )}
+              </div>
+            )}
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row w-full sm:w-auto gap-3">
@@ -531,10 +552,21 @@ export function DiseaseForm({ initialData, mode }: Props) {
               {arcDict.modalArchiveDesc || (lang === 'id' ? "Data ini akan disembunyikan dari AI." : "This data will be hidden from the AI.")}
             </p>
             <div className="flex flex-col gap-3">
-              <Button onClick={executeArchive} disabled={loadingAction} className="w-full h-12 rounded-xl font-black uppercase tracking-widest bg-amber-600 hover:bg-amber-500 text-white shadow-lg transition-all">
+              <Button 
+                type="button" // 👈 Pastikan bertipe button agar tidak memicu form submit
+                onClick={executeArchive} 
+                disabled={loadingAction} 
+                className="w-full h-12 rounded-xl font-black uppercase tracking-widest bg-amber-600 hover:bg-amber-500 text-white shadow-lg transition-all"
+              >
                 {loadingAction ? <Loader2 className="w-5 h-5 animate-spin" /> : (lang === 'id' ? "KONFIRMASI" : "CONFIRM")}
               </Button>
-              <Button variant="ghost" onClick={() => setIsArchiveModalOpen(false)} disabled={loadingAction} className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
+              <Button 
+                type="button" 
+                variant="ghost" 
+                onClick={() => setIsArchiveModalOpen(false)} 
+                disabled={loadingAction} 
+                className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+              >
                 {arcDict.cancel || (lang === 'id' ? "Batal" : "Cancel")}
               </Button>
             </div>
@@ -565,10 +597,21 @@ export function DiseaseForm({ initialData, mode }: Props) {
               <Input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} className="h-11 w-full text-center font-bold bg-white dark:bg-slate-900 border-red-200 dark:border-red-900/50 focus:border-red-500 transition-colors" />
             </div>
             <div className="flex flex-col gap-3">
-              <Button onClick={executeHardDelete} disabled={loadingAction || deleteConfirmText !== (lang === 'en' && initialData.name_en ? initialData.name_en : initialData.name_id)} className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-500 font-black uppercase tracking-widest text-white shadow-lg transition-all">
+              <Button 
+                type="button" // 👈 Pastikan bertipe button agar tidak memicu form submit
+                onClick={executeHardDelete} 
+                disabled={loadingAction || deleteConfirmText !== (lang === 'en' && initialData.name_en ? initialData.name_en : initialData.name_id)} 
+                className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-500 font-black uppercase tracking-widest text-white shadow-lg transition-all"
+              >
                 {loadingAction ? <Loader2 className="w-5 h-5 animate-spin" /> : (lang === 'id' ? "HAPUS SEKARANG" : "DELETE NOW")}
               </Button>
-              <Button variant="ghost" onClick={() => { setIsDeleteModalOpen(false); setDeleteConfirmText(""); }} disabled={loadingAction} className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
+              <Button 
+                type="button" 
+                variant="ghost" 
+                onClick={() => { setIsDeleteModalOpen(false); setDeleteConfirmText(""); }} 
+                disabled={loadingAction} 
+                className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+              >
                 {arcDict.cancel || (lang === 'id' ? "Batal" : "Cancel")}
               </Button>
             </div>
