@@ -209,20 +209,22 @@ export function DiseaseForm({ initialData, mode }: Props) {
           {/* ====================================================== */}
           {/* 1. VISUAL / GAMBAR - SUDAH DIPERBAIKI (ANTI GEPENG)      */}
           {/* ====================================================== */}
-          <div className="space-y-4 bg-slate-50 dark:bg-[#0B1120] p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800 transition-colors">
+          {/* 1. VISUAL / GAMBAR (MENIRU ALGAE FORM) */}
+          <div className="space-y-4 bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border-2 border-slate-200 dark:border-slate-800 transition-colors">
             <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800/60 pb-2 flex items-center gap-2">
               <ImagePlus className="w-5 h-5 text-blue-600 dark:text-blue-500" />
               {formDict.visualSection || (lang === 'id' ? "Visual / Foto Patogen" : "Pathogen Visual / Photo")}
             </h3>
+  
             <div className="w-full md:w-1/2 mt-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">
                 {formDict.coverLabel || (lang === 'id' ? "Foto Patogen (Akan Otomatis Dikompres)" : "Pathogen Photo (Auto-compressed)")}
               </label>
-              
-              {/* KUNCI 1: Kotak div dikunci tingginya dengan h-[250px] supaya tidak menciut */}
-              <div className="relative w-full h-[250px] overflow-hidden rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 transition-all group bg-white dark:bg-[#111827] flex flex-col items-center justify-center">
-                
-                {/* KUNCI 2: Input tidak di-"hidden", tapi dibikin transparan (opacity-0) dan z-index paling tinggi */}
+    
+              {/* KUNCI: Gunakan aspect-video agar proporsi kotak terkunci seperti di AlgaeForm */}
+              <div className="relative w-full aspect-video md:aspect-[4/3] overflow-hidden rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 transition-all group bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center">
+      
+               {/* Input File Absolute (Sama seperti AlgaeForm) */}
                 <input 
                   id="cover-image" 
                   type="file" 
@@ -233,16 +235,26 @@ export function DiseaseForm({ initialData, mode }: Props) {
 
                 {coverPreview ? (
                   <>
-                    {/* KUNCI 3: object-cover dipasang untuk memenuhi area 250px tanpa gepeng */}
-                    <Image src={coverPreview} alt="Cover Preview" fill className="object-cover z-0" unoptimized />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl z-10 pointer-events-none">
-                      <span className="text-white text-sm font-bold">{formDict.changeCover || (lang === 'id' ? "Ganti Foto" : "Change Photo")}</span>
+                    <Image 
+                      src={coverPreview} 
+                      alt="Cover Preview" 
+                      fill 
+                      className="object-cover z-0" 
+                      unoptimized 
+                    />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10 pointer-events-none">
+                      <span className="text-white text-sm font-bold">
+                        {formDict.changeCover || (lang === 'id' ? "Ganti Foto" : "Change Photo")}
+                      </span>
                     </div>
                   </>
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-slate-400 group-hover:text-blue-500 z-10 p-6 transition-colors pointer-events-none">
+                  <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-blue-500 z-10 p-6 transition-colors pointer-events-none">
                     <ImagePlus className="h-10 w-10 mb-2" />
-                    <span className="text-sm font-bold text-center">{formDict.uploadCover || (lang === 'id' ? "Klik Untuk Upload Foto" : "Click to Upload Photo")}</span>
+                    <span className="text-sm font-bold text-center">
+                      {formDict.uploadCover || (lang === 'id' ? "Klik Untuk Upload Foto" : "Click to Upload Photo")}
+                    </span>
+                    <p className="text-xs mt-1 text-slate-400 dark:text-slate-600">PNG, JPG, WEBP</p>
                   </div>
                 )}
               </div>
