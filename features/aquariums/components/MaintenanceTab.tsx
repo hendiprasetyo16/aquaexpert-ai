@@ -266,7 +266,7 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
                     <span className="text-[10px] uppercase font-bold opacity-60 bg-black/5 px-2 py-1 rounded-md">{getTypeLabel(status.task.task_type)}</span>
                     <button 
                       onClick={() => setDeleteTarget({ id: status.task.id, type: 'task', title: status.task.title })} 
-                      className="p-1.5 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30"
+                      className="p-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 text-red-500/70 md:text-inherit hover:text-red-500 transition-opacity rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -299,12 +299,12 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
                     </h4>
                     <p className="text-xs text-slate-500 mt-1.5 font-medium">{formatDate(log.performed_at)} {log.notes && <span className="italic"> — "{log.notes}"</span>}</p>
                   </div>
-                  <button 
-                    onClick={() => setDeleteTarget({ id: log.id, type: 'log', title: getTypeLabel(log.maintenance_type) })} 
-                    className="p-2 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-opacity rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    <button 
+                      onClick={() => setDeleteTarget({ id: log.id, type: 'log', title: getTypeLabel(log.maintenance_type) })} 
+                      className="p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-opacity rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30"
+                      >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                 </div>
               ))}
             </div>
