@@ -455,7 +455,13 @@ export function DiseaseForm({ initialData, mode }: Props) {
                 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-amber-700 dark:text-amber-500 uppercase tracking-widest">{formDict.expertNotesId || (lang === 'id' ? "Catatan Pakar (ID)" : "Expert Notes (ID)")}</label>
-                  <textarea rows={2} placeholder="Perhatian: Gunakan sarung tangan." value={formData.expert_notes_id || ""} onChange={(e) => handleChange("expert_notes_id", e.target.value)} className="w-full p-3 rounded-xl border-2 border-amber-200 dark:border-slate-700 bg-amber-50/50 dark:bg-slate-900 focus:border-amber-500 outline-none font-medium custom-scrollbar text-amber-900 dark:text-amber-100 transition-colors" />
+                  <textarea 
+                    rows={2} 
+                    placeholder="Perhatian: Gunakan sarung tangan saat menangani ikan." 
+                    value={formData.expert_notes_id || ""} 
+                    onChange={(e) => handleChange("expert_notes_id", e.target.value)} 
+                    className="w-full p-3 rounded-xl border-2 border-amber-200 dark:border-slate-700 bg-amber-50/50 dark:bg-slate-900 focus:border-amber-500 dark:focus:border-amber-400 outline-none font-medium custom-scrollbar text-amber-900 dark:text-slate-100 placeholder:text-amber-700/50 dark:placeholder:text-slate-500 transition-colors" 
+                  />
                   <p className="text-[11px] text-amber-800/70 dark:text-amber-300/70 leading-snug flex items-start gap-1.5 mt-1">
                     <Info className="w-3.5 h-3.5 shrink-0" />
                     {lang === 'id' ? "Saran atau peringatan khusus dari ahli akuatik (opsional)." : "Special advice or warning from aquatic experts (optional)."}
@@ -464,7 +470,13 @@ export function DiseaseForm({ initialData, mode }: Props) {
                 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-amber-700 dark:text-amber-500 uppercase tracking-widest">{formDict.expertNotesEn || (lang === 'en' ? "Catatan Pakar (EN)" : "Expert Notes (EN)")}</label>
-                  <textarea rows={2} placeholder="Warning: Wear gloves." value={formData.expert_notes_en || ""} onChange={(e) => handleChange("expert_notes_en", e.target.value)} className="w-full p-3 rounded-xl border-2 border-amber-200 dark:border-slate-700 bg-amber-50/50 dark:bg-slate-900 focus:border-amber-500 outline-none font-medium custom-scrollbar text-amber-900 dark:text-amber-100 transition-colors" />
+                  <textarea 
+                    rows={2} 
+                    placeholder="Warning: Wear gloves when handling fish." 
+                    value={formData.expert_notes_en || ""} 
+                    onChange={(e) => handleChange("expert_notes_en", e.target.value)} 
+                    className="w-full p-3 rounded-xl border-2 border-amber-200 dark:border-slate-700 bg-amber-50/50 dark:bg-slate-900 focus:border-amber-500 dark:focus:border-amber-400 outline-none font-medium custom-scrollbar text-amber-900 dark:text-slate-100 placeholder:text-amber-700/50 dark:placeholder:text-slate-500 transition-colors" 
+                  />
                 </div>
               </div>
             </div>
