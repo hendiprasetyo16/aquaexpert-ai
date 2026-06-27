@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Props) {
-  // STATE UNTUK LIGHTBOX (ZOOM)
+  // STATE FOR LIGHTBOX (ZOOM)
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomScale, setZoomScale] = useState(1); 
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -60,7 +60,11 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
     return map[urg.toLowerCase()] || urg;
   };
 
-  const handleCloseZoom = () => {
+  const handleCloseZoom = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     setIsZoomed(false);
     setTimeout(() => {
       setZoomScale(1);
@@ -101,9 +105,10 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
         <div className="absolute inset-0" onClick={onClose} />
 
-        <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-3xl max-h-[90vh] bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800/60 shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+        {/* FIXED: Removed arbitrary hex colors, strictly using Tailwind slate-900 for dark mode */}
+        <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-3xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
           
-          <div className={`p-5 sm:p-6 border-b flex items-start justify-between gap-4 ${isEmergency ? "bg-rose-50/50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/30" : "bg-slate-50 dark:bg-[#0B1120] border-slate-200 dark:border-slate-800/60"}`}>
+          <div className={`p-5 sm:p-6 border-b flex items-start justify-between gap-4 ${isEmergency ? "bg-rose-50/50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/30" : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"}`}>
             <div>
               <div className="flex flex-wrap items-center gap-2.5 mb-1">
                 <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100">{diseaseName}</h2>
@@ -115,15 +120,15 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
                 <span className={`text-[10px] sm:text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider ${isEmergency ? "bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.4)]" : "bg-slate-200 text-slate-700 dark:bg-slate-800/80 dark:text-slate-300"}`}>
                   {lang === "id" ? "Urgensi:" : "Urgency:"} {translateUrgency(disease.urgency_level)}
                 </span>
-                <span className="text-[10px] sm:text-xs px-2.5 py-1 rounded-md bg-white dark:bg-[#111827] text-slate-500 dark:text-slate-400 font-medium border border-slate-200 dark:border-slate-700/60">
+                <span className="text-[10px] sm:text-xs px-2.5 py-1 rounded-md bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium border border-slate-200 dark:border-slate-700">
                   {translateCategory(disease.disease_category)}
                 </span>
               </div>
             </div>
-            {/* Tombol Tutup Modal Utama */}
+            {/* Close Button - Main Modal */}
             <button 
               onClick={onClose} 
-              className="p-2 rounded-lg border border-slate-200 dark:border-slate-700/60 hover:bg-red-100 dark:hover:bg-red-500/20 text-slate-400 hover:text-red-600 transition-colors shrink-0"
+              className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-red-100 dark:hover:bg-red-500/20 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors shrink-0"
               title={lang === "id" ? "Tutup" : "Close"}
             >
               <X className="w-5 h-5" />
@@ -134,7 +139,7 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
             
             {disease.image_url ? (
               <div 
-                className="w-full h-48 sm:h-64 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800/60 shadow-sm cursor-zoom-in group bg-slate-100 dark:bg-[#0B1120] flex justify-center"
+                className="w-full h-48 sm:h-64 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm cursor-zoom-in group bg-slate-100 dark:bg-slate-950 flex justify-center"
                 onClick={() => setIsZoomed(true)}
               >
                  <Image src={disease.image_url} alt={diseaseName} fill className="object-contain p-2 hover:scale-105 transition-transform duration-500" unoptimized />
@@ -143,7 +148,7 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
                  </div>
               </div>
             ) : (
-              <div className="w-full h-32 flex flex-col items-center justify-center bg-slate-50 dark:bg-[#0B1120] rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800/60">
+              <div className="w-full h-32 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800/60">
                 <Bug className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
                 <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Tidak Ada Foto Tersedia" : "No Photo Available"}</p>
               </div>
@@ -167,7 +172,7 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#0B1120] border border-slate-200/60 dark:border-slate-800/60 space-y-3">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/60 space-y-3">
                   <h4 className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">{lang === "id" ? "Karakter Penularan" : "Transmission Traits"}</h4>
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-[11px] sm:text-xs">
@@ -199,7 +204,7 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
                 <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                   <Info className="w-4 h-4" /> {lang === "id" ? "Gambaran Umum Penyakit" : "Disease Overview"}
                 </h4>
-                <p className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-blue-50/30 dark:bg-[#0B1120] p-4 rounded-xl border border-blue-100/50 dark:border-slate-800/60 whitespace-pre-line">
+                <p className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-blue-50/30 dark:bg-slate-950 p-4 rounded-xl border border-blue-100/50 dark:border-slate-800/60 whitespace-pre-line">
                   {descriptionText}
                 </p>
               </div>
@@ -208,19 +213,19 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
             {symptomsText && (
               <div className="space-y-2">
                 <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">{lang === "id" ? "Karakteristik Klinis (Gejala)" : "Clinical Symptoms"}</h4>
-                <div className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-[#0B1120] p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 whitespace-pre-line">
+                <div className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 whitespace-pre-line">
                   {symptomsText}
                 </div>
               </div>
             )}
 
-            <div className="p-4 sm:p-5 rounded-xl border border-blue-100 dark:border-slate-800/60 bg-blue-50/30 dark:bg-[#0B1120] space-y-4 shadow-inner">
+            <div className="p-4 sm:p-5 rounded-xl border border-blue-100 dark:border-slate-800/60 bg-blue-50/30 dark:bg-slate-950 space-y-4 shadow-inner">
               <div className="flex items-center gap-2 text-blue-800 dark:text-blue-400">
                 <ShieldCheck className="w-5 h-5" />
                 <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider">{lang === "id" ? "Panduan Pengobatan Klinis" : "Clinical Treatment Protocol"}</h4>
               </div>
               
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-white dark:bg-[#111827] p-3 rounded-lg border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
                 <div className="flex items-center gap-2 sm:gap-3">
                   <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 shrink-0" />
                   <div>
@@ -249,7 +254,7 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
                 {preventionText && (
                   <div className="space-y-2">
                     <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">{lang === "id" ? "Langkah Pencegahan" : "Prevention Protocol"}</h4>
-                    <p className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-[#0B1120] p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 whitespace-pre-line">
+                    <p className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 whitespace-pre-line">
                       {preventionText}
                     </p>
                   </div>
@@ -273,6 +278,7 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
         </div>
       </div>
 
+      {/* OVERLAY MODAL ZOOM GAMBAR FULLSCREEN (INTERAKTIF) */}
       {isZoomed && disease.image_url && (
         <div 
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-md animate-in fade-in duration-200"
@@ -284,12 +290,12 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {/* AREA GAMBAR YANG BISA DI-PAN & DRAG DITARUH DI BAWAH TOMBOL TUTUP SECARA DOM */}
+          {/* AREA GAMBAR YANG BISA DI-PAN & DRAG */}
           <div 
             className={`relative flex h-full w-full items-center justify-center ${zoomScale > 1 ? 'overflow-hidden' : ''}`}
             onClick={(e) => {
               if (hasDragged) return;
-              if (e.target === e.currentTarget && zoomScale === 1) handleCloseZoom();
+              if (e.target === e.currentTarget && zoomScale === 1) handleCloseZoom(e as any);
             }}
             onMouseDown={(e) => {
               if (zoomScale > 1) {
@@ -328,10 +334,10 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
             )}
           </div>
 
-          {/* TOMBOL TUTUP ZOOM - DITEMPATKAN SETELAH DIV GAMBAR AGAR TIDAK TERTIMPA (Z-INDEX AKTIF) */}
+          {/* FIX: TOMBOL TUTUP ZOOM - Improved visibility and hover effect */}
           <button 
             type="button"
-            className="absolute top-4 right-4 md:top-6 md:right-6 p-2 md:p-3 bg-white/10 hover:bg-red-600 text-white rounded-full transition-all z-[10000] cursor-pointer shadow-lg"
+            className="absolute top-4 right-4 md:top-6 md:right-6 p-2 md:p-3 bg-slate-800/50 hover:bg-red-600 text-white rounded-full transition-all z-[10000] cursor-pointer shadow-lg border border-white/20 hover:border-red-500"
             onClick={(e) => {
               e.stopPropagation();
               handleCloseZoom();
