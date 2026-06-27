@@ -257,7 +257,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.nameId || "Nama Penyakit (ID) *"}</Label>
                 {/* 👇 TAMBAHKAN || "" PADA VALUE 👇 */}
-                <Input required type="text" value={formData.name_id || ""} onChange={(e) => handleChange("name_id", e.target.value)} className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
+                <Input required type="text" placeholder="Contoh: Bintik Putih" value={formData.name_id || ""} onChange={(e) => handleChange("name_id", e.target.value)} className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5">
                   <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Nama patogen yang dikenal oleh umum." : "Common localized name for this disease."}
                 </p>
@@ -265,8 +265,8 @@ export function DiseaseForm({ initialData, mode }: Props) {
               
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{(formDict.nameEn || "Nama Penyakit (EN)").replace(' *', '')}</Label>
-                {/* 👇 TAMBAHKAN || "" PADA VALUE 👇 */}
-                <Input type="text" value={formData.name_en || ""} onChange={(e) => handleChange("name_en", e.target.value)} className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
+                {/* Tambahkan placeholder di sini 👇 */} {/* 👇 TAMBAHKAN || "" PADA VALUE 👇 */}
+                <Input type="text" placeholder="E.g., White Spot, Dropsy" value={formData.name_en || ""} onChange={(e) => handleChange("name_en", e.target.value)} className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5">
                   <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Kosongkan untuk menyamakan dengan nama (ID)." : "Leave empty to copy the (ID) name."}
                 </p>
@@ -274,8 +274,8 @@ export function DiseaseForm({ initialData, mode }: Props) {
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Nama Ilmiah (Latin)" : "Scientific Name"}</Label>
-                {/* 👇 TAMBAHKAN || "" PADA VALUE 👇 */}
-                <Input type="text" value={formData.scientific_name || ""} onChange={(e) => handleChange("scientific_name", e.target.value)} className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold italic text-slate-800 dark:text-slate-100 transition-colors" />
+                {/* Tambahkan placeholder di sini 👇 */} {/* 👇 TAMBAHKAN || "" PADA VALUE 👇 */} 
+                <Input type="text" placeholder="E.g., White Spot, Dropsy" value={formData.scientific_name || ""} onChange={(e) => handleChange("scientific_name", e.target.value)} className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold italic text-slate-800 dark:text-slate-100 transition-colors" />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5">
                   <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Nama taksonomi/biologis penyebab (opsional)." : "Biological/taxonomic name (optional)."}
                 </p>
@@ -333,22 +333,26 @@ export function DiseaseForm({ initialData, mode }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800/80 transition-colors">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Deskripsi Patologi (ID)" : "Pathology Description (ID)"}</Label>
-                <textarea rows={3} value={formData.description_id || ""} onChange={(e) => handleChange("description_id", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                {/* Tambahkan placeholder di sini 👇 */}
+                <textarea rows={3} placeholder="Penjelasan umum tentang penyakit ini..." value={formData.description_id || ""} onChange={(e) => handleChange("description_id", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5"><Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Gambaran naratif tentang penyakit." : "Narrative overview of the disease."}</p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'en' ? "Deskripsi Patologi (EN)" : "Pathology Description (EN)"}</Label>
-                <textarea rows={3} value={formData.description_en || ""} onChange={(e) => handleChange("description_en", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                {/* Tambahkan placeholder di sini 👇 */}
+                <textarea rows={3} placeholder="Brief explanation of the disease..." value={formData.description_en || ""} onChange={(e) => handleChange("description_en", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.symptomsId || (lang === 'id' ? "Gejala Fisik (ID)" : "Symptoms (ID)")}</Label>
-                <textarea rows={4} value={formData.symptoms_id || ""} onChange={(e) => handleChange("symptoms_id", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                {/* Tambahkan placeholder di sini 👇 */}
+                <textarea rows={4} placeholder="- Ada bintik putih di sirip&#10;- Ikan sering menggesekkan badan" value={formData.symptoms_id || ""} onChange={(e) => handleChange("symptoms_id", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5"><Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Ciri-ciri fisik yang terlihat pada tubuh ikan." : "Visible physical traits on the fish body."}</p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.symptomsEn || (lang === 'id' ? "Gejala Fisik (EN)" : "Symptoms (EN)")}</Label>
-                <textarea rows={4} value={formData.symptoms_en || ""} onChange={(e) => handleChange("symptoms_en", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                {/* Tambahkan placeholder dengan &#10; untuk enter 👇 */}
+                <textarea rows={4} placeholder="- White spots on fins&#10;- Fish flashing against objects" value={formData.symptoms_en || ""} onChange={(e) => handleChange("symptoms_en", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
               </div>
             </div>
           </div>
@@ -363,12 +367,14 @@ export function DiseaseForm({ initialData, mode }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800/80 transition-colors">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.treatmentsId || (lang === 'id' ? "Langkah Pengobatan (ID)" : "Treatment Steps (ID)")}</Label>
-                <textarea rows={4} value={formData.treatments_id || ""} onChange={(e) => handleChange("treatments_id", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                {/* Tambahkan placeholder 👇 */}
+                <textarea rows={4} placeholder="1. Pindahkan ikan ke tank karantina.&#10;2. Berikan Methylene Blue sesuai dosis." value={formData.treatments_id || ""} onChange={(e) => handleChange("treatments_id", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5"><Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Langkah pengobatan yang dianjurkan (Gunakan poin nomor)." : "Recommended steps (Use numbering)."}</p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.treatmentsEn || (lang === 'id' ? "Langkah Pengobatan (EN)" : "Treatment Steps (EN)")}</Label>
-                <textarea rows={4} value={formData.treatments_en || ""} onChange={(e) => handleChange("treatments_en", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                {/* Tambahkan placeholder 👇 */}
+                <textarea rows={4} placeholder="1. Move fish to quarantine tank.&#10;2. Apply Methylene Blue as per dosage." value={formData.treatments_en || ""} onChange={(e) => handleChange("treatments_en", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
               </div>
             </div>
           </div>
