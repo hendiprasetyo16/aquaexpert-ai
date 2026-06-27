@@ -508,7 +508,11 @@ export function DiseaseForm({ initialData, mode }: Props) {
               </Button>
               <Button type="submit" disabled={isSubmitting || loadingAction} className="h-12 px-8 rounded-xl font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all">
                 {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-4 h-4" />}
-                {isSubmitting ? (formDict.processing || "MEMPROSES...") : (mode === "create" ? (formDict.btnSave || "SIMPAN") : (formDict.btnUpdate || "UPDATE"))}
+                {isSubmitting 
+                  ? (formDict.processing || (lang === 'id' ? "MEMPROSES..." : "PROCESSING...")) 
+                  : (mode === "create" 
+                      ? (formDict.btnSave || (lang === 'id' ? "SIMPAN" : "SAVE")) 
+                      : (formDict.btnUpdate || (lang === 'id' ? "PERBAHARUI" : "UPDATE")))}
               </Button>
             </div>
           </div>
