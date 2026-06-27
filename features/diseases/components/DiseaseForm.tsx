@@ -390,25 +390,37 @@ export function DiseaseForm({ initialData, mode }: Props) {
             
             <div className="bg-rose-50/50 dark:bg-rose-950/20 p-4 sm:p-6 rounded-xl border-2 border-rose-200 dark:border-rose-900/50 space-y-6 transition-colors">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Metrik 1: Mortalitas */}
                 <div className="space-y-1.5">
                   <label className="text-rose-900 dark:text-rose-300 font-bold text-xs uppercase tracking-widest">
                     {formDict.mortalityRisk || (lang === 'id' ? "Mortalitas (1-5)" : "Mortality Risk (1-5)")}
                   </label>
                   <input type="number" min="1" max="5" value={formData.mortality_risk || 3} onChange={(e) => handleChange("mortality_risk", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-rose-200 dark:border-rose-900/50 bg-white dark:bg-[#111827] focus:border-rose-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
+                  <p className="text-[11px] text-rose-800/70 dark:text-rose-300/70 leading-snug flex items-start gap-1.5 mt-1.5">
+                    <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Skala 1 (Rendah) hingga 5 (Sangat Mematikan)." : "Scale 1 (Low) to 5 (Extremely Lethal)."}
+                  </p>
                 </div>
 
+                {/* Metrik 2: Durasi Sembuh */}
                 <div className="space-y-1.5">
                   <label className="text-rose-900 dark:text-rose-300 font-bold text-xs uppercase tracking-widest">
                     {formDict.durationDays || (lang === 'id' ? "Durasi Sembuh (Hari)" : "Recovery Duration (Days)")}
                   </label>
                   <input type="number" min="1" value={formData.treatment_duration_days || 7} onChange={(e) => handleChange("treatment_duration_days", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-rose-200 dark:border-rose-900/50 bg-white dark:bg-[#111827] focus:border-rose-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
+                  <p className="text-[11px] text-rose-800/70 dark:text-rose-300/70 leading-snug flex items-start gap-1.5 mt-1.5">
+                    <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Estimasi waktu pengobatan hingga ikan sembuh." : "Estimated treatment time for full recovery."}
+                  </p>
                 </div>
 
+                {/* Metrik 3: Peluang Hidup */}
                 <div className="space-y-1.5">
                   <label className="text-rose-900 dark:text-rose-300 font-bold text-xs uppercase tracking-widest">
                     {formDict.recoveryProb || (lang === 'id' ? "Peluang Hidup (%)" : "Survival Rate (%)")}
                   </label>
                   <input type="number" min="1" max="100" value={formData.recovery_probability || 70} onChange={(e) => handleChange("recovery_probability", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-rose-200 dark:border-rose-900/50 bg-white dark:bg-[#111827] focus:border-rose-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
+                  <p className="text-[11px] text-rose-800/70 dark:text-rose-300/70 leading-snug flex items-start gap-1.5 mt-1.5">
+                    <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Persentase harapan hidup jika diberi penanganan." : "Survival rate percentage if given proper treatment."}
+                  </p>
                 </div>
               </div>
 
@@ -427,6 +439,10 @@ export function DiseaseForm({ initialData, mode }: Props) {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-rose-900 dark:text-rose-400 uppercase tracking-widest">{formDict.preventionId || (lang === 'id' ? "Cara Pencegahan (ID)" : "Prevention (ID)")}</label>
                   <textarea rows={3} placeholder="Jaga kualitas air tetap stabil..." value={formData.prevention_id || ""} onChange={(e) => handleChange("prevention_id", e.target.value)} className="w-full p-3 rounded-xl border-2 border-rose-200 dark:border-rose-900/50 bg-white dark:bg-[#111827] focus:border-rose-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                  <p className="text-[11px] text-rose-800/70 dark:text-rose-300/70 leading-snug flex items-start gap-1.5 mt-1">
+                    <Info className="w-3.5 h-3.5 shrink-0" />
+                    {lang === 'id' ? "Langkah-langkah untuk mencegah penyakit ini kembali." : "Steps to prevent this disease from recurring."}
+                  </p>
                 </div>
                 
                 <div className="space-y-1.5">
@@ -437,6 +453,10 @@ export function DiseaseForm({ initialData, mode }: Props) {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-amber-700 dark:text-amber-500 uppercase tracking-widest">{formDict.expertNotesId || (lang === 'id' ? "Catatan Pakar (ID)" : "Expert Notes (ID)")}</label>
                   <textarea rows={2} placeholder="Perhatian: Gunakan sarung tangan." value={formData.expert_notes_id || ""} onChange={(e) => handleChange("expert_notes_id", e.target.value)} className="w-full p-3 rounded-xl border-2 border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 focus:border-amber-500 outline-none font-medium custom-scrollbar text-amber-900 dark:text-amber-100 transition-colors" />
+                  <p className="text-[11px] text-amber-800/70 dark:text-amber-300/70 leading-snug flex items-start gap-1.5 mt-1">
+                    <Info className="w-3.5 h-3.5 shrink-0" />
+                    {lang === 'id' ? "Saran atau peringatan khusus dari ahli akuatik (opsional)." : "Special advice or warning from aquatic experts (optional)."}
+                  </p>
                 </div>
                 
                 <div className="space-y-1.5">
