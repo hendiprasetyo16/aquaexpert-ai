@@ -286,10 +286,17 @@ export function DiseaseForm({ initialData, mode }: Props) {
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.category || (lang === 'id' ? "Kategori" : "Category")}</Label>
                 <select value={formData.disease_category || ""} onChange={(e) => handleChange("disease_category", e.target.value)} className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors">
-                  {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  <option value="Parasitic">Parasitic (Parasit)</option>
+                  <option value="Bacterial">Bacterial (Bakteri)</option>
+                  <option value="Fungal">Fungal (Jamur)</option>
+                  <option value="Viral">Viral (Virus)</option>
+                  <option value="Environmental">Environmental (Lingkungan)</option>
+                  <option value="Nutritional">Nutritional (Nutrisi)</option>
+                  <option value="Protozoan">Protozoan (Protozoa)</option>
+                  <option value="Genetic">Genetic (Genetik)</option>
                 </select>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5">
-                  <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Klasifikasi patogen." : "Pathogen classification."}
+                  <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Klasifikasi jenis patogen untuk menentukan arah pengobatan." : "Pathogen classification to determine treatment path."}
                 </p>
               </div>
               
@@ -302,22 +309,29 @@ export function DiseaseForm({ initialData, mode }: Props) {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.urgency || (lang === 'id' ? "Urgensi" : "Urgency")}</Label>
+                <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.urgency || (lang === 'id' ? "Urgensi" : "Urgency Level")}</Label>
                 <select value={formData.urgency_level || ""} onChange={(e) => handleChange("urgency_level", e.target.value)} className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors">
-                  {URGENCY_LEVELS.map(u => <option key={u} value={u}>{u}</option>)}
+                  <option value="Low">Low (Bisa ditunda)</option>
+                  <option value="Medium">Medium (Segera tangani)</option>
+                  <option value="High">High (Berbahaya)</option>
+                  <option value="Critical">Critical (Darurat / Karantina)</option>
+                  <option value="Emergency">Emergency (Kritis / Fatal)</option>
                 </select>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5">
-                  <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Tingkat darurat saat terdeteksi." : "Emergency level upon detection."}
+                  <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Tindakan apa yang harus segera dilakukan saat penyakit terdeteksi." : "What action should be taken immediately upon detection."}
                 </p>
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.difficulty || (lang === 'id' ? "Tingkat Kesulitan" : "Difficulty")}</Label>
                 <select value={formData.difficulty || ""} onChange={(e) => handleChange("difficulty", e.target.value)} className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors">
-                  {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
+                  <option value="Easy">Easy (Mudah)</option>
+                  <option value="Medium">Medium (Sedang)</option>
+                  <option value="Hard">Hard (Sulit)</option>
+                  <option value="Expert">Expert (Sangat Sulit)</option>
                 </select>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5">
-                  <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Kesulitan dalam pengobatan." : "Treatment difficulty."}
+                  <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Tingkat kesulitan atau keahlian yang dibutuhkan untuk pengobatan." : "Difficulty level or expertise required for treatment."}
                 </p>
               </div>
             </div>
