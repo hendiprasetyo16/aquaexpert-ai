@@ -219,9 +219,15 @@ export function DiseaseForm({ initialData, mode }: Props) {
               </Label>
               <input id="cover-image" type="file" accept="image/*" onChange={handleCoverChange} className="hidden" />
               <label htmlFor="cover-image" className="cursor-pointer block w-full mt-2">
-                <div className="relative w-full overflow-hidden rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 transition-all group bg-white dark:bg-slate-900 flex flex-col items-center justify-center min-h-[250px]">
+                
+                {/* 👇 PERBAIKAN: Hapus min-h-[250px] dari className, ganti dengan style 👇 */}
+                <div 
+                  className="relative w-full overflow-hidden rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 transition-all group bg-white dark:bg-slate-900 flex flex-col items-center justify-center"
+                  style={{ minHeight: "250px" }}
+                >
                   {coverPreview ? (
                     <>
+                       {/* Pastikan gambar mengisi kotak 250px dengan baik */}
                        <Image src={coverPreview} alt="Cover Preview" fill className="object-contain p-2" unoptimized />
                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl z-10">
                          <span className="text-white text-sm font-bold">{formDict.changeCover || (lang === 'id' ? "Ganti Foto" : "Change Photo")}</span>
@@ -234,6 +240,8 @@ export function DiseaseForm({ initialData, mode }: Props) {
                     </div>
                   )}
                 </div>
+                {/* 👆 AKHIR PERBAIKAN 👆 */}
+
               </label>
             </div>
           </div>
