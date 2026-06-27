@@ -1,21 +1,19 @@
 // features/diseases/components/DiseaseForm.tsx
 "use client";
 
-//import { useState } from "react";
 import { useState, useEffect } from "react"; // 👈 Tambahan useEffect
 import { createPortal } from "react-dom"; // 👈 Tambahan createPortal
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useLanguage } from "@/providers/LanguageProvider";
-import { useAuth } from "@/hooks/useAuth"; // <--- TAMBAHKAN BARIS INI
-import { Loader2, ArrowLeft, Save, Info, ImagePlus, AlertTriangle, Archive, Trash2, ShieldAlert, HeartPulse, Stethoscope, Activity, X } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2, ArrowLeft, Save, Info, ImagePlus, AlertTriangle, Archive, Trash2, ShieldAlert, HeartPulse, Stethoscope, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import toast from "react-hot-toast";
 
 import type { Disease, DiseaseCategory } from "../types/disease.types";
-// FIX: Ubah import dari archiveDiseaseAction menjadi toggleDiseaseArchiveAction
 import { createDiseaseAction, updateDiseaseAction, toggleDiseaseArchiveAction, hardDeleteDiseaseAction } from "../actions/disease.actions";
 import { uploadDiseaseImage } from "../repositories/disease.repository";
 
@@ -32,16 +30,17 @@ export function DiseaseForm({ initialData, mode }: Props) {
   const router = useRouter();
   const { dict, language } = useLanguage();
   const lang = language as "id" | "en";
-  const { role } = useAuth(); // <--- TAMBAHKAN BARIS INI (Untuk memperbaiki error 'role')
+  const { role } = useAuth();
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingAction, setLoadingAction] = useState(false);
-
+  
   // 👈 State Mounted untuk menghindari error Portal di Next.js
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
   }, []);
-  
+
   // Akses kamus Dwibahasa secara ketat
   const rootDict = (dict as Record<string, any>) || {};
   const formDict = rootDict?.diseaseForm || rootDict?.disease?.diseaseForm || {};
@@ -172,7 +171,6 @@ export function DiseaseForm({ initialData, mode }: Props) {
     if (!initialData) return;
     try {
       setLoadingAction(true);
-      // FIX: Gunakan toggleDiseaseArchiveAction dengan status 'is_active' saat ini
       const res = await toggleDiseaseArchiveAction(initialData.id, initialData.is_active ?? true);
       if (!res.success) throw new Error(res.error);
       toast.success(lang === "id" ? "Penyakit diarsipkan." : "Disease archived.");
@@ -227,15 +225,12 @@ export function DiseaseForm({ initialData, mode }: Props) {
               </Label>
               <input id="cover-image" type="file" accept="image/*" onChange={handleCoverChange} className="hidden" />
               <label htmlFor="cover-image" className="cursor-pointer block w-full mt-2">
-                
-                {/* 👇 PERBAIKAN: Hapus min-h-[250px] dari className, ganti dengan style 👇 */}
                 <div 
                   className="relative w-full overflow-hidden rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 transition-all group bg-white dark:bg-slate-900 flex flex-col items-center justify-center"
                   style={{ minHeight: "250px" }}
                 >
                   {coverPreview ? (
                     <>
-                       {/* Pastikan gambar mengisi kotak 250px dengan baik */}
                        <Image src={coverPreview} alt="Cover Preview" fill className="object-contain p-2" unoptimized />
                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl z-10">
                          <span className="text-white text-sm font-bold">{formDict.changeCover || (lang === 'id' ? "Ganti Foto" : "Change Photo")}</span>
@@ -248,8 +243,6 @@ export function DiseaseForm({ initialData, mode }: Props) {
                     </div>
                   )}
                 </div>
-                {/* 👆 AKHIR PERBAIKAN 👆 */}
-
               </label>
             </div>
           </div>
@@ -264,7 +257,6 @@ export function DiseaseForm({ initialData, mode }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.nameId || "Nama Penyakit (ID) *"}</Label>
-                {/* 👇 TAMBAHKAN || "" PADA VALUE 👇 */}
                 <Input required type="text" placeholder="Contoh: Bintik Putih" value={formData.name_id || ""} onChange={(e) => handleChange("name_id", e.target.value)} className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5">
                   <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Nama patogen yang dikenal oleh umum." : "Common localized name for this disease."}
@@ -273,7 +265,6 @@ export function DiseaseForm({ initialData, mode }: Props) {
               
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{(formDict.nameEn || "Nama Penyakit (EN)").replace(' *', '')}</Label>
-                {/* Tambahkan placeholder di sini 👇 */} {/* 👇 TAMBAHKAN || "" PADA VALUE 👇 */}
                 <Input type="text" placeholder="E.g., White Spot, Dropsy" value={formData.name_en || ""} onChange={(e) => handleChange("name_en", e.target.value)} className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5">
                   <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Kosongkan untuk menyamakan dengan nama (ID)." : "Leave empty to copy the (ID) name."}
@@ -282,8 +273,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Nama Ilmiah (Latin)" : "Scientific Name"}</Label>
-                {/* Tambahkan placeholder di sini 👇 */} {/* 👇 TAMBAHKAN || "" PADA VALUE 👇 */} 
-                <Input type="text" placeholder="E.g., White Spot, Dropsy" value={formData.scientific_name || ""} onChange={(e) => handleChange("scientific_name", e.target.value)} className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold italic text-slate-800 dark:text-slate-100 transition-colors" />
+                <Input type="text" placeholder="E.g., Ichthyophthirius" value={formData.scientific_name || ""} onChange={(e) => handleChange("scientific_name", e.target.value)} className="w-full h-11 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold italic text-slate-800 dark:text-slate-100 transition-colors" />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5">
                   <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Nama taksonomi/biologis penyebab (opsional)." : "Biological/taxonomic name (optional)."}
                 </p>
@@ -355,25 +345,21 @@ export function DiseaseForm({ initialData, mode }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800/80 transition-colors">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Deskripsi Patologi (ID)" : "Pathology Description (ID)"}</Label>
-                {/* Tambahkan placeholder di sini 👇 */}
                 <textarea rows={3} placeholder="Penjelasan umum tentang penyakit ini..." value={formData.description_id || ""} onChange={(e) => handleChange("description_id", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5"><Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Gambaran naratif tentang penyakit." : "Narrative overview of the disease."}</p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'en' ? "Deskripsi Patologi (EN)" : "Pathology Description (EN)"}</Label>
-                {/* Tambahkan placeholder di sini 👇 */}
                 <textarea rows={3} placeholder="Brief explanation of the disease..." value={formData.description_en || ""} onChange={(e) => handleChange("description_en", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.symptomsId || (lang === 'id' ? "Gejala Fisik (ID)" : "Symptoms (ID)")}</Label>
-                {/* Tambahkan placeholder di sini 👇 */}
                 <textarea rows={4} placeholder="- Ada bintik putih di sirip&#10;- Ikan sering menggesekkan badan" value={formData.symptoms_id || ""} onChange={(e) => handleChange("symptoms_id", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5"><Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Ciri-ciri fisik yang terlihat pada tubuh ikan." : "Visible physical traits on the fish body."}</p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.symptomsEn || (lang === 'id' ? "Gejala Fisik (EN)" : "Symptoms (EN)")}</Label>
-                {/* Tambahkan placeholder dengan &#10; untuk enter 👇 */}
                 <textarea rows={4} placeholder="- White spots on fins&#10;- Fish flashing against objects" value={formData.symptoms_en || ""} onChange={(e) => handleChange("symptoms_en", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
               </div>
             </div>
@@ -389,13 +375,11 @@ export function DiseaseForm({ initialData, mode }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800/80 transition-colors">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.treatmentsId || (lang === 'id' ? "Langkah Pengobatan (ID)" : "Treatment Steps (ID)")}</Label>
-                {/* Tambahkan placeholder 👇 */}
                 <textarea rows={4} placeholder="1. Pindahkan ikan ke tank karantina.&#10;2. Berikan Methylene Blue sesuai dosis." value={formData.treatments_id || ""} onChange={(e) => handleChange("treatments_id", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5"><Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Langkah pengobatan yang dianjurkan (Gunakan poin nomor)." : "Recommended steps (Use numbering)."}</p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.treatmentsEn || (lang === 'id' ? "Langkah Pengobatan (EN)" : "Treatment Steps (EN)")}</Label>
-                {/* Tambahkan placeholder 👇 */}
                 <textarea rows={4} placeholder="1. Move fish to quarantine tank.&#10;2. Apply Methylene Blue as per dosage." value={formData.treatments_en || ""} onChange={(e) => handleChange("treatments_en", e.target.value)} className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
               </div>
             </div>
@@ -411,10 +395,8 @@ export function DiseaseForm({ initialData, mode }: Props) {
             <div className="bg-rose-50/50 dark:bg-rose-950/20 p-4 sm:p-6 rounded-xl border border-rose-200 dark:border-rose-900/50 space-y-6 transition-colors">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
-                {/* Metrik 1: Mortalitas */}
                 <div className="space-y-1.5">
                   <Label className="text-rose-900 dark:text-rose-300 font-bold text-xs uppercase tracking-widest">
-                    {/* 👇 Perbaikan bahasa diletakkan di sini 👇 */}
                     {formDict.mortalityRisk || (lang === 'id' ? "Mortalitas (1-5)" : "Mortality Risk (1-5)")}
                   </Label>
                   <Input type="number" min="1" max="5" value={formData.mortality_risk || 3} onChange={(e) => handleChange("mortality_risk", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-white dark:bg-slate-900 focus:border-rose-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
@@ -423,10 +405,8 @@ export function DiseaseForm({ initialData, mode }: Props) {
                   </p>
                 </div>
 
-                {/* Metrik 2: Durasi Sembuh */}
                 <div className="space-y-1.5">
                   <Label className="text-rose-900 dark:text-rose-300 font-bold text-xs uppercase tracking-widest">
-                    {/* 👇 Perbaikan bahasa diletakkan di sini 👇 */}
                     {formDict.durationDays || (lang === 'id' ? "Durasi Sembuh (Hari)" : "Recovery Duration (Days)")}
                   </Label>
                   <Input type="number" min="1" value={formData.treatment_duration_days || 7} onChange={(e) => handleChange("treatment_duration_days", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-white dark:bg-slate-900 focus:border-rose-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
@@ -435,10 +415,8 @@ export function DiseaseForm({ initialData, mode }: Props) {
                   </p>
                 </div>
 
-                {/* Metrik 3: Peluang Hidup */}
                 <div className="space-y-1.5">
                   <Label className="text-rose-900 dark:text-rose-300 font-bold text-xs uppercase tracking-widest">
-                    {/* 👇 Perbaikan bahasa diletakkan di sini 👇 */}
                     {formDict.recoveryProb || (lang === 'id' ? "Peluang Hidup (%)" : "Survival Rate (%)")}
                   </Label>
                   <Input type="number" min="1" max="100" value={formData.recovery_probability || 70} onChange={(e) => handleChange("recovery_probability", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-white dark:bg-slate-900 focus:border-rose-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
@@ -449,7 +427,6 @@ export function DiseaseForm({ initialData, mode }: Props) {
                 
               </div>
 
-              {/* Checkbox: Contagious & Quarantine */}
               <div className="flex flex-wrap gap-4 pt-2">
                 <label className="flex items-center gap-2 cursor-pointer border border-rose-200 dark:border-rose-900/60 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl transition-colors">
                   <input type="checkbox" checked={formData.contagious || false} onChange={(e) => handleChange("contagious", e.target.checked)} className="h-4 w-4 rounded accent-rose-600 border-slate-300 dark:border-slate-700" />
@@ -461,7 +438,6 @@ export function DiseaseForm({ initialData, mode }: Props) {
                 </label>
               </div>
 
-              {/* Textareas: Prevention & Expert Notes */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-rose-900 dark:text-rose-400 uppercase tracking-widest">{formDict.preventionId || (lang === 'id' ? "Cara Pencegahan (ID)" : "Prevention (ID)")}</Label>
@@ -496,30 +472,28 @@ export function DiseaseForm({ initialData, mode }: Props) {
 
           <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-4 pt-6 border-t border-slate-200 dark:border-slate-800/60 mt-8">
             <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
-            {/* ======================================================== */}
-            {/* LOKASI TOMBOL AKSI KEMBALI KE SEMULA (DI ATAS FORM)       */}
-            {/* ======================================================== */}
+            
+            {/* ======================================= */}
+            {/* TOMBOL AKSI: ARSIP & HAPUS (DI BAWAH)     */}
+            {/* ======================================= */}
             {mode === "edit" && initialData && (
               <div className="flex flex-wrap items-center gap-3">
-                {/* Tombol Arsip (Bisa diakses Admin & Super Admin) */}
                 <Button
-                  type="button" // 👈 SANGAT PENTING: Mencegah form auto-submit (anti-flicker)
+                  type="button"
                   variant="outline"
                   onClick={() => setIsArchiveModalOpen(true)}
                   disabled={loadingAction || isSubmitting}
                   className="h-11 px-4 rounded-xl font-bold text-xs uppercase tracking-widest border-amber-200 dark:border-amber-900/40 bg-amber-50/30 dark:bg-amber-950/10 hover:bg-amber-100 dark:hover:bg-amber-950/30 text-amber-700 dark:text-amber-400 flex items-center gap-2 transition-all"
                 >
                   <Archive className="w-4 h-4" />
-                  {/* Menggunakan is_active dari database */}
                   {initialData.is_active === false 
                     ? (arcDict.unarchive || (lang === 'id' ? "Pulihkan" : "Restore")) 
                     : (arcDict.archive || (lang === 'id' ? "Arsipkan" : "Archive"))}
                 </Button>
 
-                {/* Tombol Hapus Permanen (Hanya untuk Super Admin) */}
                 {role === "super_admin" && (
                   <Button
-                    type="button" // 👈 SANGAT PENTING: Mencegah form auto-submit (anti-flicker)
+                    type="button"
                     variant="outline"
                     onClick={() => setIsDeleteModalOpen(true)}
                     disabled={loadingAction || isSubmitting}
@@ -551,9 +525,9 @@ export function DiseaseForm({ initialData, mode }: Props) {
         </form>
       </div>
 
-      {/* ======================================================== */}
-      {/* MODAL ARSIP (MENGGUNAKAN PORTAL)                         */}
-      {/* ======================================================== */}
+      {/* ======================================================= */}
+      {/* MODAL ARSIP & HAPUS MENGGUNAKAN CREATEPORTAL            */}
+      {/* ======================================================= */}
       {mounted && isArchiveModalOpen && initialData && createPortal(
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in duration-200 ease-out">
           <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-amber-500 animate-in zoom-in-95 slide-in-from-bottom-2 duration-200">
@@ -565,7 +539,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
             </p>
             <div className="flex flex-col gap-3">
               <Button 
-                type="button"
+                type="button" 
                 onClick={executeArchive} 
                 disabled={loadingAction} 
                 className="w-full h-12 rounded-xl font-black uppercase tracking-widest bg-amber-600 hover:bg-amber-500 text-white shadow-lg transition-all"
@@ -584,12 +558,9 @@ export function DiseaseForm({ initialData, mode }: Props) {
             </div>
           </div>
         </div>,
-        document.body // 👈 Memaksa keluar dari form langsung ke body halaman utama
+        document.body
       )}
 
-      {/* ======================================================== */}
-      {/* MODAL HAPUS PERMANEN (MENGGUNAKAN PORTAL)                */}
-      {/* ======================================================== */}
       {mounted && isDeleteModalOpen && initialData && createPortal(
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200 ease-out">
           <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600 animate-in zoom-in-95 slide-in-from-bottom-2 duration-200">
@@ -613,7 +584,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
             </div>
             <div className="flex flex-col gap-3">
               <Button 
-                type="button"
+                type="button" 
                 onClick={executeHardDelete} 
                 disabled={loadingAction || deleteConfirmText !== (lang === 'en' && initialData.name_en ? initialData.name_en : initialData.name_id)} 
                 className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-500 font-black uppercase tracking-widest text-white shadow-lg transition-all"
@@ -632,7 +603,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
             </div>
           </div>
         </div>,
-        document.body // 👈 Memaksa keluar dari form langsung ke body halaman utama
+        document.body
       )}
     </div>
   );
