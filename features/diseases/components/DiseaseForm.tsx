@@ -1,7 +1,9 @@
 // features/diseases/components/DiseaseForm.tsx
 "use client";
 
-import { useState } from "react";
+//import { useState } from "react";
+import { useState, useEffect } from "react"; // 👈 Tambahan useEffect
+import { createPortal } from "react-dom"; // 👈 Tambahan createPortal
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useLanguage } from "@/providers/LanguageProvider";
@@ -34,6 +36,12 @@ export function DiseaseForm({ initialData, mode }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingAction, setLoadingAction] = useState(false);
 
+  // 👈 State Mounted untuk menghindari error Portal di Next.js
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
   // Akses kamus Dwibahasa secara ketat
   const rootDict = (dict as Record<string, any>) || {};
   const formDict = rootDict?.diseaseForm || rootDict?.disease?.diseaseForm || {};
@@ -488,28 +496,30 @@ export function DiseaseForm({ initialData, mode }: Props) {
 
           <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-4 pt-6 border-t border-slate-200 dark:border-slate-800/60 mt-8">
             <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
-            {/* TOMBOL AKSI: ARSIP & HAPUS */}
+            {/* ======================================================== */}
+            {/* LOKASI TOMBOL AKSI KEMBALI KE SEMULA (DI ATAS FORM)       */}
+            {/* ======================================================== */}
             {mode === "edit" && initialData && (
-              <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800/60">
-                
-                {/* Tombol Arsip bisa diakses admin/super_admin */}
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Tombol Arsip (Bisa diakses Admin & Super Admin) */}
                 <Button
-                  type="button"
+                  type="button" // 👈 SANGAT PENTING: Mencegah form auto-submit (anti-flicker)
                   variant="outline"
                   onClick={() => setIsArchiveModalOpen(true)}
                   disabled={loadingAction || isSubmitting}
                   className="h-11 px-4 rounded-xl font-bold text-xs uppercase tracking-widest border-amber-200 dark:border-amber-900/40 bg-amber-50/30 dark:bg-amber-950/10 hover:bg-amber-100 dark:hover:bg-amber-950/30 text-amber-700 dark:text-amber-400 flex items-center gap-2 transition-all"
                 >
                   <Archive className="w-4 h-4" />
+                  {/* Menggunakan is_active dari database */}
                   {initialData.is_active === false 
                     ? (arcDict.unarchive || (lang === 'id' ? "Pulihkan" : "Restore")) 
                     : (arcDict.archive || (lang === 'id' ? "Arsipkan" : "Archive"))}
                 </Button>
 
-                {/* HANYA MUNCUL JIKA ROLE ADALAH SUPER ADMIN */}
+                {/* Tombol Hapus Permanen (Hanya untuk Super Admin) */}
                 {role === "super_admin" && (
                   <Button
-                    type="button"
+                    type="button" // 👈 SANGAT PENTING: Mencegah form auto-submit (anti-flicker)
                     variant="outline"
                     onClick={() => setIsDeleteModalOpen(true)}
                     disabled={loadingAction || isSubmitting}
@@ -541,8 +551,10 @@ export function DiseaseForm({ initialData, mode }: Props) {
         </form>
       </div>
 
-      {/* MODAL ARSIP */}
-      {isArchiveModalOpen && initialData && (
+      {/* ======================================================== */}
+      {/* MODAL ARSIP (MENGGUNAKAN PORTAL)                         */}
+      {/* ======================================================== */}
+      {mounted && isArchiveModalOpen && initialData && createPortal(
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in duration-200 ease-out">
           <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-amber-500 animate-in zoom-in-95 slide-in-from-bottom-2 duration-200">
             <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-4">
@@ -553,7 +565,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
             </p>
             <div className="flex flex-col gap-3">
               <Button 
-                type="button" // 👈 Pastikan bertipe button agar tidak memicu form submit
+                type="button"
                 onClick={executeArchive} 
                 disabled={loadingAction} 
                 className="w-full h-12 rounded-xl font-black uppercase tracking-widest bg-amber-600 hover:bg-amber-500 text-white shadow-lg transition-all"
@@ -571,11 +583,14 @@ export function DiseaseForm({ initialData, mode }: Props) {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body // 👈 Memaksa keluar dari form langsung ke body halaman utama
       )}
 
-      {/* MODAL HAPUS PERMANEN */}
-      {isDeleteModalOpen && initialData && (
+      {/* ======================================================== */}
+      {/* MODAL HAPUS PERMANEN (MENGGUNAKAN PORTAL)                */}
+      {/* ======================================================== */}
+      {mounted && isDeleteModalOpen && initialData && createPortal(
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200 ease-out">
           <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600 animate-in zoom-in-95 slide-in-from-bottom-2 duration-200">
             <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center rounded-full mb-4">
@@ -598,7 +613,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
             </div>
             <div className="flex flex-col gap-3">
               <Button 
-                type="button" // 👈 Pastikan bertipe button agar tidak memicu form submit
+                type="button"
                 onClick={executeHardDelete} 
                 disabled={loadingAction || deleteConfirmText !== (lang === 'en' && initialData.name_en ? initialData.name_en : initialData.name_id)} 
                 className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-500 font-black uppercase tracking-widest text-white shadow-lg transition-all"
@@ -616,7 +631,8 @@ export function DiseaseForm({ initialData, mode }: Props) {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body // 👈 Memaksa keluar dari form langsung ke body halaman utama
       )}
     </div>
   );
