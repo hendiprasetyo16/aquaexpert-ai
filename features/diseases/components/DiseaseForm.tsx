@@ -522,18 +522,20 @@ export function DiseaseForm({ initialData, mode }: Props) {
 
       {/* MODAL ARSIP */}
       {isArchiveModalOpen && initialData && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-amber-500">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-4">{arcDict.modalArchiveTitle || "Arsipkan Data?"}</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-8">
-              {arcDict.modalArchiveDesc || "Data ini akan disembunyikan dari AI."}
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in duration-200 ease-out">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-amber-500 animate-in zoom-in-95 slide-in-from-bottom-2 duration-200">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-4">
+              {arcDict.modalArchiveTitle || (lang === 'id' ? "Arsipkan Data?" : "Archive Data?")}
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
+              {arcDict.modalArchiveDesc || (lang === 'id' ? "Data ini akan disembunyikan dari AI." : "This data will be hidden from the AI.")}
             </p>
             <div className="flex flex-col gap-3">
-              <Button onClick={executeArchive} disabled={loadingAction} className="w-full h-12 rounded-xl font-black uppercase tracking-widest bg-amber-600 hover:bg-amber-500 text-white shadow-lg">
-                {loadingAction ? <Loader2 className="w-5 h-5 animate-spin" /> : "KONFIRMASI"}
+              <Button onClick={executeArchive} disabled={loadingAction} className="w-full h-12 rounded-xl font-black uppercase tracking-widest bg-amber-600 hover:bg-amber-500 text-white shadow-lg transition-all">
+                {loadingAction ? <Loader2 className="w-5 h-5 animate-spin" /> : (lang === 'id' ? "KONFIRMASI" : "CONFIRM")}
               </Button>
-              <Button variant="ghost" onClick={() => setIsArchiveModalOpen(false)} disabled={loadingAction} className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                {arcDict.cancel || "Batal"}
+              <Button variant="ghost" onClick={() => setIsArchiveModalOpen(false)} disabled={loadingAction} className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
+                {arcDict.cancel || (lang === 'id' ? "Batal" : "Cancel")}
               </Button>
             </div>
           </div>
@@ -542,26 +544,32 @@ export function DiseaseForm({ initialData, mode }: Props) {
 
       {/* MODAL HAPUS PERMANEN */}
       {isDeleteModalOpen && initialData && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200 ease-out">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600 animate-in zoom-in-95 slide-in-from-bottom-2 duration-200">
             <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center rounded-full mb-4">
               <AlertTriangle className="w-8 h-8" />
             </div>
-            <h3 className="text-2xl font-black text-center text-red-600 mb-2">{arcDict.modalDeleteTitle || "Hapus Permanen"}</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-6 font-medium">
-              Data patogen akan dihapus permanen dan tidak bisa dikembalikan.
+            <h3 className="text-2xl font-black text-center text-red-600 mb-2">
+              {arcDict.modalDeleteTitle || (lang === 'id' ? "Hapus Permanen" : "Permanent Delete")}
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-6 font-medium leading-relaxed">
+              {lang === 'id' ? "Data patogen akan dihapus permanen dan tidak bisa dikembalikan." : "Pathogen data will be permanently deleted and cannot be restored."}
             </p>
             <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 mb-6">
-              <label className="text-[10px] font-black uppercase text-red-500 tracking-widest block mb-2 text-center">Ketik nama untuk konfirmasi:</label>
-              <div className="text-center font-bold text-slate-800 dark:text-slate-200 mb-2 select-all bg-white dark:bg-slate-900 py-1 border border-slate-200 dark:border-slate-700 rounded">{lang === 'en' && initialData.name_en ? initialData.name_en : initialData.name_id}</div>
-              <Input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} className="h-11 w-full text-center font-bold bg-white dark:bg-slate-900 border-red-200 dark:border-red-900/50 focus:border-red-500" />
+              <label className="text-[10px] font-black uppercase text-red-500 tracking-widest block mb-2 text-center">
+                {lang === 'id' ? "Ketik nama untuk konfirmasi:" : "Type name to confirm:"}
+              </label>
+              <div className="text-center font-bold text-slate-800 dark:text-slate-200 mb-2 select-all bg-white dark:bg-slate-900 py-1 border border-slate-200 dark:border-slate-700 rounded">
+                {lang === 'en' && initialData.name_en ? initialData.name_en : initialData.name_id}
+              </div>
+              <Input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} className="h-11 w-full text-center font-bold bg-white dark:bg-slate-900 border-red-200 dark:border-red-900/50 focus:border-red-500 transition-colors" />
             </div>
             <div className="flex flex-col gap-3">
-              <Button onClick={executeHardDelete} disabled={loadingAction || deleteConfirmText !== (lang === 'en' && initialData.name_en ? initialData.name_en : initialData.name_id)} className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-500 font-black uppercase tracking-widest text-white shadow-lg">
-                {loadingAction ? <Loader2 className="w-5 h-5 animate-spin" /> : "HAPUS SEKARANG"}
+              <Button onClick={executeHardDelete} disabled={loadingAction || deleteConfirmText !== (lang === 'en' && initialData.name_en ? initialData.name_en : initialData.name_id)} className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-500 font-black uppercase tracking-widest text-white shadow-lg transition-all">
+                {loadingAction ? <Loader2 className="w-5 h-5 animate-spin" /> : (lang === 'id' ? "HAPUS SEKARANG" : "DELETE NOW")}
               </Button>
-              <Button variant="ghost" onClick={() => { setIsDeleteModalOpen(false); setDeleteConfirmText(""); }} disabled={loadingAction} className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                {arcDict.cancel || "Batal"}
+              <Button variant="ghost" onClick={() => { setIsDeleteModalOpen(false); setDeleteConfirmText(""); }} disabled={loadingAction} className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
+                {arcDict.cancel || (lang === 'id' ? "Batal" : "Cancel")}
               </Button>
             </div>
           </div>
