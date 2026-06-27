@@ -1,6 +1,7 @@
 // features/diseases/repositories/disease.repository.ts
 import { createClient } from "@/lib/supabase/client";
 import { Disease } from "../types/disease.types";
+import imageCompression from 'browser-image-compression';
 
 // FIX: Menambahkan scientific_name, description_id, description_en
 const DISEASE_COLUMNS = `
@@ -42,4 +43,48 @@ export async function getArchivedDiseases(): Promise<Disease[]> {
     return [];
   }
   return (data ?? []) as Disease[];
+}
+
+// FUNGSI UPLOAD & KOMPRESI GAMBAR PENYAKIT
+export async function uploadDiseaseImage(file: File, oldImageUrl?: string | null): Promise<string | null> {
+  try {
+    const supabase = createClient();
+    
+    // 1. Kompresi Gambar (Maks 500KB, Resolusi Maks 1200px)
+    const options = {
+      maxSizeMB: 0.5,
+      maxWidthOrHeight: 1200,
+      useWebWorker: true,
+    };
+    const compressedFile = await imageCompression(file, options);
+
+    // 2. Hapus gambar lama jika sedang mode edit (agar storage tidak penuh)
+    if (oldImageUrl) {
+      const oldPath = oldImageUrl.split('/').pop(); // Mengambil nama file dari URL
+      if (oldPath) {
+        await supabase.storage.from('disease-images').remove([oldPath]);
+      }
+    }
+
+    // 3. Upload gambar baru
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+    
+    const { error } = await supabase.storage
+      .from('disease-images')
+      .upload(fileName, compressedFile, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) throw error;
+
+    // 4. Dapatkan Public URL
+    const { data: { publicUrl } } = supabase.storage.from('disease-images').getPublicUrl(fileName);
+    return publicUrl;
+    
+  } catch (error) {
+    console.error("Gagal mengunggah gambar penyakit:", error);
+    return null;
+  }
 }

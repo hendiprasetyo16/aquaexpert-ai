@@ -1,6 +1,7 @@
 "use client";
 
-import { X, AlertTriangle, ShieldCheck, Clock, Heart, Zap, Info } from "lucide-react";
+import Image from "next/image";
+import { X, AlertTriangle, ShieldCheck, Clock, Heart, Zap, Info, Bug } from "lucide-react";
 import type { Disease } from "@/features/diseases/types/disease.types";
 
 interface Props {
@@ -23,14 +24,37 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
   const urgency = disease.urgency_level?.toLowerCase() ?? "low";
   const isEmergency = urgency === "critical" || urgency === "emergency" || urgency === "high";
 
+  // FUNGSI TRANSLASI KATEGORI (BACTERIAL -> BAKTERI)
+  const translateCategory = (cat: string | null | undefined) => {
+    if (!cat) return lang === 'id' ? "Umum" : "General";
+    if (lang === 'en') return cat;
+    const map: Record<string, string> = {
+      "Parasitic": "Parasit", "Bacterial": "Bakteri", "Fungal": "Jamur", 
+      "Viral": "Virus", "Environmental": "Lingkungan", "Nutritional": "Nutrisi", 
+      "Protozoan": "Protozoa", "Genetic": "Genetik"
+    };
+    return map[cat] || cat;
+  };
+
+  // FUNGSI TRANSLASI URGENSI (MEDIUM -> SEDANG)
+  const translateUrgency = (urg: string | null | undefined) => {
+    if (!urg) return "Medium";
+    if (lang === 'en') return urg;
+    const map: Record<string, string> = {
+      "low": "Rendah", "medium": "Sedang", "high": "Tinggi", 
+      "critical": "Kritis", "emergency": "Darurat"
+    };
+    return map[urg.toLowerCase()] || urg;
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-3xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+      <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-3xl max-h-[90vh] bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
         
         {/* HEADER MODAL */}
-        <div className={`p-5 sm:p-6 border-b flex items-start justify-between gap-4 ${isEmergency ? "bg-rose-50/50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/30" : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"}`}>
+        <div className={`p-5 sm:p-6 border-b flex items-start justify-between gap-4 ${isEmergency ? "bg-rose-50/50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/30" : "bg-slate-50 dark:bg-[#0B1120] border-slate-200 dark:border-slate-800/60"}`}>
           <div>
             <div className="flex flex-wrap items-center gap-2.5 mb-1">
               <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100">{diseaseName}</h2>
@@ -39,11 +63,11 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-2">
-              <span className={`text-[10px] sm:text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider ${isEmergency ? "bg-rose-500 text-white" : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300"}`}>
-                {lang === "id" ? "Urgensi:" : "Urgency:"} {disease.urgency_level || "Medium"}
+              <span className={`text-[10px] sm:text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider ${isEmergency ? "bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.4)]" : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300"}`}>
+                {lang === "id" ? "Urgensi:" : "Urgency:"} {translateUrgency(disease.urgency_level)}
               </span>
-              <span className="text-[10px] sm:text-xs px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 font-medium border border-slate-200 dark:border-slate-700">
-                {disease.disease_category || "Uncategorized"}
+              <span className="text-[10px] sm:text-xs px-2.5 py-1 rounded-md bg-white dark:bg-[#111827] text-slate-500 dark:text-slate-400 font-medium border border-slate-200 dark:border-slate-700">
+                {translateCategory(disease.disease_category)}
               </span>
             </div>
           </div>
@@ -53,6 +77,18 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
         {/* BODY MODAL */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 custom-scrollbar">
           
+          {/* FOTO PENYAKIT (JIKA ADA) */}
+          {disease.image_url ? (
+            <div className="w-full h-48 sm:h-64 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm">
+               <Image src={disease.image_url} alt={diseaseName} fill className="object-cover hover:scale-105 transition-transform duration-500" unoptimized />
+            </div>
+          ) : (
+            <div className="w-full h-32 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800/60">
+              <Bug className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Tidak Ada Foto Tersedia" : "No Photo Available"}</p>
+            </div>
+          )}
+
           {isEmergency && disease.emergency_actions && disease.emergency_actions.length > 0 && (
             <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
               <div className="flex items-center gap-2 text-rose-800 dark:text-rose-400 mb-3">
@@ -71,7 +107,7 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/60 space-y-3">
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#0B1120] border border-slate-200/60 dark:border-slate-800/60 space-y-3">
                 <h4 className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">{lang === "id" ? "Karakter Penularan" : "Transmission Traits"}</h4>
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-[11px] sm:text-xs">
@@ -112,19 +148,19 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
           {symptomsText && (
             <div className="space-y-2">
               <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">{lang === "id" ? "Karakteristik Klinis (Gejala)" : "Clinical Symptoms"}</h4>
-              <div className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 whitespace-pre-line">
+              <div className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-[#0B1120] p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 whitespace-pre-line">
                 {symptomsText}
               </div>
             </div>
           )}
 
-          <div className="p-4 sm:p-5 rounded-xl border border-blue-100 dark:border-slate-800/60 bg-blue-50/30 dark:bg-slate-950 space-y-4 shadow-inner">
+          <div className="p-4 sm:p-5 rounded-xl border border-blue-100 dark:border-slate-800/60 bg-blue-50/30 dark:bg-[#0B1120] space-y-4 shadow-inner">
             <div className="flex items-center gap-2 text-blue-800 dark:text-blue-400">
               <ShieldCheck className="w-5 h-5" />
               <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider">{lang === "id" ? "Panduan Pengobatan Klinis" : "Clinical Treatment Protocol"}</h4>
             </div>
             
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200/60 dark:border-slate-800 shadow-sm">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 bg-white dark:bg-[#111827] p-3 rounded-lg border border-slate-200/60 dark:border-slate-800 shadow-sm">
               <div className="flex items-center gap-2 sm:gap-3">
                 <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 shrink-0" />
                 <div>
@@ -153,7 +189,7 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
               {preventionText && (
                 <div className="space-y-2">
                   <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">{lang === "id" ? "Langkah Pencegahan" : "Prevention Protocol"}</h4>
-                  <p className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 whitespace-pre-line">
+                  <p className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-[#0B1120] p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 whitespace-pre-line">
                     {preventionText}
                   </p>
                 </div>
