@@ -36,6 +36,17 @@ interface DashboardStats {
   flora: number;
 }
 
+// Tipe Data untuk Riwayat Aktivitas
+interface ActivityLog {
+  id: string;
+  type: "parameter" | "maintenance" | "treatment";
+  title_id: string;
+  title_en: string;
+  desc_id: string;
+  desc_en: string;
+  date: Date;
+}
+
 export default function DashboardPage() {
   const { user, profile, role, isLoading } = useAuth();
   const { dict, language } = useLanguage(); 
@@ -44,6 +55,7 @@ export default function DashboardPage() {
 
   const [stats, setStats] = useState<DashboardStats>({ tanks: 0, alerts: 0, fauna: 0, flora: 0 });
   const [tankList, setTankList] = useState<TankInfo[]>([]);
+  const [recentActivities, setRecentActivities] = useState<ActivityLog[]>([]);
   const [loadingPage, setLoadingPage] = useState(true);
   const [ipAddress, setIpAddress] = useState<string>("Loading IP...");
 
@@ -92,7 +104,10 @@ export default function DashboardPage() {
           .eq("user_id", user.id)
           .eq("is_active", true);
 
+        let tankIds: string[] = [];
+
         if (aquariums && aquariums.length > 0) {
+          tankIds = aquariums.map(a => a.id);
           aquariums.sort((a, b) => {
             if (a.is_primary === b.is_primary) return a.name.localeCompare(b.name);
             return a.is_primary ? -1 : 1;
@@ -158,9 +173,80 @@ export default function DashboardPage() {
           setTankList(processedTanks);
           setStats({ tanks: aquariums.length, alerts: totalAlerts, fauna: totalFauna, flora: totalFlora });
         }
+
+        // === TARIK LOG AKTIVITAS (RECENT ACTIVITIES) ===
+        if (tankIds.length > 0) {
+          const logs: ActivityLog[] = [];
+
+          // 1. Log Parameter Air
+          const { data: paramLogs } = await supabase
+            .from("aquarium_parameters")
+            .select("id, record_date, parameter_source")
+            .in("aquarium_id", tankIds)
+            .order('record_date', { ascending: false })
+            .limit(3);
+          
+          paramLogs?.forEach(log => {
+            logs.push({
+              id: log.id,
+              type: "parameter",
+              title_id: "Pencatatan Parameter Air",
+              title_en: "Water Parameter Log",
+              desc_id: `Data kualitas air diunggah melalui ${log.parameter_source || 'Sistem'}.`,
+              desc_en: `Water quality data uploaded via ${log.parameter_source || 'System'}.`,
+              date: new Date(log.record_date)
+            });
+          });
+
+          // 2. Log Maintenance
+          const { data: maintLogs } = await supabase
+            .from("aquarium_maintenance_logs")
+            .select("id, performed_at, maintenance_type")
+            .in("aquarium_id", tankIds)
+            .order('performed_at', { ascending: false })
+            .limit(3);
+            
+          maintLogs?.forEach(log => {
+            logs.push({
+              id: log.id,
+              type: "maintenance",
+              title_id: "Tugas Perawatan Selesai",
+              title_en: "Maintenance Task Completed",
+              desc_id: `Melakukan aktivitas: ${log.maintenance_type.replace('_', ' ')}.`,
+              desc_en: `Performed activity: ${log.maintenance_type.replace('_', ' ')}.`,
+              date: new Date(log.performed_at)
+            });
+          });
+
+          // 3. Log Pengobatan (Treatment)
+          const { data: treatmentLogs } = await supabase
+            .from("aquarium_treatments")
+            .select("id, started_at, status")
+            .in("aquarium_id", tankIds)
+            .order('started_at', { ascending: false })
+            .limit(3);
+
+          treatmentLogs?.forEach(log => {
+            logs.push({
+              id: log.id,
+              type: "treatment",
+              title_id: "Sesi Pengobatan Medis",
+              title_en: "Medical Treatment Session",
+              desc_id: `Status pengobatan: ${log.status}.`,
+              desc_en: `Treatment status: ${log.status}.`,
+              date: new Date(log.started_at || new Date().toISOString())
+            });
+          });
+
+          // Urutkan dan ambil 4 terbaru
+          logs.sort((a, b) => b.date.getTime() - a.date.getTime());
+          setRecentActivities(logs.slice(0, 4));
+        }
+
         setLoadingPage(false);
 
       } catch (error) {
+        console.error("Dashboard error:", error);
         setLoadingPage(false);
       }
     }
@@ -303,95 +389,142 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* SEKSI 2: KARTU STATISTIK */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col h-full">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Akuarium Aktif" : "Active Tanks"}</p>
-                <h4 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{stats.tanks}</h4>
-              </div>
-              <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-xl"><Container className="w-6 h-6 text-blue-600 dark:text-blue-400" /></div>
-            </div>
-            <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-1.5">
-              {tankList.map(t => (
-                <div key={t.id} className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
-                  <span className="truncate pr-2 font-semibold flex items-center gap-1.5">
-                    <div className={`w-1.5 h-1.5 rounded-full ${t.is_primary ? 'bg-teal-500' : 'bg-slate-300'}`}></div>
-                    {t.name}
-                  </span>
-                  <span className="shrink-0">{t.is_primary ? "Utama" : "Sekunder"}</span>
+        {/* SEKSI 2: KARTU STATISTIK & RECENT ACTIVITIES */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          
+          {/* BAGIAN KIRI: 4 Kotak Statisitk */}
+          <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 transition-transform">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Akuarium Aktif" : "Active Tanks"}</p>
+                  <h4 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{stats.tanks}</h4>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col h-full">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Peringatan Sistem" : "System Alerts"}</p>
-                <h4 className="text-3xl font-extrabold text-rose-600 dark:text-rose-400">{stats.alerts}</h4>
+                <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-xl"><Container className="w-6 h-6 text-blue-600 dark:text-blue-400" /></div>
               </div>
-              <div className="bg-rose-50 dark:bg-rose-900/30 p-3 rounded-xl"><ShieldAlert className="w-6 h-6 text-rose-600 dark:text-rose-400" /></div>
-            </div>
-            <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2">
-              {tankList.map(t => (
-                <div key={t.id} className="flex flex-col text-[10px]">
-                  <span className="font-bold text-slate-700 dark:text-slate-300 line-clamp-1">{t.name}:</span>
-                  {t.alerts.length > 0 ? (
-                    <span className="text-rose-500 dark:text-rose-400 line-clamp-1 leading-tight mt-0.5">
-                      • {t.alerts[0]} {t.alerts.length > 1 && `(+${t.alerts.length - 1} lainnya)`}
+              <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-1.5">
+                {tankList.map(t => (
+                  <div key={t.id} className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
+                    <span className="truncate pr-2 font-semibold flex items-center gap-1.5">
+                      <div className={`w-1.5 h-1.5 rounded-full ${t.is_primary ? 'bg-teal-500' : 'bg-slate-300'}`}></div>
+                      {t.name}
                     </span>
-                  ) : (
-                    <span className="text-emerald-500 dark:text-emerald-400 font-medium mt-0.5">✔️ Ekosistem Aman</span>
-                  )}
+                    <span className="shrink-0">{t.is_primary ? (lang === 'id' ? "Utama" : "Primary") : (lang === 'id' ? "Sekunder" : "Secondary")}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 transition-transform">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Peringatan Sistem" : "System Alerts"}</p>
+                  <h4 className="text-3xl font-extrabold text-rose-600 dark:text-rose-400">{stats.alerts}</h4>
                 </div>
-              ))}
+                <div className="bg-rose-50 dark:bg-rose-900/30 p-3 rounded-xl"><ShieldAlert className="w-6 h-6 text-rose-600 dark:text-rose-400" /></div>
+              </div>
+              <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2">
+                {tankList.map(t => (
+                  <div key={t.id} className="flex flex-col text-[10px]">
+                    <span className="font-bold text-slate-700 dark:text-slate-300 line-clamp-1">{t.name}:</span>
+                    {t.alerts.length > 0 ? (
+                      <span className="text-rose-500 dark:text-rose-400 line-clamp-1 leading-tight mt-0.5">
+                        • {t.alerts[0]} {t.alerts.length > 1 && `(+${t.alerts.length - 1} ${lang === 'id' ? 'lainnya' : 'more'})`}
+                      </span>
+                    ) : (
+                      <span className="text-emerald-500 dark:text-emerald-400 font-medium mt-0.5">✔️ {lang === 'id' ? 'Ekosistem Aman' : 'Safe Ecosystem'}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 transition-transform">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Populasi Fauna" : "Fauna Population"}</p>
+                  <h4 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{stats.fauna}</h4>
+                </div>
+                <div className="bg-amber-50 dark:bg-amber-900/30 p-3 rounded-xl"><Fish className="w-6 h-6 text-amber-600 dark:text-amber-400" /></div>
+              </div>
+              <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-1.5">
+                {tankList.map(t => (
+                  <div key={t.id} className="flex justify-between items-center text-[10px]">
+                    <span className="truncate pr-2 font-medium text-slate-500 dark:text-slate-400">{t.name}</span>
+                    <span className="font-bold text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">
+                      {t.faunaCount} {lang === 'id' ? "ekor" : "qty"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 transition-transform">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Koleksi Flora" : "Flora Collection"}</p>
+                  <h4 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{stats.flora}</h4>
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-xl"><Leaf className="w-6 h-6 text-emerald-600 dark:text-emerald-400" /></div>
+              </div>
+              <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-1.5">
+                {tankList.map(t => (
+                  <div key={t.id} className="flex justify-between items-center text-[10px]">
+                    <span className="truncate pr-2 font-medium text-slate-500 dark:text-slate-400">{t.name}</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded">
+                      {t.floraCount} {lang === 'id' ? "bibit" : "qty"}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col h-full">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Populasi Fauna" : "Fauna Population"}</p>
-                <h4 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{stats.fauna}</h4>
-              </div>
-              <div className="bg-amber-50 dark:bg-amber-900/30 p-3 rounded-xl"><Fish className="w-6 h-6 text-amber-600 dark:text-amber-400" /></div>
-            </div>
-            <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-1.5">
-              {tankList.map(t => (
-                <div key={t.id} className="flex justify-between items-center text-[10px]">
-                  <span className="truncate pr-2 font-medium text-slate-500 dark:text-slate-400">{t.name}</span>
-                  <span className="font-bold text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">
-                    {t.faunaCount} {lang === 'id' ? "ekor" : "qty"}
-                  </span>
+          {/* BAGIAN KANAN: Riwayat Aktivitas Asli */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 px-1">
+              <Clock className="w-5 h-5 text-slate-400" />
+              {lang === 'id' ? "Aktivitas Terkini" : "Recent Activities"}
+            </h3>
+            
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm h-full max-h-[300px] overflow-y-auto custom-scrollbar">
+              {recentActivities.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-60">
+                  <Activity className="w-8 h-8 text-slate-400 mb-2" />
+                  <p className="text-xs font-bold text-slate-500">{lang === 'id' ? "Belum ada aktivitas" : "No recent activity"}</p>
                 </div>
-              ))}
+              ) : (
+                <div className="space-y-4">
+                  {recentActivities.map((log) => (
+                    <div key={log.id} className="flex gap-3 relative">
+                      <div className="flex flex-col items-center">
+                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                          log.type === 'parameter' ? 'bg-blue-500' :
+                          log.type === 'maintenance' ? 'bg-emerald-500' : 'bg-rose-500'
+                        }`} />
+                        <div className="w-px h-full bg-slate-200 dark:bg-slate-700 my-1"></div>
+                      </div>
+                      <div className="pb-3 w-full">
+                        <p className="text-[10px] font-bold text-slate-400 mb-0.5">
+                          {log.date.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                          {lang === 'id' ? log.title_id : log.title_en}
+                        </p>
+                        <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
+                          {lang === 'id' ? log.desc_id : log.desc_en}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col h-full">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Koleksi Flora" : "Flora Collection"}</p>
-                <h4 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{stats.flora}</h4>
-              </div>
-              <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-xl"><Leaf className="w-6 h-6 text-emerald-600 dark:text-emerald-400" /></div>
-            </div>
-            <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-1.5">
-              {tankList.map(t => (
-                <div key={t.id} className="flex justify-between items-center text-[10px]">
-                  <span className="truncate pr-2 font-medium text-slate-500 dark:text-slate-400">{t.name}</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded">
-                    {t.floraCount} {lang === 'id' ? "bibit" : "qty"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
-        {/* SEKSI 3: MODUL KECERDASAN BUATAN */}
+        {/* SEKSI 3: MODUL KECERDASAN BUATAN (Disesuaikan Bahasa) */}
         <div className="space-y-6 pt-4">
           <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
             <Cpu className="w-5 h-5 text-indigo-500" />
@@ -403,9 +536,9 @@ export default function DashboardPage() {
               <div className="absolute right-0 top-0 w-24 h-24 bg-red-50 dark:bg-red-900/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
               <div className="relative z-10">
                 <div className="bg-red-100 dark:bg-red-900/30 w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-red-600 dark:text-red-400"><HeartPulse className="w-6 h-6" /></div>
-                <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-1">Disease Expert AI</h4>
-                <p className="text-xs font-medium text-slate-500 mb-4 line-clamp-2">Diagnosis cerdas penyakit biota air menggunakan pemindaian komputer AI Vision.</p>
-                <div className="flex items-center text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">Buka Modul <ArrowRight className="w-3.5 h-3.5" /></div>
+                <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-1">{lang === 'id' ? "Sistem Pakar Penyakit" : "Disease Expert AI"}</h4>
+                <p className="text-xs font-medium text-slate-500 mb-4 line-clamp-2">{lang === 'id' ? "Diagnosis cerdas penyakit biota air menggunakan pemindaian komputer AI Vision." : "Smart diagnosis of aquatic diseases using AI Vision computer scanning."}</p>
+                <div className="flex items-center text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-3.5 h-3.5" /></div>
               </div>
             </div>
 
@@ -414,8 +547,8 @@ export default function DashboardPage() {
               <div className="relative z-10">
                 <div className="bg-blue-100 dark:bg-blue-900/30 w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-blue-600 dark:text-blue-400"><Fish className="w-6 h-6" /></div>
                 <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-1">Fish Expert AI</h4>
-                <p className="text-xs font-medium text-slate-500 mb-4 line-clamp-2">Konsultasi ahli terkait perawatan, kompatibilitas, dan nutrisi spesies ikan.</p>
-                <div className="flex items-center text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">Buka Modul <ArrowRight className="w-3.5 h-3.5" /></div>
+                <p className="text-xs font-medium text-slate-500 mb-4 line-clamp-2">{lang === 'id' ? "Konsultasi ahli terkait perawatan, kompatibilitas, dan nutrisi spesies ikan." : "Expert consultation regarding care, compatibility, and fish species nutrition."}</p>
+                <div className="flex items-center text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-3.5 h-3.5" /></div>
               </div>
             </div>
 
@@ -424,8 +557,8 @@ export default function DashboardPage() {
               <div className="relative z-10">
                 <div className="bg-green-100 dark:bg-green-900/30 w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-green-600 dark:text-green-400"><Leaf className="w-6 h-6" /></div>
                 <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-1">Plant Expert AI</h4>
-                <p className="text-xs font-medium text-slate-500 mb-4 line-clamp-2">Analisis defisiensi nutrisi dan panduan optimalisasi flora aquascape.</p>
-                <div className="flex items-center text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">Buka Modul <ArrowRight className="w-3.5 h-3.5" /></div>
+                <p className="text-xs font-medium text-slate-500 mb-4 line-clamp-2">{lang === 'id' ? "Analisis defisiensi nutrisi dan panduan optimalisasi flora aquascape." : "Nutrient deficiency analysis and aquascape flora optimization guide."}</p>
+                <div className="flex items-center text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-3.5 h-3.5" /></div>
               </div>
             </div>
 
@@ -434,8 +567,8 @@ export default function DashboardPage() {
               <div className="relative z-10">
                 <div className="bg-teal-100 dark:bg-teal-900/30 w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-teal-600 dark:text-teal-400"><Bug className="w-6 h-6" /></div>
                 <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-1">Algae Expert AI</h4>
-                <p className="text-xs font-medium text-slate-500 mb-4 line-clamp-2">Identifikasi dan solusi pembasmian ledakan alga pada akuarium.</p>
-                <div className="flex items-center text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">Buka Modul <ArrowRight className="w-3.5 h-3.5" /></div>
+                <p className="text-xs font-medium text-slate-500 mb-4 line-clamp-2">{lang === 'id' ? "Identifikasi dan solusi pembasmian ledakan alga pada akuarium." : "Identification and eradication solutions for algae blooms in aquariums."}</p>
+                <div className="flex items-center text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-3.5 h-3.5" /></div>
               </div>
             </div>
 
@@ -443,9 +576,9 @@ export default function DashboardPage() {
               <div className="absolute right-0 top-0 w-24 h-24 bg-indigo-50 dark:bg-indigo-900/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
               <div className="relative z-10">
                 <div className="bg-indigo-100 dark:bg-indigo-900/30 w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-indigo-600 dark:text-indigo-400"><BarChart className="w-6 h-6" /></div>
-                <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-1">Clinical Analytics</h4>
-                <p className="text-xs font-medium text-slate-500 mb-4 line-clamp-2">Dasbor statistik dan pemantauan mendalam dari parameter biologis akuarium.</p>
-                <div className="flex items-center text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">Buka Analitik <ArrowRight className="w-3.5 h-3.5" /></div>
+                <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-1">{lang === 'id' ? "Analisis Klinis" : "Clinical Analytics"}</h4>
+                <p className="text-xs font-medium text-slate-500 mb-4 line-clamp-2">{lang === 'id' ? "Dasbor statistik dan pemantauan mendalam dari parameter biologis akuarium." : "Statistical dashboard and in-depth monitoring of aquarium biological parameters."}</p>
+                <div className="flex items-center text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Analitik" : "Open Analytics"} <ArrowRight className="w-3.5 h-3.5" /></div>
               </div>
             </div>
           </div>
