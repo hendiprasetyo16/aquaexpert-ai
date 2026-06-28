@@ -504,24 +504,48 @@ export default function DashboardPage() {
               </div>
 
               <div className="relative z-10 grid grid-cols-2 gap-3 mt-auto">
-                <div onClick={() => router.push("/dashboard/fishes")} className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 border border-slate-100 dark:border-slate-700/50 hover:border-blue-200 dark:hover:border-blue-800/50 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all hover:shadow-[0_0_15px_rgba(59,130,246,0.15)]">
-                  <Fish className="w-6 h-6 text-slate-400 group-hover:text-blue-500 transition-colors drop-shadow-sm group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">{lang === 'id' ? "Data Ikan" : "Fishes"}</span>
+                  {/* 1. DATA IKAN (GLOW BIRU MAKSIMAL) */}
+                <div 
+                  onClick={() => router.push("/dashboard/fish-expert/engine")} 
+                  className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50/70 dark:hover:bg-blue-950/40 border border-slate-100 dark:border-slate-700/50 hover:border-blue-400 dark:hover:border-blue-500 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] hover:shadow-[0_0_25px_rgba(59,130,246,0.45)]"
+                >
+                  <Fish className="w-6 h-6 text-slate-400 group-hover:text-blue-500 transition-colors drop-shadow-sm group-hover:drop-shadow-[0_0_12px_rgba(59,130,246,0.85)]" />
+                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {lang === 'id' ? "Data Ikan" : "Fishes"}
+                  </span>
                 </div>
-                
-                <div onClick={() => router.push("/dashboard/plants")} className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border border-slate-100 dark:border-slate-700/50 hover:border-emerald-200 dark:hover:border-emerald-800/50 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all hover:shadow-[0_0_15px_rgba(16,185,129,0.15)]">
-                  <Leaf className="w-6 h-6 text-slate-400 group-hover:text-emerald-500 transition-colors drop-shadow-sm group-hover:drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400">{lang === 'id' ? "Tanaman Air" : "Plants"}</span>
+  
+                {/* 2. TANAMAN AIR (GLOW HIJU MAKSIMAL) */}
+                <div 
+                  onClick={() => router.push("/dashboard/plant-expert/engine")} 
+                  className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/40 border border-slate-100 dark:border-slate-700/50 hover:border-emerald-400 dark:hover:border-emerald-500 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] hover:shadow-[0_0_25px_rgba(16,185,129,0.45)]"
+                >
+                  <Leaf className="w-6 h-6 text-slate-400 group-hover:text-emerald-500 transition-colors drop-shadow-sm group-hover:drop-shadow-[0_0_12px_rgba(16,185,129,0.85)]" />
+                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                    {lang === 'id' ? "Tanaman Air" : "Plants"}
+                  </span>
                 </div>
-                
-                <div onClick={() => router.push("/dashboard/algae")} className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-teal-50 dark:hover:bg-teal-900/20 border border-slate-100 dark:border-slate-700/50 hover:border-teal-200 dark:hover:border-teal-800/50 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all hover:shadow-[0_0_15px_rgba(20,184,166,0.15)]">
-                  <Bug className="w-6 h-6 text-slate-400 group-hover:text-teal-500 transition-colors drop-shadow-sm group-hover:drop-shadow-[0_0_8px_rgba(20,184,166,0.5)]" />
-                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-teal-600 dark:group-hover:text-teal-400">{lang === 'id' ? "Jenis Alga" : "Algae"}</span>
+  
+                {/* 3. JENIS ALGA (UBAH KE GLOW KUNING/AMBER MAKSIMAL) */}
+                <div 
+                  onClick={() => router.push("/dashboard/algae-expert")} 
+                  className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-amber-50/70 dark:hover:bg-amber-950/40 border border-slate-100 dark:border-slate-700/50 hover:border-amber-400 dark:hover:border-amber-500 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] hover:shadow-[0_0_25px_rgba(245,158,11,0.45)]"
+                >
+                  <Bug className="w-6 h-6 text-slate-400 group-hover:text-amber-500 transition-colors drop-shadow-sm group-hover:drop-shadow-[0_0_12px_rgba(245,158,11,0.85)]" />
+                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                    {lang === 'id' ? "Jenis Alga" : "Algae"}
+                  </span>
                 </div>
-                
-                <div onClick={() => router.push("/dashboard/diseases")} className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-rose-50 dark:hover:bg-rose-900/20 border border-slate-100 dark:border-slate-700/50 hover:border-rose-200 dark:hover:border-rose-800/50 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all hover:shadow-[0_0_15px_rgba(225,29,72,0.15)]">
-                  <Database className="w-6 h-6 text-slate-400 group-hover:text-rose-500 transition-colors drop-shadow-sm group-hover:drop-shadow-[0_0_8px_rgba(225,29,72,0.5)]" />
-                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-rose-600 dark:group-hover:text-rose-400">{lang === 'id' ? "Patogen & Penyakit" : "Diseases"}</span>
+  
+                {/* 4. PATOGEN & PENYAKIT (UBAH KE GLOW MERAH TERANG MAKSIMAL) */}
+                <div 
+                  onClick={() => router.push("/dashboard/diseases")} 
+                  className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-red-50/70 dark:hover:bg-red-950/40 border border-slate-100 dark:border-slate-700/50 hover:border-red-400 dark:hover:border-red-500 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] hover:shadow-[0_0_25px_rgba(239,68,68,0.45)]"
+                >
+                  <Database className="w-6 h-6 text-slate-400 group-hover:text-red-500 transition-colors drop-shadow-sm group-hover:drop-shadow-[0_0_12px_rgba(239,68,68,0.85)]" />
+                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
+                    {lang === 'id' ? "Patogen & Penyakit" : "Diseases"}
+                  </span>
                 </div>
               </div>
             </div>
