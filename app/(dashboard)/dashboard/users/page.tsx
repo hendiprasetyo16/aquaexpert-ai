@@ -330,22 +330,23 @@ export default function UsersPage() {
                           )}
                         </div>
                         
-{/* =========================================================
-    KODE BARU: IP ADDRESS DENGAN ICON GLOBE (WARNA BIRU)
-========================================================= */}
-<div className="flex items-center gap-2 mt-0.5 text-blue-600 dark:text-blue-400">
-  <Globe className="h-3.5 w-3.5 shrink-0" />
-  <span className="truncate font-semibold text-xs">
-    Ip address : {
-      ("ip_address" in user && user.ip_address) 
-      ? String(user.ip_address) 
-      : ("last_sign_in_ip" in user && user.last_sign_in_ip) 
-      ? String(user.last_sign_in_ip) 
-      : "Belum terekam"
-    }
-  </span>
-</div>
-{/* ========================================================= */}
+                        {/* =========================================================
+                            KODE BARU: IP ADDRESS DENGAN ICON GLOBE (BADGE BIRU)
+                        ========================================================= */}
+                        <div className="flex items-center gap-1.5 mt-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-900/20 w-fit">
+                          <Globe className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">
+                            Ip address : {
+                              ("ip_address" in user && user.ip_address) 
+                              ? String(user.ip_address) 
+                              : ("last_sign_in_ip" in user && user.last_sign_in_ip) 
+                              ? String(user.last_sign_in_ip) 
+                              : "Belum terekam"
+                            }
+                          </span>
+                        </div>
+                        {/* ========================================================= */}
+
                       </div>
                     </div>
                   </div>
