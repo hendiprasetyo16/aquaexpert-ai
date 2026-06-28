@@ -504,17 +504,17 @@ export default function DashboardPage() {
               </div>
 
               <div className="relative z-10 grid grid-cols-2 gap-3 mt-auto">
-                <div onClick={() => router.push("/dashboard/fish-expert/engine")} className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 border border-slate-100 dark:border-slate-700/50 hover:border-blue-200 dark:hover:border-blue-800/50 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all hover:shadow-[0_0_15px_rgba(59,130,246,0.15)]">
+                <div onClick={() => router.push("/dashboard/fishes")} className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 border border-slate-100 dark:border-slate-700/50 hover:border-blue-200 dark:hover:border-blue-800/50 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all hover:shadow-[0_0_15px_rgba(59,130,246,0.15)]">
                   <Fish className="w-6 h-6 text-slate-400 group-hover:text-blue-500 transition-colors drop-shadow-sm group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                   <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">{lang === 'id' ? "Data Ikan" : "Fishes"}</span>
                 </div>
                 
-                <div onClick={() => router.push("/dashboard/plant-expert/engine")} className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border border-slate-100 dark:border-slate-700/50 hover:border-emerald-200 dark:hover:border-emerald-800/50 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all hover:shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+                <div onClick={() => router.push("/dashboard/plants")} className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 border border-slate-100 dark:border-slate-700/50 hover:border-emerald-200 dark:hover:border-emerald-800/50 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all hover:shadow-[0_0_15px_rgba(16,185,129,0.15)]">
                   <Leaf className="w-6 h-6 text-slate-400 group-hover:text-emerald-500 transition-colors drop-shadow-sm group-hover:drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                   <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400">{lang === 'id' ? "Tanaman Air" : "Plants"}</span>
                 </div>
                 
-                <div onClick={() => router.push("/dashboard/algae-expert")} className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-teal-50 dark:hover:bg-teal-900/20 border border-slate-100 dark:border-slate-700/50 hover:border-teal-200 dark:hover:border-teal-800/50 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all hover:shadow-[0_0_15px_rgba(20,184,166,0.15)]">
+                <div onClick={() => router.push("/dashboard/algae")} className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-teal-50 dark:hover:bg-teal-900/20 border border-slate-100 dark:border-slate-700/50 hover:border-teal-200 dark:hover:border-teal-800/50 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all hover:shadow-[0_0_15px_rgba(20,184,166,0.15)]">
                   <Bug className="w-6 h-6 text-slate-400 group-hover:text-teal-500 transition-colors drop-shadow-sm group-hover:drop-shadow-[0_0_8px_rgba(20,184,166,0.5)]" />
                   <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-teal-600 dark:group-hover:text-teal-400">{lang === 'id' ? "Jenis Alga" : "Algae"}</span>
                 </div>
@@ -542,7 +542,7 @@ export default function DashboardPage() {
             </h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              
+                           
               {/* NEON ROSE (DISEASE EXPERT) */}
               <div onClick={() => router.push("/dashboard/disease-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-rose-500/50 dark:hover:border-rose-500/50 hover:shadow-[0_0_30px_rgba(225,29,72,0.15)] dark:hover:shadow-[0_0_30px_rgba(225,29,72,0.2)]">
                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-rose-500/10 dark:bg-rose-500/20 blur-3xl rounded-full group-hover:bg-rose-500/20 dark:group-hover:bg-rose-500/30 transition-colors duration-500"></div>
@@ -552,12 +552,51 @@ export default function DashboardPage() {
                   </div>
                   <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Disease Expert AI</h4>
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Diagnosis cerdas penyakit biota air menggunakan pemindaian komputer AI Vision." : "Smart diagnosis of aquatic diseases using AI Vision computer scanning."}</p>
-                  <div className="flex items-center text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-3.5 h-3.5" /></div>
+                  <div className="flex items-center text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-4 h-4" /></div>
+                </div>
+              </div>
+
+              {/* NEON BLUE (FISH EXPERT) */}
+              <div onClick={() => router.push("/dashboard/fish-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] dark:hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 dark:bg-blue-500/20 blur-3xl rounded-full group-hover:bg-blue-500/20 dark:group-hover:bg-blue-500/30 transition-colors duration-500"></div>
+                <div className="relative z-10">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                    <Fish className="w-6 h-6 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                  </div>
+                  <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Fish Expert AI</h4>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Konsultasi ahli terkait perawatan, kompatibilitas, dan nutrisi spesies ikan." : "Expert consultation regarding care, compatibility, and fish species nutrition."}</p>
+                  <div className="flex items-center text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-4 h-4" /></div>
+                </div>
+              </div>
+
+              {/* NEON EMERALD (PLANT EXPERT) */}
+              <div onClick={() => router.push("/dashboard/plant-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-emerald-500/50 dark:hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.15)] dark:hover:shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 dark:bg-emerald-500/20 blur-3xl rounded-full group-hover:bg-emerald-500/20 dark:group-hover:bg-emerald-500/30 transition-colors duration-500"></div>
+                <div className="relative z-10">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+                    <Leaf className="w-6 h-6 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  </div>
+                  <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Plant Expert AI</h4>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Analisis defisiensi nutrisi dan panduan optimalisasi flora aquascape." : "Nutrient deficiency analysis and aquascape flora optimization guide."}</p>
+                  <div className="flex items-center text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-4 h-4" /></div>
+                </div>
+              </div>
+
+              {/* NEON TEAL (ALGAE EXPERT) */}
+              <div onClick={() => router.push("/dashboard/algae-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-teal-500/50 dark:hover:border-teal-500/50 hover:shadow-[0_0_30px_rgba(20,184,166,0.15)] dark:hover:shadow-[0_0_30px_rgba(20,184,166,0.2)]">
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-teal-500/10 dark:bg-teal-500/20 blur-3xl rounded-full group-hover:bg-teal-500/20 dark:group-hover:bg-teal-500/30 transition-colors duration-500"></div>
+                <div className="relative z-10">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform">
+                    <Bug className="w-6 h-6 drop-shadow-[0_0_8px_rgba(20,184,166,0.5)]" />
+                  </div>
+                  <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">Algae Expert AI</h4>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Identifikasi dan solusi pembasmian ledakan alga pada akuarium." : "Identification and eradication solutions for algae blooms in aquariums."}</p>
+                  <div className="flex items-center text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-4 h-4" /></div>
                 </div>
               </div>
 
               {/* NEON INDIGO (CLINICAL ANALYTICS) */}
-              <div onClick={() => router.push("/dashboard/analytics")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-indigo-500/50 dark:hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+              <div onClick={() => router.push("/dashboard/analytics")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-indigo-500/50 dark:hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] sm:col-span-2 lg:col-span-1">
                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 blur-3xl rounded-full group-hover:bg-indigo-500/20 dark:group-hover:bg-indigo-500/30 transition-colors duration-500"></div>
                 <div className="relative z-10">
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
@@ -565,20 +604,20 @@ export default function DashboardPage() {
                   </div>
                   <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{lang === 'id' ? "Analisis Klinis" : "Clinical Analytics"}</h4>
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Dasbor statistik dan pemantauan mendalam dari parameter biologis akuarium." : "Statistical dashboard and in-depth monitoring of aquarium biological parameters."}</p>
-                  <div className="flex items-center text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Analitik" : "Open Analytics"} <ArrowRight className="w-3.5 h-3.5" /></div>
+                  <div className="flex items-center text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Analitik" : "Open Analytics"} <ArrowRight className="w-4 h-4" /></div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* KOLOM KANAN (Riwayat Aktivitas Ditaruh di Bawah) */}
-          <div className="space-y-6 mt-6 lg:mt-0">
+          {/* KOLOM KANAN (Riwayat Aktivitas - Di samping modul AI) */}
+          <div className="space-y-6">
             <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 px-1">
               <Clock className="w-5 h-5 text-slate-400" />
               {lang === 'id' ? "Aktivitas Terkini" : "Recent Activities"}
             </h3>
             
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm h-full max-h-[300px] overflow-y-auto custom-scrollbar relative">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm h-[calc(100%-3rem)] min-h-[400px] overflow-y-auto custom-scrollbar relative">
               {recentActivities.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-60">
                   <Activity className="w-8 h-8 text-slate-400 mb-2" />
