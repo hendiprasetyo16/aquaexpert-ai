@@ -7,10 +7,10 @@ import { useLanguage } from "@/providers/LanguageProvider";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { 
-  Loader2, Activity, Fish, Leaf, Droplets, ArrowRight, 
-  ShieldAlert, CheckCircle2, Clock, Plus, Container, Database, Zap // 👈 Tambahkan Zap di sini
+  Loader2, Activity, Fish, Leaf, ArrowRight, 
+  ShieldAlert, CheckCircle2, Clock, Container, 
+  Brain, Zap, HeartPulse, Globe, AlertCircle, XCircle 
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface DashboardStats {
   tanks: number;
@@ -27,8 +27,25 @@ export default function DashboardPage() {
 
   const [stats, setStats] = useState<DashboardStats>({ tanks: 0, alerts: 0, fauna: 0, flora: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [ipAddress, setIpAddress] = useState<string>("Loading IP...");
 
-  // Tarik data statistik asli dari tabel yang sudah kita buat
+  // 1. Ambil IP Address User yang sedang login
+  useEffect(() => {
+    async function getIpAddress() {
+      try {
+        const res = await fetch("https://api.ipify.org?format=json");
+        const data = await res.json();
+        if (data.ip) {
+          setIpAddress(data.ip);
+        }
+      } catch (err) {
+        setIpAddress("127.0.0.1 (Local/Proxy)");
+      }
+    }
+    getIpAddress();
+  }, []);
+
+  // 2. Tarik data statistik asli dari tabel database
   useEffect(() => {
     async function fetchStats() {
       if (!user?.id) return;
@@ -37,7 +54,7 @@ export default function DashboardPage() {
       setLoadingStats(true);
 
       try {
-        // 1. Ambil data akuarium aktif
+        // Ambil data akuarium aktif
         const { data: aquariums } = await supabase
           .from("my_aquariums")
           .select("id")
@@ -50,7 +67,7 @@ export default function DashboardPage() {
         let totalAlerts = 0;
 
         if (tankIds.length > 0) {
-          // 2. Ambil data Ikan & deteksi yang sakit/karantina
+          // Ambil data Ikan & deteksi yang sakit/karantina
           const { data: fishes } = await supabase
             .from("aquarium_fishes")
             .select("quantity, health_status")
@@ -61,7 +78,7 @@ export default function DashboardPage() {
             totalAlerts += fishes.filter(f => f.health_status === "Sick" || f.health_status === "Quarantined").length;
           }
 
-          // 3. Ambil data Tanaman
+          // Ambil data Tanaman
           const { data: plants } = await supabase
             .from("aquarium_plants")
             .select("quantity")
@@ -107,21 +124,22 @@ export default function DashboardPage() {
       <div className="max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-500">
         
         {/* =========================================
-            HEADER & WELCOME BANNER
+            HEADER & WELCOME BANNER (DENGAN TAMPILAN IP)
         ========================================= */}
         <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm p-6 sm:p-10 transition-colors">
-          {/* Efek Glow Animasi */}
           <div className="absolute -right-20 -top-20 w-64 h-64 bg-teal-500/10 dark:bg-teal-500/20 blur-[80px] rounded-full pointer-events-none"></div>
           <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/20 blur-[80px] rounded-full pointer-events-none"></div>
 
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2">
+          <div className="relative z-10 flex flex-col md:flex-row justify-between gap-8 md:items-center">
+            
+            <div className="space-y-2 md:flex-1">
               <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">
                 {dashDict.welcome || (lang === 'id' ? "Selamat datang," : "Welcome back,")} <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-blue-600 dark:from-teal-400 dark:to-blue-400">{profile?.full_name || "User"}</span>!
               </h1>
               <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium">
-                {dashDict.subtitle || (lang === 'id' ? "Pantau kondisi akuarium dan jalankan analisis cerdas dengan AquaExpert AI." : "Monitor your aquarium conditions and run smart analysis with AquaExpert AI.")}
+                {lang === 'id' ? "Pantau kondisi klinis akuarium dan jalankan analisis kecerdasan AI." : "Monitor aquarium clinical conditions and run smart AI analysis."}
               </p>
+              
               <div className="flex flex-wrap items-center gap-2 mt-4">
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800/50 px-3 py-1 text-xs font-bold text-teal-700 dark:text-teal-400 uppercase tracking-widest">
                   <CheckCircle2 className="w-3.5 h-3.5" /> 
@@ -130,14 +148,46 @@ export default function DashboardPage() {
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1 text-xs font-bold text-slate-600 dark:text-slate-400">
                   {user?.email}
                 </span>
+                {/* LOG DATA IP ADDRESS */}
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/40 px-3 py-1 text-xs font-bold text-blue-600 dark:text-blue-400 transition-colors">
+                  <Globe className="w-3.5 h-3.5 animate-pulse text-blue-500" />
+                  IP: {ipAddress}
+                </span>
               </div>
             </div>
 
-            <div className="shrink-0 flex items-center gap-3">
-              <Button onClick={() => router.push("/dashboard/my-aquarium/new")} className="h-12 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-black shadow-lg shadow-teal-500/20 px-6 transition-all active:scale-95">
-                <Plus className="w-5 h-5 mr-2" />
-                {lang === 'id' ? "Akuarium Baru" : "New Aquarium"}
-              </Button>
+            {/* PANEL PERINGATAN SISTEM DI KANAN */}
+            <div className="shrink-0 w-full md:w-80 lg:w-96 cursor-pointer" onClick={() => router.push("/dashboard/my-aquarium")}>
+              <div className="bg-rose-50/50 dark:bg-rose-950/10 p-5 rounded-[2rem] border-2 border-rose-200 dark:border-rose-900/50 shadow-sm relative overflow-hidden group transition-all hover:shadow-md hover:border-rose-300 dark:hover:border-rose-800">
+                <AlertCircle className="absolute -right-4 -bottom-4 w-32 h-32 text-rose-500/5 transform group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
+                
+                <h4 className="text-sm font-black uppercase text-rose-700 dark:text-rose-400 tracking-widest mb-4 flex items-center gap-2 relative z-10">
+                  <AlertCircle className="w-5 h-5" /> 
+                  {lang === 'id' ? "Peringatan Sistem" : "System Alerts"}
+                </h4>
+                
+                <ul className="space-y-3 relative z-10">
+                  {loadingStats ? (
+                    <div className="flex items-center gap-2 text-rose-600/70 dark:text-rose-400/70">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm font-bold">{lang === 'id' ? "Memeriksa ekosistem..." : "Checking ecosystem..."}</span>
+                    </div>
+                  ) : stats.alerts === 0 ? (
+                    <p className="text-sm font-bold text-rose-600/70 dark:text-rose-400/70 italic">
+                      {lang === 'id' ? "Ekosistem stabil, tidak ada anomali." : "Ecosystem stable, no anomalies."}
+                    </p>
+                  ) : (
+                    <li className="text-sm font-bold text-rose-900 dark:text-rose-200 flex items-start gap-2.5 bg-white/60 dark:bg-slate-900/60 p-3 rounded-xl border border-rose-100 dark:border-rose-900/40">
+                      <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                      <span className="leading-snug">
+                        {lang === 'id' 
+                          ? `Kritis: ${stats.alerts} biota terdeteksi membutuhkan penanganan medis!` 
+                          : `Critical: ${stats.alerts} biota detected requiring medical attention!`}
+                      </span>
+                    </li>
+                  )}
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -146,7 +196,6 @@ export default function DashboardPage() {
             QUICK STATS CARDS (LIVE DATA)
         ========================================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {/* Card 1: Akuarium Aktif */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all group">
             <div className="flex items-start justify-between">
               <div>
@@ -161,7 +210,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Card 2: Peringatan Klinis */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all group">
             <div className="flex items-start justify-between">
               <div>
@@ -176,7 +224,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Card 3: Populasi Ikan */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all group">
             <div className="flex items-start justify-between">
               <div>
@@ -191,7 +238,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Card 4: Populasi Tanaman */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all group">
             <div className="flex items-start justify-between">
               <div>
@@ -212,40 +258,56 @@ export default function DashboardPage() {
         ========================================= */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 pt-4">
           
-          {/* KOLOM KIRI (Akses Cepat Modul Utama) */}
           <div className="lg:col-span-2 space-y-6">
             <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <Zap className="w-5 h-5 text-amber-500" />
-              {lang === 'id' ? "Modul Terintegrasi" : "Integrated Modules"}
+              {lang === 'id' ? "Kecerdasan Buatan Utama" : "Core AI Systems"}
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Menu 1: My Aquarium (Tempat Parameter & Inventory) */}
-              <div onClick={() => router.push("/dashboard/my-aquarium")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl hover:border-teal-300 dark:hover:border-teal-800 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
+              
+              <div 
+                onClick={() => router.push("/dashboard/diseases-expert")} 
+                className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl hover:border-teal-400 dark:hover:border-teal-800 shadow-sm hover:shadow-md transition-all relative overflow-hidden"
+              >
                 <div className="absolute right-0 top-0 w-24 h-24 bg-teal-50 dark:bg-teal-900/20 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
                 <div className="relative z-10">
                   <div className="bg-teal-100 dark:bg-teal-900/40 w-12 h-12 rounded-xl flex items-center justify-center mb-4">
-                    <Droplets className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+                    <HeartPulse className="w-6 h-6 text-teal-600 dark:text-teal-400" />
                   </div>
-                  <h4 className="font-bold text-slate-800 dark:text-slate-100 mb-1">{lang === 'id' ? "My Aquarium" : "My Aquarium"}</h4>
-                  <p className="text-xs font-medium text-slate-500 mb-4">{lang === 'id' ? "Pantau inventaris fauna/flora, jadwal perawatan, dan log grafik parameter air." : "Monitor flora/fauna inventory, maintenance schedules, and water parameter logs."}</p>
+                  <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-1">
+                    {lang === 'id' ? "Diseases Expert AI" : "Diseases Expert AI"}
+                  </h4>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-5 leading-relaxed">
+                    {lang === 'id' 
+                      ? "Diagnosis cerdas penyakit biota air menggunakan pemindaian komputer AI Vision secara real-time." 
+                      : "Smart aquatic disease diagnosis utilizing AI Vision computer scans in real-time."}
+                  </p>
                   <div className="flex items-center text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">
-                    {lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-3.5 h-3.5" />
+                    {lang === 'id' ? "Mulai Diagnosis" : "Start Diagnosis"} <ArrowRight className="w-3.5 h-3.5" />
                   </div>
                 </div>
               </div>
 
-              {/* Menu 2: Database Penyakit (Yang baru saja diselesaikan) */}
-              <div onClick={() => router.push("/dashboard/diseases")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl hover:border-rose-300 dark:hover:border-rose-800 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
-                <div className="absolute right-0 top-0 w-24 h-24 bg-rose-50 dark:bg-rose-900/20 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+              <div 
+                onClick={() => router.push("/dashboard/clinical-intelligence")} 
+                className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl hover:border-blue-400 dark:hover:border-blue-800 shadow-sm hover:shadow-md transition-all relative overflow-hidden"
+              >
+                <div className="absolute right-0 top-0 w-24 h-24 bg-blue-50 dark:bg-blue-900/20 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
                 <div className="relative z-10">
-                  <div className="bg-rose-100 dark:bg-rose-900/40 w-12 h-12 rounded-xl flex items-center justify-center mb-4">
-                    <Database className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+                  <div className="bg-blue-100 dark:bg-blue-900/40 w-12 h-12 rounded-xl flex items-center justify-center mb-4">
+                    <Brain className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <h4 className="font-bold text-slate-800 dark:text-slate-100 mb-1">{lang === 'id' ? "Database Penyakit" : "Disease Database"}</h4>
-                  <p className="text-xs font-medium text-slate-500 mb-4">{lang === 'id' ? "Ensiklopedia patogen, gejala klinis, dan instruksi pengobatan." : "Encyclopedia of pathogens, clinical symptoms, and treatment instructions."}</p>
-                  <div className="flex items-center text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">
-                    {lang === 'id' ? "Lihat Database" : "View Database"} <ArrowRight className="w-3.5 h-3.5" />
+                  <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-1">
+                    {lang === 'id' ? "Clinical Intelligence" : "Clinical Intelligence"}
+                  </h4>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-5 leading-relaxed">
+                    {lang === 'id' 
+                      ? "Analisis mendalam kualitas air dan paramater klinis dengan rekomendasi pintar berbasis AI." 
+                      : "In-depth analysis of water quality and clinical parameters with smart AI recommendations."}
+                  </p>
+                  <div className="flex items-center text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">
+                    {lang === 'id' ? "Analisis Data" : "Analyze Data"} <ArrowRight className="w-3.5 h-3.5" />
                   </div>
                 </div>
               </div>
@@ -253,7 +315,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* KOLOM KANAN (Riwayat Aktivitas Placeholder) */}
           <div className="space-y-6">
             <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <Clock className="w-5 h-5 text-slate-400" />
