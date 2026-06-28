@@ -1,10 +1,10 @@
 // components/NotificationBell.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Bell, ShieldAlert, Database } from "lucide-react";
-import { useLanguage } from "@/providers/LanguageProvider"; // <-- PANGGIL KAMUS
+import { useLanguage } from "@/providers/LanguageProvider";
 
 interface Activity {
   id: string;
@@ -19,8 +19,9 @@ export default function NotificationBell({ role }: { role: string }) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [unread, setUnread] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const bellRef = useRef<HTMLButtonElement>(null);
   const supabase = createClient();
-  const { dict } = useLanguage(); // <-- INISIALISASI KAMUS
+  const { dict } = useLanguage();
 
   useEffect(() => {
     if (!role) return;
@@ -41,9 +42,7 @@ export default function NotificationBell({ role }: { role: string }) {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "system_activities" },
-        // REFAKTOR: Mengubah (payload: any) menjadi (payload: unknown)
         (payload: unknown) => {
-          // Melakukan type assertion yang aman untuk payload bawaan Supabase
           const realtimePayload = payload as { new: Activity };
           const newActivity = realtimePayload.new;
           
@@ -58,13 +57,25 @@ export default function NotificationBell({ role }: { role: string }) {
     return () => { supabase.removeChannel(channel); };
   }, [role, supabase]);
 
+  // Tutup popup jika diklik di luar kotak notifikasi
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
   if (role === "user") return null;
 
   return (
     <div className="relative">
       <button 
+        ref={bellRef}
         onClick={() => { setIsOpen(!isOpen); setUnread(false); }} 
-        className="relative p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+        className="relative p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors z-50"
       >
         <Bell className="h-5 w-5" />
         {unread && (
@@ -75,9 +86,17 @@ export default function NotificationBell({ role }: { role: string }) {
         )}
       </button>
 
+      {/* POPUP NOTIFIKASI MEMAKAI 'FIXED' AGAR TIDAK TERTUTUP FRAME LAYOUT/DASHBOARD */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 shadow-xl z-50 max-h-96 overflow-y-auto">
-          <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-400 uppercase tracking-wider">
+        <div 
+          className="fixed mt-3 w-80 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 shadow-2xl overflow-y-auto max-h-96"
+          style={{ 
+            zIndex: 999999, 
+            top: bellRef.current ? bellRef.current.getBoundingClientRect().bottom : '60px',
+            right: '1rem' // Menempel di kanan layar
+          }}
+        >
+          <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-400 uppercase tracking-wider sticky top-0 bg-white dark:bg-slate-900 z-10">
             {role === 'super_admin' ? dict.notification.titleSuperAdmin : dict.notification.titleAdmin}
           </div>
           {activities.length === 0 ? (
@@ -85,17 +104,17 @@ export default function NotificationBell({ role }: { role: string }) {
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {activities.map((act) => (
-                <div key={act.id} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-md transition-colors">
+                <div key={act.id} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-md transition-colors cursor-default">
                   <div className="flex items-center gap-2 mb-1">
                     {act.category === "data_crud" ? (
-                      <Database className="h-3.5 w-3.5 text-teal-500" />
+                      <Database className="h-3.5 w-3.5 text-teal-500 shrink-0" />
                     ) : (
-                      <ShieldAlert className="h-3.5 w-3.5 text-amber-500" />
+                      <ShieldAlert className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                     )}
-                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{act.title}</span>
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 line-clamp-1">{act.title}</span>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{act.message}</p>
-                  <span className="text-[10px] text-slate-400 block mt-1.5">{act.created_by} • {new Date(act.created_at).toLocaleTimeString()}</span>
+                  <span className="text-[10px] text-slate-400 block mt-1.5 font-medium">{act.created_by} • {new Date(act.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                 </div>
               ))}
             </div>
