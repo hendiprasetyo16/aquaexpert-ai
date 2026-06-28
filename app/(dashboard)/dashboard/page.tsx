@@ -47,7 +47,6 @@ export default function DashboardPage() {
   const [loadingPage, setLoadingPage] = useState(true);
   const [ipAddress, setIpAddress] = useState<string>("Loading IP...");
 
-  // Dapatkan IP Address
   useEffect(() => {
     async function getIpAddress() {
       try {
@@ -61,7 +60,6 @@ export default function DashboardPage() {
     getIpAddress();
   }, []);
 
-  // Tarik Data dan Kalkulasi Total Secara Akurat
   useEffect(() => {
     async function fetchDashboardData() {
       if (!user?.id) return;
@@ -82,12 +80,10 @@ export default function DashboardPage() {
           });
           if (!aquariums.some(t => t.is_primary)) aquariums[0].is_primary = true;
 
-          // Variabel penampung total agar penjumlahan akurat 100%
           let totalAlerts = 0;
           let totalFauna = 0;
           let totalFlora = 0;
 
-          // Tunggu semua proses AI per tank selesai menggunakan Promise.all
           const processedTanks = await Promise.all(aquariums.map(async (aq) => {
             try {
               const [paramsResponse, invRes, maintenanceRes] = await Promise.all([
@@ -118,12 +114,10 @@ export default function DashboardPage() {
                 maintenanceStatus: maintenanceStatus
               });
 
-              // Hitung jumlah fauna & flora per tank
               const faunaCount = aqFishes.reduce((acc: number, f: any) => acc + (f.quantity || 0), 0);
               const floraCount = aqPlants.reduce((acc: number, p: any) => acc + (p.quantity || 0), 0);
               const alerts = healthAnalysis.alerts || [];
 
-              // Tambahkan ke total keseluruhan
               totalAlerts += alerts.length;
               totalFauna += faunaCount;
               totalFlora += floraCount;
@@ -138,7 +132,6 @@ export default function DashboardPage() {
                 floraCount: floraCount
               };
             } catch (err) {
-              console.error(`Gagal memproses data tank ${aq.name}`, err);
               return { id: aq.id, name: aq.name, is_primary: aq.is_primary || false, health_score: 0, alerts: [], faunaCount: 0, floraCount: 0 };
             }
           }));
@@ -149,7 +142,6 @@ export default function DashboardPage() {
         setLoadingPage(false);
 
       } catch (error) {
-        console.error("Gagal memuat struktur dashboard:", error);
         setLoadingPage(false);
       }
     }
@@ -170,7 +162,6 @@ export default function DashboardPage() {
   const primaryTank = tankList.find(t => t.is_primary);
   const secondaryTanks = tankList.filter(t => !t.is_primary);
 
-  // Pewarnaan Dinamis
   const getHealthColor = (score: number) => {
     if (score >= 85) return "text-emerald-500";
     if (score >= 60) return "text-amber-500";
@@ -214,6 +205,7 @@ export default function DashboardPage() {
             <div className="shrink-0 flex flex-col md:items-end gap-4 w-full sm:w-auto">
               {primaryTank ? (
                 <>
+                  {/* TANGKI UTAMA - GAUGE BESAR */}
                   <div 
                     onClick={() => router.push(`/dashboard/my-aquarium/${primaryTank.id}`)}
                     className="cursor-pointer bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md hover:border-teal-300 dark:hover:border-teal-800 transition-all flex items-center gap-6 group w-full sm:w-80"
@@ -221,7 +213,6 @@ export default function DashboardPage() {
                     <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
                       <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                         <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" className="text-slate-100 dark:text-slate-800" />
-                        {/* BUG GARIS PUTIH DIPERBAIKI: Menggunakan stroke="currentColor" */}
                         <circle 
                           cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" 
                           strokeDasharray="283" 
@@ -253,6 +244,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
+                  {/* TANGKI SEKUNDER - SEKARANG MENGGUNAKAN MINI GAUGE */}
                   {secondaryTanks.length > 0 && (
                     <div className="flex flex-wrap md:justify-end gap-2 w-full max-w-sm">
                       {secondaryTanks.map(tank => (
@@ -261,10 +253,24 @@ export default function DashboardPage() {
                           onClick={() => router.push(`/dashboard/my-aquarium/${tank.id}`)} 
                           className="cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 flex items-center gap-3 transition-colors shadow-sm"
                         >
-                          <div className={`w-2.5 h-2.5 rounded-full ${tank.health_score >= 85 ? 'bg-emerald-500' : tank.health_score >= 60 ? 'bg-amber-500' : 'bg-rose-500'} animate-pulse`}></div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{tank.name}</p>
-                            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Score: <span className={getHealthColor(tank.health_score)}>{tank.health_score}</span></p>
+                          {/* MINI GAUGE (Menggantikan titik kecil) */}
+                          <div className="relative w-7 h-7 shrink-0 flex items-center justify-center">
+                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="15" className="text-slate-200 dark:text-slate-700" />
+                              <circle 
+                                cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="15" 
+                                strokeDasharray="251.2" 
+                                strokeDashoffset={251.2 - (251.2 * tank.health_score) / 100} 
+                                className={`${getHealthColor(tank.health_score)} transition-all duration-1000 ease-out`} strokeLinecap="round" 
+                              />
+                            </svg>
+                          </div>
+                          
+                          <div className="flex flex-col justify-center">
+                            <p className="text-xs font-bold text-slate-700 dark:text-slate-200 leading-none mb-1">{tank.name}</p>
+                            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider leading-none">
+                              Score: <span className={getHealthColor(tank.health_score)}>{tank.health_score}</span>
+                            </p>
                           </div>
                         </div>
                       ))}
@@ -324,11 +330,11 @@ export default function DashboardPage() {
                 <div key={t.id} className="flex flex-col text-[10px]">
                   <span className="font-bold text-slate-700 dark:text-slate-300 line-clamp-1">{t.name}:</span>
                   {t.alerts.length > 0 ? (
-                    <span className="text-rose-500 dark:text-rose-400 line-clamp-1 leading-tight">
+                    <span className="text-rose-500 dark:text-rose-400 line-clamp-1 leading-tight mt-0.5">
                       • {t.alerts[0]} {t.alerts.length > 1 && `(+${t.alerts.length - 1} lainnya)`}
                     </span>
                   ) : (
-                    <span className="text-emerald-500 dark:text-emerald-400 font-medium">✔️ Ekosistem Aman</span>
+                    <span className="text-emerald-500 dark:text-emerald-400 font-medium mt-0.5">✔️ Ekosistem Aman</span>
                   )}
                 </div>
               ))}
