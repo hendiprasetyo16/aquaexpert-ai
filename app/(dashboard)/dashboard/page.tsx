@@ -1,9 +1,6 @@
 // app/(dashboard)/dashboard/page.tsx
 "use client";
 
-// Tambahkan import ini di bagian atas (sesuaikan path-nya jika berbeda)
-import { analyzeAquariumHealth } from "@/features/aquariums/utils/health-engine";
-import { getParametersAction } from "@/features/aquariums/actions/parameter.actions";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/providers/LanguageProvider"; 
@@ -12,8 +9,13 @@ import { createClient } from "@/lib/supabase/client";
 import { 
   Loader2, Activity, Fish, Leaf, ArrowRight, 
   ShieldAlert, CheckCircle2, Clock, Container, 
-  Brain, HeartPulse, Globe, Bug, Cpu, BarChart 
+  Cpu, BarChart, HeartPulse, Globe, Bug 
 } from "lucide-react";
+
+// Import Fungsi Analisis Kesehatan & Pengambil Data Parameter Asli
+import { analyzeAquariumHealth } from "@/features/aquariums/utils/health-engine";
+import { getParametersAction } from "@/features/aquariums/actions/parameter.actions";
+import type { AquariumParameterLog } from "@/features/aquariums/types/parameter.types";
 
 interface TankInfo {
   id: string;
@@ -41,7 +43,7 @@ export default function DashboardPage() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [ipAddress, setIpAddress] = useState<string>("Loading IP...");
 
-  // 1. Ambil IP Address User
+  // 1. Mengambil IP Address Pengguna
   useEffect(() => {
     async function getIpAddress() {
       try {
@@ -55,17 +57,18 @@ export default function DashboardPage() {
     getIpAddress();
   }, []);
 
-  // 2. Tarik data akuarium dan kalkulasi status kesehatan dasar
+  // 2. Tarik Data Akuarium & Kalkulasi Skor Menggunakan Health Engine Asli
   useEffect(() => {
-    async function fetchStats() {
+    async function fetchDashboardData() {
       if (!user?.id) return;
       const supabase = createClient();
       setLoadingStats(true);
 
       try {
+        // Ambil data semua akuarium milik pengguna yang aktif
         const { data: aquariums } = await supabase
           .from("my_aquariums")
-          .select("id, name, is_primary")
+          .select("*")
           .eq("user_id", user.id)
           .eq("is_active", true);
 
@@ -77,52 +80,82 @@ export default function DashboardPage() {
         if (aquariums && aquariums.length > 0) {
           const tankIds = aquariums.map(a => a.id);
           
-          // Ambil fauna
+          // Ambil data seluruh ikan di semua tangki pengguna
           const { data: fishes } = await supabase
             .from("aquarium_fishes")
-            .select("aquarium_id, quantity, health_status")
+            .select("*")
             .in("aquarium_id", tankIds);
 
-          // Ambil flora
+          // Ambil data seluruh tanaman di semua tangki pengguna
           const { data: plants } = await supabase
             .from("aquarium_plants")
-            .select("aquarium_id, quantity")
+            .select("*")
             .in("aquarium_id", tankIds);
 
-          // Hitung per akuarium
-          processedTanks = aquariums.map(aq => {
-            const aqFishes = fishes?.filter(f => f.aquarium_id === aq.id) || [];
-            const aqAlerts = aqFishes.filter(f => f.health_status === "Sick" || f.health_status === "Quarantined").length;
-            
-            // Simulasi Health Score (100 - (alerts * 15)) - minimal 10
-            const calculatedScore = Math.max(10, 100 - (aqAlerts * 15));
+          // Looping dan kalkulasi kondisi kesehatan setiap tangki secara sinkron
+          processedTanks = await Promise.all(
+            aquariums.map(async (aq) => {
+              const aqFishes = fishes?.filter(f => f.aquarium_id === aq.id) || [];
+              const aqPlants = plants?.filter(p => p.aquarium_id === aq.id) || [];
+              
+              // Hitung jumlah peringatan (ikan sakit atau dikarantina)
+              const aqAlerts = aqFishes.filter(
+                f => f.health_status === "Sick" || f.health_status === "Quarantined"
+              ).length;
+              
+              // Ambil parameter log teranyar untuk tangki ini
+              const paramsResponse = await getParametersAction(aq.id);
+              const rawLatestParams = paramsResponse.data && paramsResponse.data.length > 0 
+                ? [paramsResponse.data[0]] 
+                : [];
 
-            return {
-              id: aq.id,
-              name: aq.name,
-              is_primary: aq.is_primary || false,
-              health_score: calculatedScore,
-              alerts: aqAlerts
-            };
-          });
+              // SANITASI TYPESCRIPT: Ubah undefined menjadi null secara spesifik tanpa menggunakan 'any'
+              const sanitizedParams: AquariumParameterLog[] = rawLatestParams.map(param => {
+                return {
+                  ...param,
+                  temperature: param.temperature ?? null,
+                  ph: param.ph ?? null,
+                  ammonia: param.ammonia ?? null,
+                  nitrite: param.nitrite ?? null,
+                  nitrate: param.nitrate ?? null,
+                } as AquariumParameterLog; 
+              });
 
-          // Akumulasi total
+              // HITUNG SKOR MENGGUNAKAN HEALTH ENGINE ASLI
+              const healthAnalysis = analyzeAquariumHealth({
+                aquarium: aq,
+                parameters: sanitizedParams, // <-- Sudah 100% sesuai dengan interface types
+                fishes: aqFishes,
+                plants: aqPlants
+              });
+
+              return {
+                id: aq.id,
+                name: aq.name,
+                is_primary: aq.is_primary || false,
+                health_score: healthAnalysis.scores.overall,
+                alerts: aqAlerts
+              };
+            })
+          );
+
+          // Akumulasi total kuantitas untuk Card Ringkasan Statistik
           if (fishes) {
             totalFauna = fishes.reduce((acc, f) => acc + (f.quantity || 0), 0);
-            totalAlerts += fishes.filter(f => f.health_status === "Sick" || f.health_status === "Quarantined").length;
+            totalAlerts = fishes.filter(f => f.health_status === "Sick" || f.health_status === "Quarantined").length;
           }
           if (plants) {
             totalFlora = plants.reduce((acc, p) => acc + (p.quantity || 0), 0);
           }
         }
 
-        // Urutkan: Primary di atas, lalu abjad
+        // Urutkan susunan: Tank Utama ditaruh paling atas, sisanya diurutkan alfabetis
         processedTanks.sort((a, b) => {
           if (a.is_primary === b.is_primary) return a.name.localeCompare(b.name);
           return a.is_primary ? -1 : 1;
         });
 
-        // Jika tidak ada yang is_primary secara spesifik, jadikan index 0 sebagai primary fallback visual
+        // Pengaman Visual: Jika user punya akuarium tapi tidak ada yang ditandai is_primary, jadikan index ke-0 sebagai utama sementara
         if (processedTanks.length > 0 && !processedTanks.some(t => t.is_primary)) {
           processedTanks[0].is_primary = true;
         }
@@ -131,13 +164,13 @@ export default function DashboardPage() {
         setStats({ tanks: aquariums?.length || 0, alerts: totalAlerts, fauna: totalFauna, flora: totalFlora });
 
       } catch (error) {
-        console.error("Gagal memuat statistik:", error);
+        console.error("Gagal memproses data dashboard klinis:", error);
       } finally {
         setLoadingStats(false);
       }
     }
 
-    if (!isLoading) fetchStats();
+    if (!isLoading) fetchDashboardData();
   }, [user?.id, isLoading]);
 
   if (isLoading) {
@@ -151,11 +184,11 @@ export default function DashboardPage() {
   const rootDict = (dict as Record<string, any>) || {};
   const dashDict = rootDict.dashboard || {};
 
-  // Pisahkan Tank Utama dan Tank Lainnya
+  // Pemisahan Tank Utama & Tank Sekunder untuk Perbedaan Gaya Visual
   const primaryTank = tankList.find(t => t.is_primary);
   const secondaryTanks = tankList.filter(t => !t.is_primary);
 
-  // Helper Warna Status Kesehatan
+  // Helper Pengolah Warna Dinamis untuk teks dan garis lingkaran gauge
   const getHealthColor = (score: number) => {
     if (score >= 85) return "text-emerald-500";
     if (score >= 60) return "text-amber-500";
@@ -171,16 +204,17 @@ export default function DashboardPage() {
     <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors duration-300">
       <div className="max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-500">
         
-        {/* =========================================
-            HEADER & TANK STATUS WIDGET
-        ========================================= */}
+        {/* =========================================================
+            SEKSI BANNER SELAMAT DATANG & GAUGES KONDISI KESEHATAN TANK
+        ========================================================= */}
         <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm p-6 sm:p-10 transition-colors">
+          {/* Aksen Gradasi Visual Latar Belakang */}
           <div className="absolute -right-20 -top-20 w-64 h-64 bg-teal-500/10 dark:bg-teal-500/20 blur-[80px] rounded-full pointer-events-none"></div>
           <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/20 blur-[80px] rounded-full pointer-events-none"></div>
 
-          <div className="relative z-10 flex flex-col md:flex-row justify-between gap-8">
+          <div className="relative z-10 flex flex-col md:flex-row justify-between gap-8 items-start md:items-center">
             
-            {/* Teks Ucapan Selamat Datang */}
+            {/* Teks Salam Pengguna */}
             <div className="space-y-2 md:flex-1">
               <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">
                 {dashDict.welcome || (lang === 'id' ? "Selamat datang," : "Welcome back,")} <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-blue-600 dark:from-teal-400 dark:to-blue-400">{profile?.full_name || "User"}</span>!
@@ -203,18 +237,18 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* KOMPONEN KONDISI TANK */}
-            <div className="shrink-0 flex flex-col md:items-end gap-4">
+            {/* SEKSI DISPLAY WIDGET TANK BERBEDA GAYA */}
+            <div className="shrink-0 flex flex-col md:items-end gap-4 w-full sm:w-auto">
               {loadingStats ? (
-                <div className="h-32 w-48 rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center">
+                <div className="h-32 w-64 rounded-3xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center">
                   <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
                 </div>
               ) : primaryTank ? (
                 <>
-                  {/* 1. Tampilan Tank Utama (Gauge Radial) */}
+                  {/* GAYA 1: TANK UTAMA (Menggunakan Lingkaran Radian / Gauge Bulat Luas) */}
                   <div 
-                    onClick={() => router.push(`/dashboard/my-aquarium?id=${primaryTank.id}`)}
-                    className="cursor-pointer bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md hover:border-teal-300 dark:hover:border-teal-800 transition-all flex items-center gap-6 group w-full sm:w-auto"
+                    onClick={() => router.push(`/dashboard/my-aquarium/${primaryTank.id}`)}
+                    className="cursor-pointer bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md hover:border-teal-300 dark:hover:border-teal-800 transition-all flex items-center gap-6 group w-full sm:w-80"
                   >
                     <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
                       <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
@@ -230,13 +264,14 @@ export default function DashboardPage() {
                         <span className={`text-xl font-black ${getHealthColor(primaryTank.health_score)}`}>{primaryTank.health_score}</span>
                       </div>
                     </div>
+                    
                     <div className="flex flex-col pr-2">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-400 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
                           {lang === 'id' ? "Tank Utama" : "Primary"}
                         </span>
                       </div>
-                      <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 line-clamp-1 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                      <h3 className="text-base font-black text-slate-800 dark:text-slate-100 line-clamp-1 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
                         {primaryTank.name}
                       </h3>
                       <p className="text-xs font-medium text-slate-500 flex items-center gap-1 mt-1">
@@ -249,19 +284,19 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* 2. Tampilan Tank Ke-2, Ke-3, dst (Gaya Minimalis) */}
+                  {/* GAYA 2: TANK KE-2, KE-3, DST. (Gaya Minimalis/Pill Ringkas di Bawahnya) */}
                   {secondaryTanks.length > 0 && (
                     <div className="flex flex-wrap md:justify-end gap-2 w-full max-w-sm">
                       {secondaryTanks.map(tank => (
                         <div 
                           key={tank.id} 
-                          onClick={() => router.push(`/dashboard/my-aquarium?id=${tank.id}`)}
+                          onClick={() => router.push(`/dashboard/my-aquarium/${tank.id}`)} 
                           className="cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 flex items-center gap-3 transition-colors shadow-sm"
                         >
                           <div className={`w-2.5 h-2.5 rounded-full ${tank.health_score >= 85 ? 'bg-emerald-500' : tank.health_score >= 60 ? 'bg-amber-500' : 'bg-rose-500'} animate-pulse`}></div>
                           <div>
                             <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{tank.name}</p>
-                            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Score: {tank.health_score}</p>
+                            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Score: <span className={getHealthColor(tank.health_score)}>{tank.health_score}</span></p>
                           </div>
                         </div>
                       ))}
@@ -269,7 +304,7 @@ export default function DashboardPage() {
                   )}
                 </>
               ) : (
-                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center text-center">
+                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center text-center w-full">
                   <Container className="w-8 h-8 text-slate-400 mb-2" />
                   <p className="text-sm font-bold text-slate-500">{lang === 'id' ? "Belum ada akuarium" : "No aquarium yet"}</p>
                 </div>
@@ -279,9 +314,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* =========================================
-            QUICK STATS CARDS (LIVE DATA)
-        ========================================= */}
+        {/* =========================================================
+            SEKSI RINGKASAN STATISTIK UTAMA (LIVE AGGREGATION DATA)
+        ========================================================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all group">
             <div className="flex items-start justify-between">
@@ -329,9 +364,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* =========================================
-            MENU AI EXPERT & ANALYTICS
-        ========================================= */}
+        {/* =========================================================
+            SEKSI MODUL AI EXPERT & ANALYTICS (SINKRONISASI LINK MENU)
+        ========================================================= */}
         <div className="space-y-6 pt-4">
           <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
             <Cpu className="w-5 h-5 text-indigo-500" />
