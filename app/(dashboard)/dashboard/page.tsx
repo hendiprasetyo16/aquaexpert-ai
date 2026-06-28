@@ -47,18 +47,39 @@ export default function DashboardPage() {
   const [loadingPage, setLoadingPage] = useState(true);
   const [ipAddress, setIpAddress] = useState<string>("Loading IP...");
 
+// Dapatkan IP Address & Simpan ke Database
   useEffect(() => {
     async function getIpAddress() {
+      // Pastikan user sudah berhasil dimuat sebelum menyimpan
+      if (!user?.id) return; 
+
       try {
         const res = await fetch("https://api.ipify.org?format=json");
         const data = await res.json();
-        if (data.ip) setIpAddress(data.ip);
+        
+        if (data.ip) {
+          setIpAddress(data.ip);
+          
+          // === KODE BARU: UPDATE IP KE DATABASE ===
+          const supabase = createClient();
+          await supabase
+            .from("profiles")
+            .update({ 
+              ip_address: data.ip,
+              last_login_at: new Date().toISOString() // Opsional: Update waktu login terakhir sekalian
+            })
+            .eq("id", user.id);
+          // =======================================
+        }
       } catch (err) {
         setIpAddress("127.0.0.1");
       }
     }
-    getIpAddress();
-  }, []);
+    
+    if (!isLoading && user?.id) {
+      getIpAddress();
+    }
+  }, [user?.id, isLoading]);
 
   useEffect(() => {
     async function fetchDashboardData() {

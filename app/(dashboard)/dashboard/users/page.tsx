@@ -13,14 +13,14 @@ import { UserProfile, UserRole } from "@/features/users/types/user.types";
 
 import { 
   Loader2, ShieldAlert, User as UserIcon, Mail, Users, 
-  Shield, ShieldCheck, UserPlus, X, KeyRound, Power, PowerOff, Search, Filter, Pencil, Trash2, CalendarDays, Activity, Eye, EyeOff, AlertTriangle
+  Shield, ShieldCheck, UserPlus, X, KeyRound, Power, PowerOff, Search, Filter, Pencil, Trash2, CalendarDays, Activity, Eye, EyeOff, AlertTriangle, Globe
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import toast from "react-hot-toast";
 
 export default function UsersPage() {
   const { user: currentUserAuth, role: currentUserRole } = useAuth();
-  const { dict } = useLanguage(); // <-- PANGGIL KAMUS
+  const { dict } = useLanguage(); 
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -192,7 +192,6 @@ export default function UsersPage() {
       });
   }, [users, currentUserRole, searchQuery, roleFilter, statusFilter]);
 
-  // FUNGSI HELPER UNTUK MENDAPATKAN WARNA NEON BERDASARKAN ROLE PENGGUNA
   const getRoleNeonGlow = (role: UserRole) => {
     if (role === "super_admin") return "hover:border-red-400 dark:hover:border-red-500 hover:shadow-[0_0_20px_rgba(248,113,113,0.3)] dark:hover:shadow-[0_0_25px_rgba(239,68,68,0.5)]";
     if (role === "admin") return "hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-[0_0_20px_rgba(251,191,36,0.3)] dark:hover:shadow-[0_0_25px_rgba(245,158,11,0.5)]";
@@ -317,9 +316,11 @@ export default function UsersPage() {
                       </div>
                       <div className="mt-2 flex flex-col gap-1.5 text-xs text-slate-600 dark:text-slate-400">
                         <div className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-500" /><span className="truncate" title={user.email}>{user.email}</span></div>
+                        
                         {user.created_at && (
                           <div className="flex items-center gap-2"><CalendarDays className="h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-500" /><span className="truncate">{dict.usersMgmt.registeredAt} {new Date(user.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></div>
                         )}
+                        
                         <div className="flex items-center gap-2">
                           <Activity className="h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-500" />
                           {user.last_login_at ? (
@@ -328,68 +329,57 @@ export default function UsersPage() {
                             <span className="truncate text-yellow-600 dark:text-yellow-500 font-medium italic">{dict.usersMgmt.neverLoggedIn}</span>
                           )}
                         </div>
+                        
+                        {/* =========================================================
+                            KODE BARU: IP ADDRESS DENGAN ICON GLOBE
+                        ========================================================= */}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Globe className="h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-500" />
+                          <span className="truncate text-slate-500 dark:text-slate-400 font-medium text-xs">
+                            Ip address : {
+                              ("ip_address" in user && user.ip_address) 
+                              ? String(user.ip_address) 
+                              : ("last_sign_in_ip" in user && user.last_sign_in_ip) 
+                              ? String(user.last_sign_in_ip) 
+                              : "Belum terekam"
+                            }
+                          </span>
+                        </div>
+                        {/* ========================================================= */}
+
                       </div>
                     </div>
                   </div>
+                  <button onClick={() => { setSelectedUser(user); setEditNameValue(user.full_name); setIsEditModalOpen(true); }} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-teal-600 dark:hover:bg-slate-800 dark:hover:text-teal-400 transition-colors"><Pencil className="h-4 w-4" /></button>
                 </div>
 
                 <div className="mt-5 flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-4 transition-colors relative z-20">
-                  <select
-                    value={user.role}
-                    onChange={(e) => { setRoleChangeData({ user, newRole: e.target.value as UserRole }); }}
-                    disabled={currentUserRole !== "super_admin" || user.id === currentUserAuth?.id || (user.role === "super_admin" && stats.superAdmin === 1)} 
+                  <select 
+                    value={user.role} 
+                    onChange={(e) => { setRoleChangeData({ user, newRole: e.target.value as UserRole }); }} 
+                    disabled={currentUserRole !== "super_admin" || user.id === currentUserAuth?.id || (user.role === "super_admin" && stats.superAdmin === 1)}
                     className={`rounded-md border px-2 py-1 text-xs font-medium outline-none transition-colors ${
-                      user.role === "super_admin" ? "border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400" 
-                      : user.role === "admin" ? "border-yellow-200 dark:border-yellow-900 bg-yellow-50 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400" 
-                      : "border-teal-200 dark:border-teal-900 bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400"
-                    } disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`}
+                      user.role === "super_admin" 
+                        ? "border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400" 
+                        : user.role === "admin"
+                        ? "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
+                        : "border-teal-200 dark:border-teal-900 bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400"
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    <option value="user" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.user}</option>
-                    <option value="admin" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.admin}</option>
-                    {currentUserRole === "super_admin" && <option value="super_admin" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.superAdmin}</option>}
+                    <option value="user">{dict.usersMgmt.user}</option>
+                    <option value="admin">{dict.usersMgmt.admin}</option>
+                    {currentUserRole === "super_admin" && <option value="super_admin">{dict.usersMgmt.superAdmin}</option>}
                   </select>
 
-                  <div className="flex items-center gap-2">
-                    <button 
-                      type="button"
-                      onClick={() => { setSelectedUser(user); setEditNameValue(user.full_name); setIsEditModalOpen(true); }}
-                      disabled={user.id === currentUserAuth?.id || (currentUserRole === "admin" && user.role !== "user")} 
-                      title={dict.usersMgmt.tooltipEditName}
-                      className="rounded-md bg-slate-100 dark:bg-slate-800 p-1.5 text-slate-600 dark:text-slate-400 transition hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    
-                    <button 
-                      type="button"
-                      onClick={() => { setSelectedUser(user); setIsResetModalOpen(true); setShowResetPassword(false); }}
-                      disabled={user.id === currentUserAuth?.id || (currentUserRole === "admin" && user.role !== "user")}
-                      title={dict.usersMgmt.tooltipResetPass}
-                      className="rounded-md bg-slate-100 dark:bg-slate-800 p-1.5 text-slate-600 dark:text-slate-400 transition hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
+                  <div className="flex gap-2">
+                    {/* FIX TS: Menggunakan tooltipResetPass sesuai dictionary */}
+                    <button onClick={() => { setSelectedUser(user); setIsResetModalOpen(true); }} disabled={currentUserRole === "admin" && user.role !== "user"} title={dict.usersMgmt.tooltipResetPass} className="rounded-md bg-slate-100 dark:bg-slate-800 p-1.5 text-slate-600 dark:text-slate-400 transition hover:bg-blue-100 dark:hover:bg-blue-900 hover:text-blue-700 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed" >
                       <KeyRound className="h-4 w-4" />
                     </button>
-                    
-                    <button 
-                      type="button"
-                      onClick={() => setUserToToggle(user)} 
-                      disabled={user.id === currentUserAuth?.id || (currentUserRole === "admin" && user.role !== "user") || (user.role === "super_admin" && stats.superAdmin === 1)}
-                      title={user.is_active ? dict.usersMgmt.tooltipBlock : dict.usersMgmt.tooltipAllow}
-                      className={`rounded-md p-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed ${
-                        user.is_active ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-700 dark:hover:text-red-300' 
-                        : 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 hover:bg-teal-100 dark:hover:bg-teal-900 hover:text-teal-700 dark:hover:text-teal-300'
-                      }`}
-                    >
+                    <button onClick={() => setUserToToggle(user)} disabled={user.id === currentUserAuth?.id || (currentUserRole === "admin" && user.role !== "user") || (user.role === "super_admin" && stats.superAdmin === 1)} title={user.is_active ? dict.usersMgmt.tooltipBlock : dict.usersMgmt.tooltipAllow} className={`rounded-md p-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed ${user.is_active ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-yellow-100 hover:text-yellow-700 dark:hover:bg-yellow-900 dark:hover:text-yellow-400' : 'bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400 hover:bg-teal-100 hover:text-teal-700 dark:hover:bg-teal-900 dark:hover:text-teal-400'}`}>
                       {user.is_active ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
                     </button>
-
-                    <button 
-                      type="button"
-                      onClick={() => { setUserToDelete(user); setDeleteConfirmText(""); }} 
-                      disabled={user.id === currentUserAuth?.id || (currentUserRole === "admin" && user.role !== "user") || (user.role === "super_admin" && stats.superAdmin === 1)}
-                      title={dict.usersMgmt.tooltipDelete}
-                      className="rounded-md bg-slate-100 dark:bg-slate-800 p-1.5 text-slate-600 dark:text-slate-400 transition hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-700 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
+                    <button onClick={() => { setUserToDelete(user); setDeleteConfirmText(""); }} disabled={user.id === currentUserAuth?.id || (currentUserRole === "admin" && user.role !== "user") || (user.role === "super_admin" && stats.superAdmin === 1)} title={dict.usersMgmt.tooltipDelete} className="rounded-md bg-slate-100 dark:bg-slate-800 p-1.5 text-slate-600 dark:text-slate-400 transition hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-700 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed" >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -412,32 +402,37 @@ export default function UsersPage() {
             </div>
             
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-              {dict.usersMgmt.modalChangeStatusDesc1} <strong>{userToToggle.is_active ? dict.usersMgmt.btnBlock.toLowerCase() : dict.usersMgmt.btnAllow.toLowerCase()}</strong> {dict.usersMgmt.modalChangeStatusDesc2} <strong className="text-gray-900 dark:text-slate-200">{userToToggle.full_name}</strong>?
+              {dict.usersMgmt.modalChangeStatusDesc1} <strong>{userToToggle.is_active ? dict.usersMgmt.btnBlock.toLowerCase() : dict.usersMgmt.btnAllow.toLowerCase()}</strong> {dict.usersMgmt.modalChangeStatusDesc2} <strong className="text-gray-900 dark:text-slate-200">{userToToggle.email}</strong>?
             </p>
+            
             <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
-              <button disabled={isSubmitting} onClick={() => setUserToToggle(null)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
-              <button disabled={isSubmitting} onClick={executeToggleStatus} className={`rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 shadow-md ${userToToggle.is_active ? 'bg-red-600 hover:bg-red-500 shadow-red-600/20' : 'bg-teal-600 hover:bg-teal-500 shadow-teal-600/20'}`}>
-                {isSubmitting ? dict.usersMgmt.processing : (userToToggle.is_active ? dict.usersMgmt.btnBlock : dict.usersMgmt.btnAllow)}
+              <button type="button" disabled={isSubmitting} onClick={() => setUserToToggle(null)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
+              <button type="button" onClick={executeToggleStatus} disabled={isSubmitting} className={`rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 shadow-md ${userToToggle.is_active ? 'bg-red-600 hover:bg-red-500 shadow-red-600/20' : 'bg-teal-600 hover:bg-teal-500 shadow-teal-600/20'}`}>
+                {isSubmitting ? dict.usersMgmt.processing : userToToggle.is_active ? dict.usersMgmt.btnBlock : dict.usersMgmt.btnAllow}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL 2: KONFIRMASI UBAH ROLE */}
+      {/* MODAL 2: KONFIRMASI UBAH PERAN */}
       {roleChangeData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 dark:bg-slate-950/90 p-4 backdrop-blur-sm overflow-y-auto">
           <div className="w-full max-w-sm rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-xl transition-all">
             <div className="mb-4 flex items-center gap-3">
-              <div className="p-2 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400"><Shield className="h-6 w-6" /></div>
+              <div className="bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400 p-2 rounded-full">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
               <h3 className="text-xl font-bold">{dict.usersMgmt.modalChangeRole}</h3>
             </div>
+            
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-              {dict.usersMgmt.modalChangeRoleDesc1} <strong className="text-gray-900 dark:text-slate-200">{roleChangeData.user.full_name}</strong> {dict.usersMgmt.modalChangeRoleDesc2} <strong className="text-teal-600 dark:text-teal-400 uppercase">{roleChangeData.newRole}</strong>?
+              {dict.usersMgmt.modalChangeRoleDesc1} <strong className="text-gray-900 dark:text-slate-200">{roleChangeData.user.email}</strong> {dict.usersMgmt.modalChangeRoleDesc2} <strong>{roleChangeData.user.role}</strong> {((dict.usersMgmt as unknown) as Record<string, string>).modalChangeRoleDesc3 || "menjadi"} <strong>{roleChangeData.newRole}</strong>?
             </p>
+            
             <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
-              <button disabled={isSubmitting} onClick={() => setRoleChangeData(null)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
-              <button disabled={isSubmitting} onClick={executeRoleChange} className="rounded-md px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 transition-colors disabled:opacity-50 shadow-md shadow-blue-600/20">
+              <button type="button" disabled={isSubmitting} onClick={() => setRoleChangeData(null)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
+              <button type="button" onClick={executeRoleChange} disabled={isSubmitting} className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500 transition-colors disabled:opacity-50 shadow-md shadow-amber-600/20">
                 {isSubmitting ? dict.usersMgmt.processing : dict.usersMgmt.btnChangeRole}
               </button>
             </div>
@@ -445,19 +440,29 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* MODAL 3: HAPUS PERMANEN */}
+      {/* MODAL 3: HARD DELETE */}
       {userToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 dark:bg-slate-950/90 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="w-full max-w-sm rounded-2xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 p-6 shadow-xl transition-all">
+          <div className="w-full max-w-md rounded-2xl border border-red-200 dark:border-red-900/30 bg-white dark:bg-slate-900 p-6 shadow-2xl transition-all">
             <div className="mb-4 flex items-center gap-3">
-              <div className="p-2 rounded-full bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400"><AlertTriangle className="h-6 w-6" /></div>
+              <div className="bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400 p-2 rounded-full">
+                <Trash2 className="h-6 w-6" />
+              </div>
               <h3 className="text-xl font-bold text-red-600 dark:text-red-400">{dict.usersMgmt.modalHardDelete}</h3>
             </div>
+            
             <form onSubmit={executeHardDelete}>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
-                {dict.usersMgmt.modalHardDeleteDesc1} <strong>{dict.usersMgmt.modalHardDeleteDesc2}</strong>{dict.usersMgmt.modalHardDeleteDesc3} <strong className="text-gray-900 dark:text-slate-200 select-all">{userToDelete.email}</strong> {dict.usersMgmt.modalHardDeleteDesc4}
+              <div className="mb-4 rounded-md bg-red-50 dark:bg-red-950/30 p-4 border border-red-100 dark:border-red-900/50">
+                <p className="text-sm font-semibold text-red-800 dark:text-red-300">{dict.usersMgmt.modalHardDeleteDesc1}</p>
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{dict.usersMgmt.modalHardDeleteDesc2}</p>
+              </div>
+              
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                {dict.usersMgmt.modalHardDeleteDesc3} <strong className="text-gray-900 dark:text-slate-200 select-all">{userToDelete.email}</strong> {dict.usersMgmt.modalHardDeleteDesc4}
               </p>
+              
               <input required type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder={dict.usersMgmt.typeUserEmail} className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-200 outline-none focus:border-red-500 transition-colors mb-6" />
+              
               <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
                 <button type="button" disabled={isSubmitting} onClick={() => {setUserToDelete(null); setDeleteConfirmText("");}} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
                 <button type="submit" disabled={isSubmitting || deleteConfirmText !== userToDelete.email} className="rounded-md px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-red-600/20">
@@ -474,36 +479,40 @@ export default function UsersPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 dark:bg-slate-950/90 p-4 backdrop-blur-sm overflow-y-auto">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl transition-all">
             <div className="mb-6 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">{dict.usersMgmt.modalAddUser}</h3>
-              <button type="button" onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X className="h-5 w-5" /></button>
+              <h3 className="text-xl font-bold flex items-center gap-2"><UserPlus className="h-5 w-5 text-teal-600 dark:text-teal-400" /> {dict.usersMgmt.addUser}</h3>
+              <button onClick={() => {setIsAddModalOpen(false); setFormData({ email: "", password: "", full_name: "", role: "user" });}} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><X className="h-5 w-5" /></button>
             </div>
+
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{dict.usersMgmt.fullName}</label>
-                <input required type="text" value={formData.full_name} onChange={(e) => setFormData({...formData, full_name: e.target.value})} className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors" />
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{((dict.usersMgmt as unknown) as Record<string, string>).emailAddress || "Alamat Email"}</label>
+                <input required type="email" placeholder="example@email.com" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-colors" />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{dict.usersMgmt.email}</label>
-                <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors" />
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{((dict.usersMgmt as unknown) as Record<string, string>).fullName || "Nama Lengkap"}</label>
+                <input required type="text" placeholder="John Doe" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-colors" />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{dict.usersMgmt.password}</label>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{((dict.usersMgmt as unknown) as Record<string, string>).password || "Kata Sandi"}</label>
                 <div className="relative">
-                  <input required minLength={6} type={showAddPassword ? "text" : "password"} placeholder={dict.usersMgmt.min6Chars} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 pr-10 text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 transition-colors" />
-                  <button type="button" onClick={() => setShowAddPassword(!showAddPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><EyeOff className="h-4 w-4" /></button>
+                  <input required minLength={6} type={showAddPassword ? "text" : "password"} placeholder={dict.usersMgmt.min6Chars} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 pr-10 text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-colors" />
+                  <button type="button" onClick={() => setShowAddPassword(!showAddPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><EyeOff className="h-4 w-4" /></button>
                 </div>
               </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{dict.usersMgmt.role}</label>
-                <select value={formData.role} onChange={(e) => setFormData({...formData, role: e.target.value as UserRole})} disabled={currentUserRole === "admin"} className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-200 outline-none focus:border-teal-500 disabled:opacity-50 transition-colors">
-                  <option value="user" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.user}</option>
-                  {currentUserRole === "super_admin" && (
-                    <><option value="admin" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.admin}</option><option value="super_admin" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">{dict.usersMgmt.superAdmin}</option></>
-                  )}
-                </select>
-              </div>
+
+              {currentUserRole === "super_admin" && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{dict.usersMgmt.role}</label>
+                  <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })} className="w-full appearance-none rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-colors">
+                    <option value="user">{dict.usersMgmt.user}</option>
+                    <option value="admin">{dict.usersMgmt.admin}</option>
+                    <option value="super_admin">{dict.usersMgmt.superAdmin}</option>
+                  </select>
+                </div>
+              )}
+
               <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4 transition-colors">
-                <button type="button" onClick={() => setIsAddModalOpen(false)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
+                <button type="button" onClick={() => {setIsAddModalOpen(false); setFormData({ email: "", password: "", full_name: "", role: "user" });}} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
                 <button type="submit" disabled={isSubmitting} className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50 shadow-md shadow-teal-600/20 transition-colors">{isSubmitting ? dict.usersMgmt.saving : dict.usersMgmt.btnSaveUser}</button>
               </div>
             </form>
@@ -516,36 +525,47 @@ export default function UsersPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 dark:bg-slate-950/90 p-4 backdrop-blur-sm overflow-y-auto">
           <div className="w-full max-w-sm rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl transition-all">
             <div className="mb-6 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">{dict.usersMgmt.modalEditProfile}</h3>
-              <button type="button" onClick={() => { setIsEditModalOpen(false); setEditNameValue(""); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X className="h-5 w-5" /></button>
+              <h3 className="text-xl font-bold flex items-center gap-2"><Pencil className="h-5 w-5 text-teal-600 dark:text-teal-400" /> {((dict.usersMgmt as unknown) as Record<string, string>).editProfile || "Edit Profil"}</h3>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X className="h-5 w-5" /></button>
             </div>
+
             <form onSubmit={handleEditProfile} className="space-y-4">
-              <p className="text-sm text-slate-600 dark:text-slate-400">{dict.usersMgmt.modalEditProfileDesc} <br/><strong className="text-gray-900 dark:text-slate-200">{selectedUser.email}</strong></p>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{dict.usersMgmt.newFullName}</label>
-                <input required type="text" value={editNameValue} onChange={(e) => setEditNameValue(e.target.value)} className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-colors" />
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{((dict.usersMgmt as unknown) as Record<string, string>).emailAddress || "Alamat Email"}</label>
+                <input disabled type="email" value={selectedUser.email} className="w-full rounded-md border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/50 px-3 py-2 text-slate-500 dark:text-slate-500 cursor-not-allowed transition-colors" />
+                <p className="mt-1 text-xs text-slate-500">{((dict.usersMgmt as unknown) as Record<string, string>).emailCannotBeChanged || "Email tidak dapat diubah setelah terdaftar."}</p>
               </div>
+              
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{((dict.usersMgmt as unknown) as Record<string, string>).fullName || "Nama Lengkap"}</label>
+                <input required type="text" value={editNameValue} onChange={(e) => setEditNameValue(e.target.value)} className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-colors" />
+              </div>
+
               <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4 transition-colors">
-                <button type="button" onClick={() => { setIsEditModalOpen(false); setEditNameValue(""); }} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
-                <button type="submit" disabled={isSubmitting} className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50 shadow-md shadow-teal-600/20 transition-colors">{isSubmitting ? dict.usersMgmt.saving : dict.usersMgmt.btnSaveChanges}</button>
+                <button type="button" onClick={() => setIsEditModalOpen(false)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
+                <button type="submit" disabled={isSubmitting || editNameValue === selectedUser.full_name || editNameValue.trim() === ""} className="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50 shadow-md shadow-teal-600/20 transition-colors">{isSubmitting ? dict.usersMgmt.saving : dict.usersMgmt.btnSaveUser}</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL 6: RESET PASSWORD */}
+      {/* MODAL 6: RESET KATA SANDI */}
       {isResetModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 dark:bg-slate-950/90 p-4 backdrop-blur-sm overflow-y-auto">
           <div className="w-full max-w-sm rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl transition-all">
             <div className="mb-6 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">{dict.usersMgmt.modalResetPass}</h3>
-              <button type="button" onClick={() => {setIsResetModalOpen(false); setResetPasswordValue("");}} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X className="h-5 w-5" /></button>
+              <h3 className="text-xl font-bold flex items-center gap-2"><KeyRound className="h-5 w-5 text-amber-600 dark:text-amber-500" /> {((dict.usersMgmt as unknown) as Record<string, string>).resetPassword || "Reset Kata Sandi"}</h3>
+              <button onClick={() => {setIsResetModalOpen(false); setResetPasswordValue("");}} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><X className="h-5 w-5" /></button>
             </div>
+
             <form onSubmit={handleResetPassword} className="space-y-4">
-              <p className="text-sm text-slate-600 dark:text-slate-400">{dict.usersMgmt.modalResetPassDesc} <strong className="text-gray-900 dark:text-slate-200">{selectedUser.full_name}</strong>.</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {dict.usersMgmt.modalResetPassDesc} <strong className="text-gray-900 dark:text-slate-200">{selectedUser.email}</strong>.
+              </p>
+              
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{dict.usersMgmt.newPassword}</label>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{((dict.usersMgmt as unknown) as Record<string, string>).newPassword || "Kata Sandi Baru"}</label>
                 <div className="relative">
                   <input required minLength={6} type={showResetPassword ? "text" : "password"} placeholder={dict.usersMgmt.min6Chars} value={resetPasswordValue} onChange={(e) => setResetPasswordValue(e.target.value)} className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 pr-10 text-slate-900 dark:text-slate-200 focus:border-teal-500 outline-none transition-colors" />
                   <button type="button" onClick={() => setShowResetPassword(!showResetPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><EyeOff className="h-4 w-4" /></button>
@@ -554,12 +574,15 @@ export default function UsersPage() {
 
               <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4 transition-colors">
                 <button type="button" onClick={() => {setIsResetModalOpen(false); setResetPasswordValue("");}} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">{dict.usersMgmt.cancel}</button>
-                <button type="submit" disabled={isSubmitting} className="rounded-md bg-yellow-600 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-500 disabled:opacity-50 shadow-md shadow-yellow-600/20 transition-colors">{isSubmitting ? dict.usersMgmt.processing : dict.usersMgmt.btnResetPass}</button>
+                <button type="submit" disabled={isSubmitting} className="rounded-md bg-yellow-600 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-500 disabled:opacity-50 shadow-md shadow-yellow-600/20 transition-colors">
+                  {isSubmitting ? dict.usersMgmt.processing : dict.usersMgmt.btnResetPass}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
     </div>
   );
 }
