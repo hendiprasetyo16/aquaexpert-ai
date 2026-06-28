@@ -13,7 +13,8 @@ export async function getUsers(): Promise<UserProfile[]> {
       role,
       is_active,
       created_at,
-      last_login_at
+      last_login_at,
+      ip_address
     `)
     .order("full_name", { ascending: true });
 

@@ -24,9 +24,9 @@ interface TankInfo {
   name: string;
   is_primary: boolean;
   health_score: number;
-  alerts: string[]; // Menyimpan daftar peringatan spesifik untuk Hint
-  faunaCount: number; // Menyimpan jumlah ikan spesifik untuk Hint
-  floraCount: number; // Menyimpan jumlah tanaman spesifik untuk Hint
+  alerts: string[]; 
+  faunaCount: number; 
+  floraCount: number; 
 }
 
 interface DashboardStats {
@@ -47,10 +47,9 @@ export default function DashboardPage() {
   const [loadingPage, setLoadingPage] = useState(true);
   const [ipAddress, setIpAddress] = useState<string>("Loading IP...");
 
-// Dapatkan IP Address & Simpan ke Database
+  // Dapatkan IP Address & Simpan ke Database
   useEffect(() => {
     async function getIpAddress() {
-      // Pastikan user sudah berhasil dimuat sebelum menyimpan
       if (!user?.id) return; 
 
       try {
@@ -60,16 +59,15 @@ export default function DashboardPage() {
         if (data.ip) {
           setIpAddress(data.ip);
           
-          // === KODE BARU: UPDATE IP KE DATABASE ===
+          // === UPDATE IP KE DATABASE ===
           const supabase = createClient();
           await supabase
             .from("profiles")
             .update({ 
               ip_address: data.ip,
-              last_login_at: new Date().toISOString() // Opsional: Update waktu login terakhir sekalian
+              last_login_at: new Date().toISOString() 
             })
             .eq("id", user.id);
-          // =======================================
         }
       } catch (err) {
         setIpAddress("127.0.0.1");
@@ -193,9 +191,7 @@ export default function DashboardPage() {
     <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors duration-300">
       <div className="max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-500">
         
-        {/* =========================================================
-            SEKSI 1: BANNER SELAMAT DATANG & GAUGES TANGKI
-        ========================================================= */}
+        {/* SEKSI 1: BANNER SELAMAT DATANG & GAUGES TANGKI */}
         <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm p-6 sm:p-10 transition-colors">
           <div className="absolute -right-20 -top-20 w-64 h-64 bg-teal-500/10 dark:bg-teal-500/20 blur-[80px] rounded-full pointer-events-none"></div>
           <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-blue-500/10 dark:bg-blue-500/20 blur-[80px] rounded-full pointer-events-none"></div>
@@ -226,7 +222,7 @@ export default function DashboardPage() {
             <div className="shrink-0 flex flex-col md:items-end gap-4 w-full sm:w-auto">
               {primaryTank ? (
                 <>
-                  {/* TANGKI UTAMA - GAUGE BESAR */}
+                  {/* TANGKI UTAMA */}
                   <div 
                     onClick={() => router.push(`/dashboard/my-aquarium/${primaryTank.id}`)}
                     className="cursor-pointer bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md hover:border-teal-300 dark:hover:border-teal-800 transition-all flex items-center gap-6 group w-full sm:w-80"
@@ -265,7 +261,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* TANGKI SEKUNDER - SEKARANG MENGGUNAKAN MINI GAUGE */}
+                  {/* TANGKI SEKUNDER */}
                   {secondaryTanks.length > 0 && (
                     <div className="flex flex-wrap md:justify-end gap-2 w-full max-w-sm">
                       {secondaryTanks.map(tank => (
@@ -274,7 +270,6 @@ export default function DashboardPage() {
                           onClick={() => router.push(`/dashboard/my-aquarium/${tank.id}`)} 
                           className="cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 flex items-center gap-3 transition-colors shadow-sm"
                         >
-                          {/* MINI GAUGE (Menggantikan titik kecil) */}
                           <div className="relative w-7 h-7 shrink-0 flex items-center justify-center">
                             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                               <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="15" className="text-slate-200 dark:text-slate-700" />
@@ -308,12 +303,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* =========================================================
-            SEKSI 2: KARTU STATISTIK (DENGAN HINT RINCIAN PER TANGKI)
-        ========================================================= */}
+        {/* SEKSI 2: KARTU STATISTIK */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          
-          {/* KARTU 1: AKUARIUM AKTIF */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col h-full">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -322,7 +313,6 @@ export default function DashboardPage() {
               </div>
               <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-xl"><Container className="w-6 h-6 text-blue-600 dark:text-blue-400" /></div>
             </div>
-            {/* Hint Rincian Tangki */}
             <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-1.5">
               {tankList.map(t => (
                 <div key={t.id} className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
@@ -336,7 +326,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* KARTU 2: PERINGATAN SISTEM */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col h-full">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -345,7 +334,6 @@ export default function DashboardPage() {
               </div>
               <div className="bg-rose-50 dark:bg-rose-900/30 p-3 rounded-xl"><ShieldAlert className="w-6 h-6 text-rose-600 dark:text-rose-400" /></div>
             </div>
-            {/* Hint Rincian Peringatan per Tangki */}
             <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2">
               {tankList.map(t => (
                 <div key={t.id} className="flex flex-col text-[10px]">
@@ -362,7 +350,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* KARTU 3: POPULASI FAUNA */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col h-full">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -371,7 +358,6 @@ export default function DashboardPage() {
               </div>
               <div className="bg-amber-50 dark:bg-amber-900/30 p-3 rounded-xl"><Fish className="w-6 h-6 text-amber-600 dark:text-amber-400" /></div>
             </div>
-            {/* Hint Rincian Ikan per Tangki */}
             <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-1.5">
               {tankList.map(t => (
                 <div key={t.id} className="flex justify-between items-center text-[10px]">
@@ -384,7 +370,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* KARTU 4: KOLEKSI FLORA */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col h-full">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -393,7 +378,6 @@ export default function DashboardPage() {
               </div>
               <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-xl"><Leaf className="w-6 h-6 text-emerald-600 dark:text-emerald-400" /></div>
             </div>
-            {/* Hint Rincian Tanaman per Tangki */}
             <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-1.5">
               {tankList.map(t => (
                 <div key={t.id} className="flex justify-between items-center text-[10px]">
@@ -405,12 +389,9 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
-
         </div>
 
-        {/* =========================================================
-            SEKSI 3: MODUL KECERDASAN BUATAN (DIKEMBALIKAN KE ASLI)
-        ========================================================= */}
+        {/* SEKSI 3: MODUL KECERDASAN BUATAN */}
         <div className="space-y-6 pt-4">
           <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
             <Cpu className="w-5 h-5 text-indigo-500" />
@@ -418,7 +399,6 @@ export default function DashboardPage() {
           </h3>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            
             <div onClick={() => router.push("/dashboard/disease-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl hover:border-red-400 dark:hover:border-red-800 shadow-sm transition-all relative overflow-hidden">
               <div className="absolute right-0 top-0 w-24 h-24 bg-red-50 dark:bg-red-900/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
               <div className="relative z-10">
@@ -468,7 +448,6 @@ export default function DashboardPage() {
                 <div className="flex items-center text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">Buka Analitik <ArrowRight className="w-3.5 h-3.5" /></div>
               </div>
             </div>
-
           </div>
         </div>
 

@@ -8,4 +8,5 @@ export interface UserProfile {
   is_active: boolean; 
   created_at?: string;
   last_login_at?: string; // <-- TAMBAHAN BARU
+  ip_address?: string | null; // <-- TAMBAHKAN BARIS INI
 }
