@@ -332,7 +332,7 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                     const isSelected = selectedItemId === item.id;
                     return (
                       <div key={item.id} onClick={() => setSelectedItemId(item.id)} className={`relative cursor-pointer rounded-2xl border-2 p-2 sm:p-3 flex flex-col items-center gap-2.5 bg-white dark:bg-slate-900 group ${isSelected ? (isFish ? "border-blue-500 bg-blue-50/30" : "border-emerald-500 bg-emerald-50/30") : "border-slate-100 hover:border-slate-300 dark:border-slate-800"}`}>
-                        <div className="absolute top-2 left-2 w-5 h-5 flex items-center justify-center rounded bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm text-[9px] font-black text-slate-500 z-10">{idx + 1}</div>
+                        <div className="absolute top-2 left-2 w-5 h-5 flex items-center justify-center rounded bg-white dark:bg-slate-800 shadow-sm text-[9px] font-black text-slate-500 z-10">{idx + 1}</div> 
                         
                         {/* FIX FLICKER: Gunakan display block/none daripada opacity untuk CheckCircle */}
                         {isSelected && (
