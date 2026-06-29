@@ -1,3 +1,4 @@
+// app/(dashboard)/dashboard/diseases/page.tsx
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -29,9 +30,10 @@ export default function DiseaseDatabasePage() {
   const { dict, language } = useLanguage();
   const lang = language as "id" | "en";
 
-  const rootDict = dict as Record<string, any>;
-  const listDict = rootDict?.diseaseList || {};
-  const arcDict = rootDict?.diseaseArchiveList || {};
+  // FIX: Type-safe dictionary extraction without 'any'
+  const rootDict = (dict as Record<string, unknown>) || {};
+  const listDict = (rootDict?.diseaseList as Record<string, string>) || {};
+  const arcDict = (rootDict?.diseaseArchiveList as Record<string, string>) || {};
 
   const [diseases, setDiseases] = useState<Disease[]>([]);
   const [loading, setLoading] = useState(true);
