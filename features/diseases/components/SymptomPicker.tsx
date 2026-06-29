@@ -42,7 +42,7 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
   const [activeRegion, setActiveRegion] = useState<BodyRegion>("General");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // FIX: Menggunakan toLowerCase() agar kebal terhadap perbedaan huruf besar/kecil di Database
+  // Memastikan sinkronisasi data yang kebal uppercase/lowercase
   const displayedSymptoms = useMemo(() => {
     return availableSymptoms.filter(s => 
       s.body_region?.toLowerCase().trim() === activeRegion.toLowerCase().trim()
@@ -78,11 +78,11 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
   const quality = calculateQualityMetrics(selectedIds.size, lang);
 
   return (
-    <div className="w-full bg-white dark:bg-[#111827] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800/60 overflow-hidden flex flex-col md:flex-row relative">
+    <div className="w-full bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col md:flex-row relative transition-colors">
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-teal-400"></div>
 
       {/* KIRI: Navigasi Anatomis */}
-      <div className="w-full md:w-1/3 bg-slate-50 dark:bg-[#0B1120] border-r border-slate-200 dark:border-slate-800/60 p-4 md:p-5">
+      <div className="w-full md:w-1/3 bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 p-4 md:p-5 transition-colors">
         <h3 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">
           {lang === 'id' ? "2. Pilih Area Terdampak" : "2. Select Body Region"}
         </h3>
@@ -98,7 +98,7 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-all duration-300 ${
                     isActive 
                       ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)] font-bold" 
-                      : "text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800/80 font-medium"
+                      : "text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800 font-medium"
                   }`}
                 >
                   <span>{lang === 'id' ? tab.labelId : tab.labelEn}</span>
@@ -115,8 +115,8 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
       </div>
 
       {/* KANAN: Daftar Gejala Interaktif */}
-      <div className="w-full md:w-2/3 p-5 md:p-6 flex flex-col h-[550px]">
-        <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800/60 pb-4">
+      <div className="w-full md:w-2/3 p-5 md:p-6 flex flex-col h-[550px] bg-white dark:bg-slate-900 transition-colors">
+        <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-4">
           <h2 className="text-lg font-black text-slate-800 dark:text-slate-100">
             {lang === 'id' ? REGION_TABS.find(t => t.id === activeRegion)?.labelId : REGION_TABS.find(t => t.id === activeRegion)?.labelEn}
           </h2>
@@ -141,11 +141,11 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
                   className={`relative p-4 rounded-2xl border-2 cursor-pointer transition-all duration-300 flex items-start gap-4 group ${
                     isSelected 
                       ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-[0_0_15px_rgba(59,130,246,0.15)] dark:shadow-[0_0_15px_rgba(59,130,246,0.2)]" 
-                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md"
+                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md"
                   }`}
                 >
-                  <div className={`mt-0.5 flex items-center justify-center w-6 h-6 rounded-md border-2 transition-colors ${
-                    isSelected ? "bg-blue-500 border-blue-500 text-white" : "border-slate-300 dark:border-slate-600 group-hover:border-blue-400"
+                  <div className={`mt-0.5 flex items-center justify-center w-6 h-6 rounded-md border-2 transition-colors shrink-0 ${
+                    isSelected ? "bg-blue-500 border-blue-500 text-white" : "border-slate-300 dark:border-slate-600 bg-transparent group-hover:border-blue-400"
                   }`}>
                     {isSelected && <Check className="w-4 h-4 font-black" />}
                   </div>
@@ -164,7 +164,7 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
         </div>
 
         {/* DIAGNOSIS QUALITY METER */}
-        <div className="pt-5 mt-4 border-t border-slate-200 dark:border-slate-800/60">
+        <div className="pt-5 mt-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Info className={`w-4 h-4 ${quality.text}`} />

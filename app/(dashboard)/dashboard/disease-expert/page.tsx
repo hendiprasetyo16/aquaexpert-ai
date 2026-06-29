@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { 
-  Stethoscope, AlertTriangle, Activity, Fish, ShieldPlus
+  Stethoscope, AlertTriangle, Activity, Fish, ShieldPlus, ChevronLeft, ChevronRight
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -20,6 +20,9 @@ import { getSymptomsAction } from "@/features/diseases/actions/symptom.actions";
 
 import type { Symptom, DiseaseMatchResult, Disease } from "@/features/diseases/types/disease.types";
 import type { Aquarium } from "@/features/aquariums/types/aquarium.types";
+import { Button } from "@/components/ui/button";
+
+const RESULTS_PER_PAGE = 3; // Menampilkan 3 kartu hasil per halaman
 
 export default function DiseaseExpertPage() {
   const { language } = useLanguage();
@@ -30,6 +33,7 @@ export default function DiseaseExpertPage() {
   const [availableSymptoms, setAvailableSymptoms] = useState<Symptom[]>([]);
   
   const [diagnosisResults, setDiagnosisResults] = useState<DiseaseMatchResult[]>([]);
+  const [currentPage, setCurrentPage] = useState(1); // STATE PAGINASI
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [selectedDiseaseDetail, setSelectedDiseaseDetail] = useState<Disease | null>(null);
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
@@ -72,6 +76,7 @@ export default function DiseaseExpertPage() {
     
     setIsDiagnosing(true);
     setDiagnosisResults([]);
+    setCurrentPage(1); // Reset halaman ke 1 saat diagnosa baru
 
     try {
       const response = await getDiseaseMatchAction(aquariumId, selectedSymptomIds, lang);
@@ -95,9 +100,16 @@ export default function DiseaseExpertPage() {
     }
   };
 
+  // Kalkulasi Paginasi
+  const totalPages = Math.ceil(diagnosisResults.length / RESULTS_PER_PAGE);
+  const paginatedResults = diagnosisResults.slice(
+    (currentPage - 1) * RESULTS_PER_PAGE, 
+    currentPage * RESULTS_PER_PAGE
+  );
+
   if (isLoadingInitial) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-[#0B1120]">
+      <div className="flex h-full min-h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-4 text-blue-600 dark:text-blue-500">
           <Activity className="w-10 h-10 animate-spin" />
           <p className="font-bold animate-pulse">{lang === 'id' ? "Memuat AI Engine..." : "Loading AI Engine..."}</p>
@@ -107,11 +119,11 @@ export default function DiseaseExpertPage() {
   }
 
   return (
-    <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors bg-slate-50 dark:bg-[#0B1120]">
-      <div className="max-w-[1400px] mx-auto space-y-8 pb-10">
+    <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors duration-300">
+      <div className="max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
         
         {/* HEADER */}
-        <div className="bg-white dark:bg-[#111827] p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800/60 shadow-sm relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden transition-colors">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/10 blur-[50px] rounded-full pointer-events-none"></div>
           
           <div className="relative z-10">
@@ -134,7 +146,7 @@ export default function DiseaseExpertPage() {
             <div className="lg:col-span-6 space-y-6">
               
               {/* SELECT AQUARIUM */}
-              <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800/60 p-5 rounded-2xl shadow-sm relative overflow-hidden">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm relative overflow-hidden transition-colors">
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-teal-400"></div>
                 <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
                   <Fish className="w-4 h-4 text-blue-500" /> {lang === 'id' ? "1. Pilih Akuarium Terdampak" : "1. Select Affected Aquarium"}
@@ -142,7 +154,7 @@ export default function DiseaseExpertPage() {
                 <select 
                   value={selectedAquariumId} 
                   onChange={(e) => setSelectedAquariumId(e.target.value)}
-                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-[#0B1120] border-2 border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500/70 focus:shadow-[0_0_15px_rgba(59,130,246,0.2)] outline-none font-bold text-slate-700 dark:text-slate-200 transition-all cursor-pointer"
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500/70 outline-none font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
                 >
                   {aquariums.map(aq => (
                     <option key={aq.id} value={aq.id}>{aq.name}</option>
@@ -160,37 +172,68 @@ export default function DiseaseExpertPage() {
               />
             </div>
 
-            {/* KOLOM KANAN: HASIL DIAGNOSA */}
-            <div className="lg:col-span-6">
-              <div className="bg-slate-50 dark:bg-[#111827]/50 border border-slate-200 dark:border-slate-800/60 rounded-3xl p-6 lg:p-8 min-h-[500px] flex flex-col h-full shadow-inner">
-                <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800/60 pb-4">
+            {/* KOLOM KANAN: HASIL DIAGNOSA (DENGAN PAGINATION) */}
+            <div className="lg:col-span-6 flex flex-col">
+              <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 lg:p-8 flex flex-col h-full shadow-inner transition-colors">
+                <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-4">
                   <ShieldPlus className="w-6 h-6 text-blue-600 dark:text-blue-500" /> 
                   {lang === 'id' ? "Hasil Analisis Patologi AI" : "AI Pathology Analysis Results"}
                 </h3>
 
                 {isDiagnosing ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-slate-500 animate-pulse min-h-[300px]">
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-500 animate-pulse min-h-[400px]">
                     <Activity className="w-14 h-14 mb-4 text-blue-500 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
                     <p className="font-bold tracking-wide">{lang === 'id' ? "Memproses komputasi patogen..." : "Processing pathogen computation..."}</p>
                   </div>
                 ) : diagnosisResults.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl bg-white dark:bg-[#0B1120] min-h-[300px] p-6 opacity-70">
+                  <div className="flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900 min-h-[400px] p-6 opacity-70">
                     <Stethoscope className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
                     <p className="text-slate-500 dark:text-slate-400 font-bold max-w-sm">
                       {lang === 'id' ? "Pilih gejala di samping lalu klik tombol Analisis untuk melihat hasil diagnosa." : "Select symptoms on the left and click the Analysis button to see results."}
                     </p>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-4 animate-in slide-in-from-bottom-4 duration-500">
-                    {diagnosisResults.map((res, index) => (
-                       <DiseaseResultCard 
-                         key={res.disease.id}
-                         result={res}
-                         lang={lang}
-                         isTopMatch={index === 0}
-                         onDetailClick={(id) => setSelectedDiseaseDetail(res.disease)}
-                       />
-                    ))}
+                  <div className="flex flex-col h-full">
+                    {/* DAFTAR KARTU HASIL (TERPOTONG OLEH PAGINASI) */}
+                    <div className="flex flex-col gap-4 animate-in slide-in-from-bottom-4 duration-500 flex-1">
+                      {paginatedResults.map((res, index) => {
+                        const globalIndex = (currentPage - 1) * RESULTS_PER_PAGE + index;
+                        return (
+                          <DiseaseResultCard 
+                            key={res.disease.id}
+                            result={res}
+                            lang={lang}
+                            isTopMatch={globalIndex === 0} // Hanya kartu urutan ke-0 sedunia yang dapat Primary Match
+                            onDetailClick={(id) => setSelectedDiseaseDetail(res.disease)}
+                          />
+                        );
+                      })}
+                    </div>
+
+                    {/* KONTROL PAGINASI */}
+                    {totalPages > 1 && (
+                      <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                          className="font-bold bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                        >
+                          <ChevronLeft className="w-4 h-4 mr-1" /> {lang === 'id' ? "Sebelumnya" : "Prev"}
+                        </Button>
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                          {lang === 'id' ? "Halaman" : "Page"} {currentPage} / {totalPages}
+                        </span>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                          className="font-bold bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                        >
+                          {lang === 'id' ? "Lanjut" : "Next"} <ChevronRight className="w-4 h-4 ml-1" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -198,7 +241,7 @@ export default function DiseaseExpertPage() {
 
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center p-12 text-center bg-white dark:bg-[#111827] rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 shadow-sm">
+          <div className="flex flex-col items-center justify-center p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 shadow-sm transition-colors">
              <AlertTriangle className="w-16 h-16 text-amber-500 mb-4 opacity-80 drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]" />
              <h3 className="text-xl font-black text-slate-800 dark:text-slate-200 mb-2">
                {lang === 'id' ? "Akuarium Belum Tersedia" : "No Aquarium Available"}

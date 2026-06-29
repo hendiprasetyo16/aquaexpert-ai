@@ -1,3 +1,4 @@
+// features/diseases/actions/disease-match.actions.ts
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
@@ -24,11 +25,13 @@ export async function getDiseaseMatchAction(
       return { success: true, matches: [] };
     }
 
+    // =========================================================================
+    // FIX 1: Dihapus .eq("is_deleted", false) karena kolom tidak ada di tabel
+    // =========================================================================
     const { data: inventoryFishes, error: invError } = await supabase
       .from("aquarium_fishes")
       .select("fish_id")
-      .eq("aquarium_id", aquariumId)
-      .eq("is_deleted", false);
+      .eq("aquarium_id", aquariumId);
 
     if (invError) throw new Error("Gagal mengambil data inventaris ikan.");
     const tankFishIds = Array.from(new Set(inventoryFishes?.map(f => f.fish_id) || []));
@@ -126,7 +129,10 @@ export async function getDiseaseMatchAction(
         }
       });
 
-      const negativePenalty = alienSymptomCount * 12;
+      // =========================================================================
+      // FIX 2: Menurunkan Hukuman Penalti dari 12 menjadi 4
+      // =========================================================================
+      const negativePenalty = alienSymptomCount * 4;
       const hallmarkBonus = p.hasMatchedHallmark ? 20 : 0;
       
       const susceptibilityScore = susceptibilityMap.get(diseaseId) || 0;
@@ -143,7 +149,10 @@ export async function getDiseaseMatchAction(
       let finalConfidence = baseConfidence + hallmarkBonus + susceptibilityBonus - negativePenalty;
       finalConfidence = Math.max(0, Math.min(100, Math.round(finalConfidence)));
 
-      if (finalConfidence > 15) {
+      // =========================================================================
+      // FIX 3: Menurunkan batas bawah toleransi confidence agar data mau tampil
+      // =========================================================================
+      if (finalConfidence >= 10) {
         results.push({
           disease: p.disease,
           confidenceScore: finalConfidence,
