@@ -4,11 +4,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Disease } from "../types/disease.types";
+import type { SupabaseClient } from "@supabase/supabase-js"; // <-- Import resmi
 
 // ========================================================
 // FUNGSI KEAMANAN: HANYA SUPER ADMIN YANG BISA LEWAT
 // ========================================================
-async function verifySuperAdmin(supabase: ReturnType<typeof createClient> extends Promise<infer U> ? U : any) {
+// FIX: Menggunakan SupabaseClient resmi daripada as any
+async function verifySuperAdmin(supabase: SupabaseClient) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Sesi berakhir. Silakan login kembali.");
 
@@ -40,7 +42,7 @@ export async function getAdminDiseasesAction(): Promise<{ success: boolean; data
 export async function createDiseaseAction(payload: Partial<Disease>) {
   try {
     const supabase = await createClient();
-    const user = await verifySuperAdmin(supabase); // Cek Super Admin
+    const user = await verifySuperAdmin(supabase); 
 
     const { error } = await supabase.from("diseases").insert({
       ...payload,
@@ -59,7 +61,7 @@ export async function createDiseaseAction(payload: Partial<Disease>) {
 export async function updateDiseaseAction(id: string, payload: Partial<Disease>) {
   try {
     const supabase = await createClient();
-    const user = await verifySuperAdmin(supabase); // Cek Super Admin
+    const user = await verifySuperAdmin(supabase); 
 
     const { error } = await supabase.from("diseases").update({
       ...payload,
@@ -79,7 +81,7 @@ export async function updateDiseaseAction(id: string, payload: Partial<Disease>)
 export async function toggleDiseaseArchiveAction(id: string, currentStatus: boolean) {
   try {
     const supabase = await createClient();
-    await verifySuperAdmin(supabase); // Cek Super Admin
+    await verifySuperAdmin(supabase); 
 
     const { error } = await supabase.from("diseases").update({ 
       is_active: !currentStatus,
@@ -98,7 +100,7 @@ export async function toggleDiseaseArchiveAction(id: string, currentStatus: bool
 export async function hardDeleteDiseaseAction(id: string) {
   try {
     const supabase = await createClient();
-    await verifySuperAdmin(supabase); // Cek Super Admin
+    await verifySuperAdmin(supabase); 
 
     const { error } = await supabase.from("diseases").delete().eq("id", id);
     if (error) throw new Error(error.message);
