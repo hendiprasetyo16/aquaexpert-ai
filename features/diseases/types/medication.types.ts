@@ -1,3 +1,4 @@
+// features/diseases/types/medication.types.ts
 export type WaterParameterKey = "ph" | "temperature" | "ammonia" | "nitrite" | "nitrate";
 
 export interface DbMedication {

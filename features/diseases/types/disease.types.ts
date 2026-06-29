@@ -1,3 +1,4 @@
+// features/diseases/types/disease.types.ts
 export type DiseaseCategory = "Parasitic" | "Bacterial" | "Fungal" | "Viral" | "Environmental" | "Nutritional" | "Protozoan" | "Genetic" | string;
 export type BodyRegion = "General" | "Fins" | "Eyes" | "Gills" | "Belly" | "Skin/Scales" | "Mouth";
 export type SeverityLevel = "low" | "medium" | "high" | "critical";
