@@ -79,5 +79,23 @@
     "modalDeleteDesc2": "Tindakan ini tidak dapat dibatalkan.",
     "typeDiseaseName": "Ketik nama untuk konfirmasi:",
     "btnConfirmDelete": "HAPUS SEKARANG"
+  },
+  "clinicalAnalytics": {
+    "title": "Clinical Intelligence",
+    "subtitle": "Dashboard analitik berbasis bukti (Evidence-Based). Menampilkan tingkat kemanjuran obat, laju pemulihan, dan risiko kambuh berdasarkan rekam medis sistem pakar.",
+    "emptyState": "Belum ada rekam medis yang cukup untuk menyusun statistik.",
+    "leaderboardTitle": "Peringkat Efikasi Obat (Top 20)",
+    "colRank": "Peringkat",
+    "colMedication": "Medikasi & Penyakit",
+    "colScore": "Skor Klinis",
+    "colSuccess": "Tingkat Sembuh",
+    "colRecovery": "Rata-rata Sembuh",
+    "colRelapse": "Kambuh",
+    "colCases": "Bukti Kasus",
+    "forDisease": "Untuk Penyakit:",
+    "days": "Hari",
+    "scoreDesc": "Berdasarkan formula pembobotan efikasi obat",
+    "modalMortality": "Tingkat Kematian",
+    "modalAvgRecovery": "Waktu rata-rata pemulihan"
   }
 }

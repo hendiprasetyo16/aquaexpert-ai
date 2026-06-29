@@ -3,118 +3,119 @@
 
 import { useState } from "react";
 import { LeaderboardRow } from "../actions/analytics.actions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Info } from "lucide-react";
-import { useLanguage } from "@/providers/LanguageProvider";
-import MedicationDetailModal from "./MedicationDetailModal"; // <-- IMPORT MODAL BARU KITA
+import { Trophy, Activity, ArrowUpRight } from "lucide-react";
+import MedicationDetailModal from "./MedicationDetailModal";
 
 interface Props {
-  initialData: LeaderboardRow[];
+  data: LeaderboardRow[];
+  dict: Record<string, string>; // MENGHILANGKAN 'any'
+  lang: "id" | "en";
 }
 
-export default function MedicationLeaderboard({ initialData }: Props) {
-  const { language } = useLanguage();
-  const lang = language as "id" | "en";
-  const [data] = useState<LeaderboardRow[]>(initialData);
-
-  // STATE UNTUK MODAL
+export default function MedicationLeaderboard({ data, dict, lang }: Props) {
   const [selectedMedication, setSelectedMedication] = useState<LeaderboardRow | null>(null);
 
   if (!data || data.length === 0) {
     return (
-      <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
-        <CardContent className="p-10 text-center text-slate-500 font-medium">
-          {lang === 'id' ? "Belum ada rekam medis yang cukup untuk menyusun statistik." : "Not enough medical records to generate statistics yet."}
-        </CardContent>
-      </Card>
+      <div className="w-full bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-800 p-16 flex flex-col items-center justify-center text-center shadow-sm transition-colors">
+        <Trophy className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
+        <h3 className="text-xl font-black text-slate-800 dark:text-slate-200 mb-2">
+          {lang === 'id' ? "Belum Ada Data Rekam Medis" : "No Medical Records Yet"}
+        </h3>
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+          {lang === 'id' 
+            ? "Statistik kemanjuran obat di sini akan otomatis terisi saat pengguna menyelesaikan proses pengobatan ikan di menu 'My Aquarium'." 
+            : "Medication efficacy statistics here will automatically populate when users complete fish treatments in the 'My Aquarium' menu."}
+        </p>
+      </div>
     );
   }
 
   return (
     <>
-      <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden animate-in fade-in duration-500">
-        <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-          <CardTitle className="text-xl font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100">
-            <Trophy className="w-5 h-5 text-amber-500" /> 
-            {lang === 'id' ? "Peringkat Efikasi Obat (Top 20)" : "Medication Efficacy Leaderboard (Top 20)"}
-          </CardTitle>
-        </CardHeader>
-        
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-sm text-left">
-            <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-950/50 border-b border-slate-200 dark:border-slate-800">
+            <thead className="bg-slate-50 dark:bg-slate-950/80 text-slate-500 dark:text-slate-400 uppercase text-[10px] font-black tracking-widest border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="px-6 py-4 font-bold">Rank</th>
-                <th className="px-6 py-4 font-bold">{lang === 'id' ? "Medikasi & Penyakit" : "Medication & Disease"}</th>
-                <th className="px-6 py-4 font-bold text-center">Clinical Score</th>
-                <th className="px-6 py-4 font-bold text-center">Success Rate</th>
-                <th className="px-6 py-4 font-bold text-center">Median Recovery</th>
-                <th className="px-6 py-4 font-bold text-center">Relapse / Kambuh</th>
-                <th className="px-6 py-4 font-bold text-center">Cases (Evidence)</th>
+                <th className="px-6 py-5 text-center w-20">{dict.colRank || (lang === 'id' ? "Peringkat" : "Rank")}</th>
+                <th className="px-6 py-5">{dict.colMedication || (lang === 'id' ? "Medikasi & Penyakit" : "Medication & Disease")}</th>
+                <th className="px-6 py-5 text-center">{dict.colScore || (lang === 'id' ? "Skor Klinis" : "Clinical Score")}</th>
+                <th className="px-6 py-5 text-center">{dict.colSuccess || (lang === 'id' ? "Tingkat Sembuh" : "Success Rate")}</th>
+                <th className="px-6 py-5 text-center">{dict.colRecovery || (lang === 'id' ? "Rata-rata Sembuh" : "Avg Recovery")}</th>
+                <th className="px-6 py-5 text-center">{dict.colCases || (lang === 'id' ? "Bukti Kasus" : "Evidence")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {data.map((row, index) => (
-                <tr 
-                  key={`${row.disease_id}-${row.medication?.id}`} 
-                  onClick={() => setSelectedMedication(row)} // <-- BUKA MODAL SAAT BARIS DI-KLIK
-                  className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors group cursor-pointer"
-                >
-                  
-                  <td className="px-6 py-4">
-                    <span className={`flex items-center justify-center w-8 h-8 rounded-full font-black ${index === 0 ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400' : index === 1 ? 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300' : index === 2 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                      #{index + 1}
-                    </span>
-                  </td>
-                  
-                  <td className="px-6 py-4">
-                    <p className="font-bold text-slate-900 dark:text-slate-100 text-base transition-colors group-hover:text-teal-600 dark:group-hover:text-teal-400">
-                      {row.medication?.name || "Unknown"}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                      <Info className="w-3 h-3" /> {lang === 'id' ? 'Untuk:' : 'For:'} {lang === 'id' ? row.disease?.name_id : row.disease?.name_en}
-                    </p>
-                  </td>
-                  
-                  <td className="px-6 py-4 text-center">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 font-black border border-teal-200 dark:border-teal-800">
-                      {row.clinical_score} Pts
-                    </span>
-                  </td>
-                  
-                  <td className="px-6 py-4 text-center">
-                    <span className={`font-bold ${row.success_rate_pct >= 80 ? 'text-emerald-600 dark:text-emerald-400' : row.success_rate_pct >= 50 ? 'text-amber-500 dark:text-amber-400' : 'text-rose-500 dark:text-rose-400'}`}>
-                      {row.success_rate_pct}%
-                    </span>
-                  </td>
-                  
-                  <td className="px-6 py-4 text-center font-medium text-slate-600 dark:text-slate-300">
-                    {row.median_recovery_days} {lang === 'id' ? 'Hari' : 'Days'}
-                  </td>
-                  
-                  <td className="px-6 py-4 text-center">
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${row.relapse_rate_pct > 15 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
-                      {row.relapse_rate_pct}%
-                    </span>
-                  </td>
+              {data.map((row, index) => {
+                const diseaseName = lang === 'id' ? row.disease?.name_id : row.disease?.name_en;
+                
+                return (
+                  <tr 
+                    key={`${row.medication_id}-${row.disease_id}`}
+                    onClick={() => setSelectedMedication(row)}
+                    className="group hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 cursor-pointer transition-colors"
+                  >
+                    <td className="px-6 py-4 text-center">
+                      <div className={`w-8 h-8 mx-auto flex items-center justify-center rounded-lg font-black text-sm ${
+                        index === 0 ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400" :
+                        index === 1 ? "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400" :
+                        index === 2 ? "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400" :
+                        "bg-slate-50 text-slate-400 dark:bg-slate-950 dark:text-slate-500"
+                      }`}>
+                        {index + 1}
+                      </div>
+                    </td>
+                    
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex flex-col">
+                          <p className="font-bold text-slate-800 dark:text-slate-100 text-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">
+                            {row.medication?.name} 
+                            <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{dict.forDisease || (lang === 'id' ? "Untuk:" : "For:")} <span className="font-semibold">{diseaseName}</span></p>
+                        </div>
+                      </div>
+                    </td>
 
-                  <td className="px-6 py-4 text-center">
-                    <p className="font-bold text-slate-800 dark:text-slate-200">{row.total_cases.toLocaleString()}</p>
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mt-1">{row.evidence_grade}</p>
-                  </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-black text-base border border-indigo-100 dark:border-indigo-800/50">
+                        <Activity className="w-4 h-4" />
+                        {row.clinical_score}
+                      </div>
+                    </td>
 
-                </tr>
-              ))}
+                    <td className="px-6 py-4 text-center">
+                      <span className={`text-sm font-black ${row.success_rate_pct >= 80 ? 'text-emerald-600 dark:text-emerald-400' : row.success_rate_pct >= 50 ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                        {row.success_rate_pct}%
+                      </span>
+                    </td>
+
+                    <td className="px-6 py-4 text-center font-bold text-slate-600 dark:text-slate-300">
+                      {row.median_recovery_days} <span className="text-xs font-medium text-slate-400">{dict.days || (lang === 'id' ? "Hari" : "Days")}</span>
+                    </td>
+                    
+                    <td className="px-6 py-4 text-center">
+                      <p className="font-black text-slate-800 dark:text-slate-200 text-base">{row.total_cases.toLocaleString()}</p>
+                      <p className={`text-[9px] uppercase tracking-widest font-black mt-1 ${row.evidence_grade === 'High' ? 'text-emerald-500' : row.evidence_grade === 'Medium' ? 'text-blue-500' : 'text-amber-500'}`}>
+                        {row.evidence_grade}
+                      </p>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
 
-      {/* RENDER MODAL DI BAWAH TABLE */}
       <MedicationDetailModal 
         data={selectedMedication} 
         isOpen={selectedMedication !== null} 
-        onClose={() => setSelectedMedication(null)} 
+        onClose={() => setSelectedMedication(null)}
+        dict={dict}
+        lang={lang}
       />
     </>
   );

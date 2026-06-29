@@ -79,5 +79,23 @@
     "modalDeleteDesc2": "This action cannot be undone.",
     "typeDiseaseName": "Type name to confirm:",
     "btnConfirmDelete": "DELETE NOW"
+  },
+  "clinicalAnalytics": {
+    "title": "Clinical Intelligence",
+    "subtitle": "Evidence-Based analytics dashboard. Displays medication efficacy rates, recovery speeds, and relapse risks based on expert system medical records.",
+    "emptyState": "Not enough medical records to generate statistics yet.",
+    "leaderboardTitle": "Medication Efficacy Leaderboard (Top 20)",
+    "colRank": "Rank",
+    "colMedication": "Medication & Disease",
+    "colScore": "Clinical Score",
+    "colSuccess": "Success Rate",
+    "colRecovery": "Avg Recovery",
+    "colRelapse": "Relapse",
+    "colCases": "Evidence Cases",
+    "forDisease": "For Disease:",
+    "days": "Days",
+    "scoreDesc": "Based on medication efficacy weighting formula",
+    "modalMortality": "Mortality Rate",
+    "modalAvgRecovery": "Average recovery time"
   }
 }
