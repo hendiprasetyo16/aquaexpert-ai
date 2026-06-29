@@ -235,14 +235,14 @@ export default function DiseaseDatabasePage() {
                         <td className="px-6 py-4 text-center">
                           <span className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider border ${
                             disease.severity === 5 ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50' 
-                            : disease.severity === 4 ? 'bg-orange-500 text-white border-orange-600 shadow-[0_0_10px_rgba(249,115,22,0.4)]' /* FIX: Oranye solid agar terbaca di mode gelap */
+                            : disease.severity === 4 ? 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800/50' 
                             : disease.severity === 3 ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50' 
                             : 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50'
                           }`}>
                             {disease.severity === 5 ? `${listDict.badgeDanger || (lang === 'id' ? "KRITIS" : "CRITICAL")} (5/5)` : 
-                             disease.severity === 4 ? `${listDict.badgeHigh || (lang === 'id' ? "SANGAT TINGGI" : "VERY HIGH")} (4/5)` : 
-                             disease.severity === 3 ? `${listDict.badgeMedium || (lang === 'id' ? "SEDANG" : "MEDIUM")} (3/5)` : 
-                             `${listDict.badgeLow || (lang === 'id' ? "RENDAH" : "LOW")} (${disease.severity || 1}/5)`}
+                            disease.severity === 4 ? `${listDict.badgeHigh || (lang === 'id' ? "SANGAT TINGGI" : "VERY HIGH")} (4/5)` : 
+                            disease.severity === 3 ? `${listDict.badgeMedium || (lang === 'id' ? "SEDANG" : "MEDIUM")} (3/5)` : 
+                            `${listDict.badgeLow || (lang === 'id' ? "RENDAH" : "LOW")} (${disease.severity || 1}/5)`}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-center">
