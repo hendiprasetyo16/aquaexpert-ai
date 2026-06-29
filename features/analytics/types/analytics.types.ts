@@ -1,3 +1,4 @@
+// features/analytics/types/analytics.types.ts
 export type EvidenceGrade = "High" | "Medium" | "Low" | "Experimental";
 
 export interface MedicationEfficacyStat {
