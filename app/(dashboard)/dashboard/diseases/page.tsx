@@ -11,6 +11,7 @@ import {
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input"; // <-- Pastikan komponen Input sudah di-import
 import toast from "react-hot-toast";
 
 import type { Disease } from "@/features/diseases/types/disease.types";
@@ -30,7 +31,6 @@ export default function DiseaseDatabasePage() {
   const { dict, language } = useLanguage();
   const lang = language as "id" | "en";
 
-  // FIX: Type-safe dictionary extraction without 'any'
   const rootDict = (dict as Record<string, unknown>) || {};
   const listDict = (rootDict?.diseaseList as Record<string, string>) || {};
   const arcDict = (rootDict?.diseaseArchiveList as Record<string, string>) || {};
@@ -111,9 +111,22 @@ export default function DiseaseDatabasePage() {
     );
   }, [diseases, searchQuery]);
 
+  // =========================================================================
+  // LOGIKA PAGINATION BERBENTUK ANGKA (Diadopsi dari Modul Plants)
+  // =========================================================================
   const totalPages = Math.max(1, Math.ceil(filteredDiseases.length / ITEMS_PER_PAGE));
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const currentData = filteredDiseases.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const maxVisiblePages = 4;
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+  if (endPage - startPage + 1 < maxVisiblePages) endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+  if (endPage === totalPages) startPage = Math.max(1, totalPages - maxVisiblePages + 1);
+
+  const pageNumbers = [];
+  for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
+  // =========================================================================
 
   const translateCategory = (cat: string | null | undefined) => {
     if (!cat) return "General";
@@ -222,7 +235,7 @@ export default function DiseaseDatabasePage() {
                         <td className="px-6 py-4 text-center">
                           <span className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider border ${
                             disease.severity === 5 ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50' 
-                            : disease.severity === 4 ? 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800/50' 
+                            : disease.severity === 4 ? 'bg-orange-500 text-white border-orange-600 shadow-[0_0_10px_rgba(249,115,22,0.4)]' /* FIX: Oranye solid agar terbaca di mode gelap */
                             : disease.severity === 3 ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50' 
                             : 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50'
                           }`}>
@@ -266,29 +279,57 @@ export default function DiseaseDatabasePage() {
                 </table>
               </div>
 
-              {/* PAGINATION CONTROLS */}
+              {/* ========================================================================= */}
+              {/* UI PAGINATION BERBENTUK ANGKA (Diadopsi dari Modul Plants)               */}
+              {/* ========================================================================= */}
               {totalPages > 1 && (
-                <div className="border-t border-slate-200 dark:border-slate-800 p-4 sm:p-6 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-sm text-slate-500 font-medium">
-                    {listDict.paginationShowing || (lang === 'id' ? "Menampilkan" : "Showing")} <span className="text-slate-800 dark:text-slate-200 font-bold">{startIndex + 1}</span> {listDict.paginationTo || (lang === 'id' ? "hingga" : "to")} <span className="text-slate-800 dark:text-slate-200 font-bold">{Math.min(startIndex + ITEMS_PER_PAGE, filteredDiseases.length)}</span> {listDict.paginationOf || (lang === 'id' ? "dari" : "of")} <span className="text-slate-800 dark:text-slate-200 font-bold">{filteredDiseases.length}</span> {listDict.paginationData || (lang === 'id' ? "data" : "records")}
+                <div className="flex flex-col xl:flex-row items-center justify-between border-t border-slate-200 dark:border-slate-800 p-4 sm:p-6 bg-slate-50/50 dark:bg-slate-900/50 gap-4 transition-colors">
+                  <p className="text-sm text-slate-600 dark:text-slate-400 text-center xl:text-left w-full xl:w-auto">
+                    {listDict.paginationShowing || (lang === 'id' ? "Menampilkan" : "Showing")} <span className="font-medium text-gray-900 dark:text-slate-200">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> {listDict.paginationTo || (lang === 'id' ? "hingga" : "to")} <span className="font-medium text-gray-900 dark:text-slate-200">{Math.min(currentPage * ITEMS_PER_PAGE, filteredDiseases.length)}</span> {listDict.paginationOf || (lang === 'id' ? "dari" : "of")} <span className="font-medium text-gray-900 dark:text-slate-200">{filteredDiseases.length}</span> {listDict.paginationData || (lang === 'id' ? "data" : "records")}
                   </p>
+                  
+                  <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
+                    <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    
+                    {pageNumbers.map(num => (
+                      <Button
+                        key={num}
+                        variant={currentPage === num ? "default" : "outline"}
+                        onClick={() => setCurrentPage(num)}
+                        className={`h-8 w-8 sm:h-9 sm:w-9 p-0 text-xs sm:text-sm font-medium transition-all ${
+                          currentPage === num 
+                            ? 'bg-blue-600 hover:bg-blue-500 text-white border-blue-600 dark:border-blue-500 shadow-md shadow-blue-600/20 scale-105' 
+                            : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        {num}
+                      </Button>
+                    ))}
 
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="w-8 h-8 sm:w-9 sm:h-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
-                      <ChevronsLeft className="w-4 h-4" />
+                    <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
+                      <ChevronRight className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="w-8 h-8 sm:w-9 sm:h-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
-                      <ChevronLeft className="w-4 h-4" />
+                    <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="h-8 w-8 sm:h-9 sm:w-9 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors">
+                      <ChevronsRight className="h-4 w-4" />
                     </Button>
-                    <div className="px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-bold text-sm border border-blue-100 dark:border-blue-800">
-                      {currentPage} / {totalPages}
+
+                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 ml-2 sm:ml-4 border-l border-slate-300 dark:border-slate-700 pl-2 sm:pl-4 transition-colors">
+                      <span className="hidden sm:inline">Hal</span>
+                      <Input 
+                        type="number" min={1} max={totalPages} value={currentPage}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (val >= 1 && val <= totalPages) setCurrentPage(val);
+                        }}
+                        className="w-14 h-8 text-center bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-gray-900 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:border-blue-500 transition-colors"
+                      />
+                      <span className="hidden sm:inline">/ {totalPages}</span>
                     </div>
-                    <Button variant="outline" size="icon" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="w-8 h-8 sm:w-9 sm:h-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="w-8 h-8 sm:w-9 sm:h-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
-                      <ChevronsRight className="w-4 h-4" />
-                    </Button>
                   </div>
                 </div>
               )}
