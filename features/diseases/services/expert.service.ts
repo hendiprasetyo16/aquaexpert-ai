@@ -1,165 +1,165 @@
-// D:\aquaexpert-ai\features\diseases\services\expert.service.ts
-import type { AquariumParameterLog } from "../../aquariums/types/parameter.types";
+// features/diseases/actions/expert.actions.ts
+"use server";
 
-export interface Symptom {
-  id: string;
-  label_id: string;
-  label_en: string;
-  weight: number; // UPGRADE C: Bobot Keparahan Gejala
-}
+import { createClient } from "@/lib/supabase/server";
+import { verifyAquariumOwnership } from "@/features/aquariums/repositories/security.repository";
+import type { Disease, Symptom, DiseaseMatchResult } from "../types/disease.types";
 
-export interface DiseasePrediction {
-  disease_name_id: string;
-  disease_name_en: string;
-  probability: number;
-  urgency: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
-  treatment_id: string;
-  treatment_en: string;
-  isPrimary: boolean; // UPGRADE C: Flag Primary vs Secondary
-}
-
-// 1. KAMUS GEJALA KLINIS DENGAN BOBOT
-export const COMMON_SYMPTOMS: Symptom[] = [
-  { id: "gasping", label_id: "Megap-megap di permukaan", label_en: "Gasping at surface", weight: 4 },
-  { id: "lethargy", label_id: "Lemas / Berdiam di dasar", label_en: "Lethargy / Sitting at bottom", weight: 2 },
-  { id: "white_spots", label_id: "Bintik putih seperti garam", label_en: "White spots like salt", weight: 5 }, // Mutlak (Pathognomonic)
-  { id: "flashing", label_id: "Menggesekkan badan ke benda", label_en: "Rubbing against objects (Flashing)", weight: 3 },
-  { id: "fin_rot", label_id: "Sirip robek / membusuk", label_en: "Frayed or rotting fins", weight: 4 },
-  { id: "loss_appetite", label_id: "Nafsu makan hilang", label_en: "Loss of appetite", weight: 2 },
-  { id: "red_gills", label_id: "Insang memerah / meradang", label_en: "Red or inflamed gills", weight: 4 },
-  { id: "bloated", label_id: "Perut bengkak / sisik berdiri", label_en: "Bloated / Pineconing scales", weight: 5 }, // Mutlak Dropsy
-];
-
-// 2. MATRIKS PENYAKIT & STRESOR LINGKUNGAN
-const DISEASE_KNOWLEDGE_BASE = [
-  {
-    id: "ammonia_poisoning",
-    name_id: "Keracunan Amonia (Ammonia Poisoning)",
-    name_en: "Ammonia Poisoning",
-    symptoms: ["gasping", "red_gills", "lethargy", "loss_appetite"],
-    triggers: { ammonia: 0.25 }, 
-    urgency: "CRITICAL",
-    treatment_id: "Water change 50% segera. Stop pemberian pakan. Beri aerasi maksimal dan gunakan pengikat amonia (Ammonia Binder).",
-    treatment_en: "Immediate 50% water change. Stop feeding. Maximize aeration and use Ammonia Binder."
-  },
-  {
-    id: "nitrite_poisoning",
-    name_id: "Penyakit Darah Coklat (Nitrite Poisoning)",
-    name_en: "Brown Blood Disease (Nitrite Poisoning)",
-    symptoms: ["gasping", "lethargy"],
-    triggers: { nitrite: 0.25 }, 
-    urgency: "CRITICAL",
-    treatment_id: "Water change 30-50%. Tambahkan garam ikan (NaCl) 1 gram per liter untuk mencegah nitrit masuk ke insang.",
-    treatment_en: "30-50% water change. Add aquarium salt (NaCl) at 1g/liter to block nitrite absorption."
-  },
-  {
-    id: "ich",
-    name_id: "Bintik Putih (Ich / White Spot)",
-    name_en: "White Spot Disease (Ich)",
-    symptoms: ["white_spots", "flashing", "lethargy"],
-    triggers: { temp_max: 26 }, // Rentan menyerang jika suhu dingin
-    urgency: "HIGH",
-    treatment_id: "Naikkan suhu perlahan ke 28-30°C. Gunakan obat anti-parasit (Methylene Blue / Malachite Green).",
-    treatment_en: "Slowly raise temperature to 28-30°C. Use anti-parasitic medication (Methylene Blue / Malachite Green)."
-  },
-  {
-    id: "fin_rot",
-    name_id: "Busuk Sirip (Fin Rot)",
-    name_en: "Fin Rot",
-    symptoms: ["fin_rot", "lethargy", "loss_appetite"],
-    triggers: { nitrate: 40 }, // Dipicu kualitas air buruk
-    urgency: "MEDIUM",
-    treatment_id: "Perbaiki kualitas air (Water Change 30%). Gunakan antibiotik ringan atau ekstrak daun ketapang/Melafix.",
-    treatment_en: "Improve water quality (30% WC). Use mild antibiotics, Catappa extract, or Melafix."
-  },
-  {
-    id: "dropsy",
-    name_id: "Sisik Nanas (Dropsy)",
-    name_en: "Dropsy",
-    symptoms: ["bloated", "loss_appetite", "lethargy"],
-    triggers: { nitrate: 60, ammonia: 0.5 }, 
-    urgency: "CRITICAL",
-    treatment_id: "Karantina segera! Sangat menular. Mandi garam Epsom (Magnesium Sulfat) dan berikan antibiotik spektrum luas (Kanaplex).",
-    treatment_en: "Quarantine immediately! Highly contagious. Epsom salt baths and broad-spectrum antibiotics (Kanaplex)."
-  }
-];
-
-// ==========================================
-// 3. ENGINE PROBABILITAS (DENGAN PEMBOBOTAN)
-// ==========================================
-export function predictDiseases(
+export async function getDiseaseMatchAction(
+  aquariumId: string, 
   selectedSymptomIds: string[], 
-  latestParam: AquariumParameterLog | null | undefined
-): DiseasePrediction[] {
-  
-  if (selectedSymptomIds.length === 0) return [];
-
-  const predictions: DiseasePrediction[] = [];
-
-  DISEASE_KNOWLEDGE_BASE.forEach(disease => {
-    let matchScore = 0;
-    let maxPossibleScore = 4; // 4 adalah base environmental weight (Amonia 2 + Nitrit 2 / Suhu dll)
-
-    // Hitung Max Score Spesifik untuk Penyakit ini
-    disease.symptoms.forEach(symId => {
-      const symData = COMMON_SYMPTOMS.find(s => s.id === symId);
-      if (symData) maxPossibleScore += symData.weight;
-    });
-
-    let symptomMatches = 0;
-    disease.symptoms.forEach(symId => {
-      if (selectedSymptomIds.includes(symId)) {
-        symptomMatches++;
-        const symData = COMMON_SYMPTOMS.find(s => s.id === symId);
-        if (symData) matchScore += symData.weight; // Menggunakan Bobot (Weight)
-      }
-    });
-
-    if (symptomMatches === 0) return;
-
-    // Evaluasi Stresor Lingkungan (Environmental Multiplier)
-    let triggerHit = false;
-    if (latestParam) {
-      if (disease.triggers.ammonia !== undefined && latestParam.ammonia != null && latestParam.ammonia >= disease.triggers.ammonia) {
-        matchScore += 2; triggerHit = true;
-      }
-      if (disease.triggers.nitrite !== undefined && latestParam.nitrite != null && latestParam.nitrite >= disease.triggers.nitrite) {
-        matchScore += 2; triggerHit = true;
-      }
-      if (disease.triggers.nitrate !== undefined && latestParam.nitrate != null && latestParam.nitrate >= disease.triggers.nitrate) {
-        matchScore += 1.5; triggerHit = true;
-      }
-      if (disease.triggers.temp_max !== undefined && latestParam.temperature != null && latestParam.temperature <= disease.triggers.temp_max) {
-        matchScore += 1.5; triggerHit = true;
-      }
-    }
-
-    let probability = Math.round((matchScore / maxPossibleScore) * 100);
+  lang: 'id' | 'en' = 'en'
+): Promise<{ success: boolean; matches?: DiseaseMatchResult[]; error?: string }> {
+  try {
+    const supabase = await createClient();
     
-    // Hard Override untuk kepastian 99%
-    if (probability > 100) probability = 99;
-    if (symptomMatches === disease.symptoms.length && triggerHit) probability = 98; 
-
-    if (probability >= 20) {
-      predictions.push({
-        disease_name_id: disease.name_id,
-        disease_name_en: disease.name_en,
-        probability,
-        urgency: disease.urgency as "CRITICAL" | "HIGH" | "MEDIUM" | "LOW",
-        treatment_id: disease.treatment_id,
-        treatment_en: disease.treatment_en,
-        isPrimary: false
-      });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+    
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'super_admin') {
+       await verifyAquariumOwnership(supabase, aquariumId, user.id);
     }
-  });
 
-  // Sort dari tinggi ke rendah
-  const sorted = predictions.sort((a, b) => b.probability - a.probability);
-  
-  // UPGRADE C: Tandai Diagnosis Utama (Primary) dan Sekunder (Secondary)
-  if (sorted.length > 0) {
-    sorted[0].isPrimary = true;
+    if (!selectedSymptomIds || selectedSymptomIds.length === 0) {
+      return { success: true, matches: [] };
+    }
+
+    // FIX 1: Dihapus .eq("is_deleted", false) karena kolom tersebut tidak ada di tabel aquarium_fishes Bapak!
+    const { data: inventoryFishes, error: invError } = await supabase
+      .from("aquarium_fishes")
+      .select("fish_id")
+      .eq("aquarium_id", aquariumId);
+
+    if (invError) throw new Error("Gagal mengambil data inventaris ikan.");
+    const tankFishIds = Array.from(new Set(inventoryFishes?.map(f => f.fish_id) || []));
+
+    const { data: initialCandidates, error: candError } = await supabase
+      .from("disease_symptoms")
+      .select("disease_id")
+      .in("symptom_id", selectedSymptomIds);
+
+    if (candError || !initialCandidates) throw new Error("Gagal mengidentifikasi kandidat penyakit.");
+    
+    const candidateDiseaseIds = Array.from(new Set(initialCandidates.map(c => c.disease_id)));
+    if (candidateDiseaseIds.length === 0) {
+      return { success: true, matches: [] };
+    }
+
+    const { data: fullDiseaseSignatures, error: signatureError } = await supabase
+      .from("disease_symptoms")
+      .select(`
+        disease_id,
+        symptom_id,
+        weight,
+        is_hallmark,
+        symptoms (*),
+        diseases (*)
+      `)
+      .in("disease_id", candidateDiseaseIds);
+
+    if (signatureError || !fullDiseaseSignatures) throw new Error("Gagal memetakan profil patologi.");
+
+    const susceptibilityMap = new Map<string, number>(); 
+    if (tankFishIds.length > 0) {
+      const { data: fishRelations } = await supabase
+        .from("fish_disease_relations")
+        .select("disease_id, susceptibility_score")
+        .in("fish_id", tankFishIds);
+
+      if (fishRelations) {
+        fishRelations.forEach(rel => {
+          const currentMax = susceptibilityMap.get(rel.disease_id) || 0;
+          if (rel.susceptibility_score > currentMax) {
+            susceptibilityMap.set(rel.disease_id, rel.susceptibility_score);
+          }
+        });
+      }
+    }
+
+    const profileMap = new Map<string, {
+      disease: Disease;
+      totalPossibleWeight: number;
+      matchedWeight: number;
+      matchedSymptoms: Symptom[];
+      hasMatchedHallmark: boolean;
+      totalDiseaseSymptomIds: Set<string>;
+    }>();
+
+    fullDiseaseSignatures.forEach(ds => {
+      const dId = ds.disease_id;
+      const dData = ds.diseases as unknown as Disease;
+      const sData = ds.symptoms as unknown as Symptom;
+      const isSelected = selectedSymptomIds.includes(ds.symptom_id);
+
+      if (!profileMap.has(dId)) {
+        profileMap.set(dId, {
+          disease: dData,
+          totalPossibleWeight: 0,
+          matchedWeight: 0,
+          matchedSymptoms: [],
+          hasMatchedHallmark: false,
+          totalDiseaseSymptomIds: new Set()
+        });
+      }
+
+      const p = profileMap.get(dId)!;
+      p.totalPossibleWeight += ds.weight;
+      p.totalDiseaseSymptomIds.add(ds.symptom_id);
+
+      if (isSelected) {
+        p.matchedWeight += ds.weight;
+        p.matchedSymptoms.push(sData);
+        if (ds.is_hallmark) p.hasMatchedHallmark = true;
+      }
+    });
+
+    const results: DiseaseMatchResult[] = [];
+    const selectedSet = new Set(selectedSymptomIds);
+
+    profileMap.forEach((p, diseaseId) => {
+      const baseConfidence = (p.matchedWeight / p.totalPossibleWeight) * 100;
+      let alienSymptomCount = 0;
+      
+      selectedSet.forEach(sId => {
+        if (!p.totalDiseaseSymptomIds.has(sId)) {
+          alienSymptomCount++;
+        }
+      });
+
+      // FIX 2: Menurunkan hukuman penalti dari 12 menjadi 4, agar jika user asal klik banyak gejala, skor tidak langsung 0.
+      const negativePenalty = alienSymptomCount * 4;
+      const hallmarkBonus = p.hasMatchedHallmark ? 20 : 0;
+      
+      const susceptibilityScore = susceptibilityMap.get(diseaseId) || 0;
+      let susceptibilityBonus = 0;
+      let susceptibilityWarning = null;
+
+      if (susceptibilityScore >= 4) {
+        susceptibilityBonus = susceptibilityScore * 2.5; 
+        susceptibilityWarning = lang === 'id' 
+          ? "Peringatan: Terdapat spesies di tangki Anda yang memiliki kerentanan genetik tinggi terhadap patogen ini."
+          : "Warning: Your tank contains species highly susceptible to this specific pathogen.";
+      }
+
+      let finalConfidence = baseConfidence + hallmarkBonus + susceptibilityBonus - negativePenalty;
+      finalConfidence = Math.max(0, Math.min(100, Math.round(finalConfidence)));
+
+      // FIX 3: Menurunkan batas minimal skor menjadi 10% agar sistem bisa memberikan probabilitas terkecil sekalipun
+      if (finalConfidence >= 10) {
+        results.push({
+          disease: p.disease,
+          confidenceScore: finalConfidence,
+          matchedSymptoms: p.matchedSymptoms,
+          susceptibilityWarning
+        });
+      }
+    });
+
+    results.sort((a, b) => b.confidenceScore - a.confidenceScore);
+    return { success: true, matches: results };
+
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Terjadi kegagalan fungsi internal pada Disease Engine." };
   }
-
-  return sorted;
 }
