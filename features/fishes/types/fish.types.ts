@@ -55,7 +55,10 @@ export interface Fish {
   mouth_size_factor?: number | null;
   compatibility_tags?: string[] | null;
   activity_period?: string | null;
-  compatibility_score?: any | null; // Tipe JSONB dari Supabase
+  
+  // FIX: Mengganti 'any' menjadi Record<string, number> untuk JSONB Supabase
+  compatibility_score?: Record<string, number> | null; 
+  
   shrimp_predation_risk?: number | null;
   native_biotope?: string | null;
   preferred_temperature?: number | null;
