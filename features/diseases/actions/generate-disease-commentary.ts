@@ -24,11 +24,20 @@ const aiResponseCache = new Map<string, { commentary: string; timestamp: number 
 const CACHE_TTL_MS = 1000 * 60 * 60; // 1 Jam
 const MAX_CACHE_SIZE = 500;
 
+// FIX: Menghilangkan 'any' dengan Type Guard yang aman
+interface GeminiResponseWithText {
+  text: string | (() => string);
+}
+
+function hasTextProperty(obj: unknown): obj is GeminiResponseWithText {
+  return typeof obj === 'object' && obj !== null && 'text' in obj;
+}
+
 function extractGeminiText(response: unknown): string | null {
-  if (!response || typeof response !== "object") return null;
-  const geminiAny = response as any;
-  if (typeof geminiAny.text === "function") return geminiAny.text();
-  if (typeof geminiAny.text === "string") return geminiAny.text;
+  if (hasTextProperty(response)) {
+    if (typeof response.text === "function") return response.text();
+    if (typeof response.text === "string") return response.text;
+  }
   return null;
 }
 
@@ -69,7 +78,7 @@ export async function generateDiseaseCommentaryAction({
           .join("|")
       : "";
 
-    // OPTIMASI: Payload hashing menggunakan SHA-256 untuk memadatkan memori kunci
+    // OPTIMASI: Payload hashing
     const rawKeyPayload = JSON.stringify({
       aquariumId,
       lang,
@@ -92,7 +101,7 @@ export async function generateDiseaseCommentaryAction({
         aiResponseCache.delete(cacheKey);
         logger.info("[DISEASE AI] 🧹 Stale cache deleted.");
       } else {
-        // LRU Promotion: Pindahkan elemen yang diakses ke urutan teratas (paling akhir di iterasi Map)
+        // LRU Promotion
         aiResponseCache.delete(cacheKey);
         aiResponseCache.set(cacheKey, cachedData);
         
@@ -254,7 +263,7 @@ export async function generateDiseaseCommentaryAction({
         : `Primary diagnosis strongly indicates **${topDiseaseName}** (${primaryMatch.confidenceScore}% Confidence).\n\nYour tank's current ecosystem condition has recorded environmental penalties that risk accelerating the pathogen lifecycle. Although the Generative AI Assistant is undergoing maintenance, our Expert System highly recommends taking immediate corrective actions on water parameters, isolating infected fish to a quarantine tank, and reviewing the biological load.`;
     }
 
-    // Memory Eviction Policy: Evict Oldest (First element in Map iteration)
+    // Memory Eviction Policy
     if (aiResponseCache.size >= MAX_CACHE_SIZE) {
       const oldestKey = aiResponseCache.keys().next().value;
       if (oldestKey) aiResponseCache.delete(oldestKey);
