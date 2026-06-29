@@ -5,11 +5,11 @@ import { DiseaseForm } from "@/features/diseases/components/DiseaseForm";
 import type { Disease } from "@/features/diseases/types/disease.types";
 import { Edit, AlertTriangle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useLanguage } from "@/providers/LanguageProvider"; // 👈 Pakai hook andalanmu
+import { useLanguage } from "@/providers/LanguageProvider";
 
 interface Props {
   data: Disease | null;
-  error: any;
+  error: unknown; // FIX: Mengganti any dengan unknown
 }
 
 export default function EditDiseaseClient({ data, error }: Props) {
