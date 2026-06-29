@@ -34,9 +34,14 @@ export function DiseaseForm({ initialData, mode }: Props) {
     setMounted(true);
   }, []);
 
-  const rootDict = (dict as Record<string, any>) || {};
-  const formDict = rootDict?.diseaseForm || rootDict?.disease?.diseaseForm || {};
-  const arcDict = rootDict?.diseaseArchiveList || rootDict?.disease?.diseaseArchiveList || {};
+  // ==========================================
+  // PERBAIKAN: Menghilangkan 'any' sepenuhnya
+  // ==========================================
+  const rootDict = (dict as Record<string, unknown>) || {};
+  const diseaseScope = (rootDict.disease as Record<string, unknown>) || {};
+  
+  const formDict = (diseaseScope.diseaseForm || rootDict.diseaseForm || {}) as Record<string, string>;
+  const arcDict = (diseaseScope.diseaseArchiveList || rootDict.diseaseArchiveList || {}) as Record<string, string>;
 
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string>(initialData?.image_url || "");
@@ -201,7 +206,6 @@ export function DiseaseForm({ initialData, mode }: Props) {
 
   return (
     <div className="w-full transition-colors duration-300">
-      {/* Background Utama - Diubah menjadi dark:bg-slate-900 */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-sm space-y-8 animate-in fade-in duration-500 relative transition-colors">
         
         <form onSubmit={handleSubmit} className="space-y-8 relative z-10">

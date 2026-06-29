@@ -60,10 +60,10 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
     return map[urg.toLowerCase()] || urg;
   };
 
-  const handleCloseZoom = (e?: React.MouseEvent) => {
+  const handleCloseZoom = (e?: React.MouseEvent | React.TouchEvent) => {
     if (e) {
       e.stopPropagation();
-      e.preventDefault();
+      if ('preventDefault' in e) e.preventDefault();
     }
     setIsZoomed(false);
     setTimeout(() => {
@@ -105,7 +105,6 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
         <div className="absolute inset-0" onClick={onClose} />
 
-        {/* FIXED: Removed arbitrary hex colors, strictly using Tailwind slate-900 for dark mode */}
         <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-3xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
           
           <div className={`p-5 sm:p-6 border-b flex items-start justify-between gap-4 ${isEmergency ? "bg-rose-50/50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/30" : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"}`}>
@@ -204,7 +203,7 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
                 <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                   <Info className="w-4 h-4" /> {lang === "id" ? "Gambaran Umum Penyakit" : "Disease Overview"}
                 </h4>
-                <p className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-blue-50/30 dark:bg-slate-950 p-4 rounded-xl border border-blue-100/50 dark:border-slate-800/60 whitespace-pre-line">
+                <p className="text-[13px] sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50/50 dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 whitespace-pre-line">
                   {descriptionText}
                 </p>
               </div>
@@ -295,7 +294,7 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
             className={`relative flex h-full w-full items-center justify-center ${zoomScale > 1 ? 'overflow-hidden' : ''}`}
             onClick={(e) => {
               if (hasDragged) return;
-              if (e.target === e.currentTarget && zoomScale === 1) handleCloseZoom(e as any);
+              if (e.target === e.currentTarget && zoomScale === 1) handleCloseZoom(e as unknown as React.MouseEvent);
             }}
             onMouseDown={(e) => {
               if (zoomScale > 1) {
@@ -340,7 +339,7 @@ export function DiseaseDetailModal({ disease, isOpen, onClose, lang = "id" }: Pr
             className="absolute top-4 right-4 md:top-6 md:right-6 p-2 md:p-3 bg-slate-800/50 hover:bg-red-600 text-white rounded-full transition-all z-[10000] cursor-pointer shadow-lg border border-white/20 hover:border-red-500"
             onClick={(e) => {
               e.stopPropagation();
-              handleCloseZoom();
+              handleCloseZoom(e as unknown as React.MouseEvent);
             }}
             title={lang === "id" ? "Tutup" : "Close"}
           >
