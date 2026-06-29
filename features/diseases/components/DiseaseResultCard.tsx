@@ -14,39 +14,43 @@ interface Props {
 export function DiseaseResultCard({ result, lang = "id", isTopMatch = false, onDetailClick }: Props) {
   const { disease, confidenceScore, susceptibilityWarning, hasHallmarkMatch } = result;
 
-  // Skema warna responsif untuk Dark Mode & Light Mode
+  // Skema warna menggabungkan efek Neon dengan warna box yang tegas
   const getColorScheme = (score: number) => {
     if (score >= 80) return { 
-      border: "border-emerald-200 dark:border-emerald-500/30", 
+      border: "border-emerald-200 dark:border-emerald-800", 
       bg: "bg-white dark:bg-slate-900", 
-      progress: "bg-emerald-500", 
-      text: "text-emerald-700 dark:text-emerald-400",
-      accent: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-      glow: "hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] hover:border-emerald-400 dark:hover:border-emerald-500"
+      progress: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]", 
+      text: "text-emerald-600 dark:text-emerald-400",
+      accent: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
+      neonHover: "hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-[0_0_25px_rgba(16,185,129,0.2)]",
+      neonBlob: "bg-emerald-500"
     };
     if (score >= 60) return { 
-      border: "border-amber-200 dark:border-amber-500/30", 
+      border: "border-amber-200 dark:border-amber-800", 
       bg: "bg-white dark:bg-slate-900", 
-      progress: "bg-amber-500", 
-      text: "text-amber-700 dark:text-amber-400",
-      accent: "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800",
-      glow: "hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] hover:border-amber-400 dark:hover:border-amber-500"
+      progress: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]", 
+      text: "text-amber-600 dark:text-amber-400",
+      accent: "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
+      neonHover: "hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-[0_0_25px_rgba(245,158,11,0.2)]",
+      neonBlob: "bg-amber-500"
     };
     if (score >= 40) return { 
-      border: "border-orange-200 dark:border-orange-500/30", 
+      border: "border-orange-200 dark:border-orange-800", 
       bg: "bg-white dark:bg-slate-900", 
-      progress: "bg-orange-500", 
-      text: "text-orange-700 dark:text-orange-400",
-      accent: "bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800",
-      glow: "hover:shadow-[0_0_20px_rgba(249,115,22,0.15)] hover:border-orange-400 dark:hover:border-orange-500"
+      progress: "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]", 
+      text: "text-orange-600 dark:text-orange-400",
+      accent: "bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400",
+      neonHover: "hover:border-orange-400 dark:hover:border-orange-500 hover:shadow-[0_0_25px_rgba(249,115,22,0.2)]",
+      neonBlob: "bg-orange-500"
     };
     return { 
-      border: "border-rose-200 dark:border-rose-500/30", 
+      border: "border-rose-200 dark:border-rose-800", 
       bg: "bg-white dark:bg-slate-900", 
-      progress: "bg-rose-500", 
-      text: "text-rose-700 dark:text-rose-400",
-      accent: "bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800",
-      glow: "hover:shadow-[0_0_20px_rgba(244,63,94,0.15)] hover:border-rose-400 dark:hover:border-rose-500"
+      progress: "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]", 
+      text: "text-rose-600 dark:text-rose-400",
+      accent: "bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400",
+      neonHover: "hover:border-rose-400 dark:hover:border-rose-500 hover:shadow-[0_0_25px_rgba(244,63,94,0.2)]",
+      neonBlob: "bg-rose-500"
     };
   };
 
@@ -65,8 +69,13 @@ export function DiseaseResultCard({ result, lang = "id", isTopMatch = false, onD
   };
 
   return (
-    <div className={`w-full rounded-2xl border-2 p-5 md:p-6 transition-all duration-300 relative overflow-hidden group ${style.bg} ${style.border} ${style.glow}`}>
-      
+    <div 
+      onClick={() => onDetailClick(disease.id)}
+      className={`group cursor-pointer w-full rounded-2xl border-2 p-5 md:p-6 transition-all duration-300 relative overflow-hidden flex flex-col hover:-translate-y-1 ${style.bg} ${style.border} ${style.neonHover}`}
+    >
+      {/* Efek Neon Glow Blob */}
+      <div className={`absolute -top-10 -right-10 w-32 h-32 blur-[50px] rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-500 ${style.neonBlob}`}></div>
+
       {isTopMatch && (
         <div className="absolute top-0 right-0 bg-blue-600 dark:bg-blue-500 text-white text-[10px] font-black px-4 py-1.5 rounded-bl-xl tracking-widest flex items-center gap-1.5 shadow-md z-20">
           <Activity className="w-3.5 h-3.5" /> PRIMARY MATCH
@@ -76,11 +85,16 @@ export function DiseaseResultCard({ result, lang = "id", isTopMatch = false, onD
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5 relative z-10">
         <div className="flex-1 pr-4">
           <div className="flex items-center gap-2 mb-2">
-             <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border ${style.accent}`}>
+             <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border border-transparent group-hover:border-current transition-colors ${style.accent}`}>
                {translateCategory(disease.disease_category)}
              </span>
           </div>
-          <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 leading-tight">{diseaseName}</h3>
+          <div className="flex items-center gap-2">
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 leading-tight group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
+                {diseaseName}
+              </h3>
+              <ChevronRight className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-blue-500 transition-transform group-hover:translate-x-1 shrink-0 hidden sm:block" />
+          </div>
         </div>
         
         <div className="flex sm:flex-col items-center sm:items-end gap-3 sm:gap-0 shrink-0 bg-slate-50 dark:bg-slate-800/50 px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
@@ -93,38 +107,29 @@ export function DiseaseResultCard({ result, lang = "id", isTopMatch = false, onD
         <div className={`h-full ${style.progress} transition-all duration-1000 ease-out`} style={{ width: `${confidenceScore}%` }} />
       </div>
 
+      {/* Kotak Peringatan (Desain Awal yang Tegas & Jelas) */}
       {(susceptibilityWarning || hasHallmarkMatch || isCritical) && (
-        <div className="space-y-2.5 mb-6 relative z-10">
+        <div className="space-y-2.5 relative z-10">
           {hasHallmarkMatch && (
-            <div className="flex items-start gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs">
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs transition-colors group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/40">
               <Award className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
               <span className="font-semibold leading-relaxed">{lang === "id" ? "Tanda Mutlak (Pathognomonic) Terpenuhi. Akurasi Sangat Tinggi." : "Pathognomonic Hallmark Match. High Accuracy."}</span>
             </div>
           )}
           {susceptibilityWarning && (
-            <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs">
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs transition-colors group-hover:bg-amber-100 dark:group-hover:bg-amber-900/40">
               <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
               <span className="font-semibold leading-relaxed">{susceptibilityWarning}</span>
             </div>
           )}
           {isCritical && (
-            <div className="flex items-start gap-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs">
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs transition-colors group-hover:bg-rose-100 dark:group-hover:bg-rose-900/40">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
               <span className="font-semibold leading-relaxed">{lang === "id" ? "Peringatan: Penyakit dengan Risiko Kematian Sangat Tinggi / Kritis." : "Warning: Critical Mortality Risk Disease."}</span>
             </div>
           )}
         </div>
       )}
-
-      <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800 relative z-10">
-        <button 
-          onClick={() => onDetailClick(disease.id)} 
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-slate-700 bg-slate-100 hover:bg-blue-600 hover:text-white dark:text-slate-200 dark:bg-slate-800 dark:hover:bg-blue-600 transition-all duration-300 group"
-        >
-          {lang === "id" ? "Buka Panduan Medis" : "Open Medical Guide"}
-          <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-        </button>
-      </div>
     </div>
   );
 }
