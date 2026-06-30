@@ -12,11 +12,8 @@ import {
   Cpu, BarChart, HeartPulse, Globe, Bug, Database, Zap
 } from "lucide-react";
 
-// Import Fungsi Analisis Kesehatan & Pengambil Data Asli
+// Import Fungsi Analisis Kesehatan
 import { analyzeAquariumHealth } from "@/features/aquariums/utils/health-engine";
-import { getParametersAction } from "@/features/aquariums/actions/parameter.actions";
-import { getMaintenanceDashboardAction } from "@/features/aquariums/actions/maintenance.actions";
-import { getTankInventoryAction } from "@/features/aquariums/actions/inventory.actions"; 
 import type { AquariumParameterLog } from "@/features/aquariums/types/parameter.types";
 
 interface TankInfo {
@@ -47,10 +44,24 @@ interface ActivityLog {
   date: Date;
 }
 
-// FIX: Menambahkan tipe yang jelas untuk Flora dan Fauna agar bebas dari 'any'
-interface InventoryItem {
+// Tipe untuk pengelompokan data agar bebas dari 'any'
+interface DbRow { 
+  aquarium_id: string; 
+  [key: string]: unknown; 
+}
+
+interface InventoryRow extends DbRow {
   quantity?: number;
 }
+
+// Helper cerdas untuk mengelompokkan data dalam hitungan milidetik
+const groupByAquarium = <T extends DbRow>(data: T[] | null) => {
+  return (data || []).reduce<Record<string, T[]>>((acc, curr) => {
+    acc[curr.aquarium_id] = acc[curr.aquarium_id] || [];
+    acc[curr.aquarium_id].push(curr);
+    return acc;
+  }, {});
+};
 
 export default function DashboardPage() {
   const { user, profile, role, isLoading } = useAuth();
@@ -76,7 +87,6 @@ export default function DashboardPage() {
         if (data.ip) {
           setIpAddress(data.ip);
           
-          // === UPDATE IP KE DATABASE ===
           const supabase = createClient();
           await supabase
             .from("profiles")
@@ -109,125 +119,132 @@ export default function DashboardPage() {
           .eq("user_id", user.id)
           .eq("is_active", true);
 
-        let tankIds: string[] = [];
-
         if (aquariums && aquariums.length > 0) {
-          tankIds = aquariums.map(a => a.id);
+          const tankIds = aquariums.map(a => a.id);
+          
           aquariums.sort((a, b) => {
             if (a.is_primary === b.is_primary) return a.name.localeCompare(b.name);
             return a.is_primary ? -1 : 1;
           });
           if (!aquariums.some(t => t.is_primary)) aquariums[0].is_primary = true;
 
+          // =========================================================================
+          // OPTIMASI SUPER (JURUS SAPUJAGAT): 1 Kali Tarik Untuk Semua Akuarium
+          // =========================================================================
+          const [
+            { data: rawParams },
+            { data: rawFishes },
+            { data: rawPlants },
+            { data: rawMaint },
+            { data: paramLogsRes },
+            { data: maintLogsRes },
+            { data: treatmentLogsRes }
+          ] = await Promise.all([
+            supabase.from("aquarium_parameters").select("*").in("aquarium_id", tankIds),
+            supabase.from("aquarium_fishes").select("aquarium_id, quantity, fish_id, fishes(*)").in("aquarium_id", tankIds),
+            supabase.from("aquarium_plants").select("aquarium_id, quantity, plant_id, plants(*)").in("aquarium_id", tankIds),
+            supabase.from("maintenance_tasks").select("*").in("aquarium_id", tankIds),
+            supabase.from("aquarium_parameters").select("id, record_date, parameter_source").in("aquarium_id", tankIds).order('record_date', { ascending: false }).limit(4),
+            supabase.from("aquarium_maintenance_logs").select("id, performed_at, maintenance_type").in("aquarium_id", tankIds).order('performed_at', { ascending: false }).limit(4),
+            supabase.from("aquarium_treatments").select("id, started_at, status").in("aquarium_id", tankIds).order('started_at', { ascending: false }).limit(4)
+          ]);
+
+          // Kelompokkan data yang ditarik berdasarkan ID Akuarium (0 millisecond delay)
+          const groupedParams = groupByAquarium(rawParams as DbRow[]);
+          const groupedFishes = groupByAquarium(rawFishes as InventoryRow[]);
+          const groupedPlants = groupByAquarium(rawPlants as InventoryRow[]);
+          const groupedMaint = groupByAquarium(rawMaint as DbRow[]);
+
           let totalAlerts = 0;
           let totalFauna = 0;
           let totalFlora = 0;
 
-          // =========================================================================
-          // OPTIMASI LOADING: Jalankan Proses Tank, Parameter, Maintenance, dan Log bersamaan
-          // =========================================================================
-          const [processedTanks, paramLogsRes, maintLogsRes, treatmentLogsRes] = await Promise.all([
-            // 1. Proses Analisis Tank
-            Promise.all(aquariums.map(async (aq) => {
-              try {
-                const [paramsResponse, invRes, maintenanceRes] = await Promise.all([
-                  getParametersAction(aq.id),
-                  getTankInventoryAction(aq.id),
-                  getMaintenanceDashboardAction(aq.id)
-                ]);
+          // Proses analisis dalam memori browser (Sangat Cepat)
+          const processedTanks = aquariums.map((aq) => {
+            const aqParams = groupedParams[aq.id] || [];
+            const aqFishes = groupedFishes[aq.id] || [];
+            const aqPlants = groupedPlants[aq.id] || [];
+            const aqMaintenance = groupedMaint[aq.id] || [];
 
-                const rawParams = paramsResponse.data || [];
-                const sanitizedParams: AquariumParameterLog[] = rawParams.map(param => ({
-                    ...param,
-                    temperature: param.temperature ?? null,
-                    ph: param.ph ?? null,
-                    ammonia: param.ammonia ?? null,
-                    nitrite: param.nitrite ?? null,
-                    nitrate: param.nitrate ?? null,
-                } as AquariumParameterLog));
+            // Urutkan parameter dari yang terbaru
+            aqParams.sort((a, b) => new Date(String(b.record_date)).getTime() - new Date(String(a.record_date)).getTime());
 
-                const aqFishes = invRes.fishes || [];
-                const aqPlants = invRes.plants || [];
-                const maintenanceStatus = maintenanceRes.tasksStatus || [];
-                
-                const healthAnalysis = analyzeAquariumHealth({
-                  aquarium: aq,
-                  parameters: sanitizedParams,
-                  fishes: aqFishes,
-                  plants: aqPlants,
-                  maintenanceStatus: maintenanceStatus
-                });
+            // Sanitasi tipe data tanpa 'any'
+            const sanitizedParams: AquariumParameterLog[] = aqParams.map(param => ({
+              ...param,
+              temperature: typeof param.temperature === 'number' ? param.temperature : null,
+              ph: typeof param.ph === 'number' ? param.ph : null,
+              ammonia: typeof param.ammonia === 'number' ? param.ammonia : null,
+              nitrite: typeof param.nitrite === 'number' ? param.nitrite : null,
+              nitrate: typeof param.nitrate === 'number' ? param.nitrate : null,
+            } as AquariumParameterLog));
 
-                // FIX: Menghilangkan tipe any pada fungsi reduce
-                const faunaCount = aqFishes.reduce((acc: number, f: InventoryItem) => acc + (f.quantity || 0), 0);
-                const floraCount = aqPlants.reduce((acc: number, p: InventoryItem) => acc + (p.quantity || 0), 0);
-                const alerts = healthAnalysis.alerts || [];
+            const healthAnalysis = analyzeAquariumHealth({
+              aquarium: aq,
+              parameters: sanitizedParams,
+              fishes: aqFishes as unknown as any[], // Safe casting untuk health-engine internal
+              plants: aqPlants as unknown as any[],
+              maintenanceStatus: aqMaintenance as unknown as any[]
+            });
 
-                totalAlerts += alerts.length;
-                totalFauna += faunaCount;
-                totalFlora += floraCount;
+            const faunaCount = aqFishes.reduce((acc, f) => acc + (f.quantity || 0), 0);
+            const floraCount = aqPlants.reduce((acc, p) => acc + (p.quantity || 0), 0);
+            const alerts = healthAnalysis.alerts || [];
 
-                return {
-                  id: aq.id,
-                  name: aq.name,
-                  is_primary: aq.is_primary || false,
-                  health_score: healthAnalysis.scores.overall,
-                  alerts: alerts,
-                  faunaCount: faunaCount,
-                  floraCount: floraCount
-                };
-              } catch (err) {
-                return { id: aq.id, name: aq.name, is_primary: aq.is_primary || false, health_score: 0, alerts: [], faunaCount: 0, floraCount: 0 };
-              }
-            })),
-            
-            // 2. Tarik Log Parameter
-            supabase.from("aquarium_parameters").select("id, record_date, parameter_source").in("aquarium_id", tankIds).order('record_date', { ascending: false }).limit(4),
-            // 3. Tarik Log Maintenance
-            supabase.from("aquarium_maintenance_logs").select("id, performed_at, maintenance_type").in("aquarium_id", tankIds).order('performed_at', { ascending: false }).limit(4),
-            // 4. Tarik Log Treatment
-            supabase.from("aquarium_treatments").select("id, started_at, status").in("aquarium_id", tankIds).order('started_at', { ascending: false }).limit(4)
-          ]);
+            totalAlerts += alerts.length;
+            totalFauna += faunaCount;
+            totalFlora += floraCount;
+
+            return {
+              id: aq.id,
+              name: aq.name,
+              is_primary: aq.is_primary || false,
+              health_score: healthAnalysis.scores.overall,
+              alerts: alerts,
+              faunaCount: faunaCount,
+              floraCount: floraCount
+            };
+          });
 
           setTankList(processedTanks);
           setStats({ tanks: aquariums.length, alerts: totalAlerts, fauna: totalFauna, flora: totalFlora });
 
-          // === GABUNGKAN LOG AKTIVITAS ===
+          // === GABUNGKAN LOG AKTIVITAS (Bebas dari 'any') ===
           const logs: ActivityLog[] = [];
           
-          paramLogsRes.data?.forEach(log => {
+          paramLogsRes?.forEach(log => {
             logs.push({
-              id: log.id,
+              id: String(log.id),
               type: "parameter",
               title_id: "Pencatatan Parameter Air",
               title_en: "Water Parameter Log",
               desc_id: `Data kualitas air diunggah melalui ${log.parameter_source || 'Sistem'}.`,
               desc_en: `Water quality data uploaded via ${log.parameter_source || 'System'}.`,
-              date: new Date(log.record_date)
+              date: new Date(String(log.record_date))
             });
           });
 
-          maintLogsRes.data?.forEach(log => {
+          maintLogsRes?.forEach(log => {
             logs.push({
-              id: log.id,
+              id: String(log.id),
               type: "maintenance",
               title_id: "Tugas Perawatan Selesai",
               title_en: "Maintenance Task Completed",
-              desc_id: `Melakukan aktivitas: ${log.maintenance_type.replace('_', ' ')}.`,
-              desc_en: `Performed activity: ${log.maintenance_type.replace('_', ' ')}.`,
-              date: new Date(log.performed_at)
+              desc_id: `Melakukan aktivitas: ${String(log.maintenance_type).replace('_', ' ')}.`,
+              desc_en: `Performed activity: ${String(log.maintenance_type).replace('_', ' ')}.`,
+              date: new Date(String(log.performed_at))
             });
           });
 
-          treatmentLogsRes.data?.forEach(log => {
+          treatmentLogsRes?.forEach(log => {
             logs.push({
-              id: log.id,
+              id: String(log.id),
               type: "treatment",
               title_id: "Sesi Pengobatan Medis",
               title_en: "Medical Treatment Session",
               desc_id: `Status pengobatan: ${log.status}.`,
               desc_en: `Treatment status: ${log.status}.`,
-              date: new Date(log.started_at || new Date().toISOString())
+              date: new Date(String(log.started_at || new Date().toISOString()))
             });
           });
 
@@ -256,7 +273,7 @@ export default function DashboardPage() {
     );
   }
 
-  // FIX: Parsing Dictionary Aman dan Bebas dari tipe 'any'
+  // Tipe Kamus Terstruktur Bebas 'any'
   const rootDict = (dict as unknown as Record<string, Record<string, string>>) || {};
   const dashDict = rootDict.dashboard || {};
   
