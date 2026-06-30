@@ -1,67 +1,105 @@
 {
-  "dashboard": {
-    "title": "My Aquariums",
-    "subtitle": "Manage your tank profiles. This data will automatically be used by the Plant, Algae, and Disease Expert AI for precise analysis.",
-    "btnAdd": "Add Aquarium",
-    "emptyTitle": "No Aquariums Yet",
-    "emptyDesc": "Add your first aquarium profile to unlock advanced AI features."
-  },
-  "card": {
-    "volume": "Volume",
-    "age": "Age",
-    "plants": "Plants",
-    "fishes": "Fishes",
-    "primaryBadge": "PRIMARY TANK",
-    "days": "days",
-    "months": "months",
-    "years": "years"
-  },
-  "wizard": {
-    "step1": "Identity",
-    "step2": "Dimensions",
-    "step3": "Equipment",
-    "step4": "Maintenance",
-    "btnNext": "Next",
-    "btnPrev": "Previous",
-    "btnSave": "Save Aquarium",
-    
-    "labels": {
-      "name": "Aquarium Name",
-      "tankType": "Aquascape Style",
-      "setupDate": "Initial Setup Date",
-      "isPrimary": "Set as Primary Tank",
-      
-      "length": "Length (cm)",
-      "width": "Width (cm)",
-      "height": "Height (cm)",
-      "volume": "Estimated Volume (Liters)",
-      
-      "filter": "Filtration System",
-      "filterCapacity": "Pump Flow Rate (L/H)",
-      "light": "Lighting Type",
-      "lightWatt": "Light Power (Watts)",
-      "lightHours": "Photoperiod (Hours/Day)",
-      "co2": "CO2 System",
-      "co2Bps": "CO2 Dosage (BPS)",
-      "heater": "Use Heater",
-      "substrate": "Bottom Substrate",
-      
-      "wcPercent": "Water Change Volume (%)",
-      "wcInterval": "Water Change Interval (Days)",
-      "fertType": "Fertilizer Method",
-      "fertSchedule": "Fertilizer Schedule"
+"aquarium": {
+    "dashboard": {
+      "title": "My Aquariums",
+      "subtitle": "Manage your tank profiles. This data will automatically be used by the Plant, Algae, and Disease Expert AI for precise analysis.",
+      "btnAdd": "Add Aquarium",
+      "emptyTitle": "No Aquariums Yet",
+      "emptyDesc": "Add your first aquarium profile to unlock advanced AI features."
     },
-    
-    "hints": {
-      "name": "Give it a unique name (e.g., Nature Desktop).",
-      "tankType": "Style influences AI plant and fish recommendations.",
-      "setupDate": "Crucial for detecting New Tank Syndrome.",
-      "isPrimary": "AI Assistant will use this tank as the default reference context.",
-      "dimensions": "Used by AI to calculate Light/Liter ratio and fish stocking limits.",
-      "filter": "Filtration capacity helps AI analyze ammonia spikes and algae risks.",
-      "light": "Photoperiod duration is critical for photosynthesis and algae analysis.",
-      "co2": "BPS (Bubble per second). Leave blank if not using pressurized CO2.",
-      "maintenance": "Water Change & Fertilizer routines are key metrics for AI root cause analysis."
+    "card": {
+      "volume": "Volume",
+      "age": "Age",
+      "plants": "Plants",
+      "fishes": "Fishes",
+      "primaryBadge": "PRIMARY TANK",
+      "days": "days",
+      "months": "months",
+      "years": "years"
+    },
+    "wizard": {
+      "step1": "Identity",
+      "step2": "Dimensions",
+      "step3": "Equipment",
+      "step4": "Maintenance",
+      "btnNext": "Next",
+      "btnPrev": "Previous",
+      "btnSave": "Save Aquarium",
+      "labels": {
+        "name": "Aquarium Name",
+        "tankType": "Aquascape Style",
+        "setupDate": "Initial Setup Date",
+        "isPrimary": "Set as Primary Tank",
+        "length": "Length (cm)",
+        "width": "Width (cm)",
+        "height": "Height (cm)",
+        "volume": "Estimated Volume (Liters)",
+        "filter": "Filtration System",
+        "filterCapacity": "Pump Flow Rate (L/H)",
+        "light": "Lighting Type",
+        "lightWatt": "Light Power (Watts)",
+        "lightHours": "Photoperiod (Hours/Day)",
+        "co2": "CO2 System",
+        "co2Bps": "CO2 Dosage (BPS)",
+        "heater": "Use Heater",
+        "substrate": "Bottom Substrate",
+        "wcPercent": "Water Change Volume (%)",
+        "wcInterval": "Water Change Interval (Days)",
+        "fertType": "Fertilizer Method",
+        "fertSchedule": "Fertilizer Schedule"
+      },
+      "hints": {
+        "name": "Give it a unique name (e.g., Nature Desktop).",
+        "tankType": "Style influences AI plant and fish recommendations.",
+        "setupDate": "Crucial for detecting New Tank Syndrome.",
+        "isPrimary": "AI Assistant will use this tank as the default reference context.",
+        "dimensions": "Used by AI to calculate Light/Liter ratio and fish stocking limits.",
+        "filter": "Filtration capacity helps AI analyze ammonia spikes and algae risks.",
+        "light": "Photoperiod duration is critical for photosynthesis and algae analysis.",
+        "co2": "BPS (Bubble per second). Leave blank if not using pressurized CO2.",
+        "maintenance": "Water Change & Fertilizer routines are key metrics for AI root cause analysis."
+      }
+    },
+    "detail": {
+      "back": "Go Back",
+      "edit": "Edit",
+      "archive": "Archive",
+      "restore": "Restore",
+      "delete": "Delete Permanently",
+      "overview": "Overview",
+      "parameters": "Water Parameters",
+      "floraFauna": "Flora & Fauna",
+      "aiDiagnose": "AI Diagnosis",
+      "equipment": "Equipment",
+      "maintenance": "Maintenance",
+      "dimensions": "Dimensions",
+      "treatment": "Treatment"
     }
+  },
+  "treatment": {
+    "title": "Medical Records & Quarantine",
+    "subtitle": "Monitor fauna healing progress, medication efficacy, and prevent pathogen spread.",
+    "btnAdd": "Log New Treatment",
+    "emptyTitle": "No Sick Fauna",
+    "emptyDesc": "Your aquarium is clean of active infections. All historical medical records will be stored safely.",
+    "colFauna": "Fauna Species",
+    "colDisease": "Disease Diagnosis",
+    "colMedication": "Medication & Dose",
+    "colStatus": "Medical Status",
+    "statusActive": "Under Treatment",
+    "statusCured": "Fully Recovered",
+    "statusDeceased": "Deceased",
+    "btnActionCured": "Mark as Cured",
+    "btnActionDeceased": "Mark as Deceased",
+    "days": "Days",
+    "formTitle": "New Medical Record Form",
+    "formDesc": "Report a new infection case in your tank. This valuable data will be contributed to our Global AI Analytics System.",
+    "labelFish": "Select Infected Fish",
+    "labelDisease": "Disease Diagnosis (AI Result)",
+    "labelMedication": "Medication Used",
+    "labelNotes": "Symptom Notes (Optional)",
+    "placeholderNotes": "Example: Severe torn fins, faded colors since 2 days ago...",
+    "btnSave": "Save Medical Record",
+    "btnCancel": "Cancel"
   }
 }

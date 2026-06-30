@@ -1,67 +1,105 @@
 {
-  "dashboard": {
-    "title": "Akuarium Saya",
-    "subtitle": "Kelola profil tangki Anda. Data di sini akan otomatis digunakan oleh AI Plant, Algae, dan Disease Expert untuk memberikan analisis yang akurat.",
-    "btnAdd": "Tambah Akuarium",
-    "emptyTitle": "Belum Ada Akuarium",
-    "emptyDesc": "Tambahkan profil akuarium pertama Anda untuk mulai menggunakan fitur AI tingkat lanjut."
-  },
-  "card": {
-    "volume": "Volume",
-    "age": "Umur",
-    "plants": "Tanaman",
-    "fishes": "Ikan",
-    "primaryBadge": "TANGKI UTAMA",
-    "days": "hari",
-    "months": "bulan",
-    "years": "tahun"
-  },
-  "wizard": {
-    "step1": "Identitas",
-    "step2": "Dimensi",
-    "step3": "Peralatan",
-    "step4": "Perawatan",
-    "btnNext": "Selanjutnya",
-    "btnPrev": "Kembali",
-    "btnSave": "Simpan Akuarium",
-    
-    "labels": {
-      "name": "Nama Akuarium",
-      "tankType": "Jenis Tema Akuarium",
-      "setupDate": "Tanggal Setup Awal",
-      "isPrimary": "Jadikan Tangki Utama",
-      
-      "length": "Panjang (cm)",
-      "width": "Lebar (cm)",
-      "height": "Tinggi (cm)",
-      "volume": "Volume Estimasi (Liter)",
-      
-      "filter": "Sistem Filter",
-      "filterCapacity": "Kapasitas Pompa (L/H)",
-      "light": "Jenis Lampu",
-      "lightWatt": "Daya Lampu (Watt)",
-      "lightHours": "Durasi Nyala (Jam/Hari)",
-      "co2": "Sistem CO2",
-      "co2Bps": "Dosis CO2 (BPS)",
-      "heater": "Gunakan Heater (Pemanas)",
-      "substrate": "Substrat Dasar",
-      
-      "wcPercent": "Volume Ganti Air (%)",
-      "wcInterval": "Interval Ganti Air (Hari)",
-      "fertType": "Metode Pupuk",
-      "fertSchedule": "Jadwal Pupuk"
+  "aquarium": {
+    "dashboard": {
+      "title": "Akuarium Saya",
+      "subtitle": "Kelola profil tangki Anda. Data di sini akan otomatis digunakan oleh AI Plant, Algae, dan Disease Expert untuk memberikan analisis yang akurat.",
+      "btnAdd": "Tambah Akuarium",
+      "emptyTitle": "Belum Ada Akuarium",
+      "emptyDesc": "Tambahkan profil akuarium pertama Anda untuk mulai menggunakan fitur AI tingkat lanjut."
     },
-    
-    "hints": {
-      "name": "Beri nama unik agar mudah dikenali (misal: Nature 60P).",
-      "tankType": "Gaya aquascape sangat mempengaruhi saran tanaman & ikan dari AI.",
-      "setupDate": "Penting untuk mendeteksi sindrom tangki baru (New Tank Syndrome).",
-      "isPrimary": "AI Assistant akan menggunakan tank ini sebagai referensi utama jika Anda tidak menyebut nama tank.",
-      "dimensions": "Digunakan AI untuk menghitung rasio cahaya (Watt/Liter) dan kecocokan ikan.",
-      "filter": "Kapasitas filtrasi membantu AI menganalisis risiko amonia dan alga.",
-      "light": "Durasi fotoperiode sangat krusial untuk analisis fotosintesis dan alga.",
-      "co2": "BPS (Bubble per second). Kosongkan jika tidak memakai tabung CO2.",
-      "maintenance": "Rutinitas perawatan (*Water Change* & Pupuk) menjadi data kunci bagi AI untuk mencari akar masalah."
+    "card": {
+      "volume": "Volume",
+      "age": "Umur",
+      "plants": "Tanaman",
+      "fishes": "Ikan",
+      "primaryBadge": "TANGKI UTAMA",
+      "days": "hari",
+      "months": "bulan",
+      "years": "tahun"
+    },
+    "wizard": {
+      "step1": "Identitas",
+      "step2": "Dimensi",
+      "step3": "Peralatan",
+      "step4": "Perawatan",
+      "btnNext": "Selanjutnya",
+      "btnPrev": "Kembali",
+      "btnSave": "Simpan Akuarium",
+      "labels": {
+        "name": "Nama Akuarium",
+        "tankType": "Jenis Tema Akuarium",
+        "setupDate": "Tanggal Setup Awal",
+        "isPrimary": "Jadikan Tangki Utama",
+        "length": "Panjang (cm)",
+        "width": "Lebar (cm)",
+        "height": "Tinggi (cm)",
+        "volume": "Volume Estimasi (Liter)",
+        "filter": "Sistem Filter",
+        "filterCapacity": "Kapasitas Pompa (L/H)",
+        "light": "Jenis Lampu",
+        "lightWatt": "Daya Lampu (Watt)",
+        "lightHours": "Durasi Nyala (Jam/Hari)",
+        "co2": "Sistem CO2",
+        "co2Bps": "Dosis CO2 (BPS)",
+        "heater": "Gunakan Heater (Pemanas)",
+        "substrate": "Substrat Dasar",
+        "wcPercent": "Volume Ganti Air (%)",
+        "wcInterval": "Interval Ganti Air (Hari)",
+        "fertType": "Metode Pupuk",
+        "fertSchedule": "Jadwal Pupuk"
+      },
+      "hints": {
+        "name": "Beri nama unik agar mudah dikenali (misal: Nature 60P).",
+        "tankType": "Gaya aquascape sangat mempengaruhi saran tanaman & ikan dari AI.",
+        "setupDate": "Penting untuk mendeteksi sindrom tangki baru (New Tank Syndrome).",
+        "isPrimary": "AI Assistant akan menggunakan tank ini sebagai referensi utama jika Anda tidak menyebut nama tank.",
+        "dimensions": "Digunakan AI untuk menghitung rasio cahaya (Watt/Liter) dan kecocokan ikan.",
+        "filter": "Kapasitas filtrasi membantu AI menganalisis risiko amonia dan alga.",
+        "light": "Durasi fotoperiode sangat krusial untuk analisis fotosintesis dan alga.",
+        "co2": "BPS (Bubble per second). Kosongkan jika tidak memakai tabung CO2.",
+        "maintenance": "Rutinitas perawatan (*Water Change* & Pupuk) menjadi data kunci bagi AI untuk mencari akar masalah."
+      }
+    },
+    "detail": {
+      "back": "Kembali",
+      "edit": "Edit",
+      "archive": "Arsipkan",
+      "restore": "Pulihkan",
+      "delete": "Hapus Permanen",
+      "overview": "Ringkasan",
+      "parameters": "Parameter Air",
+      "floraFauna": "Tanaman & Ikan",
+      "aiDiagnose": "Diagnosa AI",
+      "equipment": "Peralatan",
+      "maintenance": "Perawatan",
+      "dimensions": "Dimensi",
+      "treatment": "Pengobatan"
     }
+  },
+  "treatment": {
+    "title": "Rekam Medis & Karantina",
+    "subtitle": "Pantau proses penyembuhan fauna, efikasi obat, dan cegah penularan patogen lintas akuarium.",
+    "btnAdd": "Catat Pengobatan Baru",
+    "emptyTitle": "Tidak Ada Fauna yang Sakit",
+    "emptyDesc": "Akuarium Anda bersih dari infeksi aktif. Seluruh rekam medis masa lalu atau pengobatan yang selesai akan tersimpan sebagai bukti klinis.",
+    "colFauna": "Spesies Fauna",
+    "colDisease": "Diagnosa Penyakit",
+    "colMedication": "Obat & Dosis",
+    "colStatus": "Status Medis",
+    "statusActive": "Dalam Perawatan",
+    "statusCured": "Sembuh Total",
+    "statusDeceased": "Mati",
+    "btnActionCured": "Tandai Sembuh",
+    "btnActionDeceased": "Tandai Mati",
+    "days": "Hari",
+    "formTitle": "Formulir Rekam Medis Baru",
+    "formDesc": "Laporkan kasus infeksi baru di akuarium Anda. Data ini sangat berharga untuk disumbangkan ke dalam Sistem Analitik AI Global kami.",
+    "labelFish": "Pilih Ikan yang Terinfeksi",
+    "labelDisease": "Diagnosa Penyakit (Hasil AI)",
+    "labelMedication": "Obat yang Digunakan",
+    "labelNotes": "Catatan Gejala (Opsional)",
+    "placeholderNotes": "Contoh: Sirip robek parah, warna memudar sejak 2 hari lalu...",
+    "btnSave": "Simpan Rekam Medis",
+    "btnCancel": "Batal"
   }
 }
