@@ -8,7 +8,6 @@ import MedicationLeaderboard from "@/features/analytics/components/MedicationLea
 import { Activity, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
-// MENGHILANGKAN 'any' PADA DICTIONARY
 type DictRecord = Record<string, string>;
 interface RootDict {
   disease?: { clinicalAnalytics?: DictRecord };
@@ -29,13 +28,14 @@ export default function AnalyticsDashboardPage() {
   useEffect(() => {
     async function loadAnalytics() {
       try {
-        const res = await getMedicationLeaderboardAction(20);
+        // Ditingkatkan menjadi 50 agar paginasi berfungsi optimal jika data banyak
+        const res = await getMedicationLeaderboardAction(50);
         if (res.success && res.data) {
           setLeaderboardData(res.data);
         } else {
           toast.error(res.error || "Failed to load analytics.");
         }
-      } catch (error: unknown) { // Bebas Any
+      } catch (error: unknown) {
         console.error(error);
         toast.error("Internal system error.");
       } finally {
