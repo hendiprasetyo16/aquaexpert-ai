@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { X, Save, Loader2, Stethoscope, Syringe, AlertTriangle, FileText, ChevronDown } from "lucide-react";
+import { X, Save, Loader2, Stethoscope, Syringe, AlertTriangle, FileText, ChevronDown, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import { getTreatmentDropdownOptionsAction, startNewTreatmentSessionAction } from "@/features/diseases/actions/start-treatment.actions";
@@ -45,7 +45,6 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
   const [severityScore, setSeverityScore] = useState<number>(3);
   const [symptoms, setSymptoms] = useState<string>("");
 
-  // Clean close handler to reset form states safely
   const handleClose = useCallback(() => {
     setDiseaseId("");
     setMedicationId("");
@@ -54,27 +53,21 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
     onClose();
   }, [onClose]);
 
-  // FIX SCROLL LOCK: Mengunci & mengembalikan scroll body utama secara bersih tanpa merusak halaman
   useEffect(() => {
     if (!isOpen) return;
 
     document.body.style.overflow = "hidden";
-
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        handleClose();
-      }
+      if (event.key === "Escape") handleClose();
     };
 
     window.addEventListener("keydown", handleKeyDown);
-
     return () => {
-      document.body.style.overflow = ""; // Mengembalikan scroll utama halaman ke setelan browser asli
+      document.body.style.overflow = ""; 
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, handleClose]);
 
-  // Effect 2: Fetch Dropdown Database Safely
   useEffect(() => {
     if (!isOpen) return;
 
@@ -116,7 +109,6 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
     return () => { isMounted = false; };
   }, [isOpen, lang]);
 
-  // Effect 3: Automatic Severity Predictor Baseline
   useEffect(() => {
     if (diseaseId) {
       const selectedDisease = diseases.find(d => d.id === diseaseId);
@@ -152,25 +144,14 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
 
       if (res.success) {
         toast.success(lang === 'id' ? "Sesi pengobatan berhasil dimulai!" : "Treatment session started successfully!");
-        
-        // Menjalankan fungsi bawaan penanganan sukses Anda
         onSuccess();
-        
-        // Refresh Next.js Server Component cache
         router.refresh(); 
-
-        // CATATAN PENTING: Jika setelah ditutup tabel di belakang layar masih kosong/tidak terupdate,
-        // itu berarti tabel Anda adalah Client Component. Aktifkan baris di bawah ini untuk reload instan:
-        window.location.reload();
-
         handleClose();
       } else {
-        console.error("DB INSERT EXECUTION ERROR:", res.error);
         toast.error(res.error || (lang === 'id' ? "Gagal menyimpan data rekam medis." : "Failed to save medical record."));
       }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : (lang === 'id' ? "Terjadi kesalahan internal data" : "Internal database exception");
-      console.error("FATAL MODAL TRANSACTION CRASH:", errorMsg);
       toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
@@ -178,153 +159,164 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
   };
 
   return (
-    /* PERBAIKAN TOTAL SCROLL LAYOUT: Scroll dialihkan sepenuhnya ke backdrop luar.
-       Bentuk modal di dalamnya utuh secara alami, anti-terpotong dan ramah layar HP terkecil sekalipun */
-    <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-slate-900/80 dark:bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+    // FIX SCROLL: Wrapper dengan padding vertikal (py-8) agar modal tidak mentok ke ujung atas/bawah layar, dan bisa di-scroll utuh
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 dark:bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       
       {isLoadingOptions ? (
-        /* LOADING FRAME */
-        <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl p-12 flex flex-col items-center justify-center min-h-[350px] my-auto relative overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-56 h-56 bg-rose-500/10 blur-[60px] rounded-full pointer-events-none z-0"></div>
+        <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl p-12 flex flex-col items-center justify-center min-h-[350px] relative overflow-hidden">
           <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4" />
           <p className="text-sm font-bold text-slate-500 dark:text-slate-400 animate-pulse">
             {lang === 'id' ? "Sinkronisasi basis data medis..." : "Synchronizing medical database..."}
           </p>
         </div>
       ) : (
-        /* FORM FRAME: Bersih dari pembatas tinggi yang merusak scroll */
-        <form 
-          onSubmit={handleSubmit} 
-          className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden relative my-auto animate-in zoom-in-95 duration-200"
-        >
-          {/* Aesthetic Overlay Ambient Background Vector */}
-          <div className="absolute -top-20 -right-20 w-56 h-56 bg-rose-500/10 blur-[60px] rounded-full pointer-events-none z-0"></div>
-
-          {/* FIXED HEADER CONTENT */}
-          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50 dark:bg-slate-900 relative z-10">
+        <div className="w-full max-w-2xl bg-white dark:bg-slate-950 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] md:max-h-[85vh] border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+          
+          {/* HEADER (Sticky di atas) */}
+          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50 dark:bg-slate-900 shrink-0">
             <div className="pr-4">
               <h2 className="text-lg sm:text-xl font-black text-slate-800 dark:text-white leading-tight">
-                {dict.formTitle || (lang === 'id' ? "Formulir Rekam Medis Baru" : "New Medical Record Form")}
+                {dict.formTitle || (lang === 'id' ? "Formulir Pendaftaran Pasien Baru" : "New Patient Registration Form")}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1.5 leading-relaxed">
-                {dict.formDesc || (lang === 'id' ? "Laporkan kasus infeksi baru di akuarium Anda. Data ini sangat berharga untuk disumbangkan ke dalam Sistem Analitik AI." : "Report a new infection case in your aquarium. This data is highly valuable for the AI Analytics System.")}
+                {dict.formDesc || (lang === 'id' ? "Laporkan kasus infeksi baru di akuarium Anda. AI akan melacak perkembangan kesembuhan harian." : "Report a new infection case in your aquarium. AI will track daily recovery progress.")}
               </p>
             </div>
             <button 
               type="button"
               onClick={handleClose} 
-              className="p-2 bg-slate-100 text-slate-500 hover:bg-rose-500 hover:text-white dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-rose-600 dark:hover:text-white transition-all duration-150 rounded-full shrink-0 shadow-sm cursor-pointer"
+              className="p-2 bg-slate-200 text-slate-500 hover:bg-rose-500 hover:text-white dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-rose-600 transition-all rounded-full shrink-0"
             >
-              <X className="w-4 h-4 font-bold" />
+              <X className="w-5 h-5 font-bold" />
             </button>
           </div>
 
-          {/* INTERNAL FORM FIELDS BODY */}
-          <div className="p-5 sm:p-6 space-y-5 bg-white dark:bg-slate-950 relative z-10">
-            
-            {/* INFECTION DIAGNOSIS SELECTION */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Stethoscope className="w-3.5 h-3.5 text-rose-500" /> {dict.labelDisease || (lang === 'id' ? "Diagnosa Penyakit" : "Disease Diagnosis")}
-              </label>
-              <div className="relative">
-                <select 
-                  required 
-                  value={diseaseId} 
-                  onChange={(e) => setDiseaseId(e.target.value)} 
-                  className="w-full h-12 pl-4 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-bold focus:border-rose-500 dark:focus:border-rose-500 focus:bg-white dark:focus:bg-slate-950 outline-none transition-all cursor-pointer appearance-none"
-                >
-                  <option value="" disabled>-- {lang === 'id' ? "Pilih Jenis Penyakit" : "Select Disease Specification"} --</option>
-                  {diseases.map(d => (
-                    <option key={d.id} value={d.id}>{lang === 'id' ? d.name_id : d.name_en}</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          {/* BODY (Area yang bisa di-scroll jika konten panjang) */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-6 bg-white dark:bg-slate-950">
+            <form id="start-treatment-form" onSubmit={handleSubmit} className="space-y-6">
+              
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                  <Stethoscope className="w-4 h-4 text-rose-500" /> {dict.labelDisease || (lang === 'id' ? "Diagnosa Penyakit" : "Disease Diagnosis")}
+                </label>
+                <div className="relative">
+                  <select 
+                    required 
+                    value={diseaseId} 
+                    onChange={(e) => setDiseaseId(e.target.value)} 
+                    className="w-full h-12 pl-4 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-bold focus:border-rose-500 dark:focus:border-rose-500 outline-none cursor-pointer appearance-none"
+                  >
+                    <option value="" disabled>-- {lang === 'id' ? "Pilih Jenis Penyakit" : "Select Disease Specification"} --</option>
+                    {diseases.map(d => (
+                      <option key={d.id} value={d.id}>{lang === 'id' ? d.name_id : d.name_en}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+                {/* HINT 1 */}
+                <p className="text-[11px] text-slate-500 flex items-start gap-1.5 mt-1.5 leading-snug">
+                  <Info className="w-3.5 h-3.5 shrink-0 text-blue-500 mt-0.5" /> 
+                  {lang === 'id' ? "Pilih penyakit berdasarkan hasil Analisis AI atau pengamatan manual Anda." : "Select illness based on AI Analysis or manual observation."}
+                </p>
               </div>
-            </div>
 
-            {/* CLINICAL MEDICATION SELECTION */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Syringe className="w-3.5 h-3.5 text-blue-500" /> {dict.labelMedication || (lang === 'id' ? "Terapi Obat Utama" : "Primary Treatment Medication")}
-              </label>
-              <div className="relative">
-                <select 
-                  required 
-                  value={medicationId} 
-                  onChange={(e) => setMedicationId(e.target.value)} 
-                  className="w-full h-12 pl-4 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-bold focus:border-blue-500 dark:focus:border-blue-500 focus:bg-white dark:focus:bg-slate-950 outline-none transition-all cursor-pointer appearance-none"
-                >
-                  <option value="" disabled>-- {lang === 'id' ? "Pilih Tipe Obat" : "Select Medication Protocol"} --</option>
-                  {medications.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                  <Syringe className="w-4 h-4 text-blue-500" /> {dict.labelMedication || (lang === 'id' ? "Terapi Obat Utama" : "Primary Treatment Medication")}
+                </label>
+                <div className="relative">
+                  <select 
+                    required 
+                    value={medicationId} 
+                    onChange={(e) => setMedicationId(e.target.value)} 
+                    className="w-full h-12 pl-4 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-bold focus:border-blue-500 outline-none cursor-pointer appearance-none"
+                  >
+                    <option value="" disabled>-- {lang === 'id' ? "Pilih Tipe Obat" : "Select Medication Protocol"} --</option>
+                    {medications.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+                {/* HINT 2 */}
+                <p className="text-[11px] text-slate-500 flex items-start gap-1.5 mt-1.5 leading-snug">
+                  <Info className="w-3.5 h-3.5 shrink-0 text-blue-500 mt-0.5" /> 
+                  {lang === 'id' ? "Pilih obat utama yang akan diberikan. Pastikan cocok dengan penyakit yang diderita." : "Select main medication to administer. Ensure it matches the diagnosed disease."}
+                </p>
               </div>
-            </div>
 
-            {/* SEVERITY LEVEL METRIC */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> {lang === 'id' ? "Tingkat Keparahan Klinis (Skala 1-5)" : "Clinical Severity Metric (Scale 1-5)"}
-              </label>
-              <input 
-                type="number" 
-                min="1" 
-                max="5" 
-                required 
-                value={severityScore} 
-                onChange={(e) => setSeverityScore(Math.max(1, Math.min(5, Number(e.target.value))))} 
-                className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-bold text-center focus:border-amber-500 dark:focus:border-amber-500 focus:bg-white dark:focus:bg-slate-950 outline-none transition-all"
-              />
-            </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-500" /> {lang === 'id' ? "Tingkat Keparahan Awal (Skala 1-5)" : "Initial Severity Metric (Scale 1-5)"}
+                </label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="5" 
+                  required 
+                  value={severityScore} 
+                  onChange={(e) => setSeverityScore(Math.max(1, Math.min(5, Number(e.target.value))))} 
+                  className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-bold text-center focus:border-amber-500 outline-none"
+                />
+                {/* HINT 3 */}
+                <p className="text-[11px] text-slate-500 flex items-start gap-1.5 mt-1.5 leading-snug">
+                  <Info className="w-3.5 h-3.5 shrink-0 text-amber-500 mt-0.5" /> 
+                  {lang === 'id' ? "1 = Sangat Ringan (Gejala awal), 5 = Sangat Kritis (Kondisi fatal/sekarat). Otomatis terisi oleh standar AI, tapi bisa diubah." : "1 = Very Mild, 5 = Critical/Fatal. Auto-filled by AI standard, but can be adjusted."}
+                </p>
+              </div>
 
-            {/* QUALITATIVE SYMPTOM NOTES */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-emerald-500" /> {dict.labelNotes || (lang === 'id' ? "Catatan Manifestasi Gejala (Pisahkan dengan Koma)" : "Symptom Manifestation Logs (Comma Separated)")}
-              </label>
-              <textarea 
-                rows={3} 
-                value={symptoms} 
-                onChange={(e) => setSymptoms(e.target.value)} 
-                placeholder={dict.placeholderNotes || (lang === 'id' ? "Contoh: Bintik putih di insang, nafsu makan berkurang, berenang lambat..." : "e.g., White spots on gills, reduced appetite, lethargic swimming...")}
-                className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium focus:border-slate-400 dark:focus:border-slate-600 focus:bg-white dark:focus:bg-slate-950 outline-none custom-scrollbar transition-all resize-none"
-              />
-            </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-emerald-500" /> {dict.labelNotes || (lang === 'id' ? "Daftar Gejala (Pisahkan dengan Koma)" : "Symptom List (Comma Separated)")}
+                </label>
+                <textarea 
+                  rows={3} 
+                  required
+                  value={symptoms} 
+                  onChange={(e) => setSymptoms(e.target.value)} 
+                  placeholder={dict.placeholderNotes || (lang === 'id' ? "Contoh: Bintik putih di insang, nafsu makan hilang, berenang pasif" : "e.g., White spots on gills, loss of appetite, passive swimming")}
+                  className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium focus:border-slate-400 outline-none custom-scrollbar resize-none"
+                />
+                {/* HINT 4 */}
+                <p className="text-[11px] text-slate-500 flex items-start gap-1.5 mt-1.5 leading-snug">
+                  <Info className="w-3.5 h-3.5 shrink-0 text-emerald-500 mt-0.5" /> 
+                  {lang === 'id' ? "Sebutkan gejala fisik/perilaku spesifik. Ini akan dijadikan referensi pemulihan di laporan harian berikutnya." : "Mention specific physical/behavioral symptoms. This acts as recovery baseline for future daily logs."}
+                </p>
+              </div>
 
+            </form>
           </div>
-          
-          {/* ACTION BUTTON FOOTER */}
-          <div className="p-5 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex gap-3 relative z-10">
+
+          {/* FOOTER (Sticky di bawah) */}
+          <div className="p-5 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex gap-3 shrink-0">
             <Button 
               type="button" 
               variant="outline" 
               onClick={handleClose} 
-              className="flex-1 h-12 rounded-xl font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="flex-1 h-12 rounded-xl font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               {dict.btnCancel || (lang === 'id' ? "Batal" : "Cancel")}
             </Button>
             
             <Button 
               type="submit" 
+              form="start-treatment-form" // Trigger submit di luar tag <form>
               disabled={isSubmitting} 
-              className="flex-1 h-12 bg-rose-600 hover:bg-rose-500 text-white font-black uppercase tracking-widest rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none"
+              className="flex-1 h-12 bg-rose-600 hover:bg-rose-500 text-white font-black uppercase tracking-widest rounded-xl shadow-md active:scale-[0.98]"
             >
               {isSubmitting ? (
                 <Loader2 className="w-5 h-5 animate-spin mx-auto" />
               ) : (
                 <span className="flex items-center justify-center gap-2">
                   <Save className="w-4 h-4" />
-                  {dict.btnSave || (lang === 'id' ? "Simpan Data" : "Save Record")}
+                  {lang === 'id' ? "Mulai Pengobatan" : "Start Treatment"}
                 </span>
               )}
             </Button>
           </div>
-        </form>
-      )}
 
+        </div>
+      )}
     </div>
   );
 }
