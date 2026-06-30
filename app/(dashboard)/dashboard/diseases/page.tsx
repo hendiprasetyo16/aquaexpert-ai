@@ -11,7 +11,7 @@ import {
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"; // FIX: Import Input yang hilang
+import { Input } from "@/components/ui/input";
 import toast from "react-hot-toast";
 
 import type { Disease } from "@/features/diseases/types/disease.types";
@@ -27,7 +27,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function DiseaseDatabasePage() {
   const router = useRouter();
-  const { role } = useAuth(); // role bisa "user", "admin", atau "super_admin"
+  const { role } = useAuth();
   const { dict, language } = useLanguage();
   const lang = language as "id" | "en";
 
@@ -105,15 +105,11 @@ export default function DiseaseDatabasePage() {
     setDeleteConfirmText("");
   };
 
-  // FILTERING DENGAN ATURAN RBAC (Role-Based Access Control)
   const filteredDiseases = useMemo(() => {
     return diseases.filter(d => {
-      // ATURAN 1: User biasa TIDAK BOLEH melihat data yang diarsipkan
       if (role === "user" && !d.is_active) {
         return false;
       }
-      
-      // ATURAN 2: Pencarian teks
       const searchLower = searchQuery.toLowerCase();
       return d.name_id.toLowerCase().includes(searchLower) || 
              d.name_en.toLowerCase().includes(searchLower);
@@ -144,11 +140,15 @@ export default function DiseaseDatabasePage() {
     return map[cat] || cat;
   };
 
-  // FIX: Type-safe Event Handler
   const handlePageInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = parseInt(e.target.value);
     if (val >= 1 && val <= totalPages) setCurrentPage(val);
   };
+
+  if (role === "user") {
+    if (typeof window !== "undefined") router.replace("/dashboard");
+    return null;
+  }
 
   return (
     <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors bg-slate-50 dark:bg-slate-950">
@@ -167,7 +167,6 @@ export default function DiseaseDatabasePage() {
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto mt-2 md:mt-0">
-            {/* HANYA ADMIN & SUPER ADMIN YANG BISA TAMBAH DATA */}
             {(role === "super_admin" || role === "admin") && (
               <Button 
                 onClick={() => router.push("/dashboard/diseases/create")} 
@@ -205,9 +204,7 @@ export default function DiseaseDatabasePage() {
             </div>
           ) : (
             <>
-              {/* ========================================= */}
-              {/* DESKTOP VIEW: TABEL (Tersembunyi di Mobile) */}
-              {/* ========================================= */}
+              {/* DESKTOP VIEW */}
               <div className="hidden md:block w-full overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left text-sm whitespace-nowrap">
                   <thead className="bg-slate-50 dark:bg-slate-950/50 text-slate-500 uppercase font-black text-[11px] tracking-widest border-b border-slate-200 dark:border-slate-800">
@@ -220,12 +217,15 @@ export default function DiseaseDatabasePage() {
                       <th className="px-6 py-5 text-right">{listDict.colAction || (lang === 'id' ? "Aksi" : "Actions")}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50 text-slate-700 dark:text-slate-300 font-medium">
+                  
+                  <tbody className="text-slate-700 dark:text-slate-300 font-medium">
                     {currentData.map((disease, idx) => (
                       <tr 
                         key={disease.id} 
                         onClick={() => setViewDetailTarget(disease)}
-                        className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors ${!disease.is_active ? 'opacity-60 grayscale-[50%]' : ''}`}
+                        /* FIX GHOST BORDER: Menggunakan solid border color yang sama baik normal maupun saat hover,
+                           serta menggunakan utilitas transition khusus background saja. */
+                        className={`border-b border-slate-200 hover:border-slate-200 dark:border-slate-800 dark:hover:border-slate-800 last:border-none cursor-pointer bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-[background-color] duration-200 ease-in-out ${!disease.is_active ? 'opacity-60 grayscale-[50%]' : ''}`}
                       >
                         <td className="px-6 py-4 text-center font-bold text-slate-400">
                           {startIndex + idx + 1}
@@ -261,12 +261,10 @@ export default function DiseaseDatabasePage() {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {/* SEMUA ROLE BISA KLIK ICON MATA */}
                             <Button variant="ghost" size="icon" title={listDict.btnDetail || (lang === 'id' ? "Lihat Detail" : "View Details")} onClick={(e) => { e.stopPropagation(); setViewDetailTarget(disease); }} className="w-9 h-9 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 dark:hover:text-blue-400">
                               <Eye className="w-4 h-4" />
                             </Button>
 
-                            {/* HANYA ADMIN & SUPER ADMIN YANG BISA EDIT & ARSIP */}
                             {(role === "super_admin" || role === "admin") && (
                               <>
                                 <Button variant="ghost" size="icon" title={listDict.btnEdit || (lang === 'id' ? "Edit Data" : "Edit")} onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/diseases/${disease.id}/edit`); }} className="w-9 h-9 text-slate-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/30 dark:hover:text-teal-400">
@@ -278,7 +276,6 @@ export default function DiseaseDatabasePage() {
                               </>
                             )}
 
-                            {/* HANYA SUPER ADMIN YANG BISA HARD DELETE */}
                             {role === "super_admin" && (
                               <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: disease.id, name: lang === 'id' ? disease.name_id : disease.name_en }); setDeleteConfirmText(""); }} title={listDict.btnHardDelete || (lang === 'id' ? "Hapus Permanen" : "Hard Delete")} className="w-9 h-9 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 dark:hover:text-red-400">
                                 <Trash2 className="w-4 h-4" />
@@ -292,9 +289,7 @@ export default function DiseaseDatabasePage() {
                 </table>
               </div>
 
-              {/* ========================================= */}
-              {/* MOBILE VIEW: KARTU MINIMALIS (Khusus HP) */}
-              {/* ========================================= */}
+              {/* MOBILE VIEW */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50/50 dark:bg-slate-900/30 md:hidden">
                 {currentData.map((disease, idx) => {
                   const globalIndex = startIndex + idx + 1;
@@ -304,10 +299,8 @@ export default function DiseaseDatabasePage() {
                       onClick={() => setViewDetailTarget(disease)}
                       className={`cursor-pointer flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-all active:scale-[0.98] ${!disease.is_active ? 'opacity-70 grayscale-[30%]' : ''}`}
                     >
-                      {/* Header: Number + Name + Status */}
                       <div className="flex justify-between items-start mb-3 gap-3">
                         <div className="flex items-start gap-3">
-                          {/* NOMOR URUT HP */}
                           <span className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-black text-xs shrink-0 mt-0.5 border border-slate-200 dark:border-slate-700">
                             {globalIndex}
                           </span>
@@ -319,11 +312,9 @@ export default function DiseaseDatabasePage() {
                           </div>
                         </div>
                         <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex gap-2 items-center">
-                           {/* ICON MATA UNTUK SEMUA ROLE */}
                            <div onClick={() => setViewDetailTarget(disease)} className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400 shadow-sm border border-blue-100 dark:border-blue-800/50 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50">
                               <Eye className="w-4 h-4" />
                            </div>
-                           {/* STATUS AKTIF / ARSIP */}
                           {disease.is_active ? (
                             <span className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 shadow-sm border border-emerald-200 dark:border-emerald-800/50">
                               <CheckCircle2 className="w-4 h-4" />
@@ -336,7 +327,6 @@ export default function DiseaseDatabasePage() {
                         </div>
                       </div>
                       
-                      {/* Badges */}
                       <div className="flex flex-wrap gap-2 mb-2 ml-11">
                         <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-md text-[10px] font-bold border border-slate-200 dark:border-slate-700">
                           {translateCategory(disease.disease_category)}
@@ -351,7 +341,6 @@ export default function DiseaseDatabasePage() {
                         </span>
                       </div>
 
-                      {/* Admin Actions (Mobile) -> Tampil hanya untuk admin/super_admin */}
                       {(role === "super_admin" || role === "admin") && (
                         <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                           <Button variant="outline" onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/diseases/${disease.id}/edit`); }} className="flex-1 h-10 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 bg-white dark:bg-slate-900">
@@ -413,7 +402,7 @@ export default function DiseaseDatabasePage() {
                       <span className="hidden sm:inline">Hal</span>
                       <Input 
                         type="number" min={1} max={totalPages} value={currentPage}
-                        onChange={handlePageInputChange} // FIX: Menggunakan handler ber-type yang aman
+                        onChange={handlePageInputChange}
                         className="w-14 h-8 text-center bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-gray-900 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:border-blue-500 transition-colors"
                       />
                       <span className="hidden sm:inline">/ {totalPages}</span>
