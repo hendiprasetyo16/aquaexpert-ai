@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { X, Save, Loader2, Stethoscope, Syringe, AlertTriangle, FileText, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
@@ -31,8 +30,6 @@ interface MedOption {
 }
 
 export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuccess, dict, lang }: Props) {
-  const router = useRouter();
-
   const [diseases, setDiseases] = useState<DiseaseOption[]>([]);
   const [medications, setMedications] = useState<MedOption[]>([]);
   
@@ -54,10 +51,11 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
     onClose();
   }, [onClose]);
 
-  // FIX SCROLL LOCK: Mengunci & mengembalikan scroll body utama secara bersih tanpa merusak halaman
+  // Effect 1: Body Scroll Lock & Global Escape Key Listener
   useEffect(() => {
     if (!isOpen) return;
 
+    const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -69,7 +67,7 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = ""; // Mengembalikan scroll utama halaman ke setelan browser asli
+      document.body.style.overflow = originalOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, handleClose]);
@@ -152,17 +150,7 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
 
       if (res.success) {
         toast.success(lang === 'id' ? "Sesi pengobatan berhasil dimulai!" : "Treatment session started successfully!");
-        
-        // Menjalankan fungsi bawaan penanganan sukses Anda
         onSuccess();
-        
-        // Refresh Next.js Server Component cache
-        router.refresh(); 
-
-        // CATATAN PENTING: Jika setelah ditutup tabel di belakang layar masih kosong/tidak terupdate,
-        // itu berarti tabel Anda adalah Client Component. Aktifkan baris di bawah ini untuk reload instan:
-        window.location.reload();
-
         handleClose();
       } else {
         console.error("DB INSERT EXECUTION ERROR:", res.error);
@@ -178,13 +166,12 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
   };
 
   return (
-    /* PERBAIKAN TOTAL SCROLL LAYOUT: Scroll dialihkan sepenuhnya ke backdrop luar.
-       Bentuk modal di dalamnya utuh secara alami, anti-terpotong dan ramah layar HP terkecil sekalipun */
-    <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-slate-900/80 dark:bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+    /* PERBAIKAN 1: Menggunakan Flexbox Center Murni */
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 dark:bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
       
       {isLoadingOptions ? (
         /* LOADING FRAME */
-        <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl p-12 flex flex-col items-center justify-center min-h-[350px] my-auto relative overflow-hidden">
+        <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl p-12 flex flex-col items-center justify-center min-h-[350px] relative overflow-hidden">
           <div className="absolute -top-20 -right-20 w-56 h-56 bg-rose-500/10 blur-[60px] rounded-full pointer-events-none z-0"></div>
           <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4" />
           <p className="text-sm font-bold text-slate-500 dark:text-slate-400 animate-pulse">
@@ -192,16 +179,16 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
           </p>
         </div>
       ) : (
-        /* FORM FRAME: Bersih dari pembatas tinggi yang merusak scroll */
+        /* PERBAIKAN 2: Mengontrol Max Height Form Agar Tidak Melebihi Layar Komputer/HP */
         <form 
           onSubmit={handleSubmit} 
-          className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden relative my-auto animate-in zoom-in-95 duration-200"
+          className="w-full max-w-xl max-h-[90vh] sm:max-h-[85vh] flex flex-col rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden relative animate-in zoom-in-95 duration-200"
         >
           {/* Aesthetic Overlay Ambient Background Vector */}
           <div className="absolute -top-20 -right-20 w-56 h-56 bg-rose-500/10 blur-[60px] rounded-full pointer-events-none z-0"></div>
 
           {/* FIXED HEADER CONTENT */}
-          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50 dark:bg-slate-900 relative z-10">
+          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50 dark:bg-slate-900 shrink-0 relative z-10">
             <div className="pr-4">
               <h2 className="text-lg sm:text-xl font-black text-slate-800 dark:text-white leading-tight">
                 {dict.formTitle || (lang === 'id' ? "Formulir Rekam Medis Baru" : "New Medical Record Form")}
@@ -219,8 +206,8 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
             </button>
           </div>
 
-          {/* INTERNAL FORM FIELDS BODY */}
-          <div className="p-5 sm:p-6 space-y-5 bg-white dark:bg-slate-950 relative z-10">
+          {/* PERBAIKAN 3: Memakai flex-1 dengan overflow-y-auto agar dinamis & tetap nyaman di-scroll */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-6 space-y-5 bg-white dark:bg-slate-950 relative z-10">
             
             {/* INFECTION DIAGNOSIS SELECTION */}
             <div className="space-y-2">
@@ -297,7 +284,7 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
           </div>
           
           {/* ACTION BUTTON FOOTER */}
-          <div className="p-5 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex gap-3 relative z-10">
+          <div className="p-5 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 shrink-0 flex gap-3 relative z-10">
             <Button 
               type="button" 
               variant="outline" 
