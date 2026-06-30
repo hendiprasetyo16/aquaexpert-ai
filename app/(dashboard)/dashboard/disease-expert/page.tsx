@@ -58,7 +58,8 @@ export default function DiseaseExpertPage() {
           toast.error(lang === 'id' ? "Gagal memuat daftar gejala." : "Failed to load symptoms.");
         }
 
-      } catch (error) {
+      } catch (error: unknown) { // FIX: Bebas any
+        console.error(error);
         toast.error(lang === 'id' ? "Gagal memuat data." : "Failed to load data.");
       } finally {
         setIsLoadingInitial(false);
@@ -93,8 +94,9 @@ export default function DiseaseExpertPage() {
         toast.success(lang === 'id' ? "Diagnosa selesai!" : "Diagnosis complete!");
       }
 
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error: unknown) { // FIX: Bebas any, menggunakan unknown
+      const errMsg = error instanceof Error ? error.message : String(error);
+      toast.error(errMsg);
     } finally {
       setIsDiagnosing(false);
     }
