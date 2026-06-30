@@ -27,6 +27,20 @@ const TANK_STYLES_OPTIONS = ["Nature", "Dutch", "Iwagumi", "Biotope", "Blackwate
 
 type ExperienceLevel = "Pemula" | "Menengah" | "Mahir";
 
+interface SavedSession {
+  answers?: UserFishAnswers;
+  results?: RecommendedFish[];
+  currentPage?: number;
+}
+
+// INTERFACE KHUSUS AGAR TYPESCRIPT TIDAK BINGUNG DENGAN KEDALAMAN KAMUS LAINNYA
+type StringDict = Record<string, string>;
+interface RootDictionary {
+  fishExpertEngine?: StringDict;
+  fishList?: StringDict;
+  [key: string]: unknown; // Mengizinkan menu lain tanpa menyebabkan error
+}
+
 export default function FishExpertEnginePage() {
   const { dict, language } = useLanguage(); 
   const lang = language as "id" | "en";
@@ -71,9 +85,9 @@ export default function FishExpertEnginePage() {
     const savedSession = sessionStorage.getItem(SESSION_KEY);
     if (savedSession) {
       try {
-        const parsed = JSON.parse(savedSession);
+        const parsed = JSON.parse(savedSession) as SavedSession;
         if (parsed.answers) {
-          setExperience(parsed.answers.experience || "Pemula");
+          setExperience((parsed.answers.experience as ExperienceLevel) || "Pemula");
           setTankVolumeLiters(parsed.answers.tankVolumeLiters || "");
           setTankLengthCm(parsed.answers.tankLengthCm || "");
           setCurrentPH(parsed.answers.currentPH || "");
@@ -88,41 +102,57 @@ export default function FishExpertEnginePage() {
         }
         if (parsed.results) setResults(parsed.results);
         if (parsed.currentPage) setCurrentPage(parsed.currentPage);
-      } catch (e: unknown) {}
+      } catch (e) {
+        console.error("Gagal memuat sesi sebelumnya:", e);
+      }
     }
     setIsHydrated(true);
   }, []);
 
-  // MENGAMBIL DICTIONARY SECARA AMAN (Menggunakan useMemo agar array dependencies di useEffect tidak berteriak)
-  const rootDict = dict as unknown as Record<string, any>;
-  const engineDict = useMemo(() => rootDict.fishExpertEngine || {}, [rootDict.fishExpertEngine]);
-  const listDict = useMemo(() => rootDict.fishList || {}, [rootDict.fishList]);
+  // DICTIONARY PARSING (MENGGUNAKAN UNKNOWN KE INTERFACE, 100% BEBAS ANY)
+  const rootDict = (dict as unknown as RootDictionary) || {};
+  const rawEngineDict = useMemo(() => rootDict.fishExpertEngine || {}, [rootDict]);
+  const listDict = useMemo(() => rootDict.fishList || {}, [rootDict]);
+
+  // FIX: MEMETAKAN PROPERTY SECARA IDENTIK SESUAI FishExpertDictionary DI SERVICE BAPAK
+  const engineDict: FishExpertDictionary = useMemo(() => ({
+    reasonTankSizeOK: rawEngineDict.reasonTankSizeOK,
+    reasonTankSizeBad: rawEngineDict.reasonTankSizeBad,
+    reasonPHMatch: rawEngineDict.reasonPHMatch,
+    reasonPHMismatch: rawEngineDict.reasonPHMismatch,
+    reasonTempMatch: rawEngineDict.reasonTempMatch,
+    reasonTempMismatch: rawEngineDict.reasonTempMismatch,
+    reasonSchooling: rawEngineDict.reasonSchooling,
+    reasonBeginnerFriendly: rawEngineDict.reasonBeginnerFriendly,
+    reasonExpertOnly: rawEngineDict.reasonExpertOnly,
+    reasonCompatibility: rawEngineDict.reasonCompatibility
+  }), [rawEngineDict]);
 
   const tDict = useMemo(() => ({
-    title: engineDict.title || "Fish Compatibility Engine V4",
-    subtitle: engineDict.subtitle || (lang === 'id' ? "Sistem cerdas evaluasi bioload predator-prey dan kapasitas water layer." : "Smart evaluation system for predator-prey bioload and water layer capacity."),
-    formTitle: engineDict.formTitle || (lang === 'id' ? "Kuesioner Ekosistem Tangki" : "Tank Ecosystem Questionnaire"),
+    title: rawEngineDict.title || "Fish Compatibility Engine V4",
+    subtitle: rawEngineDict.subtitle || (lang === 'id' ? "Sistem cerdas evaluasi bioload predator-prey dan kapasitas water layer." : "Smart evaluation system for predator-prey bioload and water layer capacity."),
+    formTitle: rawEngineDict.formTitle || (lang === 'id' ? "Kuesioner Ekosistem Tangki" : "Tank Ecosystem Questionnaire"),
     
-    exp: engineDict.q1 || (lang === 'id' ? "1. Pengalaman Anda" : "1. Your Experience"),
-    q1Opt1: engineDict.q1Opt1 || (lang === 'id' ? "Pemula" : "Beginner"),
-    q1Opt2: engineDict.q1Opt2 || (lang === 'id' ? "Menengah" : "Intermediate"),
-    q1Opt3: engineDict.q1Opt3 || (lang === 'id' ? "Mahir" : "Advanced"),
+    exp: rawEngineDict.q1 || (lang === 'id' ? "1. Pengalaman Anda" : "1. Your Experience"),
+    q1Opt1: rawEngineDict.q1Opt1 || (lang === 'id' ? "Pemula" : "Beginner"),
+    q1Opt2: rawEngineDict.q1Opt2 || (lang === 'id' ? "Menengah" : "Intermediate"),
+    q1Opt3: rawEngineDict.q1Opt3 || (lang === 'id' ? "Mahir" : "Advanced"),
     
-    vol: engineDict.q2 || (lang === 'id' ? "2. Volume Tangki (Liter)" : "2. Tank Volume (Liters)"),
+    vol: rawEngineDict.q2 || (lang === 'id' ? "2. Volume Tangki (Liter)" : "2. Tank Volume (Liters)"),
     len: lang === 'id' ? "Panjang Tangki (cm)" : "Tank Length (cm)",
-    ph: engineDict.q3 || (lang === 'id' ? "3. pH Air Saat Ini" : "3. Current Water pH"),
-    temp: engineDict.q4 || (lang === 'id' ? "4. Suhu Air Saat Ini (°C)" : "4. Current Temp (°C)"),
+    ph: rawEngineDict.q3 || (lang === 'id' ? "3. pH Air Saat Ini" : "3. Current Water pH"),
+    temp: rawEngineDict.q4 || (lang === 'id' ? "4. Suhu Air Saat Ini (°C)" : "4. Current Temp (°C)"),
     gh: lang === 'id' ? "GH Air (Opsional)" : "Water GH (Optional)",
     
-    eco: engineDict.q5 || (lang === 'id' ? "5. Rencana Ekosistem" : "5. Ecosystem Plan"),
-    q5Opt1: engineDict.q5Opt1 || "Community Tank",
-    q5Opt2: engineDict.q5Opt2 || "Semi-Aggressive",
-    q5Opt3: engineDict.q5Opt3 || "Species Only",
+    eco: rawEngineDict.q5 || (lang === 'id' ? "5. Rencana Ekosistem" : "5. Ecosystem Plan"),
+    q5Opt1: rawEngineDict.q5Opt1 || "Community Tank",
+    q5Opt2: rawEngineDict.q5Opt2 || "Semi-Aggressive",
+    q5Opt3: rawEngineDict.q5Opt3 || "Species Only",
     
     style: lang === 'id' ? "Style Akuarium" : "Aquascape Style",
     plants: lang === 'id' ? "Ada Tanaman Hidup" : "Has Live Plants",
     shrimp: lang === 'id' ? "Ada Udang Hias" : "Has Shrimp",
-    needSchooling: engineDict.needSchooling || (lang === 'id' ? "Suka Ikan Berkelompok" : "I like schooling fish"),
+    needSchooling: rawEngineDict.needSchooling || (lang === 'id' ? "Suka Ikan Berkelompok" : "I like schooling fish"),
     
     simTitle: lang === 'id' ? "Simulator Penghuni (My Aquarium)" : "My Aquarium Simulator",
     simDesc: lang === 'id' ? "Masukkan jenis ikan yang saat ini SUDAH ADA di dalam tank Anda. AI akan menghitung sisa kapasitas tangki, mencegah overstock, dan menghindari ikan saling memangsa (hukum rimba)." : "Enter fish that ALREADY exist in your tank. AI will calculate remaining capacity, prevent overstocking, and avoid predatory mismatch.",
@@ -134,31 +164,30 @@ export default function FishExpertEnginePage() {
     modalCancel: lang === 'id' ? "BATAL" : "CANCEL",
     modalSave: lang === 'id' ? "SIMPAN" : "SAVE",
     
-    btnStart: engineDict.btnStart || (lang === 'id' ? "Mulai Analisis" : "Start Analysis"),
-    idleTitle: engineDict.idleTitle || (lang === 'id' ? "Sistem Aktif" : "System Active"),
-    idleDesc: engineDict.idleDesc || (lang === 'id' ? "Kirim parameter tangki Anda untuk diagnosis cerdas." : "Submit your tank parameters for smart diagnosis."),
-    failTitle: engineDict.failTitle || (lang === 'id' ? "Gagal Menemukan Kecocokan" : "No Matches Found"),
-    failDesc: engineDict.failDesc || (lang === 'id' ? "Tangki terlalu ekstrem atau overstock." : "Tank conditions are too extreme or overstocked."),
-    successTitle: engineDict.successTitle || (lang === 'id' ? "Hasil Analisis" : "Analysis Result"),
-    successDesc: engineDict.successDesc || (lang === 'id' ? "Daftar ikan yang aman digabungkan dengan penghuni lama." : "List of safe fish to mix with your current inhabitants."),
-    matchCount: engineDict.matchCount || (lang === 'id' ? "Spesies Aman" : "Safe Species"),
-    bestMatch: engineDict.bestMatch || (lang === 'id' ? "Paling Direkomendasikan" : "Top Match"),
-    confidence: engineDict.confidence || (lang === 'id' ? "Keamanan AI" : "AI Safety"),
-    points: engineDict.points || (lang === 'id' ? "Poin" : "Points"),
+    btnStart: rawEngineDict.btnStart || (lang === 'id' ? "Mulai Analisis" : "Start Analysis"),
+    idleTitle: rawEngineDict.idleTitle || (lang === 'id' ? "Sistem Aktif" : "System Active"),
+    idleDesc: rawEngineDict.idleDesc || (lang === 'id' ? "Kirim parameter tangki Anda untuk diagnosis cerdas." : "Submit your tank parameters for smart diagnosis."),
+    failTitle: rawEngineDict.failTitle || (lang === 'id' ? "Gagal Menemukan Kecocokan" : "No Matches Found"),
+    failDesc: rawEngineDict.failDesc || (lang === 'id' ? "Tangki terlalu ekstrem atau overstock." : "Tank conditions are too extreme or overstocked."),
+    successTitle: rawEngineDict.successTitle || (lang === 'id' ? "Hasil Analisis" : "Analysis Result"),
+    successDesc: rawEngineDict.successDesc || (lang === 'id' ? "Daftar ikan yang aman digabungkan dengan penghuni lama." : "List of safe fish to mix with your current inhabitants."),
+    matchCount: rawEngineDict.matchCount || (lang === 'id' ? "Spesies Aman" : "Safe Species"),
+    bestMatch: rawEngineDict.bestMatch || (lang === 'id' ? "Paling Direkomendasikan" : "Top Match"),
+    confidence: rawEngineDict.confidence || (lang === 'id' ? "Keamanan AI" : "AI Safety"),
+    points: rawEngineDict.points || (lang === 'id' ? "Poin" : "Points"),
     
-    confExcellent: engineDict.confExcellent || (lang === 'id' ? "Sangat Cocok" : "Excellent Match"),
-    confVeryGood: engineDict.confVeryGood || (lang === 'id' ? "Bagus" : "Very Good"),
-    confGood: engineDict.confGood || (lang === 'id' ? "Cocok" : "Good"),
-    confModerate: engineDict.confModerate || (lang === 'id' ? "Cukup" : "Moderate"),
+    confExcellent: rawEngineDict.confExcellent || (lang === 'id' ? "Sangat Cocok" : "Excellent Match"),
+    confVeryGood: rawEngineDict.confVeryGood || (lang === 'id' ? "Bagus" : "Very Good"),
+    confGood: rawEngineDict.confGood || (lang === 'id' ? "Cocok" : "Good"),
+    confModerate: rawEngineDict.confModerate || (lang === 'id' ? "Cukup" : "Moderate"),
     
     showing: listDict.showing || (lang === 'id' ? "Menampilkan" : "Showing"),
     to: listDict.to || (lang === 'id' ? "hingga" : "to"),
     of: listDict.of || (lang === 'id' ? "dari" : "of"),
     data: listDict.data || (lang === 'id' ? "data" : "items"),
     page: listDict.page || (lang === 'id' ? "Hal" : "Page")
-  }), [engineDict, listDict, lang]);
+  }), [rawEngineDict, listDict, lang]);
 
-  // KITA GUNAKAN useCallback AGAR FUNGSI INI STABIL DAN BISA DI-PANGGIL OLEH useEffect
   const runInferenceEngine = useCallback(() => {
     if (!isHydrated || fishes.length === 0) return;
     
@@ -180,7 +209,7 @@ export default function FishExpertEnginePage() {
       existingFishes 
     };
     
-    const aiResults = generateFishRecommendations(fishes, answers, engineDict as unknown as FishExpertDictionary, lang);
+    const aiResults = generateFishRecommendations(fishes, answers, engineDict, lang);
 
     sessionStorage.setItem(SESSION_KEY, JSON.stringify({ answers, results: aiResults, currentPage: 1 }));
 
@@ -194,7 +223,6 @@ export default function FishExpertEnginePage() {
     wantSchoolingFish, fishTypePref, hasShrimp, hasPlants, aquascapeStyle, existingFishes
   ]);
 
-  // EFEK INI HANYA MENYALA JIKA USER GANTI BAHASA (DAN HASIL SEBELUMNYA SUDAH ADA)
   useEffect(() => {
     if (isHydrated && results !== null && fishes.length > 0) {
       runInferenceEngine();
@@ -298,7 +326,11 @@ export default function FishExpertEnginePage() {
               <div className="space-y-5">
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 text-xs uppercase font-bold tracking-wider transition-colors">{tDict.exp}</Label>
-                  <select value={experience} onChange={(e) => setExperience(e.target.value as ExperienceLevel)} className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none transition-colors text-slate-900 dark:text-slate-200">
+                  <select 
+                    value={experience} 
+                    onChange={(e) => setExperience(e.target.value as ExperienceLevel)} 
+                    className="w-full h-11 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-sm focus:border-blue-500 outline-none transition-colors text-slate-900 dark:text-slate-200"
+                  >
                     <option value="Pemula">{tDict.q1Opt1}</option>
                     <option value="Menengah">{tDict.q1Opt2}</option>
                     <option value="Mahir">{tDict.q1Opt3}</option>
