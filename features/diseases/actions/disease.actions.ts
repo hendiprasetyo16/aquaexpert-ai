@@ -4,13 +4,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Disease } from "../types/disease.types";
-import type { SupabaseClient } from "@supabase/supabase-js"; // <-- Import resmi
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 // ========================================================
-// FUNGSI KEAMANAN: HANYA SUPER ADMIN YANG BISA LEWAT
+// FUNGSI KEAMANAN: HAK AKSES BERTINGKAT (RBAC)
 // ========================================================
-// FIX: Menggunakan SupabaseClient resmi daripada as any
-async function verifySuperAdmin(supabase: SupabaseClient) {
+async function verifyAdminAccess(supabase: SupabaseClient, requireSuperAdmin: boolean = false) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Sesi berakhir. Silakan login kembali.");
 
@@ -20,9 +19,16 @@ async function verifySuperAdmin(supabase: SupabaseClient) {
     .eq('id', user.id)
     .single();
 
-  if (profile?.role !== 'super_admin') {
+  // Jika aksi sangat fatal (Hard Delete), wajib super_admin
+  if (requireSuperAdmin && profile?.role !== 'super_admin') {
     throw new Error("Akses Ditolak: Fitur ini khusus untuk Super Admin.");
   }
+  
+  // Jika aksi standar admin (Tambah/Edit/Arsip), izinkan admin & super_admin
+  if (!requireSuperAdmin && profile?.role !== 'super_admin' && profile?.role !== 'admin') {
+    throw new Error("Akses Ditolak: Minimal akses Admin diperlukan.");
+  }
+
   return user;
 }
 
@@ -42,7 +48,8 @@ export async function getAdminDiseasesAction(): Promise<{ success: boolean; data
 export async function createDiseaseAction(payload: Partial<Disease>) {
   try {
     const supabase = await createClient();
-    const user = await verifySuperAdmin(supabase); 
+    // Diizinkan untuk Admin & Super Admin
+    const user = await verifyAdminAccess(supabase, false); 
 
     const { error } = await supabase.from("diseases").insert({
       ...payload,
@@ -61,7 +68,8 @@ export async function createDiseaseAction(payload: Partial<Disease>) {
 export async function updateDiseaseAction(id: string, payload: Partial<Disease>) {
   try {
     const supabase = await createClient();
-    const user = await verifySuperAdmin(supabase); 
+    // Diizinkan untuk Admin & Super Admin
+    const user = await verifyAdminAccess(supabase, false); 
 
     const { error } = await supabase.from("diseases").update({
       ...payload,
@@ -81,7 +89,8 @@ export async function updateDiseaseAction(id: string, payload: Partial<Disease>)
 export async function toggleDiseaseArchiveAction(id: string, currentStatus: boolean) {
   try {
     const supabase = await createClient();
-    await verifySuperAdmin(supabase); 
+    // Diizinkan untuk Admin & Super Admin
+    await verifyAdminAccess(supabase, false); 
 
     const { error } = await supabase.from("diseases").update({ 
       is_active: !currentStatus,
@@ -100,7 +109,8 @@ export async function toggleDiseaseArchiveAction(id: string, currentStatus: bool
 export async function hardDeleteDiseaseAction(id: string) {
   try {
     const supabase = await createClient();
-    await verifySuperAdmin(supabase); 
+    // Kunci Baja: HANYA Super Admin yang boleh
+    await verifyAdminAccess(supabase, true); 
 
     const { error } = await supabase.from("diseases").delete().eq("id", id);
     if (error) throw new Error(error.message);

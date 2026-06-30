@@ -1,7 +1,7 @@
 // app/(dashboard)/dashboard/diseases/page.tsx
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/providers/LanguageProvider";
@@ -11,7 +11,7 @@ import {
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/input"; // FIX: Import Input yang hilang
 import toast from "react-hot-toast";
 
 import type { Disease } from "@/features/diseases/types/disease.types";
@@ -105,12 +105,20 @@ export default function DiseaseDatabasePage() {
     setDeleteConfirmText("");
   };
 
+  // FILTERING DENGAN ATURAN RBAC (Role-Based Access Control)
   const filteredDiseases = useMemo(() => {
-    return diseases.filter(d => 
-      d.name_id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      d.name_en.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [diseases, searchQuery]);
+    return diseases.filter(d => {
+      // ATURAN 1: User biasa TIDAK BOLEH melihat data yang diarsipkan
+      if (role === "user" && !d.is_active) {
+        return false;
+      }
+      
+      // ATURAN 2: Pencarian teks
+      const searchLower = searchQuery.toLowerCase();
+      return d.name_id.toLowerCase().includes(searchLower) || 
+             d.name_en.toLowerCase().includes(searchLower);
+    });
+  }, [diseases, searchQuery, role]);
 
   const totalPages = Math.max(1, Math.ceil(filteredDiseases.length / ITEMS_PER_PAGE));
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -134,6 +142,12 @@ export default function DiseaseDatabasePage() {
       "Protozoan": "Protozoa", "Genetic": "Genetik"
     };
     return map[cat] || cat;
+  };
+
+  // FIX: Type-safe Event Handler
+  const handlePageInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value);
+    if (val >= 1 && val <= totalPages) setCurrentPage(val);
   };
 
   return (
@@ -233,9 +247,9 @@ export default function DiseaseDatabasePage() {
                             : 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50'
                           }`}>
                             {disease.severity === 5 ? `${listDict.badgeDanger || (lang === 'id' ? "KRITIS" : "CRITICAL")} (5/5)` : 
-                            disease.severity === 4 ? `${listDict.badgeHigh || (lang === 'id' ? "SANGAT TINGGI" : "VERY HIGH")} (4/5)` : 
-                            disease.severity === 3 ? `${listDict.badgeMedium || (lang === 'id' ? "SEDANG" : "MEDIUM")} (3/5)` : 
-                            `${listDict.badgeLow || (lang === 'id' ? "RENDAH" : "LOW")} (${disease.severity || 1}/5)`}
+                             disease.severity === 4 ? `${listDict.badgeHigh || (lang === 'id' ? "SANGAT TINGGI" : "VERY HIGH")} (4/5)` : 
+                             disease.severity === 3 ? `${listDict.badgeMedium || (lang === 'id' ? "SEDANG" : "MEDIUM")} (3/5)` : 
+                             `${listDict.badgeLow || (lang === 'id' ? "RENDAH" : "LOW")} (${disease.severity || 1}/5)`}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-center">
@@ -282,71 +296,80 @@ export default function DiseaseDatabasePage() {
               {/* MOBILE VIEW: KARTU MINIMALIS (Khusus HP) */}
               {/* ========================================= */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50/50 dark:bg-slate-900/30 md:hidden">
-                {currentData.map((disease) => (
-                  <div 
-                    key={disease.id} 
-                    onClick={() => setViewDetailTarget(disease)}
-                    className={`cursor-pointer flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-all active:scale-[0.98] ${!disease.is_active ? 'opacity-70 grayscale-[30%]' : ''}`}
-                  >
-                    {/* Header: Name + Status */}
-                    <div className="flex justify-between items-start mb-3 gap-3">
-                      <div>
-                        <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 leading-tight">
-                          {lang === 'id' ? disease.name_id : disease.name_en}
-                        </h3>
-                        <p className="text-xs text-slate-500 italic mt-0.5">{disease.scientific_name || "Unknown pathogen"}</p>
-                      </div>
-                      <div className="shrink-0 flex gap-2 items-center">
-                         {/* ICON MATA UNTUK SEMUA ROLE */}
-                         <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400 shadow-sm border border-blue-100 dark:border-blue-800/50">
-                            <Eye className="w-4 h-4" />
-                         </div>
-                         {/* STATUS AKTIF / ARSIP */}
-                        {disease.is_active ? (
-                          <span className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 shadow-sm border border-emerald-200 dark:border-emerald-800/50">
-                            <CheckCircle2 className="w-4 h-4" />
+                {currentData.map((disease, idx) => {
+                  const globalIndex = startIndex + idx + 1;
+                  return (
+                    <div 
+                      key={disease.id} 
+                      onClick={() => setViewDetailTarget(disease)}
+                      className={`cursor-pointer flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-all active:scale-[0.98] ${!disease.is_active ? 'opacity-70 grayscale-[30%]' : ''}`}
+                    >
+                      {/* Header: Number + Name + Status */}
+                      <div className="flex justify-between items-start mb-3 gap-3">
+                        <div className="flex items-start gap-3">
+                          {/* NOMOR URUT HP */}
+                          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-black text-xs shrink-0 mt-0.5 border border-slate-200 dark:border-slate-700">
+                            {globalIndex}
                           </span>
-                        ) : (
-                          <span className="flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 shadow-sm border border-amber-200 dark:border-amber-800/50">
-                            <Archive className="w-4 h-4" />
-                          </span>
-                        )}
+                          <div>
+                            <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 leading-tight">
+                              {lang === 'id' ? disease.name_id : disease.name_en}
+                            </h3>
+                            <p className="text-xs text-slate-500 italic mt-0.5">{disease.scientific_name || "Unknown pathogen"}</p>
+                          </div>
+                        </div>
+                        <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex gap-2 items-center">
+                           {/* ICON MATA UNTUK SEMUA ROLE */}
+                           <div onClick={() => setViewDetailTarget(disease)} className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400 shadow-sm border border-blue-100 dark:border-blue-800/50 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50">
+                              <Eye className="w-4 h-4" />
+                           </div>
+                           {/* STATUS AKTIF / ARSIP */}
+                          {disease.is_active ? (
+                            <span className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 shadow-sm border border-emerald-200 dark:border-emerald-800/50">
+                              <CheckCircle2 className="w-4 h-4" />
+                            </span>
+                          ) : (
+                            <span className="flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 shadow-sm border border-amber-200 dark:border-amber-800/50">
+                              <Archive className="w-4 h-4" />
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    
-                    {/* Badges */}
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-md text-[10px] font-bold border border-slate-200 dark:border-slate-700">
-                        {translateCategory(disease.disease_category)}
-                      </span>
-                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${
-                        disease.severity === 5 ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50' 
-                        : disease.severity === 4 ? 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800/50' 
-                        : disease.severity === 3 ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50' 
-                        : 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50'
-                      }`}>
-                        Level {disease.severity || 1}
-                      </span>
-                    </div>
+                      
+                      {/* Badges */}
+                      <div className="flex flex-wrap gap-2 mb-2 ml-11">
+                        <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-md text-[10px] font-bold border border-slate-200 dark:border-slate-700">
+                          {translateCategory(disease.disease_category)}
+                        </span>
+                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${
+                          disease.severity === 5 ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50' 
+                          : disease.severity === 4 ? 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800/50' 
+                          : disease.severity === 3 ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50' 
+                          : 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50'
+                        }`}>
+                          Level {disease.severity || 1}
+                        </span>
+                      </div>
 
-                    {/* Admin Actions (Mobile) -> Tampil hanya untuk admin/super_admin */}
-                    {(role === "super_admin" || role === "admin") && (
-                      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="outline" onClick={() => router.push(`/dashboard/diseases/${disease.id}/edit`)} className="flex-1 h-10 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 bg-white dark:bg-slate-900">
-                          <Edit className="w-4 h-4 mr-1.5" /> Edit
-                        </Button>
-                        <Button variant="outline" size="icon" onClick={() => setArchiveTarget({ id: disease.id, name: lang === 'id' ? disease.name_id : disease.name_en, isActive: disease.is_active || false })} className="w-10 h-10 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 bg-white dark:bg-slate-900">
-                          <Archive className="w-4 h-4" />
-                        </Button>
-                        {role === "super_admin" && (
-                          <Button variant="outline" size="icon" onClick={() => { setDeleteTarget({ id: disease.id, name: lang === 'id' ? disease.name_id : disease.name_en }); setDeleteConfirmText(""); }} className="w-10 h-10 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 bg-white dark:bg-slate-900">
-                            <Trash2 className="w-4 h-4" />
+                      {/* Admin Actions (Mobile) -> Tampil hanya untuk admin/super_admin */}
+                      {(role === "super_admin" || role === "admin") && (
+                        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="outline" onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/diseases/${disease.id}/edit`); }} className="flex-1 h-10 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 bg-white dark:bg-slate-900">
+                            <Edit className="w-4 h-4 mr-1.5" /> Edit
                           </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                          <Button variant="outline" size="icon" onClick={(e) => { e.stopPropagation(); setArchiveTarget({ id: disease.id, name: lang === 'id' ? disease.name_id : disease.name_en, isActive: disease.is_active || false }); }} className="w-10 h-10 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 bg-white dark:bg-slate-900">
+                            <Archive className="w-4 h-4" />
+                          </Button>
+                          {role === "super_admin" && (
+                            <Button variant="outline" size="icon" onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: disease.id, name: lang === 'id' ? disease.name_id : disease.name_en }); setDeleteConfirmText(""); }} className="w-10 h-10 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 bg-white dark:bg-slate-900">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* PAGINATION */}
@@ -390,10 +413,7 @@ export default function DiseaseDatabasePage() {
                       <span className="hidden sm:inline">Hal</span>
                       <Input 
                         type="number" min={1} max={totalPages} value={currentPage}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value);
-                          if (val >= 1 && val <= totalPages) setCurrentPage(val);
-                        }}
+                        onChange={handlePageInputChange} // FIX: Menggunakan handler ber-type yang aman
                         className="w-14 h-8 text-center bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-gray-900 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:border-blue-500 transition-colors"
                       />
                       <span className="hidden sm:inline">/ {totalPages}</span>
