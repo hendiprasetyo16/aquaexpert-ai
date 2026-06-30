@@ -107,6 +107,7 @@ export default function DiseaseDatabasePage() {
 
   const filteredDiseases = useMemo(() => {
     return diseases.filter(d => {
+      // Filter: User biasa tidak bisa melihat data yang diarsipkan
       if (role === "user" && !d.is_active) {
         return false;
       }
@@ -145,10 +146,9 @@ export default function DiseaseDatabasePage() {
     if (val >= 1 && val <= totalPages) setCurrentPage(val);
   };
 
-  if (role === "user") {
-    if (typeof window !== "undefined") router.replace("/dashboard");
-    return null;
-  }
+  // ==========================================
+  // BLOKIR ROLE USER SUDAH DICABUT DI SINI
+  // ==========================================
 
   return (
     <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors bg-slate-50 dark:bg-slate-950">
@@ -223,8 +223,6 @@ export default function DiseaseDatabasePage() {
                       <tr 
                         key={disease.id} 
                         onClick={() => setViewDetailTarget(disease)}
-                        /* FIX GHOST BORDER: Menggunakan solid border color yang sama baik normal maupun saat hover,
-                           serta menggunakan utilitas transition khusus background saja. */
                         className={`border-b border-slate-200 hover:border-slate-200 dark:border-slate-800 dark:hover:border-slate-800 last:border-none cursor-pointer bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-[background-color] duration-200 ease-in-out ${!disease.is_active ? 'opacity-60 grayscale-[50%]' : ''}`}
                       >
                         <td className="px-6 py-4 text-center font-bold text-slate-400">
@@ -261,10 +259,12 @@ export default function DiseaseDatabasePage() {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
+                            {/* SEMUA ROLE BISA KLIK ICON MATA */}
                             <Button variant="ghost" size="icon" title={listDict.btnDetail || (lang === 'id' ? "Lihat Detail" : "View Details")} onClick={(e) => { e.stopPropagation(); setViewDetailTarget(disease); }} className="w-9 h-9 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 dark:hover:text-blue-400">
                               <Eye className="w-4 h-4" />
                             </Button>
 
+                            {/* HANYA ADMIN & SUPER ADMIN YANG BISA EDIT & ARSIP */}
                             {(role === "super_admin" || role === "admin") && (
                               <>
                                 <Button variant="ghost" size="icon" title={listDict.btnEdit || (lang === 'id' ? "Edit Data" : "Edit")} onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/diseases/${disease.id}/edit`); }} className="w-9 h-9 text-slate-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/30 dark:hover:text-teal-400">
@@ -276,6 +276,7 @@ export default function DiseaseDatabasePage() {
                               </>
                             )}
 
+                            {/* HANYA SUPER ADMIN YANG BISA HARD DELETE */}
                             {role === "super_admin" && (
                               <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: disease.id, name: lang === 'id' ? disease.name_id : disease.name_en }); setDeleteConfirmText(""); }} title={listDict.btnHardDelete || (lang === 'id' ? "Hapus Permanen" : "Hard Delete")} className="w-9 h-9 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 dark:hover:text-red-400">
                                 <Trash2 className="w-4 h-4" />
