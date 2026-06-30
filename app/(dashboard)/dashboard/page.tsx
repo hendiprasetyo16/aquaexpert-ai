@@ -47,6 +47,11 @@ interface ActivityLog {
   date: Date;
 }
 
+// FIX: Menambahkan tipe yang jelas untuk Flora dan Fauna agar bebas dari 'any'
+interface InventoryItem {
+  quantity?: number;
+}
+
 export default function DashboardPage() {
   const { user, profile, role, isLoading } = useAuth();
   const { dict, language } = useLanguage(); 
@@ -153,8 +158,9 @@ export default function DashboardPage() {
                   maintenanceStatus: maintenanceStatus
                 });
 
-                const faunaCount = aqFishes.reduce((acc: number, f: any) => acc + (f.quantity || 0), 0);
-                const floraCount = aqPlants.reduce((acc: number, p: any) => acc + (p.quantity || 0), 0);
+                // FIX: Menghilangkan tipe any pada fungsi reduce
+                const faunaCount = aqFishes.reduce((acc: number, f: InventoryItem) => acc + (f.quantity || 0), 0);
+                const floraCount = aqPlants.reduce((acc: number, p: InventoryItem) => acc + (p.quantity || 0), 0);
                 const alerts = healthAnalysis.alerts || [];
 
                 totalAlerts += alerts.length;
@@ -250,8 +256,10 @@ export default function DashboardPage() {
     );
   }
 
-  const rootDict = (dict as Record<string, any>) || {};
+  // FIX: Parsing Dictionary Aman dan Bebas dari tipe 'any'
+  const rootDict = (dict as unknown as Record<string, Record<string, string>>) || {};
   const dashDict = rootDict.dashboard || {};
+  
   const primaryTank = tankList.find(t => t.is_primary);
   const secondaryTanks = tankList.filter(t => !t.is_primary);
 
