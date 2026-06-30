@@ -1,7 +1,7 @@
 // features/diseases/components/SymptomPicker.tsx
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Check, Activity, Search, AlertCircle, Info } from "lucide-react";
 import type { Symptom, BodyRegion } from "@/features/diseases/types/disease.types";
 
@@ -11,6 +11,7 @@ interface Props {
   onSubmitDiagnosis: (aquariumId: string, selectedSymptomIds: string[]) => void;
   isLoading?: boolean;
   lang?: "id" | "en";
+  initialSelectedIds?: string[]; // FIX: Menerima ingatan dari session
 }
 
 const REGION_TABS: { id: BodyRegion; labelId: string; labelEn: string }[] = [
@@ -38,11 +39,19 @@ function calculateQualityMetrics(count: number, lang: "id"|"en") {
   return { percent, label: lang === 'id' ? "Sangat Optimal" : "Optimal", color: "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]", text: "text-emerald-600 dark:text-emerald-400" };
 }
 
-export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis, isLoading, lang = "id" }: Props) {
+export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis, isLoading, lang = "id", initialSelectedIds = [] }: Props) {
   const [activeRegion, setActiveRegion] = useState<BodyRegion>("General");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  
+  // FIX: Inisialisasi state dengan nilai dari session (ingatan)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(initialSelectedIds));
 
-  // Memastikan sinkronisasi data yang kebal uppercase/lowercase
+  // Sync state jika ingatan berubah dari luar
+  useEffect(() => {
+    if (initialSelectedIds.length > 0) {
+      setSelectedIds(new Set(initialSelectedIds));
+    }
+  }, [initialSelectedIds]);
+
   const displayedSymptoms = useMemo(() => {
     return availableSymptoms.filter(s => 
       s.body_region?.toLowerCase().trim() === activeRegion.toLowerCase().trim()
