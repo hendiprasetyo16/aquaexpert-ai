@@ -81,7 +81,6 @@ export default function TreatmentTab({ aquariumId }: Props) {
   };
 
   return (
-    // FIX: Class 'relative' telah dicabut dari sini agar Modal tidak terperangkap!
     <div className="space-y-8 animate-in fade-in duration-500">
       
       {/* CUSTOM DELETE MODAL */}
@@ -130,11 +129,18 @@ export default function TreatmentTab({ aquariumId }: Props) {
 
             return (
               <div key={session.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm flex flex-col relative group">
-                <button onClick={() => setDeleteTarget({id: session.id, type: 'active'})} className="absolute top-4 right-4 p-2 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4"/></button>
+                
+                {/* FIX: Tombol hapus di HP sekarang selalu muncul (opacity-100), di Laptop baru pakai hover (md:opacity-0 group-hover:opacity-100) */}
+                <button 
+                  onClick={() => setDeleteTarget({id: session.id, type: 'active'})} 
+                  className="absolute top-4 right-4 p-2 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm md:shadow-none"
+                >
+                  <Trash2 className="w-4 h-4"/>
+                </button>
                 
                 <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
                   <div className="inline-flex px-2 py-1 bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 rounded text-[10px] font-black uppercase mb-3"><AlertCircle className="w-3 h-3 mr-1" /> {lang === 'id' ? "Hari Ke-" : "Day"} {dayNum}</div>
-                  <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 leading-tight">{lang === 'id' ? session.disease?.name_id : session.disease?.name_en}</h3>
+                  <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 leading-tight pr-8">{lang === 'id' ? session.disease?.name_id : session.disease?.name_en}</h3>
                 </div>
                 
                 <div className="p-5 flex-1 space-y-4">
@@ -185,7 +191,15 @@ export default function TreatmentTab({ aquariumId }: Props) {
 
                  return (
                    <div key={hist.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative group flex flex-col justify-between">
-                      <button onClick={() => setDeleteTarget({id: hist.id, type: 'history'})} className="absolute top-3 right-3 p-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 dark:bg-slate-900/80 rounded-full shadow-sm"><Trash2 className="w-4 h-4"/></button>
+                      
+                      {/* FIX: Tombol hapus di riwayat juga disesuaikan untuk HP */}
+                      <button 
+                        onClick={() => setDeleteTarget({id: hist.id, type: 'history'})} 
+                        className="absolute top-3 right-3 p-2 text-slate-400 hover:text-red-500 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 dark:bg-slate-900/80 rounded-full shadow-sm z-10"
+                      >
+                        <Trash2 className="w-4 h-4"/>
+                      </button>
+
                       <div>
                         <div className="flex justify-between items-start mb-3 pr-8">
                           <h5 className="font-bold text-slate-800 dark:text-slate-200 text-sm leading-tight">{lang === 'id' ? hist.disease?.name_id : hist.disease?.name_en}</h5>
