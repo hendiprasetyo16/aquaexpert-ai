@@ -15,7 +15,7 @@ interface Props {
   session: ActiveTreatmentDto;
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: () => Promise<void> | void; // Disesuaikan agar bisa menerima Async
   tDict: Record<string, string>;
   lang: "id" | "en";
   hasLoggedToday: boolean;
@@ -40,6 +40,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
 
   const initialCount = Math.max(1, session.initial_symptoms?.length || 1);
   const currentCount = remainingSymptoms.length;
+  // Kalkulasi Real-time yang langsung terlihat di UI
   const projectedRecovery = Math.max(0, Math.min(100, Math.round(((initialCount - currentCount) / initialCount) * 100)));
 
   useEffect(() => {
@@ -65,66 +66,82 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
 
   const handleDeleteSession = async () => {
     setIsDeleting(true);
-    const res = await deleteTreatmentSessionAction(session.id, session.aquarium_id);
-    if (res.success) {
-      toast.success(lang === 'id' ? "Sesi salah input berhasil dihapus!" : "Session deleted!");
-      onSuccess();
-      onClose();
-    } else {
-      toast.error(res.error || "Gagal menghapus sesi.");
+    try {
+      const res = await deleteTreatmentSessionAction(session.id, session.aquarium_id);
+      if (res.success) {
+        toast.success(lang === 'id' ? "Sesi salah input berhasil dihapus!" : "Session deleted!");
+        await onSuccess();
+        onClose();
+      } else {
+        toast.error(res.error || "Gagal menghapus sesi.");
+      }
+    } catch (err) {
+      toast.error("Terjadi kesalahan sistem.");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
-    setIsDeleting(false);
-    setShowDeleteConfirm(false);
   };
 
   const handleAbortSession = async () => {
     setIsAborting(true);
-    const res = await logDailyTreatmentAction({
-      aquariumId: session.aquarium_id,
-      sessionId: session.id,
-      remainingSymptomIds: remainingSymptoms,
-      actionTaken: "Medication Changed", 
-      medicationDose: 0,
-      newFishLostCount: 0,
-      notes: "Sesi dibatalkan oleh pengguna.",
-      lang: lang
-    });
+    try {
+      const res = await logDailyTreatmentAction({
+        aquariumId: session.aquarium_id,
+        sessionId: session.id,
+        remainingSymptomIds: remainingSymptoms,
+        actionTaken: "Medication Changed", // Ini kode di backend untuk membatalkan
+        medicationDose: 0,
+        newFishLostCount: 0,
+        notes: "Sesi dibatalkan oleh pengguna (Ganti Obat/Lainnya).",
+        lang: lang
+      });
 
-    if (res.success) {
-      toast.success(lang === 'id' ? "Sesi dipindahkan ke Riwayat!" : "Session moved to History!");
-      onSuccess();
-      onClose();
-    } else {
-      toast.error(res.error || "Gagal membatalkan sesi.");
+      if (res.success) {
+        toast.success(lang === 'id' ? "Sesi dipindahkan ke Riwayat!" : "Session moved to History!");
+        await onSuccess(); // Tunggu data ter-refresh dulu
+        onClose();         // Baru tutup modal
+      } else {
+        toast.error(res.error || "Gagal membatalkan sesi.");
+      }
+    } catch (err) {
+      toast.error("Terjadi kesalahan sistem.");
+    } finally {
+      setIsAborting(false);
+      setShowAbortConfirm(false);
     }
-    setIsAborting(false);
-    setShowAbortConfirm(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    const res = await logDailyTreatmentAction({
-      aquariumId: session.aquarium_id,
-      sessionId: session.id,
-      remainingSymptomIds: remainingSymptoms,
-      actionTaken: actionTaken,
-      medicationDose: Number(medicationDose) || 0,
-      newFishLostCount: Number(newFishLostCount) || 0,
-      notes: notes,
-      lang: lang
-    });
+    try {
+      const res = await logDailyTreatmentAction({
+        aquariumId: session.aquarium_id,
+        sessionId: session.id,
+        remainingSymptomIds: remainingSymptoms,
+        actionTaken: actionTaken,
+        medicationDose: Number(medicationDose) || 0,
+        newFishLostCount: Number(newFishLostCount) || 0,
+        notes: notes,
+        lang: lang
+      });
 
-    if (res.success) {
-      toast.success(lang === 'id' ? "Rekam medis tersimpan!" : "Medical log saved!");
-      if (res.analytics) toast(lang === 'id' ? res.analytics.aiRecommendationId : res.analytics.aiRecommendationEn, { icon: "🤖", duration: 6000 });
-      onSuccess(); 
-      onClose();
-    } else {
-      toast.error(res.error || "Gagal menyimpan rekam medis.");
+      if (res.success) {
+        toast.success(lang === 'id' ? "Rekam medis tersimpan!" : "Medical log saved!");
+        if (res.analytics) toast(lang === 'id' ? res.analytics.aiRecommendationId : res.analytics.aiRecommendationEn, { icon: "🤖", duration: 6000 });
+        
+        await onSuccess(); // PENTING: Refresh tabel di latar belakang dulu
+        onClose();         // Baru tutup modal, agar data di layar langsung berubah!
+      } else {
+        toast.error(res.error || "Gagal menyimpan rekam medis.");
+      }
+    } catch (err) {
+      toast.error("Terjadi kesalahan sistem.");
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   const actionOptions: { val: ActionTaken; label: string; icon: React.ReactNode; desc: string }[] = [
@@ -198,7 +215,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                 {tDict.formDesc || (lang === 'id' ? "Catat perkembangan pasien hari ini untuk dievaluasi oleh sistem AI." : "Record today's patient progress for AI.")}
               </p>
             </div>
-            <button onClick={onClose} className="p-2 bg-slate-200 text-slate-500 hover:bg-rose-500 hover:text-white dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-rose-600 transition-colors rounded-full shrink-0">
+            <button type="button" onClick={onClose} className="p-2 bg-slate-200 text-slate-500 hover:bg-rose-500 hover:text-white dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-rose-600 transition-colors rounded-full shrink-0">
               <X className="w-5 h-5"/>
             </button>
           </div>
