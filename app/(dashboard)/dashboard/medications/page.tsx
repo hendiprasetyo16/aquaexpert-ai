@@ -46,7 +46,6 @@ export default function MedicationDatabasePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // FUNGSI HAPUS PERMANEN (KHUSUS SUPER ADMIN)
   const handleDeleteConfirm = async () => {
     if (!medToDelete) return;
     setIsProcessing(true);
@@ -61,11 +60,9 @@ export default function MedicationDatabasePage() {
     setMedToDelete(null);
   };
 
-  // FUNGSI ARSIP (ADMIN & SUPER ADMIN)
   const handleArchiveConfirm = async () => {
     if (!medToArchive) return;
     setIsProcessing(true);
-    // TODO: Ganti dengan Action Arsip sesungguhnya saat backend sudah siap
     setTimeout(() => {
       toast.success(lang === 'id' ? "Obat berhasil diarsipkan!" : "Medication archived successfully!");
       setIsProcessing(false);
@@ -161,7 +158,7 @@ export default function MedicationDatabasePage() {
 
       <div className="max-w-[1400px] mx-auto space-y-8 pb-10">
         
-        {/* HEADER DENGAN KONTROL ADMIN INLINE */}
+        {/* HEADER */}
         <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden transition-colors flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="absolute -top-10 -right-10 w-48 h-48 bg-sky-500/10 dark:bg-sky-500/20 blur-[50px] rounded-full pointer-events-none"></div>
           
@@ -178,7 +175,6 @@ export default function MedicationDatabasePage() {
                 : "Comprehensive medical encyclopedia. Learn dosages, flora/fauna safety, and baseline recovery rates of aquascape medications."}
             </p>
             
-            {/* TOMBOL TAMBAH & KELOLA KHUSUS ADMIN */}
             {isAdmin && (
               <div className="flex flex-wrap items-center gap-3 mt-5">
                 <Button 
@@ -222,69 +218,64 @@ export default function MedicationDatabasePage() {
               {currentData.map((med, index) => (
                 <div key={med.id} className="relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-[0_0_20px_rgba(14,165,233,0.25)] dark:hover:shadow-[0_0_20px_rgba(14,165,233,0.15)] transition-all duration-300 hover:border-sky-300 dark:hover:border-sky-700 flex flex-col group">
                   
-                  {/* WATERMARK OBAT (POINTER-EVENTS-NONE = TIDAK BISA DIKLIK/MENGHALANGI) */}
-                  <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-4 opacity-[0.03] dark:opacity-[0.05] pointer-events-none group-hover:scale-110 transition-transform duration-700 z-0">
-                    <FlaskConical className="w-48 h-48 text-sky-500" />
+                  {/* WATERMARK OBAT (EXTREMELY FAINT) */}
+                  <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-8 opacity-[0.015] dark:opacity-[0.02] pointer-events-none group-hover:scale-110 transition-transform duration-700 z-0">
+                    <FlaskConical className="w-56 h-56 text-sky-500" />
                   </div>
 
-                  {/* KONTROL ADMIN INLINE (SELALU TAMPIL BAGI ADMIN, Z-INDEX TERTINGGI 50) */}
-                  {isAdmin && (
-                    <div className="absolute top-4 right-4 z-50 flex items-center gap-1.5 opacity-100 transition-opacity duration-300">
-                      
-                      {/* TOMBOL EDIT (Admin & Super Admin) */}
-                      <button 
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toast(lang === 'id' ? "Siap disambungkan ke Form Edit!" : "Ready for Edit Form!", { icon: "📝"}); }} 
-                        className="p-2 bg-white dark:bg-slate-800 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-600 dark:text-sky-400 rounded-lg shadow border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer" 
-                        title={lang === 'id' ? "Edit Data" : "Edit Data"}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-
-                      {/* TOMBOL ARSIP (Admin & Super Admin) */}
-                      <button 
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToArchive(med); }} 
-                        className="p-2 bg-white dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-500 rounded-lg shadow border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer" 
-                        title={lang === 'id' ? "Arsipkan Obat" : "Archive Meds"}
-                      >
-                        <Archive className="w-4 h-4" />
-                      </button>
-
-                      {/* TOMBOL HAPUS PERMANEN (HANYA Super Admin) */}
-                      {isSuperAdmin && (
-                        <button 
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToDelete(med); }} 
-                          className="p-2 bg-white dark:bg-slate-800 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg shadow border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer" 
-                          title={lang === 'id' ? "Hapus Permanen" : "Permanent Delete"}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* HEADER KARTU OBAT */}
-                  <div className="p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/50 relative overflow-hidden flex items-start gap-4 z-10">
-                    <div className="absolute top-4 right-4 opacity-10 dark:opacity-20 pointer-events-none group-hover:opacity-30 transition-opacity duration-500">
-                      <FlaskConical className="w-20 h-20 md:w-24 md:h-24 text-sky-500 drop-shadow-[0_0_15px_rgba(14,165,233,0.8)]" />
-                    </div>
-
-                    {/* NOMOR URUT */}
-                    <div className="shrink-0 w-10 h-10 rounded-full bg-white dark:bg-slate-800 border-2 border-sky-400 dark:border-sky-500 flex items-center justify-center text-sky-600 dark:text-sky-400 font-black text-sm shadow-[0_0_10px_rgba(14,165,233,0.3)] group-hover:scale-110 transition-transform relative z-10 mt-1">
-                      {startIndex + index + 1}
-                    </div>
+                  {/* HEADER & KONTROL KARTU OBAT (FLEX ROW UNTUK MENCEGAH TABRAKAN) */}
+                  <div className="p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/50 relative z-10 flex flex-col gap-4">
                     
-                    {/* TEKS JUDUL (pr-32 agar teks tidak tertimpa 3 tombol admin di kanan atas) */}
-                    <div className={`flex-1 relative z-10 min-w-0 ${isAdmin ? "pr-32" : "pr-4"}`}> 
+                    {/* Baris Atas: Nomor Urut (Kiri) & Tombol Admin (Kanan) */}
+                    <div className="flex justify-between items-start w-full">
+                       {/* NOMOR URUT */}
+                       <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 border-2 border-sky-400 dark:border-sky-500 flex items-center justify-center text-sky-600 dark:text-sky-400 font-black text-sm shadow-[0_0_10px_rgba(14,165,233,0.3)] group-hover:scale-110 transition-transform shrink-0">
+                         {startIndex + index + 1}
+                       </div>
+                       
+                       {/* TOMBOL ADMIN INLINE */}
+                       {isAdmin && (
+                         <div className="flex items-center gap-1.5 shrink-0">
+                           <button 
+                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); toast(lang === 'id' ? "Siap disambungkan ke Form Edit!" : "Ready for Edit Form!", { icon: "📝"}); }} 
+                             className="p-2 bg-white dark:bg-slate-800 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-600 dark:text-sky-400 rounded-lg shadow border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer" 
+                             title={lang === 'id' ? "Edit Data" : "Edit Data"}
+                           >
+                             <Edit className="w-4 h-4" />
+                           </button>
+                           <button 
+                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToArchive(med); }} 
+                             className="p-2 bg-white dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-600 dark:text-amber-500 rounded-lg shadow border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer" 
+                             title={lang === 'id' ? "Arsipkan Obat" : "Archive Meds"}
+                           >
+                             <Archive className="w-4 h-4" />
+                           </button>
+                           {isSuperAdmin && (
+                             <button 
+                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToDelete(med); }} 
+                               className="p-2 bg-white dark:bg-slate-800 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg shadow border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer" 
+                               title={lang === 'id' ? "Hapus Permanen" : "Permanent Delete"}
+                             >
+                               <Trash2 className="w-4 h-4" />
+                             </button>
+                           )}
+                         </div>
+                       )}
+                    </div>
+
+                    {/* Baris Bawah: Judul Obat & Kandungan (Turun ke bawah secara bebas) */}
+                    <div className="w-full pr-2"> 
                       <h3 className="text-xl md:text-2xl font-black text-slate-800 dark:text-slate-100 mb-2 leading-tight break-words whitespace-normal">
                         {lang === 'id' ? med.name_id : med.name_en}
                       </h3>
-                      <div className="inline-flex items-start gap-1.5 px-3 py-1.5 bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400 rounded-lg text-[10px] font-black uppercase tracking-widest border border-sky-200 dark:border-sky-800/50 w-fit max-w-full">
+                      <div className="inline-flex items-start gap-1.5 px-3 py-1.5 bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400 rounded-lg text-[10px] font-black uppercase tracking-widest border border-sky-200 dark:border-sky-800/50 max-w-full">
                         <Beaker className="w-3.5 h-3.5 shrink-0 mt-0.5" /> 
                         <span className="whitespace-normal break-words text-left leading-relaxed">
                           {med.active_ingredient}
                         </span>
                       </div>
                     </div>
+
                   </div>
 
                   {/* DESKRIPSI & DOSIS */}
