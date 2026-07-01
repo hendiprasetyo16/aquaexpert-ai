@@ -9,7 +9,7 @@ interface LogPayload {
   aquariumId: string;
   sessionId: string;
   remainingSymptomIds: string[];
-  actionTaken: ActionTaken;
+  actionTaken: ActionTaken | string;
   medicationDose?: number;
   newFishLostCount?: number;
   notes?: string;
@@ -57,6 +57,7 @@ export async function logDailyTreatmentAction({
     const todayMidnight = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
     const dayNumber = Math.floor((todayMidnight - startMidnight) / (1000 * 60 * 60 * 24)) + 1;
 
+    // KALKULASI PERSENTASE KESEMBUHAN
     const initialCount = session.initial_symptoms?.length || 1;
     const currentCount = remainingSymptomIds.length;
     let recoveryRate = 0;
@@ -91,38 +92,90 @@ export async function logDailyTreatmentAction({
       log_date: new Date().toISOString()
     };
 
-    // PURE JAVASCRIPT LOGIC (Anti Error Database)
-    // 1. Cek apakah hari ini sudah absen
-    const { data: existingLog } = await supabase.from("treatment_logs").select("id").eq("session_id", sessionId).eq("day_number", dayNumber).maybeSingle();
+    // =========================================================================
+    // PURE JAVASCRIPT LOGIC (Mencegah Error Database Supabase secara Mutlak)
+    // =========================================================================
     
+    // 1. Cek apakah hari ini sudah absen
+    const { data: existingLog } = await supabase.from("treatment_logs")
+      .select("id").eq("session_id", sessionId).eq("day_number", dayNumber).maybeSingle();
+    
+    // 2. Lakukan Update Jika Ada, Insert Jika Baru
     if (existingLog) {
-      await supabase.from("treatment_logs").update(logData).eq("id", existingLog.id);
+
+      const { error } = await supabase
+        .from("treatment_logs")
+        .update(logData)
+        .eq("id", existingLog.id);
+
+      if (error) throw error;
+
     } else {
-      await supabase.from("treatment_logs").insert(logData);
+
+      const { error } = await supabase
+        .from("treatment_logs")
+        .insert(logData);
+
+      if (error) throw error;
+
     }
 
-    // 2. Update status tangki
-    await supabase.from("treatment_sessions").update({
-      current_recovery_rate: recoveryRate,
-      status: autoUpdateStatus,
-      outcome_reason: finalOutcomeReason,
-      fish_lost_count: Number(session.fish_lost_count || 0) + newFishLostCount,
-      completed_at: autoUpdateStatus !== "Active" ? new Date().toISOString() : null
-    }).eq("id", sessionId);
+    // 3. Update status tangki pasien
+    const { error: updateError } =
+    await supabase
+    .from("treatment_sessions")
+    .update({
+        current_recovery_rate: recoveryRate,
+        status: autoUpdateStatus,
+        outcome_reason: finalOutcomeReason,
+        fish_lost_count:
+            Number(session.fish_lost_count || 0)
+            + newFishLostCount,
+        completed_at:
+            autoUpdateStatus !== "Active"
+                ? new Date().toISOString()
+                : null
+    })
+    .eq("id",sessionId);
 
-    // 3. Jika selesai, masukkan ke analitik
-    if (autoUpdateStatus !== "Active") {
-      await supabase.from("treatment_outcomes").upsert({
-        session_id: sessionId,
-        aquarium_id: aquariumId,
-        disease_id: session.disease_id,
-        medication_id: session.medication_id,
-        recovery_days: dayNumber,
-        recovery_rate: recoveryRate,
-        fish_lost_count: Number(session.fish_lost_count || 0) + newFishLostCount,
-        outcome_status: autoUpdateStatus,
-        created_at: new Date().toISOString()
-      }, { onConflict: 'session_id' });
+    if(updateError){
+        console.error(updateError);
+
+        return{
+            success:false,
+            analytics:null,
+            error:updateError.message
+        };
+    }
+
+    // 4. Masukkan ke papan Analitik jika selesai (Sembuh/Batal)
+    const { error: outcomeError } =
+    await supabase
+    .from("treatment_outcomes")
+    .upsert({
+        session_id:sessionId,
+        aquarium_id:aquariumId,
+        disease_id:session.disease_id,
+        medication_id:session.medication_id,
+        recovery_days:dayNumber,
+        recovery_rate:recoveryRate,
+        fish_lost_count:
+            Number(session.fish_lost_count||0)
+            + newFishLostCount,
+        outcome_status:autoUpdateStatus,
+        created_at:new Date().toISOString()
+    },{
+        onConflict:"session_id"
+    });
+
+    if(outcomeError){
+        console.error(outcomeError);
+
+        return{
+            success:false,
+            analytics:null,
+            error:outcomeError.message
+        };
     }
 
     return {
