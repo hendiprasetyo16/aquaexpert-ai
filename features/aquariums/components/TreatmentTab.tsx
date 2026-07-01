@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { HeartPulse, Plus, ShieldAlert, Activity, Fish, AlertCircle, Syringe, Loader2, CheckCircle2, XCircle, History, CalendarDays, Clock, Trash2, AlertTriangle, FileText } from "lucide-react";
+import { HeartPulse, Plus, ShieldAlert, Activity, Fish, AlertCircle, Syringe, Loader2, CheckCircle2, XCircle, History, CalendarDays, Clock, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/providers/LanguageProvider";
 import StartTreatmentModal from "./StartTreatmentModal";
@@ -71,21 +71,22 @@ export default function TreatmentTab({ aquariumId }: Props) {
     setIsDeleting(true);
     const res = await deleteTreatmentSessionAction(deleteTarget.id, aquariumId);
     if (res.success) {
-      toast.success("Data berhasil dihapus.");
+      toast.success(lang === 'id' ? "Data berhasil dihapus." : "Data successfully deleted.");
       fetchTreatments();
     } else {
-      toast.error("Gagal menghapus data.");
+      toast.error(lang === 'id' ? "Gagal menghapus data." : "Failed to delete data.");
     }
     setIsDeleting(false);
     setDeleteTarget(null);
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 relative">
+    // FIX: Class 'relative' telah dicabut dari sini agar Modal tidak terperangkap!
+    <div className="space-y-8 animate-in fade-in duration-500">
       
-      {/* MODAL HAPUS Z-INDEX TERTINGGI (999) AGAR TIDAK TERPOTONG */}
+      {/* CUSTOM DELETE MODAL */}
       {deleteTarget && (
-        <div className="fixed inset-0 z-[999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
             <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4"><AlertTriangle className="w-8 h-8"/></div>
             <h3 className="text-xl font-black mb-2 text-slate-800 dark:text-white uppercase">{deleteTarget.type === 'history' ? "Hapus Riwayat?" : "Batalkan Sesi?"}</h3>
@@ -95,27 +96,28 @@ export default function TreatmentTab({ aquariumId }: Props) {
                 : (lang === 'id' ? "Gunakan ini hanya jika Anda SALAH INPUT pasien. Semua rekam medis hari ini akan ikut terhapus." : "Use this only if you made a MISTAKE. All logs today will be deleted.")}
             </p>
             <div className="flex flex-col gap-3">
-              <Button onClick={executeDelete} disabled={isDeleting} className="w-full h-12 bg-red-600 hover:bg-red-500 text-white font-black uppercase rounded-xl shadow-lg shadow-red-500/20">
+              <Button onClick={executeDelete} disabled={isDeleting} className="w-full h-12 bg-red-600 hover:bg-red-500 text-white font-black uppercase rounded-xl">
                 {isDeleting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (lang === 'id' ? "YA, HAPUS PERMANEN" : "YES, DELETE PERMANENTLY")}
               </Button>
-              <Button variant="ghost" onClick={() => setDeleteTarget(null)} disabled={isDeleting} className="w-full h-12 font-bold uppercase rounded-xl border border-slate-200">{lang === 'id' ? "Batal" : "Cancel"}</Button>
+              <Button variant="ghost" onClick={() => setDeleteTarget(null)} disabled={isDeleting} className="w-full h-12 font-bold uppercase rounded-xl border border-slate-200 dark:border-slate-700">{lang === 'id' ? "Batal" : "Cancel"}</Button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
+      {/* HEADER TAB */}
+      <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <div>
           <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2"><HeartPulse className="w-5 h-5 text-rose-500" /> {txt.title}</h3>
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">{txt.subtitle}</p>
         </div>
-        <Button onClick={() => setIsStartModalOpen(true)} className="h-11 bg-rose-600 hover:bg-rose-500 text-white font-bold px-5 rounded-xl"><Plus className="w-4 h-4 mr-1.5" /> {txt.btnAdd}</Button>
+        <Button onClick={() => setIsStartModalOpen(true)} className="h-11 bg-rose-600 hover:bg-rose-500 text-white font-bold px-5 rounded-xl shadow-md"><Plus className="w-4 h-4 mr-1.5" /> {txt.btnAdd}</Button>
       </div>
 
       {isLoading ? (
         <div className="flex justify-center p-10"><Loader2 className="w-8 h-8 animate-spin text-rose-500" /></div>
       ) : activePatients.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 p-16 text-center">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 p-16 text-center shadow-sm">
           <ShieldAlert className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
           <h4 className="text-lg font-black text-slate-800 dark:text-slate-200">{txt.emptyTitle}</h4>
           <p className="text-xs text-slate-500 mt-2">{txt.emptyDesc}</p>
@@ -128,7 +130,7 @@ export default function TreatmentTab({ aquariumId }: Props) {
 
             return (
               <div key={session.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm flex flex-col relative group">
-                <button onClick={() => setDeleteTarget({id: session.id, type: 'active'})} className="absolute top-4 right-4 p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4"/></button>
+                <button onClick={() => setDeleteTarget({id: session.id, type: 'active'})} className="absolute top-4 right-4 p-2 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-4 h-4"/></button>
                 
                 <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
                   <div className="inline-flex px-2 py-1 bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 rounded text-[10px] font-black uppercase mb-3"><AlertCircle className="w-3 h-3 mr-1" /> {lang === 'id' ? "Hari Ke-" : "Day"} {dayNum}</div>
@@ -141,12 +143,9 @@ export default function TreatmentTab({ aquariumId }: Props) {
                     <p className="text-sm font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2"><Syringe className="w-4 h-4" /> {session.medication?.name}</p>
                   </div>
 
-                  {/* FIX 3: LOG TERAKHIR PASTI MUNCUL MESKI ZONA WAKTU BEDA */}
-                  {session.latest_log && (
+                  {hasLoggedToday && session.latest_log && (
                     <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 p-3 rounded-xl">
-                      <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mb-1">
-                        <FileText className="w-3 h-3"/> CATATAN TERAKHIR (HARI KE-{session.latest_log.day_number})
-                      </p>
+                      <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mb-1"><CheckCircle2 className="w-3 h-3"/> {lang === 'id' ? "SUDAH DIUPDATE HARI INI" : "UPDATED TODAY"}</p>
                       <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                         {session.latest_log.action_taken === "Observed" ? (lang === 'id' ? "Hanya Observasi" : "Observed") 
                          : session.latest_log.action_taken === "Redosed" ? (lang === 'id' ? "Dosis Ulang" : "Redosed") 
@@ -163,8 +162,8 @@ export default function TreatmentTab({ aquariumId }: Props) {
                 </div>
 
                 <div className="p-5 pt-0">
-                  <Button onClick={() => setSelectedSession(session)} className="w-full h-12 rounded-xl bg-slate-900 dark:bg-rose-600 hover:bg-slate-800 dark:hover:bg-rose-500 text-white font-black text-xs uppercase">
-                    <Activity className="w-4 h-4 mr-2" /> {hasLoggedToday ? (lang === 'id' ? "Update Rekam Medis" : "Update Medical Log") : (lang === 'id' ? "Catat Medis Hari Ini" : "Log Today's Medical")}
+                  <Button onClick={() => setSelectedSession(session)} className="w-full h-12 rounded-xl bg-slate-900 dark:bg-rose-600 hover:bg-slate-800 dark:hover:bg-rose-500 text-white font-black text-xs uppercase shadow-md">
+                    <Activity className="w-4 h-4 mr-2" /> {hasLoggedToday ? (lang === 'id' ? "Edit Data Hari Ini" : "Edit Today's Data") : (lang === 'id' ? "Catat Medis Hari Ini" : "Log Today's Medical")}
                   </Button>
                 </div>
               </div>

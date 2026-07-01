@@ -27,7 +27,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
   const [isAborting, setIsAborting] = useState(false);
   
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showAbortConfirm, setShowAbortConfirm] = useState(false); // STATE BARU UNTUK MODAL BATAL SESI
+  const [showAbortConfirm, setShowAbortConfirm] = useState(false); 
   
   const [actionTaken, setActionTaken] = useState<ActionTaken>(
     (session.latest_log?.action_taken as ActionTaken) || "Observed"
@@ -131,14 +131,13 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
     { val: "Observed", label: lang === 'id' ? "Hanya Observasi" : "Observation Only", icon: <Eye className="w-4 h-4" />, desc: lang==='id'?"Hanya memantau.":"Monitoring only." },
     { val: "Redosed", label: lang === 'id' ? "Dosis Ulang" : "Redosed", icon: <Syringe className="w-4 h-4" />, desc: lang==='id'?"Menambah obat ke tangki.":"Adding more medication." },
     { val: "Water Change", label: lang === 'id' ? "Ganti Air" : "Water Change", icon: <Droplets className="w-4 h-4" />, desc: lang==='id'?"Pergantian air harian.":"Daily water change." },
-    { val: "Medication Changed", label: lang === 'id' ? "Ganti Obat" : "Medication Changed", icon: <ArrowRightLeft className="w-4 h-4" />, desc: lang==='id'?"Tutup sesi untuk ganti obat.":"Close session to change meds." },
   ];
 
   return (
     <>
-      {/* MODAL PERINGATAN HAPUS SALAH INPUT */}
+      {/* MODAL PERINGATAN HAPUS SALAH INPUT (Z-INDEX SUPER TINGGI 9999) */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-[999] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[9999] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
             <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="w-8 h-8" />
@@ -161,9 +160,9 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
         </div>
       )}
 
-      {/* MODAL PERINGATAN BATALKAN SESI (PINDAH RIWAYAT) */}
+      {/* MODAL PERINGATAN BATALKAN SESI / PINDAH RIWAYAT (Z-INDEX SUPER TINGGI 9999) */}
       {showAbortConfirm && (
-        <div className="fixed inset-0 z-[999] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[9999] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
             <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <ArchiveX className="w-8 h-8" />
@@ -186,6 +185,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
         </div>
       )}
 
+      {/* FORM UTAMA */}
       <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-slate-900/80 dark:bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
         <div className="w-full max-w-2xl bg-white dark:bg-slate-950 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] md:max-h-[85vh] border border-slate-200 dark:border-slate-800 my-auto">
           
@@ -217,7 +217,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                 </div>
               )}
 
-              {/* REAL-TIME PREVIEW PANEL (DENGAN WARNA TERANG YANG AMAN) */}
+              {/* REAL-TIME PREVIEW PANEL DENGAN WARNA TERANG YANG AMAN */}
               <div className="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
                  <div className="flex justify-between items-end mb-2">
                    <div className="flex items-center gap-2">
@@ -236,9 +236,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                  
                  <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
                    <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-snug">
-                     {actionTaken === "Medication Changed" 
-                       ? (lang === 'id' ? "⚠️ PERINGATAN: Memilih 'Ganti Obat' akan menghentikan sesi ini dan memindahkannya ke Riwayat Gagal. Anda harus membuka sesi baru setelah ini." : "⚠️ WARNING: Selecting 'Change Medication' will abort this session. You must start a new one.") 
-                       : projectedRecovery === 100 
+                     {projectedRecovery === 100 
                        ? (lang === 'id' ? "🎉 LUAR BIASA! Gejala habis. Jika disimpan, sistem akan menyatakan ikan SEMBUH TOTAL dan memindahkannya ke Riwayat Selesai." : "🎉 EXCELLENT! No symptoms. System will mark as FULLY RECOVERED.")
                        : (lang === 'id' ? "Cabut centang gejala di bawah untuk melihat persentase ini naik secara real-time." : "Uncheck symptoms below to see this percentage rise in real-time.")
                      }
@@ -252,7 +250,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                     {lang === 'id' ? "Tindakan Utama Hari Ini" : "Main Action Today"}
                   </label>
                   
-                  {/* TOMBOL BATAL/PINDAH RIWAYAT MENGGUNAKAN CUSTOM MODAL */}
+                  {/* TOMBOL BATAL/PINDAH RIWAYAT */}
                   <Button 
                     type="button" 
                     onClick={() => setShowAbortConfirm(true)} 
@@ -260,11 +258,11 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                     variant="ghost" 
                     className="h-8 px-2 text-[10px] uppercase font-black tracking-widest text-amber-500 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/30"
                   >
-                    <ArchiveX className="w-3.5 h-3.5 mr-1" /> {lang === 'id' ? "Batalkan Sesi (Pindah Riwayat)" : "Abort Session"}
+                    <ArchiveX className="w-3.5 h-3.5 mr-1" /> {lang === 'id' ? "Ganti Obat (Pindah Riwayat)" : "Change Meds"}
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {actionOptions.map(opt => (
                     <div key={opt.val} onClick={() => setActionTaken(opt.val)} className={`cursor-pointer flex flex-col gap-1 p-3 rounded-xl border-2 transition-all ${actionTaken === opt.val ? 'border-rose-500 bg-rose-50 dark:bg-rose-900/20' : 'border-slate-200 hover:border-slate-300 dark:border-slate-800'}`}>
                       <div className={`flex items-center gap-2 font-bold text-sm ${actionTaken === opt.val ? 'text-rose-700 dark:text-rose-400' : 'text-slate-700 dark:text-slate-300'}`}>{opt.icon} {opt.label}</div>
@@ -286,11 +284,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                     disabled={actionTaken === "Observed" || actionTaken === "Medication Changed"} 
                     className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold dark:text-slate-100 focus:border-blue-500" 
                   />
-                  {/* KEMBALIKAN HINT DOSIS */}
-                  <p className="text-[10px] text-slate-500 flex items-start gap-1 mt-1 leading-snug">
-                    <Info className="w-3 h-3 shrink-0 text-blue-500" /> 
-                    {lang === 'id' ? "Takaran obat yang dimasukkan. Kosongkan jika observasi." : "Amount of medication added. Leave empty if observation only."}
-                  </p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-[11px] font-black text-rose-500 uppercase tracking-widest">
@@ -300,14 +293,8 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                     type="number" min={0} 
                     value={newFishLostCount} 
                     onChange={(e) => setNewFishLostCount(e.target.value ? Number(e.target.value) : "")} 
-                    /* PERBAIKAN WARNA DARK MODE UNTUK INPUT INI */
                     className="h-12 rounded-xl bg-rose-50 border-rose-200 font-bold text-rose-600 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-400 focus:border-rose-500" 
                   />
-                  {/* KEMBALIKAN HINT KEMATIAN */}
-                  <p className="text-[10px] text-slate-500 flex items-start gap-1 mt-1 leading-snug">
-                    <Info className="w-3 h-3 shrink-0 text-rose-500" /> 
-                    {lang === 'id' ? "Jumlah ikan mati hari ini. Kosongkan jika nihil." : "Number of casualties today. Leave empty if none."}
-                  </p>
                 </div>
               </div>
 
@@ -328,7 +315,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                     </label>
                   ))}
                 </div>
-                {/* KEMBALIKAN HINT CHECKLIST */}
                 <div className="pt-2 border-t border-slate-200 dark:border-slate-800/50 mt-2">
                   <p className="text-[10px] text-slate-500 flex items-start gap-1.5 leading-snug">
                     <Info className="w-3 h-3 shrink-0 text-emerald-500" /> 
@@ -348,20 +334,13 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                   className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none focus:border-blue-500 font-medium text-sm text-slate-800 dark:text-slate-200 custom-scrollbar resize-none" 
                   placeholder={lang === 'id' ? 'Contoh: Ikan mulai mau makan pelet...' : 'e.g., Fish responds to pellets...'}
                 />
-                {/* KEMBALIKAN HINT CATATAN */}
-                <p className="text-[10px] text-slate-500 flex items-start gap-1 mt-1 leading-snug">
-                  <Info className="w-3 h-3 shrink-0 text-slate-400" /> 
-                  {lang === 'id' ? "Deskripsikan perubahan fisik/perilaku yang terlihat hari ini." : "Briefly describe any physical/behavioral changes today."}
-                </p>
               </div>
             </div>
             
             <div className="p-5 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex flex-wrap gap-3 shrink-0">
-               {/* TOMBOL HAPUS SALAH INPUT (DI BAWAH KIRI) */}
                <Button type="button" onClick={() => setShowDeleteConfirm(true)} variant="outline" disabled={isSubmitting || isDeleting} className="w-auto h-12 sm:h-14 rounded-xl font-bold uppercase tracking-wider border-red-200 dark:border-red-900/50 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 transition-colors">
                  <Trash2 className="w-4 h-4 mr-2" /> {lang === 'id' ? "Salah Input" : "Mistake"}
                </Button>
-
                <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting || isDeleting} className="flex-1 h-12 sm:h-14 rounded-xl font-bold uppercase border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                  {lang === 'id' ? "Batal" : "Cancel"}
                </Button>
