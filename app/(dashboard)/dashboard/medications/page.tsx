@@ -46,6 +46,7 @@ export default function MedicationDatabasePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // FUNGSI HAPUS PERMANEN (KHUSUS SUPER ADMIN)
   const handleDeleteConfirm = async () => {
     if (!medToDelete) return;
     setIsProcessing(true);
@@ -60,10 +61,11 @@ export default function MedicationDatabasePage() {
     setMedToDelete(null);
   };
 
+  // FUNGSI ARSIP (ADMIN & SUPER ADMIN)
   const handleArchiveConfirm = async () => {
     if (!medToArchive) return;
     setIsProcessing(true);
-    // TODO: Ganti dengan Action Arsip sesungguhnya
+    // TODO: Ganti dengan Action Arsip sesungguhnya saat backend sudah siap
     setTimeout(() => {
       toast.success(lang === 'id' ? "Obat berhasil diarsipkan!" : "Medication archived successfully!");
       setIsProcessing(false);
@@ -105,7 +107,7 @@ export default function MedicationDatabasePage() {
   return (
     <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors bg-slate-50 dark:bg-slate-950">
       
-      {/* MODAL HAPUS PERMANEN (HANYA SUPER ADMIN) */}
+      {/* MODAL HAPUS PERMANEN BILINGUAL (HANYA SUPER ADMIN) */}
       {medToDelete && (
         <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
@@ -131,7 +133,7 @@ export default function MedicationDatabasePage() {
         </div>
       )}
 
-      {/* MODAL ARSIP (ADMIN & SUPER ADMIN) */}
+      {/* MODAL ARSIP BILINGUAL (ADMIN & SUPER ADMIN) */}
       {medToArchive && (
         <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
@@ -159,7 +161,7 @@ export default function MedicationDatabasePage() {
 
       <div className="max-w-[1400px] mx-auto space-y-8 pb-10">
         
-        {/* HEADER */}
+        {/* HEADER UTAMA */}
         <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden transition-colors flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="absolute -top-10 -right-10 w-48 h-48 bg-sky-500/10 dark:bg-sky-500/20 blur-[50px] rounded-full pointer-events-none"></div>
           
@@ -176,6 +178,7 @@ export default function MedicationDatabasePage() {
                 : "Comprehensive medical encyclopedia. Learn dosages, flora/fauna safety, and baseline recovery rates of aquascape medications."}
             </p>
             
+            {/* TOMBOL TAMBAH & KELOLA KHUSUS ADMIN */}
             {isAdmin && (
               <div className="flex flex-wrap items-center gap-3 mt-5">
                 <Button 
@@ -218,14 +221,9 @@ export default function MedicationDatabasePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {currentData.map((med, index) => (
                 <div key={med.id} className="relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-[0_0_20px_rgba(14,165,233,0.25)] dark:hover:shadow-[0_0_20px_rgba(14,165,233,0.15)] transition-all duration-300 hover:border-sky-300 dark:hover:border-sky-700 flex flex-col group">
-                  
-                  {/* WATERMARK OBAT */}
-                  <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-8 opacity-[0.015] dark:opacity-[0.02] pointer-events-none group-hover:scale-110 transition-transform duration-700 z-0">
-                    <FlaskConical className="w-56 h-56 text-sky-500" />
-                  </div>
 
-                  {/* FUNGSI ADMIN: TOMBOL EDIT, ARSIP & HAPUS - HYBRID RESPONSIVE */}
-                  {/* Tampil permanen di HP (opacity-100), menjadi efek "Hover" & meluncur dari atas di PC (md:opacity-0 md:group-hover:opacity-100) */}
+                  {/* KONTROL ADMIN INLINE (SELALU TAMPIL BAGI ADMIN, Z-INDEX TERTINGGI 50) */}
+                  {/* Efek: Muncul permanen di HP. Menyelinap mulus dari atas saat hover di PC */}
                   {isAdmin && (
                     <div className="absolute top-3 right-3 flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 md:-translate-y-2 md:group-hover:translate-y-0 z-50">
                       
@@ -265,7 +263,9 @@ export default function MedicationDatabasePage() {
 
                   {/* HEADER KARTU OBAT */}
                   <div className="p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/50 relative overflow-hidden flex items-start gap-4 z-10">
-                    <div className="absolute top-4 right-4 opacity-10 dark:opacity-20 pointer-events-none group-hover:opacity-30 transition-opacity duration-500">
+                    
+                    {/* IKON OBAT (WATERMARK NEON) - Hanya muncul saat hover, tidak mengganggu klik */}
+                    <div className="absolute top-2 right-2 opacity-10 md:opacity-0 group-hover:opacity-30 dark:group-hover:opacity-40 transition-opacity duration-500 pointer-events-none z-0">
                       <FlaskConical className="w-20 h-20 md:w-24 md:h-24 text-sky-500 drop-shadow-[0_0_15px_rgba(14,165,233,0.8)]" />
                     </div>
 
@@ -274,8 +274,8 @@ export default function MedicationDatabasePage() {
                       {startIndex + index + 1}
                     </div>
                     
-                    {/* TEKS JUDUL (Padding kanan disesuaikan panjang tombol admin) */}
-                    <div className={`flex-1 relative z-10 min-w-0 ${isAdmin ? (isSuperAdmin ? "pr-32" : "pr-24") : "pr-4"}`}> 
+                    {/* TEKS JUDUL & KANDUNGAN - Padding Kanan Dinamis (pr-28) agar tidak ditabrak tombol Admin */}
+                    <div className={`flex-1 relative z-10 min-w-0 ${isAdmin ? (isSuperAdmin ? "pr-28" : "pr-20") : "pr-4"}`}> 
                       <h3 className="text-xl md:text-2xl font-black text-slate-800 dark:text-slate-100 mb-2 leading-tight break-words whitespace-normal">
                         {lang === 'id' ? med.name_id : med.name_en}
                       </h3>
