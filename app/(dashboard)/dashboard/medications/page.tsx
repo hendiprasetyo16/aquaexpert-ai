@@ -230,8 +230,9 @@ export default function MedicationDatabasePage() {
                       {/* TOMBOL EDIT */}
                       <Button 
                         size="icon" 
+                        variant="ghost" // 💡 Mengosongkan style bawaan Shadcn agar tidak tabrakan dengan Tailwind
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); toast(lang === 'id' ? "Siap disambungkan ke Form Edit!" : "Ready for Edit Form!", { icon: "📝"}); }} 
-                        className="h-8 w-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-700 text-sky-600 dark:text-sky-400 hover:bg-sky-500 hover:text-white hover:border-sky-500 dark:hover:bg-sky-500 dark:hover:text-white rounded-lg shadow-lg transition-colors"
+                        className="h-8 w-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-700 text-sky-600 dark:text-sky-400 hover:!bg-sky-500 hover:!text-white hover:!border-sky-500 dark:hover:!bg-sky-500 dark:hover:!text-white rounded-lg shadow-lg transition-colors"
                         title={lang === 'id' ? "Edit Data" : "Edit Data"}
                       >
                         <Edit className="w-4 h-4" />
