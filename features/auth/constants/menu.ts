@@ -10,7 +10,9 @@ import {
   Settings,
   Database, 
   Cpu,
-  BarChart // <-- TAMBAHKAN ICON INI UNTUK ANALYTICS
+  BarChart,     // <-- Icon untuk Analytics
+  HeartPulse,    // <-- Icon untuk Treatment Ward
+  Pill // <-- IMPORT ICON INI UNTUK DATABASE OBAT
 } from "lucide-react";
 
 const AI_COLORS = {
@@ -25,6 +27,9 @@ export const MENU_BY_ROLE = {
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { title: "My Aquarium", href: "/dashboard/my-aquarium", icon: Container },
 
+    // --- MENU BARU RAWAT INAP (TREATMENT) ---
+    { title: "Treatment Ward", href: "/dashboard/treatments", icon: HeartPulse, color: "text-rose-500 dark:text-rose-400" },
+
     { title: "Plant Expert", href: "/dashboard/plants", icon: Leaf },
     { title: "Plant Expert AI", href: "/dashboard/plant-expert/engine", icon: Cpu, color: AI_COLORS.plants },
     
@@ -37,9 +42,11 @@ export const MENU_BY_ROLE = {
     { title: "Disease Database", href: "/dashboard/diseases", icon: Activity },
     { title: "Disease Expert AI", href: "/dashboard/disease-expert", icon: Cpu, color: AI_COLORS.diseases },
     
-    // --- MENU BARU YANG KITA BUAT TADI ---
+    // --- MENU BARU: DATABASE OBAT ---
+    { title: "Medication Database", href: "/dashboard/medications", icon: Pill, color: "text-sky-500 dark:text-sky-400" },
+
+    // --- MENU BARU ANALISIS KLINIS (ANALYTICS) ---
     { title: "Clinical Analytics", href: "/dashboard/analytics", icon: BarChart, color: "text-indigo-500 dark:text-indigo-400" },
-    // -------------------------------------
     
     { title: "Users", href: "/dashboard/users", icon: Users },
     { title: "Control Panel", href: "/dashboard/admin-panel", icon: Database }, 
@@ -47,9 +54,9 @@ export const MENU_BY_ROLE = {
   ],
 
   admin: [
-    // ... (Sesuaikan isinya sama seperti super_admin, kurangi control panel & settings)
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { title: "My Aquarium", href: "/dashboard/my-aquarium", icon: Container },
+    { title: "Treatment Ward", href: "/dashboard/treatments", icon: HeartPulse, color: "text-rose-500 dark:text-rose-400" }, // Tambahan
     { title: "Plant Expert", href: "/dashboard/plants", icon: Leaf },
     { title: "Plant Expert AI", href: "/dashboard/plant-expert/engine", icon: Cpu, color: AI_COLORS.plants },
     { title: "Algae Expert", href: "/dashboard/algae", icon: Bug },
@@ -58,14 +65,15 @@ export const MENU_BY_ROLE = {
     { title: "Fish Expert AI", href: "/dashboard/fish-expert/engine", icon: Cpu, color: AI_COLORS.fishes },
     { title: "Disease Database", href: "/dashboard/diseases", icon: Activity },
     { title: "Disease Expert AI", href: "/dashboard/disease-expert", icon: Cpu, color: AI_COLORS.diseases },
-    { title: "Clinical Analytics", href: "/dashboard/analytics", icon: BarChart, color: "text-indigo-500 dark:text-indigo-400" },
+    { title: "Medication Database", href: "/dashboard/medications", icon: Pill, color: "text-sky-500 dark:text-sky-400" },
+    { title: "Clinical Analytics", href: "/dashboard/analytics", icon: BarChart, color: "text-indigo-500 dark:text-indigo-400" }, // Tambahan
     { title: "Users", href: "/dashboard/users", icon: Users },
   ],
 
   user: [
-    // ... (Sesuaikan isinya sama seperti admin, kurangi Users)
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { title: "My Aquarium", href: "/dashboard/my-aquarium", icon: Container },
+    { title: "Treatment Ward", href: "/dashboard/treatments", icon: HeartPulse, color: "text-rose-500 dark:text-rose-400" }, // Tambahan
     { title: "Plant Expert", href: "/dashboard/plants", icon: Leaf },
     { title: "Plant Expert AI", href: "/dashboard/plant-expert/engine", icon: Cpu, color: AI_COLORS.plants },
     { title: "Algae Expert", href: "/dashboard/algae", icon: Bug },
@@ -74,6 +82,7 @@ export const MENU_BY_ROLE = {
     { title: "Fish Expert AI", href: "/dashboard/fish-expert/engine", icon: Cpu, color: AI_COLORS.fishes },
     { title: "Disease Database", href: "/dashboard/diseases", icon: Activity },
     { title: "Disease Expert AI", href: "/dashboard/disease-expert", icon: Cpu, color: AI_COLORS.diseases },
-    { title: "Clinical Analytics", href: "/dashboard/analytics", icon: BarChart, color: "text-indigo-500 dark:text-indigo-400" },
+    { title: "Medication Database", href: "/dashboard/medications", icon: Pill, color: "text-sky-500 dark:text-sky-400" },
+    { title: "Clinical Analytics", href: "/dashboard/analytics", icon: BarChart, color: "text-indigo-500 dark:text-indigo-400" }, // Tambahan
   ],
 } as const;
