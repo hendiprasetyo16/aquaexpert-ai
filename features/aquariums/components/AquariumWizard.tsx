@@ -30,9 +30,7 @@ interface AquariumWizardProps {
   initialData?: Aquarium | null;
 }
 
-const AQUASCAPE_STYLES = [
-  "Bebas", "Nature", "Dutch", "Iwagumi", "Biotope", "Blackwater", "Jungle", "Minimalist"
-] as const;
+const AQUASCAPE_STYLES = ["Bebas", "Nature", "Dutch", "Iwagumi", "Biotope", "Blackwater", "Jungle", "Minimalist"] as const;
 
 const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<File> => {
   return new Promise((resolve, reject) => {
@@ -120,12 +118,12 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
       aquascapeStyle: lang === 'id' ? "Menentukan pakem seni visual. Mempengaruhi penilaian estetika layout vegetasi oleh AI." : "Choose your visual tank theme.",
       setupDate: lang === 'id' ? "Kapan pertama kali air dimasukkan? AI memakainya untuk menghitung tingkat kematangan bakteri pengurai." : "When was water first added? Crucial for AI.",
       isPrimary: lang === 'id' ? "Jika dicentang, asisten AI Consultant akan otomatis mendiagnosis tank ini sebagai prioritas utama." : "AI Assistant uses this tank as the default.",
-      dimensions: lang === 'id' ? "Volume dihitung otomatis sebagai 'Volume Bersih'. Rumus telah memotong ruang sebesar 15% untuk menyisakan ruang substrat pasir, hardscape kayu/batu, dan jarak bibir air atas kaca agar tidak luber." : "Automatically calculated as 'Net Volume' (minus 15% for substrate, clearance, etc).",
-      filter: lang === 'id' ? "Pilih tipe filter fisik yang Bapak gunakan. Jika tidak yakin dengan angka LPH pompa, biarkan kosong." : "Choose closest mechanism. Leave empty if unsure.",
-      light: lang === 'id' ? "Pilih kategori spektrum lampu. Input Watt & Jam digunakan AI untuk mendeteksi ancaman wabah alga." : "If 'Mixed', input Wattage for main light.",
-      co2: lang === 'id' ? "Pencahayaan tinggi tanpa gas CO2 seimbang akan memicu kerusakan tanaman dan ledakan alga rambut." : "Select CO2 supply type. Leave BPS empty if unsure/unused.",
-      substrate: lang === 'id' ? "Tanaman penutup dasar (karpet) membutuhkan Aquasoil. Pasir polos hanya cocok untuk tanaman akar tempel (epifit)." : "Select the material covering your tank bottom.",
-      maintenance: lang === 'id' ? "Disiplin perawatan harian adalah kunci utama penentu skor vitalitas kesehatan air dari AI." : "Key metrics for AI to find root cause of algae/disease."
+      dimensions: lang === 'id' ? "Volume dihitung otomatis sebagai 'Volume Bersih'." : "Automatically calculated as 'Net Volume'.",
+      filter: lang === 'id' ? "Pilih tipe filter fisik yang Bapak gunakan." : "Choose closest mechanism.",
+      light: lang === 'id' ? "Pilih kategori spektrum lampu." : "If 'Mixed', input Wattage for main light.",
+      co2: lang === 'id' ? "Pencahayaan tinggi tanpa gas CO2 seimbang akan memicu ledakan alga." : "Select CO2 supply type.",
+      substrate: lang === 'id' ? "Tanaman penutup dasar (karpet) membutuhkan Aquasoil." : "Select the material covering your tank bottom.",
+      maintenance: lang === 'id' ? "Disiplin perawatan harian adalah kunci utama penentu skor vitalitas kesehatan air dari AI." : "Key metrics for AI."
     }
   };
 
@@ -225,35 +223,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
 
   const extractErrorMessage = (err: unknown): string | null => {
     if (!err) return null;
-    if (typeof err === 'object' && 'errors' in err) {
-      const errObj = err as { errors: unknown };
-      if (Array.isArray(errObj.errors) && errObj.errors.length > 0) {
-        const firstError = errObj.errors[0];
-        if (typeof firstError === 'string') {
-           try {
-             const parsed = JSON.parse(firstError);
-             if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].message) return parsed[0].message;
-             if (parsed.message) return parsed.message;
-           } catch { return firstError; }
-        }
-        if (firstError && typeof firstError === 'object' && 'message' in firstError) return String((firstError as { message: unknown }).message);
-      }
-    }
-    if (typeof err === 'string' && err.startsWith('[') && err.includes('"message"')) {
-       try {
-          const parsed = JSON.parse(err);
-          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].message) return parsed[0].message;
-       } catch {}
-    }
-    if (err instanceof Error) {
-       if (err.message.startsWith('[') && err.message.includes('"message"')) {
-         try {
-            const parsed = JSON.parse(err.message);
-            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].message) return parsed[0].message;
-         } catch {}
-       }
-       return err.message;
-    }
+    if (err instanceof Error) return err.message;
     return null;
   };
 
@@ -287,11 +257,9 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
       const supabase = createClient();
       
       if (coverFile) {
-        // 💡 1. KITA BUANG LOGIKA HAPUS LAMA DARI SINI AGAR TIDAK BALAPAN DENGAN BACKEND
-
-        // 💡 2. CUSTOM NAMING: Mengambil nama user untuk merakit nama file
-        const { data: { user } } = await supabase.auth.getUser();
+        // HAPUS KODE PENGHAPUSAN CLIENT-SIDE DI SINI. BIARKAN SERVER YANG MENGERJAKANNYA.
         
+        const { data: { user } } = await supabase.auth.getUser();
         const rawName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "user";
         const cleanName = rawName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
         const cleanTheme = (formData.aquascape_style || "bebas").replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
@@ -304,7 +272,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
         const customFileName = `${cleanName}_${cleanTheme}_${dateStr}_${randomStr}.${fileExt}`;
         const filePath = `covers/${customFileName}`; 
 
-        // 💡 3. UPLOAD FILE BARU
         const { error: uploadError } = await supabase.storage.from("aquariums").upload(filePath, coverFile);
         if (uploadError) throw new Error("Gagal mengupload foto: " + uploadError.message);
         

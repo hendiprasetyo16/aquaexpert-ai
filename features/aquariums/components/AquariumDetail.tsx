@@ -20,7 +20,7 @@ import toast from "react-hot-toast";
 import ParameterTab from "./ParameterTab";
 import InventoryTab from "./InventoryTab"; 
 import MaintenanceTab from "./MaintenanceTab"; 
-import TreatmentTab from "./TreatmentTab"; // TAB TERBARU UNTUK REKAM MEDIS
+import TreatmentTab from "./TreatmentTab"; 
 import HealthDashboard from "./health/HealthDashboard"; 
 import AIDeepDiagnosisPanel from "./health/AIDeepDiagnosisPanel";
 import { AquariumSpecsPanel } from "./AquariumSpecsPanel"; 
@@ -38,10 +38,9 @@ interface DetailDictionary {
   delete: string; overview: string; parameters: string;
   floraFauna: string; aiDiagnose: string; equipment: string;
   maintenance: string; dimensions: string;
-  treatment: string; // Tambahan field kamus
+  treatment: string; 
 }
 
-// FIX STRIKT TAB ID: Ditambahkan tipe "treatment"
 type TabId = "overview" | "parameters" | "flora" | "maintenance" | "treatment" | "ai";
 
 export default function AquariumDetail() {
@@ -90,7 +89,7 @@ export default function AquariumDetail() {
     { id: "parameters" as TabId, label: detailDict.parameters, icon: Activity },
     { id: "flora" as TabId, label: detailDict.floraFauna, icon: Leaf },
     { id: "maintenance" as TabId, label: detailDict.maintenance, icon: RefreshCw }, 
-    { id: "treatment" as TabId, label: detailDict.treatment, icon: HeartPulse }, // NAVIGASI TAB BARU
+    { id: "treatment" as TabId, label: detailDict.treatment, icon: HeartPulse }, 
     { id: "ai" as TabId, label: detailDict.aiDiagnose, icon: Stethoscope }, 
   ];
 
@@ -128,7 +127,6 @@ export default function AquariumDetail() {
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Terjadi kesalahan.");
       } finally {
-        // FIX TYPO: Seharusnya setLoading, bukan setIsLoading
         setLoading(false);
       }
     }
@@ -170,6 +168,7 @@ export default function AquariumDetail() {
 
   const handleDelete = async () => {
     setLoading(true);
+    // HAPUS KODE PENGHAPUSAN CLIENT-SIDE DI SINI. BIARKAN SERVER YANG MENGERJAKANNYA.
     const res = await deleteAquariumAction(aquariumId);
     if (res.success) {
       toast.success(lang === 'id' ? "Akuarium dihapus." : "Aquarium deleted.");
@@ -349,7 +348,6 @@ export default function AquariumDetail() {
           {activeTab === "flora" && <div className="animate-in slide-in-from-right-4 duration-500"><InventoryTab aquariumId={aquariumId} /></div>}
           {activeTab === "maintenance" && <div className="animate-in slide-in-from-right-4 duration-500"><MaintenanceTab aquariumId={aquariumId} /></div>}
           
-          {/* RENDER TAB TREATMENT BARU */}
           {activeTab === "treatment" && (
             <div className="animate-in slide-in-from-right-4 duration-500">
               <TreatmentTab aquariumId={aquariumId} />
@@ -389,7 +387,7 @@ export default function AquariumDetail() {
 
       {/* MODAL DELETE */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-300">
           <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600">
             <div className="flex items-center gap-3 mb-5 text-red-600">
               <ShieldAlert className="h-8 w-8" />
