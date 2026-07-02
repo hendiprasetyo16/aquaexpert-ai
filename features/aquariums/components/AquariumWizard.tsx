@@ -115,10 +115,10 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
       fertSchedule: lang === 'id' ? "Dosis & Jadwal Pupuk" : "Fertilizer Schedule"
     },
     hints: {
-      name: lang === 'id' ? "Beri nama penanda yang unik agar tidak tertukar (misal: Tank Ruang Tamu, Kamar Depan)." : "Give it a unique name.",
+      name: lang === 'id' ? "Beri nama penanda yang unik agar tidak tertukar." : "Give it a unique name.",
       tankType: lang === 'id' ? "Menentukan tujuan tangki Bapak. AI menggunakannya sebagai tolok ukur keserasian fauna." : "Choose tank purpose. Affects AI fish compatibility.",
       aquascapeStyle: lang === 'id' ? "Menentukan pakem seni visual. Mempengaruhi penilaian estetika layout vegetasi oleh AI." : "Choose your visual tank theme.",
-      setupDate: lang === 'id' ? "Kapan pertama kali air dimasukkan? AI memakainya untuk menghitung tingkat kematangan bakteri pengurai (Nitrogen Cycle)." : "When was water first added? Crucial for AI.",
+      setupDate: lang === 'id' ? "Kapan pertama kali air dimasukkan? AI memakainya untuk menghitung tingkat kematangan bakteri pengurai." : "When was water first added? Crucial for AI.",
       isPrimary: lang === 'id' ? "Jika dicentang, asisten AI Consultant akan otomatis mendiagnosis tank ini sebagai prioritas utama." : "AI Assistant uses this tank as the default.",
       dimensions: lang === 'id' ? "Volume dihitung otomatis sebagai 'Volume Bersih'. Rumus telah memotong ruang sebesar 15% untuk menyisakan ruang substrat pasir, hardscape kayu/batu, dan jarak bibir air atas kaca agar tidak luber." : "Automatically calculated as 'Net Volume' (minus 15% for substrate, clearance, etc).",
       filter: lang === 'id' ? "Pilih tipe filter fisik yang Bapak gunakan. Jika tidak yakin dengan angka LPH pompa, biarkan kosong." : "Choose closest mechanism. Leave empty if unsure.",
@@ -284,13 +284,35 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
       setError("");
 
       let finalImageUrl = mode === "edit" ? initialData?.image_url : null;
+      const supabase = createClient();
       
       if (coverFile) {
-        const supabase = createClient();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.jpg`; 
-        const filePath = `covers/${fileName}`;
+        // 💡 FIX: Hapus Gambar Lama Menggunakan Regex Matcher
+        if (mode === "edit" && initialData?.image_url) {
+          const match = initialData.image_url.match(/covers\/[^?#]+/);
+          if (match) {
+            await supabase.storage.from("aquariums").remove([match[0]])
+              .catch(e => console.warn("Failed to delete old image:", e));
+          }
+        }
+
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        const rawName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "user";
+        const cleanName = rawName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+        const cleanTheme = (formData.aquascape_style || "bebas").replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+        
+        const date = new Date();
+        const dateStr = `${String(date.getDate()).padStart(2, '0')}${String(date.getMonth() + 1).padStart(2, '0')}${date.getFullYear()}`;
+        const randomStr = Math.random().toString(36).substring(2, 6);
+        const fileExt = coverFile.name.split('.').pop() || "jpg";
+        
+        const customFileName = `${cleanName}_${cleanTheme}_${dateStr}_${randomStr}.${fileExt}`;
+        const filePath = `covers/${customFileName}`; 
+
         const { error: uploadError } = await supabase.storage.from("aquariums").upload(filePath, coverFile);
         if (uploadError) throw new Error("Gagal mengupload foto: " + uploadError.message);
+        
         const { data: { publicUrl } } = supabase.storage.from("aquariums").getPublicUrl(filePath);
         finalImageUrl = publicUrl;
       }
@@ -357,9 +379,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
             </div>
           )}
 
-          {/* =========================================================================
-              LANGKAH 1: IDENTITAS (FAUNA & PAKEM SENI VISUAL)
-             ========================================================================= */}
           {step === 1 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
               
@@ -410,15 +429,14 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
                 </div>
               </div>
 
-              {/* KOTAK EDUKASI TAMBAHAN UNTUK PEMULA (STEP 1) */}
               <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/50 flex items-start gap-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 <HelpCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-bold text-blue-800 dark:text-blue-400 block mb-1">💡 Bantuan Cepat Pilih Fokus Ekosistem:</span>
                   <ul className="list-disc pl-4 space-y-1">
-                    <li><strong className="text-slate-700 dark:text-slate-300">Komunitas:</strong> Gabungan berbagai jenis ikan damai yang aman disatukan (Sangat disarankan bagi pemula).</li>
-                    <li><strong className="text-slate-700 dark:text-slate-300">Iwagumi:</strong> Seni meniru padang rumput hijau luas di alam bebas, hanya fokus pada susunan batu utama dan tanaman karpet lantai bawah.</li>
-                    <li><strong className="text-slate-700 dark:text-slate-300">Dutch Style:</strong> Seperti kebun bunga, tangki penuh sesak dengan barisan tanaman warna-warni tanpa susunan batu/kayu.</li>
+                    <li><strong className="text-slate-700 dark:text-slate-300">Komunitas:</strong> Gabungan berbagai jenis ikan damai yang aman disatukan.</li>
+                    <li><strong className="text-slate-700 dark:text-slate-300">Iwagumi:</strong> Seni meniru padang rumput hijau luas di alam bebas, hanya fokus susunan batu.</li>
+                    <li><strong className="text-slate-700 dark:text-slate-300">Dutch Style:</strong> Seperti kebun bunga, tangki penuh sesak dengan barisan tanaman warna-warni.</li>
                   </ul>
                 </div>
               </div>
@@ -439,9 +457,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
             </div>
           )}
 
-          {/* =========================================================================
-              LANGKAH 2: DIMENSI KACA & SUBSTRAT DASAR
-             ========================================================================= */}
           {step === 2 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -477,13 +492,9 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
             </div>
           )}
 
-          {/* =========================================================================
-              LANGKAH 3: PERALATAN TEKNIS (FILTER, LAMPU, CO2, HEATER)
-             ========================================================================= */}
           {step === 3 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
               
-              {/* 1. SEKTOR FILTRASI */}
               <div className="grid sm:grid-cols-2 gap-4 bg-blue-50/40 dark:bg-blue-950/10 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/30">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.filter}</label>
@@ -495,7 +506,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.filterCapacity}</label>
                   <input type="number" name="filter_flow_lph" value={formData.filter_flow_lph || ""} onChange={handleChange} placeholder="Contoh: 600" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none font-bold" />
                 </div>
-                {/* CHEAT SHEET FILTRASI UNTUK ORANG AWAM */}
                 <div className="text-xs text-slate-500 col-span-full bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800 leading-relaxed mt-1">
                   <strong className="text-blue-700 dark:text-blue-400 block mb-1">📋 Lembar Panduan Pompa (LPH):</strong>
                   Rasio sehat perputaran air akuarium yang ideal adalah <span className="font-bold text-slate-700 dark:text-slate-300">4 kali lipat hingga 6 kali lipat</span> volume air tangki Bapak per jam.
@@ -503,7 +513,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
                 </div>
               </div>
 
-              {/* 2. SEKTOR LIGHTING */}
               <div className="grid sm:grid-cols-3 gap-4 bg-amber-50/40 dark:bg-amber-950/10 p-5 rounded-2xl border border-amber-100 dark:border-amber-900/30">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.light}</label>
@@ -519,7 +528,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.lightHours}</label>
                   <input type="number" name="photoperiod_hours" value={formData.photoperiod_hours || ""} onChange={handleChange} placeholder="Contoh: 8" className="w-full h-11 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none font-bold" />
                 </div>
-                {/* CHEAT SHEET CAHAYA UNTUK ORANG AWAM */}
                 <div className="text-xs text-slate-500 col-span-full bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800 leading-relaxed mt-1">
                   <strong className="text-amber-700 dark:text-amber-400 block mb-1">📋 Lembar Panduan Pencahayaan (Watt):</strong>
                   Ikan & tanaman membutuhkan siklus siang yang teratur. Durasi standar menyalakan lampu adalah <span className="font-bold text-slate-700 dark:text-slate-300">7 - 8 jam sehari</span>.
@@ -527,7 +535,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
                 </div>
               </div>
 
-              {/* 3. SEKTOR CO2 & HEATER */}
               <div className="grid sm:grid-cols-3 gap-4 bg-emerald-50/40 dark:bg-emerald-950/10 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.co2}</label>
@@ -545,7 +552,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
                     {wizDict.labels.heater}
                   </label>
                 </div>
-                {/* CHEAT SHEET CO2 UNTUK ORANG AWAM */}
                 <div className="text-xs text-slate-500 col-span-full bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800 leading-relaxed mt-1">
                   <strong className="text-emerald-700 dark:text-emerald-400 block mb-1">📋 Lembar Panduan Gas CO2 (BPS):</strong>
                   BPS artinya jumlah gelembung gas CO2 yang keluar dalam satu detik di counter tabung Bapak.
@@ -556,9 +562,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
             </div>
           )}
 
-          {/* =========================================================================
-              LANGKAH 4: RUTINITAS PEMELIHARAAN (WATER CHANGE & PUPUK)
-             ========================================================================= */}
           {step === 4 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
               
@@ -577,7 +580,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">Hari Sekali</span>
                   </div>
                 </div>
-                {/* PANDUAN WATER CHANGE */}
                 <div className="text-xs text-slate-500 col-span-full bg-blue-50/50 dark:bg-blue-950/10 p-3 rounded-xl border border-blue-100/50 dark:border-blue-900/30 leading-relaxed">
                   ⚠️ <span className="font-bold text-slate-700 dark:text-slate-300">Peringatan Keras Pemula:</span> Jangan pernah menguras air akuarium sampai habis total (100% ganti air) karena akan menghancurkan koloni bakteri baik pelapis air tangki Bapak. Rekomendasi medis yang aman adalah mengganti <span className="font-black text-blue-600 dark:text-blue-400">25% - 30% air saja, diulangi setiap 7 hari sekali</span>.
                 </div>
@@ -607,7 +609,6 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
 
         </div>
 
-        {/* CONTAINER ACTION BUTTONS (Mendukung Tampilan HP & PC) */}
         <div className="p-4 md:p-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3 transition-colors">
           <Button 
             type="button"

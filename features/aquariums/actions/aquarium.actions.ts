@@ -13,6 +13,14 @@ import {
 import { createMaintenanceTask } from "../repositories/maintenance.repository";
 import { Aquarium, CreateAquariumInput, UpdateAquariumInput } from "../types/aquarium.types";
 
+// 💡 HELPER FIX: Extractor URL Anti-Gagal menggunakan Regex
+// Ini akan selalu berhasil menangkap "covers/namafile.jpg" dari URL apapun
+function extractStoragePath(url: string | null | undefined) {
+  if (!url) return null;
+  const match = url.match(/covers\/[^?#]+/);
+  return match ? match[0] : null; 
+}
+
 export async function getUserAquariumsAction() {
   try {
     const supabase = await createClient();
@@ -32,12 +40,9 @@ export async function getAquariumByIdAction(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    // CEK ROLE USER SAAT INI UNTUK BYPASS
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     const isSuperAdmin = profile?.role === 'super_admin';
 
-    // Jika bukan Super Admin, filter secara ketat berdasarkan user.id
-    // Jika Super Admin, biarkan dia melihat semuanya
     let query = supabase.from("my_aquariums").select("*").eq("id", id);
     if (!isSuperAdmin) {
        query = query.eq("user_id", user.id);
@@ -64,7 +69,6 @@ export async function createAquariumAction(payload: CreateAquariumInput) {
 
     const data = await createAquarium(supabase, { ...payload, user_id: user.id });
 
-    // AUTO-GENERATE MAINTENANCE TASKS
     const now = new Date();
     
     if (payload.water_change_interval_days && payload.water_change_interval_days > 0) {
@@ -115,22 +119,30 @@ export async function updateAquariumAction(id: string, payload: UpdateAquariumIn
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    // CEK ROLE USER SAAT INI UNTUK BYPASS
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     const isSuperAdmin = profile?.role === 'super_admin';
+
+    const { data: oldAq } = await supabase.from("my_aquariums").select("image_url, user_id").eq("id", id).single();
 
     if (payload.is_primary) {
       await clearPrimaryAquarium(supabase, user.id);
     }
 
-    // Jika Super Admin, berikan ID dari data aslinya (bukan user.id login) agar owner tidak berubah saat admin mengedit
     let targetUserId = user.id;
-    if (isSuperAdmin) {
-       const { data: aq } = await supabase.from("my_aquariums").select("user_id").eq("id", id).single();
-       if (aq) targetUserId = aq.user_id;
+    if (isSuperAdmin && oldAq) {
+       targetUserId = oldAq.user_id;
     }
 
     const data = await updateAquarium(supabase, id, targetUserId, payload);
+
+    if (oldAq?.image_url && payload.image_url && oldAq.image_url !== payload.image_url) {
+      const oldPath = extractStoragePath(oldAq.image_url);
+      if (oldPath) {
+        const { error: removeError } = await supabase.storage.from('aquariums').remove([oldPath]);
+        if (removeError) console.error("Storage delete error:", removeError);
+      }
+    }
+
     revalidatePath("/dashboard/my-aquarium");
     revalidatePath(`/dashboard/my-aquarium/${id}`);
     return { success: true, data };
@@ -149,17 +161,26 @@ export async function deleteAquariumAction(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    // CEK ROLE USER SAAT INI UNTUK BYPASS
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     const isSuperAdmin = profile?.role === 'super_admin';
 
+    const { data: oldAq } = await supabase.from("my_aquariums").select("image_url, user_id").eq("id", id).single();
+
     let targetUserId = user.id;
-    if (isSuperAdmin) {
-       const { data: aq } = await supabase.from("my_aquariums").select("user_id").eq("id", id).single();
-       if (aq) targetUserId = aq.user_id;
+    if (isSuperAdmin && oldAq) {
+       targetUserId = oldAq.user_id;
     }
 
     await deleteAquarium(supabase, id, targetUserId);
+
+    if (oldAq?.image_url) {
+      const oldPath = extractStoragePath(oldAq.image_url);
+      if (oldPath) {
+        const { error: removeError } = await supabase.storage.from('aquariums').remove([oldPath]);
+        if (removeError) console.error("Storage delete error:", removeError);
+      }
+    }
+
     revalidatePath("/dashboard/my-aquarium");
     return { success: true };
   } catch (error: unknown) {
@@ -238,12 +259,22 @@ export async function adminDeleteAquariumAction(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    // SECURITY FIX 2: Validasi mutlak Super Admin
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     if (profile?.role !== 'super_admin') throw new Error("Forbidden: Super Admin only");
 
+    const { data: oldAq } = await supabase.from("my_aquariums").select("image_url").eq("id", id).single();
+
     const { error } = await supabase.from("my_aquariums").delete().eq("id", id);
     if (error) throw new Error(error.message);
+
+    if (oldAq?.image_url) {
+      const oldPath = extractStoragePath(oldAq.image_url);
+      if (oldPath) {
+        const { error: removeError } = await supabase.storage.from('aquariums').remove([oldPath]);
+        if (removeError) console.error("Storage delete error:", removeError);
+      }
+    }
+
     revalidatePath("/dashboard/admin-panel/aquariums");
     return { success: true };
   } catch (error: unknown) {
@@ -257,7 +288,6 @@ export async function adminToggleArchiveAquariumAction(id: string, currentStatus
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    // SECURITY FIX 3: Validasi mutlak Super Admin
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     if (profile?.role !== 'super_admin') throw new Error("Forbidden: Super Admin only");
 
