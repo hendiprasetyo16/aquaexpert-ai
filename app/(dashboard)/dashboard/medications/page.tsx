@@ -4,11 +4,15 @@
 import { useState, useEffect, ChangeEvent } from "react";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { Pill, FlaskConical, Beaker, Leaf, Bug, AlertTriangle, ShieldCheck, Clock, Activity, Loader2, Search, Database, Edit, Trash2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive } from "lucide-react";
-import { getMedicationsDatabaseAction, getUserRoleAction, deleteMedicationAction, MedicationDto } from "@/features/diseases/actions/medication.actions";
+import { getMedicationsDatabaseAction, getUserRoleAction, deleteMedicationAction, createMedicationAction, updateMedicationAction, toggleMedicationArchiveAction, MedicationDto } from "@/features/diseases/actions/medication.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import Link from "next/link";
+
+// IMPORT FORM OBAT & DAFTAR ARSIP OBAT
+import { MedicationForm } from "@/features/diseases/components/MedicationForm";
+import MedicationArchiveList from "@/features/diseases/components/MedicationArchiveList";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -24,8 +28,16 @@ export default function MedicationDatabasePage() {
   // ROLE-BASED ACCESS CONTROL (RBAC) STATE
   const [userRole, setUserRole] = useState<string>("user");
   const [medToDelete, setMedToDelete] = useState<MedicationDto | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState(""); // 💡 State untuk ketik nama hapus permanen
   const [medToArchive, setMedToArchive] = useState<MedicationDto | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // STATE BARU: FORM & ARSIP
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const [editingMedication, setEditingMedication] = useState<MedicationDto | null>(null);
+
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false); 
 
   const fetchDatabase = async () => {
     setIsLoading(true);
@@ -35,8 +47,12 @@ export default function MedicationDatabasePage() {
     ]);
     
     setUserRole(roleRes);
-    if (medsRes.success) setMedications(medsRes.data);
-    else toast.error(medsRes.error || (lang === 'id' ? "Gagal memuat database obat." : "Failed to load medication database."));
+    // Hanya tampilkan data yang aktif (is_active = true)
+    if (medsRes.success) {
+      setMedications(medsRes.data.filter(m => m.is_active !== false));
+    } else {
+      toast.error(medsRes.error || (lang === 'id' ? "Gagal memuat database obat." : "Failed to load medication database."));
+    }
     
     setIsLoading(false);
   };
@@ -46,31 +62,41 @@ export default function MedicationDatabasePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // FUNGSI HAPUS PERMANEN (KHUSUS SUPER ADMIN)
+  // 💡 FUNGSI MENGARSIPKAN OBAT (MEMINDAHKAN KE ARSIP)
+  const handleArchiveConfirm = async () => {
+    if (!medToArchive) return;
+    setIsProcessing(true);
+    try {
+      // Set status menjadi is_active = false (true disini berarti 'ubah', disesuaikan dg action Bapak)
+      const res = await toggleMedicationArchiveAction(medToArchive.id, true);
+      if (res.success) {
+        toast.success(lang === "id" ? "Obat berhasil diarsipkan!" : "Medication archived successfully!");
+        fetchDatabase(); 
+      } else {
+        throw new Error(res.error);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Error");
+    } finally {
+      setIsProcessing(false);
+      setMedToArchive(null);
+    }
+  };
+
+  // 💡 FUNGSI HAPUS PERMANEN (KHUSUS SUPER ADMIN)
   const handleDeleteConfirm = async () => {
     if (!medToDelete) return;
     setIsProcessing(true);
     const res = await deleteMedicationAction(medToDelete.id);
     if (res.success) {
       toast.success(lang === 'id' ? "Obat berhasil dihapus permanen!" : "Medication deleted permanently!");
+      setDeleteConfirmText("");
       fetchDatabase(); 
     } else {
       toast.error(res.error || (lang === 'id' ? "Gagal menghapus obat." : "Failed to delete medication."));
     }
     setIsProcessing(false);
     setMedToDelete(null);
-  };
-
-  // FUNGSI ARSIP (ADMIN & SUPER ADMIN)
-  const handleArchiveConfirm = async () => {
-    if (!medToArchive) return;
-    setIsProcessing(true);
-    // TODO: Ganti dengan Action Arsip sesungguhnya saat backend sudah siap
-    setTimeout(() => {
-      toast.success(lang === 'id' ? "Obat berhasil diarsipkan!" : "Medication archived successfully!");
-      setIsProcessing(false);
-      setMedToArchive(null);
-    }, 1000);
   };
 
   const filteredMeds = medications.filter(med => 
@@ -107,25 +133,48 @@ export default function MedicationDatabasePage() {
   return (
     <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors bg-slate-50 dark:bg-slate-950">
       
-      {/* MODAL HAPUS PERMANEN BILINGUAL (HANYA SUPER ADMIN) */}
+      {/* 💡 MODAL HAPUS PERMANEN DIPERKETAT (HANYA SUPER ADMIN) */}
       {medToDelete && (
         <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4"><AlertTriangle className="w-8 h-8"/></div>
-            <h3 className="text-xl font-black mb-2 text-slate-800 dark:text-white uppercase tracking-tight">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 border-t-8 border-red-600 relative overflow-hidden">
+            <Trash2 className="absolute -right-4 -bottom-4 w-32 h-32 text-red-500/5 -rotate-12 pointer-events-none" />
+
+            <div className="w-16 h-16 bg-red-100 dark:bg-slate-800 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 relative z-10"><AlertTriangle className="w-8 h-8"/></div>
+            <h3 className="text-xl font-black mb-2 text-slate-800 dark:text-white uppercase tracking-tight relative z-10">
               {lang === 'id' ? "Hapus Permanen?" : "Delete Permanently?"}
             </h3>
-            <p className="text-sm text-slate-500 mb-6 font-medium leading-relaxed">
+            <p className="text-sm text-slate-500 mb-6 font-medium leading-relaxed relative z-10">
               {lang === 'id' 
-                ? <>Anda yakin ingin menghapus <strong>{medToDelete.name_id}</strong> dari database? Tindakan ini tidak dapat dibatalkan.</>
-                : <>Are you sure you want to delete <strong>{medToDelete.name_en}</strong> from the database? This action cannot be undone.</>
+                ? "Tindakan ini tidak bisa dibatalkan. Seluruh data dan relasi obat ini akan dihapus dari sistem."
+                : "This action is irreversible. The medication and its data will be removed from the system."
               }
             </p>
-            <div className="flex flex-col gap-3">
-              <Button onClick={handleDeleteConfirm} disabled={isProcessing} className="w-full h-12 bg-red-600 hover:bg-red-500 text-white font-black uppercase rounded-xl shadow-lg shadow-red-500/20">
+
+            <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-4 text-center relative z-10">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                {lang === "id" ? "Ketik nama obat untuk konfirmasi:" : "Type medication name to confirm:"}
+              </span>
+              <div className="font-bold text-xs text-slate-700 dark:text-slate-300 mb-2 select-all bg-white dark:bg-slate-900 py-1 rounded border border-slate-200 dark:border-slate-700">
+                {lang === "en" && medToDelete.name_en ? medToDelete.name_en : medToDelete.name_id}
+              </div>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder={lang === "id" ? "Ketik di sini..." : "Type here..."}
+                className="h-10 w-full text-center text-xs font-bold bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/40 focus:border-red-500 outline-none rounded-lg transition-colors text-slate-800 dark:text-slate-200"
+              />
+            </div>
+
+            <div className="flex flex-col gap-3 relative z-10">
+              <Button 
+                onClick={handleDeleteConfirm} 
+                disabled={isProcessing || deleteConfirmText !== (lang === "en" && medToDelete.name_en ? medToDelete.name_en : medToDelete.name_id)} 
+                className="w-full h-12 bg-red-600 hover:bg-red-500 disabled:bg-red-400 dark:disabled:bg-red-900 text-white font-black uppercase rounded-xl shadow-lg shadow-red-500/20"
+              >
                 {isProcessing ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (lang === 'id' ? "YA, HAPUS PERMANEN" : "YES, DELETE PERMANENTLY")}
               </Button>
-              <Button variant="outline" onClick={() => setMedToDelete(null)} disabled={isProcessing} className="w-full h-12 font-bold uppercase rounded-xl border-slate-200 dark:border-slate-700">
+              <Button variant="outline" onClick={() => { setMedToDelete(null); setDeleteConfirmText(""); }} disabled={isProcessing} className="w-full h-12 font-bold uppercase rounded-xl border-slate-200 dark:border-slate-700">
                 {lang === 'id' ? "Batal" : "Cancel"}
               </Button>
             </div>
@@ -159,6 +208,69 @@ export default function MedicationDatabasePage() {
         </div>
       )}
 
+      {/* MODAL OVERLAY: FORM TAMBAH & EDIT OBAT */}
+      {isFormOpen && (
+        <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl relative animate-in zoom-in-95 my-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            
+            <div className="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                <Pill className="w-5 h-5 text-sky-500" />
+                {formMode === "create" 
+                    ? (lang === 'id' ? "Tambah Obat Baru" : "Add New Medication")
+                    : (lang === 'id' ? `Edit Obat: ${editingMedication?.name_id}` : `Edit Medication: ${editingMedication?.name_en}`)
+                }
+                </h3>
+                <button 
+                onClick={() => setIsFormOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold transition-colors text-xs uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl"
+                >
+                {lang === 'id' ? "Tutup" : "Close"}
+                </button>
+            </div>
+            
+            <MedicationForm 
+                initialData={editingMedication} 
+                mode={formMode} 
+                onSaveAction={createMedicationAction} 
+                onUpdateAction={updateMedicationAction}
+                onSuccess={() => {
+                  setIsFormOpen(false);
+                  fetchDatabase(); 
+                }}
+                onCancel={() => setIsFormOpen(false)} 
+            />
+            </div>
+        </div>
+      )}
+
+      {/* MODAL OVERLAY: DAFTAR ARSIP OBAT */}
+      {isArchiveOpen && (
+        <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 max-w-5xl w-full shadow-2xl relative animate-in zoom-in-95 my-8">
+            
+            <div className="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                <Archive className="w-5 h-5 text-amber-500" />
+                {lang === 'id' ? "Arsip Database Obat" : "Medication Database Archive"}
+              </h3>
+              <button 
+                onClick={() => setIsArchiveOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold transition-colors text-xs uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl"
+              >
+                {lang === 'id' ? "Tutup" : "Close"}
+              </button>
+            </div>
+            
+            <MedicationArchiveList 
+              onActionSuccess={() => {
+                fetchDatabase(); 
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="max-w-[1400px] mx-auto space-y-8 pb-10">
         
         {/* HEADER UTAMA */}
@@ -178,18 +290,29 @@ export default function MedicationDatabasePage() {
                 : "Comprehensive medical encyclopedia. Learn dosages, flora/fauna safety, and baseline recovery rates of aquascape medications."}
             </p>
             
-            {/* TOMBOL TAMBAH & KELOLA KHUSUS ADMIN */}
+            {/* TOMBOL TAMBAH & BUKA ARSIP (HANYA UNTUK ADMIN/SUPER ADMIN) */}
             {isAdmin && (
               <div className="flex flex-wrap items-center gap-3 mt-5">
                 <Button 
-                  onClick={(e) => { e.preventDefault(); toast(lang === 'id' ? "Siap disambungkan ke Form Tambah!" : "Ready to connect to Add Form!", { icon: "➕"}); }} 
+                  onClick={(e) => { 
+                    e.preventDefault(); 
+                    setFormMode("create");
+                    setEditingMedication(null);
+                    setIsFormOpen(true);
+                  }} 
                   className="h-11 bg-slate-800 hover:bg-slate-700 dark:bg-sky-600 dark:hover:bg-sky-500 text-white font-bold px-5 rounded-xl shadow-md uppercase tracking-wider text-xs flex items-center gap-2 transition-all active:scale-[0.98]"
                 >
                   <Plus className="w-4 h-4 font-black" /> {lang === 'id' ? "Tambah Obat" : "Add Medication"}
                 </Button>
-                <Link href="/dashboard/admin-panel" className="inline-flex items-center gap-2 h-11 px-5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs uppercase tracking-widest rounded-xl transition-colors">
-                  <Database className="w-4 h-4" /> {lang === 'id' ? "Kelola Arsip" : "Manage Archive"}
-                </Link>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsArchiveOpen(true)} 
+                  className="h-11 px-5 rounded-xl border-amber-200 dark:border-amber-900/30 bg-amber-50/40 dark:bg-slate-950 text-amber-600 dark:text-amber-400 font-bold hover:bg-amber-100 flex items-center gap-2 transition-colors uppercase tracking-widest text-xs"
+                >
+                  <Archive className="w-4 h-4" />
+                  <span>{lang === 'id' ? "Arsip Obat" : "Med Archive"}</span>
+                </Button>
               </div>
             )}
           </div>
@@ -222,17 +345,22 @@ export default function MedicationDatabasePage() {
               {currentData.map((med, index) => (
                 <div key={med.id} className="relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-[0_0_20px_rgba(14,165,233,0.25)] dark:hover:shadow-[0_0_20px_rgba(14,165,233,0.15)] transition-all duration-300 hover:border-sky-300 dark:hover:border-sky-700 flex flex-col group">
 
-                  {/* KONTROL ADMIN INLINE (SELALU TAMPIL BAGI ADMIN, Z-INDEX TERTINGGI 50) */}
-                  {/* Efek: Muncul permanen di HP. Menyelinap mulus dari atas saat hover di PC */}
+                  {/* KONTROL ADMIN INLINE (EDIT, ARSIP, DELETE) */}
                   {isAdmin && (
-                    <div className="absolute top-3 right-3 flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 md:-translate-y-2 md:group-hover:translate-y-0 z-50">
+                    <div className="absolute top-4 right-4 z-50 flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300 md:-translate-y-2 group-hover:translate-y-0">
                       
                       {/* TOMBOL EDIT */}
                       <Button 
                         size="icon" 
-                        variant="ghost" // 💡 Mengosongkan style bawaan Shadcn agar tidak tabrakan dengan Tailwind
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toast(lang === 'id' ? "Siap disambungkan ke Form Edit!" : "Ready for Edit Form!", { icon: "📝"}); }} 
-                        className="h-8 w-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-700 text-sky-600 dark:text-sky-400 hover:!bg-sky-500 hover:!text-white hover:!border-sky-500 dark:hover:!bg-sky-500 dark:hover:!text-white rounded-lg shadow-lg transition-colors"
+                        variant="ghost" 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          e.stopPropagation(); 
+                          setFormMode("edit");
+                          setEditingMedication(med);
+                          setIsFormOpen(true);
+                        }} 
+                        className="h-9 w-9 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 border border-slate-200 dark:border-slate-700 hover:bg-sky-50 dark:hover:bg-sky-900/40 rounded-xl shadow-sm transition-colors cursor-pointer"
                         title={lang === 'id' ? "Edit Data" : "Edit Data"}
                       >
                         <Edit className="w-4 h-4" />
@@ -241,8 +369,13 @@ export default function MedicationDatabasePage() {
                       {/* TOMBOL ARSIP */}
                       <Button 
                         size="icon" 
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToArchive(med); }} 
-                        className="h-8 w-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-700 text-amber-600 dark:text-amber-500 hover:bg-amber-500 hover:text-white hover:border-amber-500 dark:hover:bg-amber-500 dark:hover:text-white rounded-lg shadow-lg transition-colors"
+                        variant="ghost" 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          e.stopPropagation(); 
+                          setMedToArchive(med); 
+                        }} 
+                        className="h-9 w-9 bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-500 border border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-900/40 rounded-xl shadow-sm transition-colors cursor-pointer"
                         title={lang === 'id' ? "Arsipkan Obat" : "Archive Meds"}
                       >
                         <Archive className="w-4 h-4" />
@@ -252,8 +385,13 @@ export default function MedicationDatabasePage() {
                       {isSuperAdmin && (
                         <Button 
                           size="icon" 
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToDelete(med); }} 
-                          className="h-8 w-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-700 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white hover:border-red-600 dark:hover:bg-red-600 dark:hover:text-white rounded-lg shadow-lg transition-colors"
+                          variant="ghost"
+                          onClick={(e) => { 
+                            e.preventDefault(); 
+                            e.stopPropagation(); 
+                            setMedToDelete(med); 
+                          }} 
+                          className="h-9 w-9 bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/40 rounded-xl shadow-sm transition-colors cursor-pointer"
                           title={lang === 'id' ? "Hapus Permanen" : "Permanent Delete"}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -265,9 +403,9 @@ export default function MedicationDatabasePage() {
                   {/* HEADER KARTU OBAT */}
                   <div className="p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/50 relative overflow-hidden flex items-start gap-4 z-10">
                     
-                    {/* IKON OBAT (WATERMARK NEON) - Hanya muncul saat hover, tidak mengganggu klik */}
-                    <div className="absolute top-2 right-2 opacity-10 md:opacity-0 group-hover:opacity-30 dark:group-hover:opacity-40 transition-opacity duration-500 pointer-events-none z-0">
-                      <FlaskConical className="w-20 h-20 md:w-24 md:h-24 text-sky-500 drop-shadow-[0_0_15px_rgba(14,165,233,0.8)]" />
+                    {/* 💡 WATERMARK OBAT SANGAT SAMAR (opacity-5), POINTER EVENTS NONE */}
+                    <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-8 opacity-5 dark:opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-700 z-0">
+                      <FlaskConical className="w-48 h-48 text-sky-500" />
                     </div>
 
                     {/* NOMOR URUT */}
@@ -275,8 +413,8 @@ export default function MedicationDatabasePage() {
                       {startIndex + index + 1}
                     </div>
                     
-                    {/* TEKS JUDUL & KANDUNGAN - Padding Kanan Dinamis (pr-28) agar tidak ditabrak tombol Admin */}
-                    <div className={`flex-1 relative z-10 min-w-0 ${isAdmin ? (isSuperAdmin ? "pr-28" : "pr-20") : "pr-4"}`}> 
+                    {/* TEKS JUDUL & KANDUNGAN */}
+                    <div className={`flex-1 relative z-10 min-w-0 ${isAdmin ? (isSuperAdmin ? "pr-32" : "pr-24") : "pr-4"}`}> 
                       <h3 className="text-xl md:text-2xl font-black text-slate-800 dark:text-slate-100 mb-2 leading-tight break-words whitespace-normal">
                         {lang === 'id' ? med.name_id : med.name_en}
                       </h3>

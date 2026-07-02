@@ -1,15 +1,25 @@
 // features/diseases/types/medication.types.ts
+
 export type WaterParameterKey = "ph" | "temperature" | "ammonia" | "nitrite" | "nitrate";
 
+// 💡 SEKARANG DIUPDATE: Menyamakan 100% dengan tabel public.medications terbaru
 export interface DbMedication {
-  id: string;
-  name: string;
-  active_ingredient: string;
-  description_id: string;
-  description_en: string;
-  base_dosage_per_100l: number;
-  dosage_unit: string;
-  treatment_duration_days: number;
+  id: string;                               // uuid not null
+  name_id: string | null;                   // character varying(255) null
+  name_en: string;                          // character varying(255) not null
+  active_ingredient: string;               // character varying(255) not null
+  description_id: string;                   // text not null
+  description_en: string;                   // text not null
+  base_dosage_per_100l: number;             // numeric not null
+  dosage_unit: string;                      // character varying(50) not null
+  treatment_duration_days: number;          // integer not null
+  created_at?: string | null;               // timestamp with time zone null
+  clinical_score_baseline: number | null;   // numeric null
+  success_rate_baseline_pct: number | null; // numeric null
+  avg_recovery_days_baseline: number | null;// integer null
+  safe_for_plants: boolean | null;          // boolean null
+  safe_for_inverts: boolean | null;         // boolean null
+  is_active?: boolean | null;
 }
 
 export interface DbDiseaseMedication {

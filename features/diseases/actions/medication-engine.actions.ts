@@ -28,19 +28,19 @@ interface Payload {
 
 // ============================================================================
 // STRICT TYPE EXTENSIONS
-// Memperpanjang tipe data lokal agar kompilator TypeScript tenang 
-// tanpa perlu menggunakan "as any"
 // ============================================================================
 
 type ExtendedMedication = DbMedication & { reuse_interval_days?: number };
 type ExtendedDiseaseMedication = Omit<DbDiseaseMedication, "medication"> & { medication: ExtendedMedication };
 type ExtendedEnvironmentRule = DbEnvironmentRule & { max_threshold?: number | null };
 
+// 💡 DIUBAH: Menyesuaikan DTO Supabase dengan kolom tabel terbaru
 interface SupabaseDiseaseMedicationDto {
   priority: "Primary" | "Alternative";
   medication: {
     id: string;
-    name: string;
+    name_id: string | null;
+    name_en: string;
     active_ingredient: string;
     description_id: string;
     description_en: string;
@@ -48,19 +48,25 @@ interface SupabaseDiseaseMedicationDto {
     dosage_unit: string;
     treatment_duration_days: number;
     reuse_interval_days: number | null;
+    clinical_score_baseline: number | null;
+    success_rate_baseline_pct: number | null;
+    avg_recovery_days_baseline: number | null;
+    safe_for_plants: boolean | null;
+    safe_for_inverts: boolean | null;
   } | null;
 }
 
+// 💡 DIUBAH: Mengikuti penamaan name_id & name_en baru
 interface SupabaseTreatmentRowDto {
   id: string;
   medication_id: string;
   started_at: string;
   status: string;
-  medication: { name: string } | { name: string }[] | null;
+  medication: { name_id: string | null; name_en: string } | { name_id: string | null; name_en: string }[] | null;
 }
 
 // ============================================================================
-// HELPER FUNCTIONS (Strict Type Parsers & Range Evaluators)
+// HELPER FUNCTIONS
 // ============================================================================
 
 function isValidParameterKey(key: string): key is WaterParameterKey {
@@ -161,13 +167,27 @@ export async function getMedicationRecommendationAction({
       
     const latestParams = latestParamsRaw as TypedWaterParameters | null;
 
-    // 4. Ambil Relasi Penyakit Menggunakan DTO Mapping & Local Extended Types
+    // 4. 💡 DIUBAH: Query ditarik lengkap sesuai kolom baru agar kompilator tidak komplain
     const { data: rawDiseaseMeds, error: errMeds } = await supabase
       .from("disease_medications")
       .select(`
         priority,
         medication:medications (
-          id, name, active_ingredient, description_id, description_en, base_dosage_per_100l, dosage_unit, treatment_duration_days, reuse_interval_days
+          id, 
+          name_id, 
+          name_en, 
+          active_ingredient, 
+          description_id, 
+          description_en, 
+          base_dosage_per_100l, 
+          dosage_unit, 
+          treatment_duration_days, 
+          reuse_interval_days,
+          clinical_score_baseline,
+          success_rate_baseline_pct,
+          avg_recovery_days_baseline,
+          safe_for_plants,
+          safe_for_inverts
         )
       `)
       .eq("disease_id", diseaseId);
@@ -176,20 +196,27 @@ export async function getMedicationRecommendationAction({
     
     const diseaseMedicationDtos = rawDiseaseMeds as unknown as SupabaseDiseaseMedicationDto[];
     
+    // 💡 DIUBAH: Pemetaan field baru dari DTO ke interface lokal ExtendedDiseaseMedication
     const diseaseMedications: ExtendedDiseaseMedication[] = diseaseMedicationDtos
       .filter((dto): dto is SupabaseDiseaseMedicationDto & { medication: NonNullable<SupabaseDiseaseMedicationDto["medication"]> } => dto.medication !== null)
       .map(dto => ({
         priority: dto.priority,
         medication: {
           id: dto.medication.id,
-          name: dto.medication.name,
+          name_id: dto.medication.name_id,
+          name_en: dto.medication.name_en,
           active_ingredient: dto.medication.active_ingredient,
           description_id: dto.medication.description_id,
           description_en: dto.medication.description_en,
           base_dosage_per_100l: Number(dto.medication.base_dosage_per_100l),
           dosage_unit: dto.medication.dosage_unit,
           treatment_duration_days: Number(dto.medication.treatment_duration_days),
-          reuse_interval_days: dto.medication.reuse_interval_days ? Number(dto.medication.reuse_interval_days) : undefined
+          reuse_interval_days: dto.medication.reuse_interval_days ? Number(dto.medication.reuse_interval_days) : undefined,
+          clinical_score_baseline: dto.medication.clinical_score_baseline !== null ? Number(dto.medication.clinical_score_baseline) : null,
+          success_rate_baseline_pct: dto.medication.success_rate_baseline_pct !== null ? Number(dto.medication.success_rate_baseline_pct) : null,
+          avg_recovery_days_baseline: dto.medication.avg_recovery_days_baseline !== null ? Number(dto.medication.avg_recovery_days_baseline) : null,
+          safe_for_plants: dto.medication.safe_for_plants,
+          safe_for_inverts: dto.medication.safe_for_inverts
         }
       }));
 
@@ -208,10 +235,10 @@ export async function getMedicationRecommendationAction({
     const dynamicDaysAgo = new Date();
     dynamicDaysAgo.setDate(dynamicDaysAgo.getDate() - maxLookbackDays);
 
-    // Tarik Riwayat Pengobatan
+    // 💡 DIUBAH: Mengambil name_id dan name_en alih-alih name tunggal
     const { data: recentTreatmentsRaw } = await supabase
       .from("aquarium_treatments")
-      .select("id, medication_id, started_at, status, medication:medications(name)")
+      .select("id, medication_id, started_at, status, medication:medications(name_id, name_en)")
       .eq("aquarium_id", aquariumId)
       .gte("started_at", dynamicDaysAgo.toISOString())
       .order("started_at", { ascending: false });
@@ -221,10 +248,9 @@ export async function getMedicationRecommendationAction({
     const recentTreatments: DbAquariumTreatment[] = treatmentRows.map(t => {
       let medName = "Unknown Medication";
       if (t.medication) {
-        if (Array.isArray(t.medication)) {
-          medName = t.medication[0]?.name || medName;
-        } else {
-          medName = t.medication.name;
+        const targetMed = Array.isArray(t.medication) ? t.medication[0] : t.medication;
+        if (targetMed) {
+          medName = lang === "id" ? (targetMed.name_id || targetMed.name_en) : targetMed.name_en;
         }
       }
       return {
@@ -277,6 +303,9 @@ export async function getMedicationRecommendationAction({
     // 8. DATA PROCESSING LAYER
     for (const record of diseaseMedications) {
       const med = record.medication; 
+      // 💡 DIUBAH: Tentukan nama obat berdasarkan preferensi bahasa agar pengganti 'med.name' dinamis
+      const localizedMedName = lang === "id" ? (med.name_id || med.name_en) : med.name_en;
+
       const calculatedDosage = parseFloat(((netVolume / 100) * med.base_dosage_per_100l).toFixed(2));
       
       const currentMedAlerts: SafetyAlert[] = [];
@@ -345,7 +374,7 @@ export async function getMedicationRecommendationAction({
           const remainingDays = Math.ceil((reuseIntervalMs - msSinceTreatment) / (1000 * 60 * 60 * 24));
           currentMedAlerts.push({
             type: "HISTORY",
-            target: `History: ${med.name}`,
+            target: `History: ${localizedMedName}`, // 💡 DIUBAH
             isSafe: false,
             reason: lang === 'id' 
               ? `Obat ini baru saja digunakan. Berikan jeda ${remainingDays} hari lagi atau lakukan Water Change minimal 50% sebelum re-dosis.`
@@ -363,15 +392,15 @@ export async function getMedicationRecommendationAction({
             target: `Interaction: ${treatment.medication.name}`,
             isSafe: false,
             reason: lang === 'id' 
-              ? `Berbahaya mencampur ${med.name} dengan ${treatment.medication.name} yang baru saja digunakan. ${interaction.note_id}`
-              : `Dangerous to mix ${med.name} with recently used ${treatment.medication.name}. ${interaction.note_en}`
+              ? `Berbahaya mencampur ${localizedMedName} dengan ${treatment.medication.name} yang baru saja digunakan. ${interaction.note_id}` // 💡 DIUBAH
+              : `Dangerous to mix ${localizedMedName} with recently used ${treatment.medication.name}. ${interaction.note_en}` // 💡 DIUBAH
           });
         }
       }
 
       compiledRecommendations.push({
         medicationId: med.id,
-        name: med.name,
+        name: localizedMedName, // 💡 DIUBAH
         activeIngredient: med.active_ingredient,
         priority: record.priority,
         description: lang === 'id' ? med.description_id : med.description_en,
