@@ -13,11 +13,24 @@ import {
 import { createMaintenanceTask } from "../repositories/maintenance.repository";
 import { Aquarium, CreateAquariumInput, UpdateAquariumInput } from "../types/aquarium.types";
 
-// 💡 HELPER ANTI-GAGAL: Memecahkan masalah URL Encoding (%20, dsb) dan mengekstrak path murni
+// 💡 HELPER CERDAS: Mengekstrak path file murni dengan mendeteksi pola "/public/aquariums/"
 function extractStoragePath(url: string | null | undefined) {
   if (!url) return null;
   try {
     const decodedUrl = decodeURIComponent(url);
+    // Format standar URL Storage Supabase: https://[project].supabase.co/storage/v1/object/public/[bucket]/[path]
+    const marker = "/public/aquariums/";
+    const idx = decodedUrl.indexOf(marker);
+    
+    if (idx !== -1) {
+      // Ambil sisa teks setelah "/public/aquariums/" (contoh: "covers/nama_file.jpg")
+      let path = decodedUrl.substring(idx + marker.length);
+      // Bersihkan jika ada query params atau hash (misal: ?t=123)
+      path = path.split('?')[0].split('#')[0];
+      return path;
+    }
+    
+    // Fallback keamanan jika URL formatnya tidak terduga
     const match = decodedUrl.match(/covers\/[^?#]+/);
     return match ? match[0] : null;
   } catch {
@@ -137,11 +150,18 @@ export async function updateAquariumAction(id: string, payload: UpdateAquariumIn
        targetUserId = oldAq.user_id;
     }
 
-    // 💡 HAPUS STORAGE LAMA DULU SEBELUM UPDATE DATABASE
+    // 💡 EKSEKUSI PENGHAPUSAN FOTO LAMA (JIKA DIGANTI)
     if (oldAq?.image_url && payload.image_url && oldAq.image_url !== payload.image_url) {
       const oldPath = extractStoragePath(oldAq.image_url);
       if (oldPath) {
-        await supabase.storage.from('aquariums').remove([oldPath]);
+        console.log("🔄 Sistem mencoba membersihkan file sampah (Edit):", oldPath);
+        const { error: rmErr } = await supabase.storage.from('aquariums').remove([oldPath]);
+        
+        if (rmErr) {
+          console.error("❌ GAGAL MENGHAPUS FOTO LAMA:", rmErr.message);
+        } else {
+          console.log("✅ FOTO LAMA BERHASIL DIBERSIHKAN DARI STORAGE.");
+        }
       }
     }
 
@@ -175,11 +195,18 @@ export async function deleteAquariumAction(id: string) {
        targetUserId = oldAq.user_id;
     }
 
-    // 💡 HAPUS STORAGE LAMA DULU SEBELUM HAPUS DATABASE
+    // 💡 EKSEKUSI PENGHAPUSAN FOTO LAMA KETIKA TANGKI DIHAPUS TOTAL
     if (oldAq?.image_url) {
       const oldPath = extractStoragePath(oldAq.image_url);
       if (oldPath) {
-        await supabase.storage.from('aquariums').remove([oldPath]);
+        console.log("🔄 Sistem mencoba membersihkan file sampah (Delete):", oldPath);
+        const { error: rmErr } = await supabase.storage.from('aquariums').remove([oldPath]);
+        
+        if (rmErr) {
+          console.error("❌ GAGAL MENGHAPUS FOTO LAMA:", rmErr.message);
+        } else {
+          console.log("✅ FOTO LAMA BERHASIL DIBERSIHKAN DARI STORAGE.");
+        }
       }
     }
 
@@ -268,11 +295,18 @@ export async function adminDeleteAquariumAction(id: string) {
 
     const { data: oldAq } = await supabase.from("my_aquariums").select("image_url").eq("id", id).single();
 
-    // 💡 HAPUS STORAGE LAMA DULU SEBELUM HAPUS DATABASE
+    // 💡 EKSEKUSI PENGHAPUSAN FOTO LAMA KETIKA DIHAPUS OLEH SUPER ADMIN
     if (oldAq?.image_url) {
       const oldPath = extractStoragePath(oldAq.image_url);
       if (oldPath) {
-        await supabase.storage.from('aquariums').remove([oldPath]);
+        console.log("🔄 Admin mencoba membersihkan file sampah:", oldPath);
+        const { error: rmErr } = await supabase.storage.from('aquariums').remove([oldPath]);
+        
+        if (rmErr) {
+          console.error("❌ GAGAL MENGHAPUS FOTO LAMA (ADMIN):", rmErr.message);
+        } else {
+          console.log("✅ FOTO LAMA BERHASIL DIBERSIHKAN DARI STORAGE (ADMIN).");
+        }
       }
     }
 
