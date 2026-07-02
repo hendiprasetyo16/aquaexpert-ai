@@ -15,7 +15,7 @@ export interface LeaderboardRow {
   relapse_rate_pct: number;
   evidence_grade: EvidenceGrade;
   clinical_score: number;
-  medication: { id: string; name: string } | null;
+  medication: { id: string; name_id: string; name_en: string } | null; // 💡 FIX
   disease: { id: string; name_id: string; name_en: string } | null;
 }
 
@@ -50,7 +50,8 @@ export async function getMedicationLeaderboardAction(limit: number = 20): Promis
     const medIds = [...new Set(rawData.map(d => d.medication_id))];
     const disIds = [...new Set(rawData.map(d => d.disease_id))];
 
-    const { data: meds } = await supabase.from("medications").select("id, name").in("id", medIds);
+    // 💡 FIX: select("id, name_id, name_en")
+    const { data: meds } = await supabase.from("medications").select("id, name_id, name_en").in("id", medIds);
     const { data: dises } = await supabase.from("diseases").select("id, name_id, name_en").in("id", disIds);
 
     const formattedData: LeaderboardRow[] = rawData.map((row) => ({

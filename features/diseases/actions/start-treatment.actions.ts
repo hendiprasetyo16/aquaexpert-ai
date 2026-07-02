@@ -25,16 +25,28 @@ export interface ActiveTreatmentDto {
   initial_symptoms: string[];
   aquarium: { name: string } | null;
   disease: { name_id: string; name_en: string } | null;
-  medication: { name: string; dosage_unit: string } | null;
-  // BARU: Menyimpan log terakhir untuk ditampilkan di UI
+  medication: {
+    id: string;
+    name_id: string; 
+    name_en: string; 
+    dosage_unit: string;
+  } | null;
   latest_log: { action_taken: string; notes: string; day_number: number } | null;
 }
 
 export async function getTreatmentDropdownOptionsAction() {
   try {
     const supabase = await createClient();
-    const { data: diseases } = await supabase.from("diseases").select("id, name_id, name_en, severity").eq("is_active", true).order("name_id", { ascending: true });
-    const { data: medications } = await supabase.from("medications").select("id, name, dosage_unit").order("name", { ascending: true });
+    // Ubah bagian kueri ini:
+    const { data: diseases } = await supabase.from("diseases")
+      .select("id, name_id, name_en, severity, quarantine_required") // 💡 TAMBAHKAN quarantine_required
+      .eq("is_active", true).order("name_id", { ascending: true });
+
+    // 💡 FIX 1: Ubah 'name' menjadi 'name_id, name_en'
+    const { data: medications } = await supabase.from("medications")
+      .select("id, name_id, name_en, dosage_unit, safe_for_plants, safe_for_inverts") // 💡 TAMBAHKAN safe_for_plants & inverts
+      .order("name_id", { ascending: true });
+
     return { success: true, diseases: diseases || [], medications: medications || [] };
   } catch (error: unknown) {
     return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan internal" };
@@ -73,13 +85,14 @@ export async function getActiveTreatmentsAction(aquariumIdFilter?: string): Prom
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, data: [], error: "Session expired." };
 
+    // 💡 FIX 2: Pada select medication, ganti 'name' dengan 'id, name_id, name_en'
     let query = supabase
       .from("treatment_sessions")
       .select(`
         id, aquarium_id, disease_id, medication_id, status, started_at, completed_at, current_recovery_rate, initial_symptoms,
         aquarium:my_aquariums(name),
         disease:diseases(name_id, name_en),
-        medication:medications(name, dosage_unit),
+        medication:medications(id, name_id, name_en, dosage_unit), 
         treatment_logs(action_taken, notes, day_number)
       `)
       .order("started_at", { ascending: false });
@@ -101,7 +114,6 @@ export async function getActiveTreatmentsAction(aquariumIdFilter?: string): Prom
       const dis = s.disease as Record<string, unknown> | null;
       const med = s.medication as Record<string, unknown> | null;
       
-      // Ambil log yang harinya paling tinggi
       const logs = (s.treatment_logs as Array<{ action_taken: string, notes: string, day_number: number }>) || [];
       const latestLog = logs.length > 0 ? logs.sort((a, b) => b.day_number - a.day_number)[0] : null;
 
@@ -117,7 +129,13 @@ export async function getActiveTreatmentsAction(aquariumIdFilter?: string): Prom
         initial_symptoms: Array.isArray(s.initial_symptoms) ? s.initial_symptoms.map(String) : [],
         aquarium: aq ? { name: String(aq.name) } : null,
         disease: dis ? { name_id: String(dis.name_id), name_en: String(dis.name_en) } : null,
-        medication: med ? { name: String(med.name), dosage_unit: String(med.dosage_unit) } : null,
+        // 💡 FIX 3: Petakan properti medication sesuai interface ActiveTreatmentDto yang diminta TypeScript
+        medication: med ? { 
+          id: String(med.id), 
+          name_id: String(med.name_id), 
+          name_en: String(med.name_en), 
+          dosage_unit: String(med.dosage_unit) 
+        } : null,
         latest_log: latestLog
       };
     });

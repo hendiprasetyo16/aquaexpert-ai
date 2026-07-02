@@ -146,7 +146,7 @@ export default function TreatmentTab({ aquariumId }: Props) {
                 <div className="p-5 flex-1 space-y-4">
                   <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-100 dark:border-slate-800">
                     <p className="text-[10px] font-bold text-slate-400 mb-1">{lang === 'id' ? "PENGOBATAN" : "MEDICATION"}</p>
-                    <p className="text-sm font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2"><Syringe className="w-4 h-4" /> {session.medication?.name}</p>
+                    <p className="text-sm font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2"><Syringe className="w-4 h-4" /> {lang === 'id' ? session.medication?.name_id : session.medication?.name_en}</p>
                   </div>
 
                   {hasLoggedToday && session.latest_log && (
@@ -206,7 +206,7 @@ export default function TreatmentTab({ aquariumId }: Props) {
                           {isSuccess ? <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> : isFailed ? <XCircle className="w-5 h-5 text-red-500 shrink-0" /> : <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />}
                         </div>
                         <div className="space-y-1.5 mb-4">
-                          <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center gap-2"><Syringe className="w-3.5 h-3.5 text-blue-500" /> {hist.medication?.name}</p>
+                          <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center gap-2"><Syringe className="w-3.5 h-3.5 text-blue-500" /> {lang === 'id' ? hist.medication?.name_id : hist.medication?.name_en}</p>
                           <p className="text-[10px] font-medium text-slate-500 flex items-center gap-2"><CalendarDays className="w-3 h-3" /> {formatDate(hist.started_at)} - {hist.completed_at ? formatDate(hist.completed_at) : '?'}</p>
                           <p className="text-[10px] font-medium text-slate-500 flex items-center gap-2"><Clock className="w-3 h-3" /> Durasi: {calculateDuration(hist.started_at, hist.completed_at)} Hari</p>
                         </div>

@@ -22,7 +22,8 @@ interface LeaderboardRow {
   last_calculated_at: string;
   medication: {
     id: string;
-    name: string;
+    name_id: string; // 💡 FIX
+    name_en: string; // 💡 FIX
   };
   disease: {
     id: string;
@@ -50,16 +51,15 @@ export async function getMedicationLeaderboardAction({
         clinical_score,
         evidence_grade,
         last_calculated_at,
-        medication:medications!inner(id, name),
+        medication:medications!inner(id, name_id, name_en), 
         disease:diseases!inner(id, name_id, name_en)
-      `)
+      `) // 💡 FIX pada bagian select medication
       .gt("total_cases", 0);
 
     if (diseaseId) {
       query = query.eq("disease_id", diseaseId);
     }
 
-    // Pendekatan Evidence-Based: Diurutkan berdasarkan Skor Klinis, lalu jumlah kasus terbanyak (Tie-breaker)
     const { data: statsRaw, error } = await query
       .order("clinical_score", { ascending: false })
       .order("total_cases", { ascending: false })
@@ -70,14 +70,14 @@ export async function getMedicationLeaderboardAction({
       throw new Error("Gagal memuat statistik pengobatan.");
     }
 
-    // ZERO-ANY IMPLEMENTATION
     const rows = statsRaw as unknown as LeaderboardRow[];
     const formattedData: MedicationEfficacyStat[] = rows.map((row) => ({
       diseaseId: row.disease_id,
       diseaseNameId: row.disease.name_id,
       diseaseNameEn: row.disease.name_en,
       medicationId: row.medication.id,
-      medicationName: row.medication.name,
+      medicationNameId: row.medication.name_id, // 💡 FIX
+      medicationNameEn: row.medication.name_en, // 💡 FIX
       totalCases: Number(row.total_cases) || 0,
       successRatePct: Number(row.success_rate_pct) || 0,
       medianRecoveryDays: Number(row.median_recovery_days) || 0,

@@ -4,6 +4,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { verifyAquariumOwnership } from "@/features/aquariums/repositories/security.repository";
 import type { LogTreatmentResponse, TreatmentStatus, ActionTaken } from "../types/treatment.types";
+import { revalidatePath } from "next/cache";
 
 interface LogPayload {
   aquariumId: string;
@@ -16,6 +17,7 @@ interface LogPayload {
   lang?: "id" | "en";
 }
 
+// 💡 UPDATE: Fungsi Hapus yang Tersinkronisasi dengan Papan Analisis AI
 export async function deleteTreatmentSessionAction(sessionId: string, aquariumId: string) {
   try {
     const supabase = await createClient();
@@ -23,14 +25,72 @@ export async function deleteTreatmentSessionAction(sessionId: string, aquariumId
     if (!user) throw new Error("Sesi berakhir.");
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
     
+    // 1. Ambil data sesi sebelum dibakar (Kita butuh ID Penyakit & Obatnya)
+    const { data: sessionData } = await supabase
+      .from("treatment_sessions")
+      .select("disease_id, medication_id, status")
+      .eq("id", sessionId)
+      .single();
+
+    // 2. Bakar/Hapus sesi dari tabel utama
     const { error } = await supabase.from("treatment_sessions").delete().eq("id", sessionId);
     if (error) throw new Error(error.message);
+
+    // 3. 🤖 SINKRONISASI ANALITIK: Jika yang dihapus adalah pasien selesai/gagal, kurangi angkanya!
+    if (sessionData && ["Completed", "Failed", "Aborted"].includes(sessionData.status)) {
+      const { data: statData } = await supabase
+        .from("medication_efficacy_stats")
+        .select("*")
+        .eq("disease_id", sessionData.disease_id)
+        .eq("medication_id", sessionData.medication_id)
+        .single();
+
+      if (statData) {
+        // Logika Pengurangan (Tidak boleh minus)
+        const newTotalCases = Math.max(0, statData.total_cases - 1);
+        let newSuccessCases = statData.success_cases || 0;
+        let newFailedCases = statData.failed_cases || 0;
+        let newAbortedCases = statData.aborted_cases || 0;
+
+        // Kurangi metrik spesifik
+        if (sessionData.status === "Completed") newSuccessCases = Math.max(0, newSuccessCases - 1);
+        if (sessionData.status === "Failed") newFailedCases = Math.max(0, newFailedCases - 1);
+        if (sessionData.status === "Aborted") newAbortedCases = Math.max(0, newAbortedCases - 1);
+
+        // Kalkulasi ulang persen kesembuhan (Update Real-time)
+        const newSuccessRate = newTotalCases > 0 ? Number(((newSuccessCases / newTotalCases) * 100).toFixed(2)) : 0;
+        const newMortalityRate = newTotalCases > 0 ? Number(((newFailedCases / newTotalCases) * 100).toFixed(2)) : 0;
+
+        // Simpan angka perbaikan ke Papan Analisis
+        await supabase
+          .from("medication_efficacy_stats")
+          .update({
+            total_cases: newTotalCases,
+            success_cases: newSuccessCases,
+            failed_cases: newFailedCases,
+            aborted_cases: newAbortedCases,
+            success_rate_pct: newSuccessRate,
+            mortality_rate_pct: newMortalityRate
+          })
+          .eq("disease_id", sessionData.disease_id)
+          .eq("medication_id", sessionData.medication_id);
+      }
+    }
+
+    // Segarkan UI Halaman
+    revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
+    revalidatePath(`/dashboard/treatments`);
+    revalidatePath(`/dashboard/analytics`); // Wajib segarkan analitik
+
     return { success: true };
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : "Gagal menghapus sesi." };
   }
 }
 
+// ==========================================================
+// FUNGSI PENCATATAN HARIAN TETAP UTUH & AMAN
+// ==========================================================
 export async function logDailyTreatmentAction({
   aquariumId,
   sessionId,
@@ -91,10 +151,6 @@ export async function logDailyTreatmentAction({
       medication_dose: medicationDose,
       log_date: new Date().toISOString()
     };
-
-    // =========================================================================
-    // PURE JAVASCRIPT LOGIC (Mencegah Error Database Supabase secara Mutlak)
-    // =========================================================================
     
     // 1. Cek apakah hari ini sudah absen
     const { data: existingLog } = await supabase.from("treatment_logs")
@@ -102,55 +158,37 @@ export async function logDailyTreatmentAction({
     
     // 2. Lakukan Update Jika Ada, Insert Jika Baru
     if (existingLog) {
-
       const { error } = await supabase
         .from("treatment_logs")
         .update(logData)
         .eq("id", existingLog.id);
-
       if (error) throw error;
-
     } else {
-
       const { error } = await supabase
         .from("treatment_logs")
         .insert(logData);
-
       if (error) throw error;
-
     }
 
     // 3. Update status tangki pasien
-    const { error: updateError } =
-    await supabase
+    const { error: updateError } = await supabase
     .from("treatment_sessions")
     .update({
         current_recovery_rate: recoveryRate,
         status: autoUpdateStatus,
         outcome_reason: finalOutcomeReason,
-        fish_lost_count:
-            Number(session.fish_lost_count || 0)
-            + newFishLostCount,
-        completed_at:
-            autoUpdateStatus !== "Active"
-                ? new Date().toISOString()
-                : null
+        fish_lost_count: Number(session.fish_lost_count || 0) + newFishLostCount,
+        completed_at: autoUpdateStatus !== "Active" ? new Date().toISOString() : null
     })
     .eq("id",sessionId);
 
     if(updateError){
         console.error(updateError);
-
-        return{
-            success:false,
-            analytics:null,
-            error:updateError.message
-        };
+        return { success:false, analytics:null, error:updateError.message };
     }
 
     // 4. Masukkan ke papan Analitik jika selesai (Sembuh/Batal)
-    const { error: outcomeError } =
-    await supabase
+    const { error: outcomeError } = await supabase
     .from("treatment_outcomes")
     .upsert({
         session_id:sessionId,
@@ -159,9 +197,7 @@ export async function logDailyTreatmentAction({
         medication_id:session.medication_id,
         recovery_days:dayNumber,
         recovery_rate:recoveryRate,
-        fish_lost_count:
-            Number(session.fish_lost_count||0)
-            + newFishLostCount,
+        fish_lost_count: Number(session.fish_lost_count||0) + newFishLostCount,
         outcome_status:autoUpdateStatus,
         created_at:new Date().toISOString()
     },{
@@ -170,12 +206,7 @@ export async function logDailyTreatmentAction({
 
     if(outcomeError){
         console.error(outcomeError);
-
-        return{
-            success:false,
-            analytics:null,
-            error:outcomeError.message
-        };
+        return { success:false, analytics:null, error:outcomeError.message };
     }
 
     return {

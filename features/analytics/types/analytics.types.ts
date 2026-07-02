@@ -6,7 +6,9 @@ export interface MedicationEfficacyStat {
   diseaseNameId: string;
   diseaseNameEn: string;
   medicationId: string;
-  medicationName: string;
+  //medicationName: string;
+  medicationNameId: string; // 💡 FIX: name_id
+  medicationNameEn: string; // 💡 FIX: name_en
   
   totalCases: number;
   successRatePct: number;

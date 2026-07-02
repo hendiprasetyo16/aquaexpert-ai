@@ -104,7 +104,7 @@ export default function MedicationLeaderboard({ data, dict, lang }: Props) {
                       <div className="flex items-center gap-3">
                         <div className="flex flex-col">
                           <p className="font-bold text-slate-800 dark:text-slate-100 text-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">
-                            {row.medication?.name} 
+                            {lang === 'id' ? row.medication?.name_id : row.medication?.name_en}
                             <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </p>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{dict.forDisease || (lang === 'id' ? "Untuk:" : "For:")} <span className="font-semibold">{diseaseName}</span></p>
@@ -165,7 +165,7 @@ export default function MedicationLeaderboard({ data, dict, lang }: Props) {
                    </span>
                    <div>
                      <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 leading-tight">
-                       {row.medication?.name}
+                       {lang === 'id' ? row.medication?.name_id : row.medication?.name_en}
                      </h3>
                      <p className="text-xs text-slate-500 mt-0.5">{dict.forDisease || (lang === 'id' ? "Untuk:" : "For:")} <span className="font-semibold">{diseaseName}</span></p>
                    </div>

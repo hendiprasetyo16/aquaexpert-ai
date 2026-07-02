@@ -15,17 +15,24 @@ interface Props {
 export default function MedicationDetailModal({ data, isOpen, onClose, dict, lang }: Props) {
   if (!isOpen || !data) return null;
 
-  const medName = data.medication?.name || (lang === 'id' ? "Obat Tidak Diketahui" : "Unknown Medication");
-  const diseaseName = lang === 'id' ? data.disease?.name_id : data.disease?.name_en;
+  // 💡 FIX TYPESCRIPT ERROR 2367: Menggunakan variabel boolean
+  const isId = lang === 'id';
 
-  const txtForDisease = dict?.forDisease || (lang === 'id' ? "Untuk Penyakit:" : "For Disease:");
-  const txtScore = dict?.colScore || (lang === 'id' ? "Skor Klinis" : "Clinical Score");
-  const txtCases = dict?.colCases || (lang === 'id' ? "Total Kasus" : "Evidence Cases");
-  const txtSuccess = dict?.colSuccess || (lang === 'id' ? "Tingkat Sembuh" : "Success Rate");
-  const txtRelapse = dict?.colRelapse || (lang === 'id' ? "Tingkat Kambuh" : "Relapse Rate");
-  const txtMortality = dict?.modalMortality || (lang === 'id' ? "Tingkat Kematian" : "Mortality Rate");
-  const txtAvgRecovery = dict?.modalAvgRecovery || (lang === 'id' ? "Waktu rata-rata pemulihan" : "Average recovery time");
-  const txtDays = dict?.days || (lang === 'id' ? "Hari" : "Days");
+  // 💡 Penulisan dibungkus kurung agar fallback string tidak memicu error narrowing
+  const medName = isId 
+    ? (data.medication?.name_id || "Obat Tidak Diketahui") 
+    : (data.medication?.name_en || "Unknown Medication");
+
+  const diseaseName = isId ? data.disease?.name_id : data.disease?.name_en;
+
+  const txtForDisease = dict?.forDisease || (isId ? "Untuk Penyakit:" : "For Disease:");
+  const txtScore = dict?.colScore || (isId ? "Skor Klinis" : "Clinical Score");
+  const txtCases = dict?.colCases || (isId ? "Total Kasus" : "Evidence Cases");
+  const txtSuccess = dict?.colSuccess || (isId ? "Tingkat Sembuh" : "Success Rate");
+  const txtRelapse = dict?.colRelapse || (isId ? "Tingkat Kambuh" : "Relapse Rate");
+  const txtMortality = dict?.modalMortality || (isId ? "Tingkat Kematian" : "Mortality Rate");
+  const txtAvgRecovery = dict?.modalAvgRecovery || (isId ? "Waktu rata-rata pemulihan" : "Average recovery time");
+  const txtDays = dict?.days || (isId ? "Hari" : "Days");
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 dark:bg-black/80 p-4 sm:p-6 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose}>
@@ -47,7 +54,6 @@ export default function MedicationDetailModal({ data, isOpen, onClose, dict, lan
             </h2>
           </div>
           
-          {/* FIX: Warna hover diterapkan penuh di button. X mewarisi (currentColor) */}
           <button 
             type="button"
             onClick={onClose} 

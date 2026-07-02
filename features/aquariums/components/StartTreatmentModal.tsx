@@ -22,12 +22,16 @@ interface DiseaseOption {
   name_id: string;
   name_en: string;
   severity: number;
+  quarantine_required?: boolean; 
 }
 
 interface MedOption {
   id: string;
-  name: string;
+  name_id: string; 
+  name_en: string; 
   dosage_unit: string;
+  safe_for_plants?: boolean; 
+  safe_for_inverts?: boolean; 
 }
 
 export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuccess, dict, lang }: Props) {
@@ -84,12 +88,18 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
             name_id: String(d.name_id || ""),
             name_en: String(d.name_en || ""),
             severity: Number(d.severity || 3),
+            // 💡 FIX: Menarik nilai karantina dari database
+            quarantine_required: d.quarantine_required === true, 
           })) as DiseaseOption[];
 
           const validatedMedications = (res.medications || []).map((m: Record<string, unknown>) => ({
             id: String(m.id || ""),
-            name: String(m.name || ""),
+            name_id: String(m.name_id || m.name || ""), 
+            name_en: String(m.name_en || m.name || ""), 
             dosage_unit: String(m.dosage_unit || ""),
+            // 💡 FIX: Menarik indikator keamanan obat dari database
+            safe_for_plants: m.safe_for_plants === true,
+            safe_for_inverts: m.safe_for_inverts === true,
           })) as MedOption[];
 
           setDiseases(validatedDiseases);
@@ -159,7 +169,6 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
   };
 
   return (
-    // FIX SCROLL: Wrapper dengan padding vertikal (py-8) agar modal tidak mentok ke ujung atas/bawah layar, dan bisa di-scroll utuh
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 dark:bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       
       {isLoadingOptions ? (
@@ -172,7 +181,6 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
       ) : (
         <div className="w-full max-w-2xl bg-white dark:bg-slate-950 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] md:max-h-[85vh] border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
           
-          {/* HEADER (Sticky di atas) */}
           <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50 dark:bg-slate-900 shrink-0">
             <div className="pr-4">
               <h2 className="text-lg sm:text-xl font-black text-slate-800 dark:text-white leading-tight">
@@ -191,7 +199,38 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
             </button>
           </div>
 
-          {/* BODY (Area yang bisa di-scroll jika konten panjang) */}
+          {/* ======================= */}
+          {/* 🤖 AI QUARANTINE ENGINE */}
+          {/* ======================= */}
+          {diseaseId && medicationId && (() => {
+            const selectedDis = diseases.find(d => d.id === diseaseId);
+            const selectedMed = medications.find(m => m.id === medicationId);
+            const isContagious = selectedDis?.quarantine_required;
+            
+            // Logika: Beracun JIKA (tidak aman untuk tanaman) ATAU (tidak aman untuk udang)
+            const isToxic = selectedMed && (!selectedMed.safe_for_plants || !selectedMed.safe_for_inverts);
+            
+            if (isContagious || isToxic) {
+              return (
+                <div className="mx-6 mt-6 p-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900/50 flex gap-4 animate-in slide-in-from-bottom-2">
+                  <AlertTriangle className="w-8 h-8 text-amber-500 shrink-0" />
+                  <div>
+                    <h4 className="font-black text-amber-800 dark:text-amber-400 uppercase tracking-tight text-sm mb-1">
+                      {lang === 'id' ? "⚠️ PERHATIAN: WAJIB PINDAH KE TANK KARANTINA" : "⚠️ WARNING: QUARANTINE TANK REQUIRED"}
+                    </h4>
+                    <p className="text-xs text-amber-700 dark:text-amber-500/80 font-medium">
+                      {isContagious 
+                        ? (lang === 'id' ? "Penyakit ini sangat menular. Pindahkan pasien ke Hospital Tank sebelum diobati." : "This disease is highly contagious. Move patient to a Hospital Tank.") 
+                        : (lang === 'id' ? "Obat ini beracun bagi tanaman atau udang/siput di akuarium utama Anda." : "This medication is toxic to plants or invertebrates in your main display tank.")
+                      }
+                    </p>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-6 bg-white dark:bg-slate-950">
             <form id="start-treatment-form" onSubmit={handleSubmit} className="space-y-6">
               
@@ -213,7 +252,6 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
                   </select>
                   <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
-                {/* HINT 1 */}
                 <p className="text-[11px] text-slate-500 flex items-start gap-1.5 mt-1.5 leading-snug">
                   <Info className="w-3.5 h-3.5 shrink-0 text-blue-500 mt-0.5" /> 
                   {lang === 'id' ? "Pilih penyakit berdasarkan hasil Analisis AI atau pengamatan manual Anda." : "Select illness based on AI Analysis or manual observation."}
@@ -233,12 +271,11 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
                   >
                     <option value="" disabled>-- {lang === 'id' ? "Pilih Tipe Obat" : "Select Medication Protocol"} --</option>
                     {medications.map(m => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
+                      <option key={m.id} value={m.id}>{lang === 'id' ? m.name_id : m.name_en}</option>
                     ))}
                   </select>
                   <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
-                {/* HINT 2 */}
                 <p className="text-[11px] text-slate-500 flex items-start gap-1.5 mt-1.5 leading-snug">
                   <Info className="w-3.5 h-3.5 shrink-0 text-blue-500 mt-0.5" /> 
                   {lang === 'id' ? "Pilih obat utama yang akan diberikan. Pastikan cocok dengan penyakit yang diderita." : "Select main medication to administer. Ensure it matches the diagnosed disease."}
@@ -258,7 +295,6 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
                   onChange={(e) => setSeverityScore(Math.max(1, Math.min(5, Number(e.target.value))))} 
                   className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-bold text-center focus:border-amber-500 outline-none"
                 />
-                {/* HINT 3 */}
                 <p className="text-[11px] text-slate-500 flex items-start gap-1.5 mt-1.5 leading-snug">
                   <Info className="w-3.5 h-3.5 shrink-0 text-amber-500 mt-0.5" /> 
                   {lang === 'id' ? "1 = Sangat Ringan (Gejala awal), 5 = Sangat Kritis (Kondisi fatal/sekarat). Otomatis terisi oleh standar AI, tapi bisa diubah." : "1 = Very Mild, 5 = Critical/Fatal. Auto-filled by AI standard, but can be adjusted."}
@@ -277,7 +313,6 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
                   placeholder={dict.placeholderNotes || (lang === 'id' ? "Contoh: Bintik putih di insang, nafsu makan hilang, berenang pasif" : "e.g., White spots on gills, loss of appetite, passive swimming")}
                   className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium focus:border-slate-400 outline-none custom-scrollbar resize-none"
                 />
-                {/* HINT 4 */}
                 <p className="text-[11px] text-slate-500 flex items-start gap-1.5 mt-1.5 leading-snug">
                   <Info className="w-3.5 h-3.5 shrink-0 text-emerald-500 mt-0.5" /> 
                   {lang === 'id' ? "Sebutkan gejala fisik/perilaku spesifik. Ini akan dijadikan referensi pemulihan di laporan harian berikutnya." : "Mention specific physical/behavioral symptoms. This acts as recovery baseline for future daily logs."}
@@ -287,7 +322,6 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
             </form>
           </div>
 
-          {/* FOOTER (Sticky di bawah) */}
           <div className="p-5 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex gap-3 shrink-0">
             <Button 
               type="button" 
@@ -300,7 +334,7 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
             
             <Button 
               type="submit" 
-              form="start-treatment-form" // Trigger submit di luar tag <form>
+              form="start-treatment-form"
               disabled={isSubmitting} 
               className="flex-1 h-12 bg-rose-600 hover:bg-rose-500 text-white font-black uppercase tracking-widest rounded-xl shadow-md active:scale-[0.98]"
             >
