@@ -287,15 +287,9 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
       const supabase = createClient();
       
       if (coverFile) {
-        // 💡 FIX: Hapus Gambar Lama Menggunakan Regex Matcher
-        if (mode === "edit" && initialData?.image_url) {
-          const match = initialData.image_url.match(/covers\/[^?#]+/);
-          if (match) {
-            await supabase.storage.from("aquariums").remove([match[0]])
-              .catch(e => console.warn("Failed to delete old image:", e));
-          }
-        }
+        // 💡 1. KITA BUANG LOGIKA HAPUS LAMA DARI SINI AGAR TIDAK BALAPAN DENGAN BACKEND
 
+        // 💡 2. CUSTOM NAMING: Mengambil nama user untuk merakit nama file
         const { data: { user } } = await supabase.auth.getUser();
         
         const rawName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "user";
@@ -304,12 +298,13 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
         
         const date = new Date();
         const dateStr = `${String(date.getDate()).padStart(2, '0')}${String(date.getMonth() + 1).padStart(2, '0')}${date.getFullYear()}`;
-        const randomStr = Math.random().toString(36).substring(2, 6);
+        const randomStr = Math.random().toString(36).substring(2, 6); 
         const fileExt = coverFile.name.split('.').pop() || "jpg";
         
         const customFileName = `${cleanName}_${cleanTheme}_${dateStr}_${randomStr}.${fileExt}`;
         const filePath = `covers/${customFileName}`; 
 
+        // 💡 3. UPLOAD FILE BARU
         const { error: uploadError } = await supabase.storage.from("aquariums").upload(filePath, coverFile);
         if (uploadError) throw new Error("Gagal mengupload foto: " + uploadError.message);
         

@@ -13,12 +13,16 @@ import {
 import { createMaintenanceTask } from "../repositories/maintenance.repository";
 import { Aquarium, CreateAquariumInput, UpdateAquariumInput } from "../types/aquarium.types";
 
-// 💡 HELPER FIX: Extractor URL Anti-Gagal menggunakan Regex
-// Ini akan selalu berhasil menangkap "covers/namafile.jpg" dari URL apapun
+// 💡 HELPER ANTI-GAGAL: Memecahkan masalah URL Encoding (%20, dsb) dan mengekstrak path murni
 function extractStoragePath(url: string | null | undefined) {
   if (!url) return null;
-  const match = url.match(/covers\/[^?#]+/);
-  return match ? match[0] : null; 
+  try {
+    const decodedUrl = decodeURIComponent(url);
+    const match = decodedUrl.match(/covers\/[^?#]+/);
+    return match ? match[0] : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getUserAquariumsAction() {
@@ -133,15 +137,15 @@ export async function updateAquariumAction(id: string, payload: UpdateAquariumIn
        targetUserId = oldAq.user_id;
     }
 
-    const data = await updateAquarium(supabase, id, targetUserId, payload);
-
+    // 💡 HAPUS STORAGE LAMA DULU SEBELUM UPDATE DATABASE
     if (oldAq?.image_url && payload.image_url && oldAq.image_url !== payload.image_url) {
       const oldPath = extractStoragePath(oldAq.image_url);
       if (oldPath) {
-        const { error: removeError } = await supabase.storage.from('aquariums').remove([oldPath]);
-        if (removeError) console.error("Storage delete error:", removeError);
+        await supabase.storage.from('aquariums').remove([oldPath]);
       }
     }
+
+    const data = await updateAquarium(supabase, id, targetUserId, payload);
 
     revalidatePath("/dashboard/my-aquarium");
     revalidatePath(`/dashboard/my-aquarium/${id}`);
@@ -171,15 +175,15 @@ export async function deleteAquariumAction(id: string) {
        targetUserId = oldAq.user_id;
     }
 
-    await deleteAquarium(supabase, id, targetUserId);
-
+    // 💡 HAPUS STORAGE LAMA DULU SEBELUM HAPUS DATABASE
     if (oldAq?.image_url) {
       const oldPath = extractStoragePath(oldAq.image_url);
       if (oldPath) {
-        const { error: removeError } = await supabase.storage.from('aquariums').remove([oldPath]);
-        if (removeError) console.error("Storage delete error:", removeError);
+        await supabase.storage.from('aquariums').remove([oldPath]);
       }
     }
+
+    await deleteAquarium(supabase, id, targetUserId);
 
     revalidatePath("/dashboard/my-aquarium");
     return { success: true };
@@ -264,16 +268,16 @@ export async function adminDeleteAquariumAction(id: string) {
 
     const { data: oldAq } = await supabase.from("my_aquariums").select("image_url").eq("id", id).single();
 
-    const { error } = await supabase.from("my_aquariums").delete().eq("id", id);
-    if (error) throw new Error(error.message);
-
+    // 💡 HAPUS STORAGE LAMA DULU SEBELUM HAPUS DATABASE
     if (oldAq?.image_url) {
       const oldPath = extractStoragePath(oldAq.image_url);
       if (oldPath) {
-        const { error: removeError } = await supabase.storage.from('aquariums').remove([oldPath]);
-        if (removeError) console.error("Storage delete error:", removeError);
+        await supabase.storage.from('aquariums').remove([oldPath]);
       }
     }
+
+    const { error } = await supabase.from("my_aquariums").delete().eq("id", id);
+    if (error) throw new Error(error.message);
 
     revalidatePath("/dashboard/admin-panel/aquariums");
     return { success: true };
