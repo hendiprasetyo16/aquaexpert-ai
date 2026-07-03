@@ -47,6 +47,22 @@ interface Props {
   pathologyVulnerabilities?: DiseaseVulnerability[]; 
 }
 
+// HELPER: Pengambil nama aman dwibahasa (Mencegah teks kosong jika belum diterjemahkan di DB)
+const getSafeName = (idName?: string | null, enName?: string | null, lang: "id" | "en" = "id") => {
+  if (lang === 'id') return idName || enName || "Unknown";
+  return enName || idName || "Unknown";
+};
+
+// HELPER: Penerjemah Posisi Tanaman Aquascape
+const translatePlacement = (place: string | null | undefined, lang: "id" | "en") => {
+  const p = place || "Midground";
+  if (lang === 'en') return p;
+  if (p === "Foreground") return "Depan";
+  if (p === "Midground") return "Tengah";
+  if (p === "Background") return "Belakang";
+  return p;
+};
+
 export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, plants, lang, masterPlantsCandidates, pathologyVulnerabilities = [] }: Props): DeepDiagnosisResult {
   const rootCauses: DiagnosisCause[] = [];
   const recommendations: string[] = [];
@@ -84,6 +100,9 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
       for (let j = i + 1; j < uniqueFishes.length; j++) {
         const fishA = uniqueFishes[i].fishInfo;
         const fishB = uniqueFishes[j].fishInfo;
+        const nameA = getSafeName(fishA.name_id, fishA.name_en, lang);
+        const nameB = getSafeName(fishB.name_id, fishB.name_en, lang);
+        
         let dynamicScore = 10;
         let reason = "";
 
@@ -117,8 +136,8 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
           rootCauses.push({
             title: lang === 'id' ? "Konflik Hubungan Spesies Parah" : "Severe Species Relationship Conflict", severity: "high",
             description: lang === 'id' 
-              ? `${fishA.name_id} dan ${fishB.name_id} berisiko tinggi bentrok fisik (Skor ${dynamicScore}/10). Alasan: ${reason}` 
-              : `${fishA.name_en} and ${fishB.name_en} conflict warning (Score ${dynamicScore}/10). Reason: ${reason}`
+              ? `${nameA} dan ${nameB} berisiko tinggi bentrok fisik (Skor ${dynamicScore}/10). Alasan: ${reason}` 
+              : `${nameA} and ${nameB} conflict warning (Score ${dynamicScore}/10). Reason: ${reason}`
           });
         }
       }
@@ -141,11 +160,11 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
     if (latest && pathologyVulnerabilities.length > 0) {
       groupedFishes.forEach((data) => {
         const f = data.fishInfo;
-        const fishName = lang === 'id' ? f.name_id : f.name_en;
+        const fishName = getSafeName(f.name_id, f.name_en, lang);
         const criticalVulnerabilities = pathologyVulnerabilities.filter(v => v.fish_id === f.id && v.susceptibility_score >= 4);
 
         criticalVulnerabilities.forEach(vuln => {
-          const diseaseName = lang === 'id' ? vuln.disease_name_id : vuln.disease_name_en;
+          const diseaseName = getSafeName(vuln.disease_name_id, vuln.disease_name_en, lang);
           if (latest.nitrate != null && latest.nitrate >= 25 && vuln.susceptibility_score === 5) {
             highRiskDiseaseTriggered = true;
             rootCauses.push({
@@ -174,9 +193,8 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
 
     groupedFishes.forEach((data) => {
       const fInfo = data.fishInfo;
-      const fishName = lang === 'id' ? fInfo.name_id : fInfo.name_en;
+      const fishName = getSafeName(fInfo.name_id, fInfo.name_en, lang);
 
-      // FIX: Menghapus kebutuhan properti "schooling" yang memicu error type, dan murni menggunakan "min_school_size > 1"
       if (fInfo.min_school_size != null && fInfo.min_school_size > 1 && data.totalQty < fInfo.min_school_size) {
         rootCauses.push({
           title: lang === 'id' ? "Stres Sosial (Schooling Size Invalid)" : "Social Schooling Isolation Stress", severity: "medium",
@@ -217,9 +235,10 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
 
     if (hasShrimp) {
       groupedFishes.forEach((data) => {
+        const fishName = getSafeName(data.fishInfo.name_id, data.fishInfo.name_en, lang);
         if ((data.fishInfo.shrimp_predation_risk ?? 0) >= 8) {
           nextActions.push({
-             instruction: lang === 'id' ? `Pindahkan udang hias ke tank terisolasi sebelum menjadi mangsa fauna ${data.fishInfo.name_id}.` : `Relocate ornamental shrimp before they get predated by ${data.fishInfo.name_en}.`,
+             instruction: lang === 'id' ? `Pindahkan udang hias ke tank terisolasi sebelum menjadi mangsa fauna ${fishName}.` : `Relocate ornamental shrimp before they get predated by ${fishName}.`,
              priority: "high"
           });
         }
@@ -236,7 +255,7 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
     plants.forEach(p => {
       const pData = p.plant;
       if (!pData) return;
-      const pName = lang === 'id' ? pData.name_id : (pData.name_en || pData.name_id);
+      const pName = getSafeName(pData.name_id, pData.name_en, lang);
       
       if (currStyleStr === "dutch" && (pData.epiphyte || pData.floating)) unsuitablePlants.push(pName);
       else if (currStyleStr === "iwagumi" && !pData.carpeting && pData.placement !== "Foreground") unsuitablePlants.push(pName);
@@ -282,9 +301,9 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
 
     dynamicFiltered.forEach(p => {
       if (p) {
-        const pName = lang === 'id' ? p.name_id : (p.name_en || p.name_id);
-        const pPlacement = lang === 'id' ? p.placement : (p.placement || "Midground");
-        plantRecommendations.push(`${pName} [Pos: ${pPlacement}]`);
+        const pName = getSafeName(p.name_id, p.name_en, lang);
+        const pPlacement = translatePlacement(p.placement, lang);
+        plantRecommendations.push(lang === 'id' ? `${pName} [Posisi: ${pPlacement}]` : `${pName} [Position: ${pPlacement}]`);
       }
     });
   }
@@ -293,7 +312,7 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
     Object.entries(health.deductions).forEach(([key, value]) => {
       if (value > 0) {
         const friendlyName = getFriendlyDeductionName(key, lang);
-        explainabilityBreakdown.push(`${friendlyName}: -${Math.floor(value)} Poin`);
+        explainabilityBreakdown.push(`${friendlyName}: -${Math.floor(value)} ${lang === 'id' ? 'Poin' : 'Pts'}`);
       }
     });
   }
