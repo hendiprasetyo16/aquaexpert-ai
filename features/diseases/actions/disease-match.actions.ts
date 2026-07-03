@@ -25,9 +25,6 @@ export async function getDiseaseMatchAction(
       return { success: true, matches: [] };
     }
 
-    // =========================================================================
-    // FIX 1: Dihapus .eq("is_deleted", false) karena kolom tidak ada di tabel
-    // =========================================================================
     const { data: inventoryFishes, error: invError } = await supabase
       .from("aquarium_fishes")
       .select("fish_id")
@@ -62,18 +59,28 @@ export async function getDiseaseMatchAction(
 
     if (signatureError || !fullDiseaseSignatures) throw new Error("Gagal memetakan profil patologi.");
 
-    const susceptibilityMap = new Map<string, number>(); 
+    // 💡 PENINGKATAN: Menyimpan Score beserta Catatan Pakar (Bilingual)
+    const susceptibilityMap = new Map<string, { score: number; note_id: string | null; note_en: string | null }>(); 
+    
     if (tankFishIds.length > 0) {
+      // 💡 Kueri Supabase sekarang menarik notes_id dan notes_en
       const { data: fishRelations } = await supabase
         .from("fish_disease_relations")
-        .select("disease_id, susceptibility_score")
+        .select("disease_id, susceptibility_score, notes_id, notes_en")
         .in("fish_id", tankFishIds);
 
       if (fishRelations) {
         fishRelations.forEach(rel => {
-          const currentMax = susceptibilityMap.get(rel.disease_id) || 0;
-          if (rel.susceptibility_score > currentMax) {
-            susceptibilityMap.set(rel.disease_id, rel.susceptibility_score);
+          const currentData = susceptibilityMap.get(rel.disease_id);
+          const currentMaxScore = currentData ? currentData.score : 0;
+          
+          // Selalu simpan peringatan dengan skor kerentanan paling tinggi di akuarium tersebut
+          if (rel.susceptibility_score > currentMaxScore) {
+            susceptibilityMap.set(rel.disease_id, {
+              score: rel.susceptibility_score,
+              note_id: rel.notes_id,
+              note_en: rel.notes_en
+            });
           }
         });
       }
@@ -129,35 +136,42 @@ export async function getDiseaseMatchAction(
         }
       });
 
-      // =========================================================================
-      // FIX 2: Menurunkan Hukuman Penalti dari 12 menjadi 4
-      // =========================================================================
       const negativePenalty = alienSymptomCount * 4;
       const hallmarkBonus = p.hasMatchedHallmark ? 20 : 0;
       
-      const susceptibilityScore = susceptibilityMap.get(diseaseId) || 0;
+      // 💡 PENINGKATAN: Merakit Peringatan Dinamis berdasarkan Database
+      const susData = susceptibilityMap.get(diseaseId);
+      const susceptibilityScore = susData ? susData.score : 0;
+      
       let susceptibilityBonus = 0;
       let susceptibilityWarning = null;
 
       if (susceptibilityScore >= 4) {
         susceptibilityBonus = susceptibilityScore * 2.5; 
-        susceptibilityWarning = lang === 'id' 
-          ? "Peringatan: Terdapat spesies di tangki Anda yang memiliki kerentanan genetik tinggi terhadap patogen ini."
-          : "Warning: Your tank contains species highly susceptible to this specific pathogen.";
+        
+        const baseWarning = lang === 'id' 
+          ? "Peringatan Kritis: Terdapat spesies di tangki Anda yang memiliki kerentanan genetik tinggi terhadap patogen ini."
+          : "Critical Warning: Your tank contains species highly susceptible to this specific pathogen.";
+          
+        const dbNote = lang === 'id' ? susData?.note_id : susData?.note_en;
+        
+        // Jika ada catatan tambahan di database, gabungkan!
+        if (dbNote) {
+          susceptibilityWarning = `${baseWarning} [Catatan Pakar: ${dbNote}]`;
+        } else {
+          susceptibilityWarning = baseWarning;
+        }
       }
 
       let finalConfidence = baseConfidence + hallmarkBonus + susceptibilityBonus - negativePenalty;
       finalConfidence = Math.max(0, Math.min(100, Math.round(finalConfidence)));
 
-      // =========================================================================
-      // FIX 3: Menurunkan batas bawah toleransi confidence agar data mau tampil
-      // =========================================================================
       if (finalConfidence >= 10) {
         results.push({
           disease: p.disease,
           confidenceScore: finalConfidence,
           matchedSymptoms: p.matchedSymptoms,
-          susceptibilityWarning
+          susceptibilityWarning // <-- Peringatan ini sekarang diambil langsung dari Supabase
         });
       }
     });

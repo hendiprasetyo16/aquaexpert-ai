@@ -1,4 +1,6 @@
 // features/diseases/actions/expert.actions.ts
+// tidak terpakai, karena semua logika expert engine sudah dipindahkan ke features/aquariums/actions/gemini-expert.actions.ts
+// di pindah di disease-match.actions.ts
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
