@@ -24,6 +24,46 @@ const TEXTURE_TAGS = ["tuft", "hairy", "dust", "hard_spot", "slime", "branching"
 const LOCATION_TAGS = ["glass", "hardscape", "leaf_edges", "plants", "substrate", "slow_leaves", "equipment", "moss", "everywhere", "high_flow"];
 const TRIGGER_TAGS = ["new_tank", "co2_fluctuation", "high_light", "poor_circulation", "nutrient_imbalance", "low_phosphate", "low_flow", "high_ammonia", "iron_imbalance", "low_co2", "low_nitrate", "high_silicate", "high_organics"];
 
+// 🔥 FUNGSI KOMPRESI GAMBAR (DITAMBAHKAN AGAR SAMA SEPERTI AQUARIUM WIZARD & PLANT)
+const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        
+        if (!ctx) { reject(new Error("Failed to get canvas context")); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+                type: "image/jpeg", lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else { reject(new Error("Canvas to Blob failed")); }
+          }, "image/jpeg", quality);
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 // --- TAMBAHKAN BARIS INI ---
 const AFFECTED_CONDITIONS_TAGS = ["plant_melt", "stunted_growth", "oxygen_depletion", "fish_gasping", "foul_odor", "cloudy_water", "filter_clogged"];
 
@@ -102,30 +142,67 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
     });
   }
 
-  function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
+// 🔥 PERBAIKAN: Handler Cover Gambar dengan Kompresi (Tanpa Batas 2MB)
+  async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
+      const originalFile = e.target.files[0];
       const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-      if (!validTypes.includes(file.type)) { setError("Format Cover harus JPG, PNG atau WEBP."); return; }
-      if (file.size > 2 * 1024 * 1024) { setError("Ukuran Cover maksimal 2MB."); return; }
+      
+      if (!validTypes.includes(originalFile.type)) { 
+        setError(formDict.errInvalidFormat || "Format Cover harus JPG, PNG atau WEBP."); 
+        return; 
+      }
 
-      setError(null); setCoverFile(file); setCoverPreview(URL.createObjectURL(file));
-      if (mode === "edit" && algae?.image_url && !imagesToDeleteRef.current.includes(algae.image_url)) imagesToDeleteRef.current.push(algae.image_url);
+      setError(null);
+      
+      try {
+        const compressedFile = await compressImage(originalFile);
+        
+        setCoverFile(compressedFile); 
+        setCoverPreview(URL.createObjectURL(compressedFile));
+        
+        if (mode === "edit" && algae?.image_url && !imagesToDeleteRef.current.includes(algae.image_url)) {
+          imagesToDeleteRef.current.push(algae.image_url);
+        }
+      } catch (err) {
+        toast.error("Gagal memproses kompresi gambar.");
+      }
     }
   }
 
-  function handleGalleryChange(e: React.ChangeEvent<HTMLInputElement>) {
+  // 🔥 PERBAIKAN: Handler Galeri Gambar dengan Kompresi Paralel (Tanpa Batas 2MB)
+  async function handleGalleryChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
       const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-      const newValidFiles = filesArray.filter(f => validTypes.includes(f.type) && f.size <= 2 * 1024 * 1024);
-      if (newValidFiles.length !== filesArray.length) toast.error("Beberapa gambar diabaikan (format salah atau > 2MB).");
+      
+      const validFiles = filesArray.filter(f => validTypes.includes(f.type));
+      if (validFiles.length !== filesArray.length) {
+        toast.error(formDict.errInvalidFormat || "Beberapa file diabaikan karena format bukan JPG/PNG/WEBP.");
+      }
 
       const spaceLeft = 8 - (existingGallery.length + newGallery.length);
-      if (spaceLeft <= 0) { toast.error("Maksimal 8 gambar galeri."); return; }
+      if (spaceLeft <= 0) { 
+        toast.error(formDict.errMaxGallery || "Maksimal 8 gambar pada galeri."); 
+        return; 
+      }
 
-      const filesToAdd = newValidFiles.slice(0, spaceLeft).map(file => ({ file, preview: URL.createObjectURL(file) }));
-      setNewGallery([...newGallery, ...filesToAdd]);
+      const filesToProcess = validFiles.slice(0, spaceLeft);
+      
+      try {
+        const compressedFiles = await Promise.all(
+          filesToProcess.map(file => compressImage(file))
+        );
+
+        const filesToAdd = compressedFiles.map(file => ({ 
+          file, 
+          preview: URL.createObjectURL(file) 
+        }));
+        
+        setNewGallery([...newGallery, ...filesToAdd]);
+      } catch (err) {
+        toast.error("Gagal memproses kompresi galeri gambar.");
+      }
     }
   }
 
@@ -236,21 +313,76 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
 
   function triggerHardDeleteModal() { if (!algae) return; setDeleteConfirmText(""); setIsDeleteModalOpen(true); }
   
-  async function executeHardDelete(e: React.FormEvent) {
-    e.preventDefault(); if (!algae) return;
+async function executeHardDelete(e: React.FormEvent) {
+    e.preventDefault(); 
+    if (!algae) return;
+    
     const currentName = language === 'en' && algae.name_en ? algae.name_en : algae.name_id;
-    if (deleteConfirmText !== currentName) { toast.error("Nama tidak cocok."); return; }
-    try { setLoading(true); const result = await hardDeleteAlgaeAction(algae.id); if (!result.success) throw new Error(result.error);
-      toast.success("Dihapus permanen."); router.push("/dashboard/algae"); router.refresh();
-    // REFAKTOR 4: Mengganti any menjadi unknown
+    if (deleteConfirmText !== currentName) { 
+      toast.error("Nama tidak cocok."); 
+      return; 
+    }
+    
+    try { 
+      setLoading(true); 
+
+      // 1. BERSIHKAN STORAGE DULU SEBELUM DATABASE DIHAPUS
+      const allUrls: string[] = [];
+      if (algae.image_url) {
+        allUrls.push(algae.image_url);
+      }
+      if (algae.gallery_urls && Array.isArray(algae.gallery_urls)) {
+        allUrls.push(...algae.gallery_urls);
+      }
+
+      if (allUrls.length > 0) {
+        const pathsToDelete = allUrls
+          .map((url) => {
+            if (!url) return "";
+            const urlParts = url.split("/");
+            // Sesuaikan dengan nama bucket Anda, di sini asumsinya "algae"
+            const algaeIndex = urlParts.findIndex((part) => part === "algae");
+            if (algaeIndex === -1) return "";
+            return urlParts.slice(algaeIndex + 1).join("/");
+          })
+          .filter((path) => path !== "");
+
+        if (pathsToDelete.length > 0) {
+          const supabase = createClient();
+          const { error: storageErr } = await supabase.storage
+            .from("algae")
+            .remove(pathsToDelete);
+            
+          if (storageErr) {
+            console.error("Gagal membersihkan gambar dari storage:", storageErr.message);
+          }
+        }
+      }
+
+      // 2. HAPUS DATA DI DATABASE
+      const result = await hardDeleteAlgaeAction(algae.id); 
+      if (!result.success) throw new Error(result.error);
+      
+      toast.success("Dihapus permanen."); 
+      
+      // LANGSUNG REDIRECT KE HALAMAN UTAMA KARENA TIDAK ADA ONSUCCESS
+      router.push("/dashboard/algae"); 
+      router.refresh();
+      
+    // REFAKTOR 4: Mengganti any menjadi unknown (Sudah diterapkan)
     } catch (error: unknown) { 
       const msg = error instanceof Error ? error.message : "Gagal.";
       toast.error(msg); 
-    } finally { setLoading(false); setIsDeleteModalOpen(false); }
+    } finally { 
+      setLoading(false); 
+      setIsDeleteModalOpen(false); 
+      setDeleteConfirmText("");
+    }
   }
 
   if (!dict.algaeExpert?.algaeForm) return null; // Safe guard
-  const formDict = dict.algaeExpert.algaeForm;
+  //const formDict = dict.algaeExpert.algaeForm;
+  const formDict = (dict.algaeExpert?.algaeForm as Record<string, string>) || {};
   const totalGalleryCount = existingGallery.length + newGallery.length;
 
   return (
