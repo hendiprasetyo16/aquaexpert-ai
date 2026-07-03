@@ -264,9 +264,12 @@ const handleSubmit = async () => {
         const emailPart = user?.email?.split('@')[0] || "user";
         const fullName = user?.user_metadata?.full_name || "unknown";
         
-        // 2. Bersihkan karakter agar aman untuk file system (hanya huruf, angka, underscore)
-        const cleanEmail = emailPart.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase().substring(0, 15);
-        const cleanName = fullName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase().substring(0, 15);
+        // 2. Bersihkan karakter agar aman untuk file system
+        // 💡 PERBAIKAN: Hapus .substring(0, 15) di cleanEmail agar email tidak terpotong
+        const cleanEmail = emailPart.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase(); 
+        
+        // Untuk nama lengkap (fullName), kita bisa biarkan dibatasi atau dinaikkan batasnya agar nama file tidak terlalu kepanjangan
+        const cleanName = fullName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase().substring(0, 20); 
         const cleanTheme = (formData.aquascape_style || "bebas").replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
         
         // 3. Tanggal (Format: YYYYMMDD)
@@ -277,7 +280,7 @@ const handleSubmit = async () => {
         const fileExt = coverFile.name.split('.').pop() || "jpg";
         
         // Format Final: email_nama_tema_tanggal_random.jpg
-        // Contoh: hendi_hendiprasetyo_iwagumi_20260704_x9z2k1.jpg
+        // Hasil nanti menjadi: hendiprasetyo192_hendi_prasetyo_iwagumi_20260704_ppimv5.jpg
         const customFileName = `${cleanEmail}_${cleanName}_${cleanTheme}_${dateStr}_${randomSuffix}.${fileExt}`;
         const filePath = `covers/${customFileName}`; 
 
