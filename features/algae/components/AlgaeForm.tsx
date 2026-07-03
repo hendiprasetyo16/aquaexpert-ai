@@ -23,8 +23,9 @@ const COLOR_TAGS = ["green", "brown", "black", "gray", "white", "light_green", "
 const TEXTURE_TAGS = ["tuft", "hairy", "dust", "hard_spot", "slime", "branching", "brush", "flat", "powdery", "easily_wiped", "wiry", "long_thread", "soft", "sheet", "smelly"];
 const LOCATION_TAGS = ["glass", "hardscape", "leaf_edges", "plants", "substrate", "slow_leaves", "equipment", "moss", "everywhere", "high_flow"];
 const TRIGGER_TAGS = ["new_tank", "co2_fluctuation", "high_light", "poor_circulation", "nutrient_imbalance", "low_phosphate", "low_flow", "high_ammonia", "iron_imbalance", "low_co2", "low_nitrate", "high_silicate", "high_organics"];
+const AFFECTED_CONDITIONS_TAGS = ["plant_melt", "stunted_growth", "oxygen_depletion", "fish_gasping", "foul_odor", "cloudy_water", "filter_clogged"];
 
-// 🔥 FUNGSI KOMPRESI GAMBAR (DITAMBAHKAN AGAR SAMA SEPERTI AQUARIUM WIZARD & PLANT)
+// FUNGSI KOMPRESI GAMBAR
 const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<File> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -64,15 +65,13 @@ const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<File
   });
 };
 
-// --- TAMBAHKAN BARIS INI ---
-const AFFECTED_CONDITIONS_TAGS = ["plant_melt", "stunted_growth", "oxygen_depletion", "fish_gasping", "foul_odor", "cloudy_water", "filter_clogged"];
-
 interface AlgaeFormProps {
   mode?: "create" | "edit";
   algae?: Algae;
+  onSuccess?: () => void; 
 }
 
-export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
+export default function AlgaeForm({ mode = "create", algae, onSuccess }: AlgaeFormProps) {
   const router = useRouter();
   const { role } = useAuth();
   const { dict, language } = useLanguage(); 
@@ -100,7 +99,7 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
     solutions_id: "", solutions_en: "",
     color_tags: [] as string[], texture_tags: [] as string[], 
     location_tags: [] as string[], trigger_tags: [] as string[],
-    affected_conditions: [] as string[] // <-- TAMBAHKAN INI
+    affected_conditions: [] as string[]
   });
 
   useEffect(() => {
@@ -114,7 +113,7 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
         solutions_id: (algae.solutions_id || []).join("\n"), solutions_en: (algae.solutions_en || []).join("\n"),
         color_tags: algae.color_tags || [], texture_tags: algae.texture_tags || [],
         location_tags: algae.location_tags || [], trigger_tags: algae.trigger_tags || [],
-        affected_conditions: algae.affected_conditions || [] // <-- TAMBAHKAN INI
+        affected_conditions: algae.affected_conditions || []
       });
 
       if (algae.image_url) setCoverPreview(algae.image_url);
@@ -124,7 +123,6 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     const { name, value, type } = e.target;
-    // REFAKTOR 1: Mengganti any menjadi tipe spesifik string | number
     let finalValue: string | number = value;
     if (type === "number") {
       finalValue = value === "" ? "" : Number(value);
@@ -133,7 +131,6 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
   }
 
-  // TAMBAHKAN "affected_conditions" KE DALAM UNION TYPE PARAMETER 'field'
   function handleArrayCheckboxChange(e: React.ChangeEvent<HTMLInputElement>, field: "color_tags" | "texture_tags" | "location_tags" | "trigger_tags" | "affected_conditions") {
     const { value, checked } = e.target;
     setFormData(prev => {
@@ -142,7 +139,6 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
     });
   }
 
-// 🔥 PERBAIKAN: Handler Cover Gambar dengan Kompresi (Tanpa Batas 2MB)
   async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files[0]) {
       const originalFile = e.target.files[0];
@@ -170,7 +166,6 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
     }
   }
 
-  // 🔥 PERBAIKAN: Handler Galeri Gambar dengan Kompresi Paralel (Tanpa Batas 2MB)
   async function handleGalleryChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
@@ -288,7 +283,6 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
       router.push("/dashboard/algae");
       router.refresh();
 
-    // REFAKTOR 2: Mengganti any menjadi unknown dan menggunakan type guard
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Error saving data.";
       setError(errorMessage);
@@ -304,7 +298,6 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
   async function executeArchive() {
     if (!algae || mode !== "edit") return;
     try { setLoading(true); await deleteAlgae(algae.id); toast.success("Diarsipkan."); router.push("/dashboard/algae"); router.refresh();
-    // REFAKTOR 3: Mengganti any menjadi unknown
     } catch (error: unknown) { 
       const msg = error instanceof Error ? error.message : "Gagal.";
       toast.error(msg); 
@@ -313,7 +306,7 @@ export default function AlgaeForm({ mode = "create", algae }: AlgaeFormProps) {
 
   function triggerHardDeleteModal() { if (!algae) return; setDeleteConfirmText(""); setIsDeleteModalOpen(true); }
   
-async function executeHardDelete(e: React.FormEvent) {
+  async function executeHardDelete(e: React.FormEvent) {
     e.preventDefault(); 
     if (!algae) return;
     
@@ -326,32 +319,24 @@ async function executeHardDelete(e: React.FormEvent) {
     try { 
       setLoading(true); 
 
-      // 1. BERSIHKAN STORAGE DULU SEBELUM DATABASE DIHAPUS
+      // 1. BERSIHKAN STORAGE DULU SEBELUM DATABASE DIHAPUS (PERBAIKAN PEMOTONGAN PATH)
       const allUrls: string[] = [];
-      if (algae.image_url) {
-        allUrls.push(algae.image_url);
-      }
+      if (algae.image_url) allUrls.push(algae.image_url);
       if (algae.gallery_urls && Array.isArray(algae.gallery_urls)) {
         allUrls.push(...algae.gallery_urls);
       }
 
       if (allUrls.length > 0) {
-        const pathsToDelete = allUrls
-          .map((url) => {
-            if (!url) return "";
-            const urlParts = url.split("/");
-            // Sesuaikan dengan nama bucket Anda, di sini asumsinya "algae"
-            const algaeIndex = urlParts.findIndex((part) => part === "algae");
-            if (algaeIndex === -1) return "";
-            return urlParts.slice(algaeIndex + 1).join("/");
-          })
-          .filter((path) => path !== "");
+        const pathsToDelete = allUrls.map((url) => {
+          if (!url) return "";
+          // Memotong string secara presisi tepat setelah bucket name "algae"
+          const parts = url.split("/public/algae/");
+          return parts.length > 1 ? parts[1].split('?')[0] : "";
+        }).filter((path) => path !== "");
 
         if (pathsToDelete.length > 0) {
           const supabase = createClient();
-          const { error: storageErr } = await supabase.storage
-            .from("algae")
-            .remove(pathsToDelete);
+          const { error: storageErr } = await supabase.storage.from("algae").remove(pathsToDelete);
             
           if (storageErr) {
             console.error("Gagal membersihkan gambar dari storage:", storageErr.message);
@@ -364,12 +349,9 @@ async function executeHardDelete(e: React.FormEvent) {
       if (!result.success) throw new Error(result.error);
       
       toast.success("Dihapus permanen."); 
-      
-      // LANGSUNG REDIRECT KE HALAMAN UTAMA KARENA TIDAK ADA ONSUCCESS
       router.push("/dashboard/algae"); 
       router.refresh();
       
-    // REFAKTOR 4: Mengganti any menjadi unknown (Sudah diterapkan)
     } catch (error: unknown) { 
       const msg = error instanceof Error ? error.message : "Gagal.";
       toast.error(msg); 
@@ -380,8 +362,7 @@ async function executeHardDelete(e: React.FormEvent) {
     }
   }
 
-  if (!dict.algaeExpert?.algaeForm) return null; // Safe guard
-  //const formDict = dict.algaeExpert.algaeForm;
+  if (!dict.algaeExpert?.algaeForm) return null; 
   const formDict = (dict.algaeExpert?.algaeForm as Record<string, string>) || {};
   const totalGalleryCount = existingGallery.length + newGallery.length;
 
@@ -496,7 +477,7 @@ async function executeHardDelete(e: React.FormEvent) {
               <div className="space-y-2">
                 <Label className="text-slate-700 dark:text-slate-300">{formDict.severityLabel}</Label>
                 <Input type="number" name="severity" min="1" max="5" required value={formData.severity} onChange={handleChange} className="h-10 bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:border-teal-500" />
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">{formDict.severityHint}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">💡 {formDict.severityHint}</p>
               </div>
             </div>
 
@@ -553,7 +534,7 @@ async function executeHardDelete(e: React.FormEvent) {
               <div className="space-y-3 pt-2">
                 <div>
                   <Label className="text-teal-700 dark:text-teal-400 font-bold uppercase">{formDict.colors}</Label>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">{formDict.colorHint}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">💡 {formDict.colorHint}</p>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 bg-white dark:bg-slate-950 p-4 rounded-lg border border-teal-200 dark:border-teal-900/50">
                   {COLOR_TAGS.map((tag) => (
@@ -568,7 +549,7 @@ async function executeHardDelete(e: React.FormEvent) {
               <div className="space-y-3 pt-2 mt-4">
                 <div>
                   <Label className="text-teal-700 dark:text-teal-400 font-bold uppercase">{formDict.textures}</Label>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">{formDict.textureHint}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">💡 {formDict.textureHint}</p>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 bg-white dark:bg-slate-950 p-4 rounded-lg border border-teal-200 dark:border-teal-900/50">
                   {TEXTURE_TAGS.map((tag) => (
@@ -583,7 +564,7 @@ async function executeHardDelete(e: React.FormEvent) {
               <div className="space-y-3 pt-2 mt-4">
                 <div>
                   <Label className="text-teal-700 dark:text-teal-400 font-bold uppercase">{formDict.locations}</Label>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">{formDict.locationHint}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">💡 {formDict.locationHint}</p>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 bg-white dark:bg-slate-950 p-4 rounded-lg border border-teal-200 dark:border-teal-900/50">
                   {LOCATION_TAGS.map((tag) => (
@@ -598,7 +579,7 @@ async function executeHardDelete(e: React.FormEvent) {
               <div className="space-y-3 pt-2 mt-4">
                 <div>
                   <Label className="text-teal-700 dark:text-teal-400 font-bold uppercase">{formDict.triggers}</Label>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">{formDict.triggerHint}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">💡 {formDict.triggerHint}</p>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 bg-white dark:bg-slate-950 p-4 rounded-lg border border-teal-200 dark:border-teal-900/50">
                   {TRIGGER_TAGS.map((tag) => (
@@ -618,7 +599,7 @@ async function executeHardDelete(e: React.FormEvent) {
                     {language === "id" ? "Dampak Ekosistem" : "Affected Conditions"}
                   </Label>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
-                    {language === "id" ? "Dampak/kerusakan sekunder yang ditimbulkan alga ini." : "Secondary damages caused by this algae."}
+                    💡 {language === "id" ? "Dampak/kerusakan sekunder yang ditimbulkan alga ini." : "Secondary damages caused by this algae."}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 bg-white dark:bg-slate-950 p-4 rounded-lg border border-teal-200 dark:border-teal-900/50">
