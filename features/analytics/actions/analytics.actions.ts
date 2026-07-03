@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type EvidenceGrade = "High" | "Medium" | "Low" | "Experimental";
 
+// 💡 Interface disatukan di sini agar tidak perlu file .types terpisah
 export interface LeaderboardRow {
   disease_id: string;
   medication_id: string;
@@ -15,56 +16,46 @@ export interface LeaderboardRow {
   relapse_rate_pct: number;
   evidence_grade: EvidenceGrade;
   clinical_score: number;
-  medication: { id: string; name_id: string; name_en: string } | null; // 💡 FIX
-  disease: { id: string; name_id: string; name_en: string } | null;
-}
-
-// Interface khusus untuk menangkap data mentah dari Supabase tanpa 'any'
-interface RawStatRow {
-  disease_id: string;
-  medication_id: string;
-  total_cases: number;
-  success_rate_pct: number;
-  median_recovery_days: number;
-  mortality_rate_pct: number;
-  relapse_rate_pct: number;
-  evidence_grade: string;
-  clinical_score: number;
+  medication: { id: string; name_id: string | null; name_en: string } | null;
+  disease: { id: string; name_id: string | null; name_en: string } | null;
 }
 
 export async function getMedicationLeaderboardAction(limit: number = 20): Promise<{ success: boolean; data?: LeaderboardRow[]; error?: string }> {
   try {
     const supabase = await createClient();
 
+    // 💡 PENINGKATAN: Menggunakan Relational Join bawaan Supabase
+    // Ini jauh lebih cepat dan tidak membebani server daripada melakukan mapping manual
     const { data, error } = await supabase
       .from("medication_efficacy_stats")
-      .select("*") 
+      .select(`
+        disease_id,
+        medication_id,
+        total_cases,
+        success_rate_pct,
+        median_recovery_days,
+        mortality_rate_pct,
+        relapse_rate_pct,
+        evidence_grade,
+        clinical_score,
+        medication:medications(id, name_id, name_en),
+        disease:diseases(id, name_id, name_en)
+      `) 
       .order("clinical_score", { ascending: false })
+      .order("total_cases", { ascending: false })
       .limit(limit);
 
     if (error) throw error;
     if (!data) return { success: true, data: [] };
 
-    // Bebas 'any', data dilempar ke tipe RawStatRow
-    const rawData = data as RawStatRow[];
-    const medIds = [...new Set(rawData.map(d => d.medication_id))];
-    const disIds = [...new Set(rawData.map(d => d.disease_id))];
+    // Format aman dari Supabase langsung dimasukkan ke DTO kita
+    return { success: true, data: data as unknown as LeaderboardRow[] };
 
-    // 💡 FIX: select("id, name_id, name_en")
-    const { data: meds } = await supabase.from("medications").select("id, name_id, name_en").in("id", medIds);
-    const { data: dises } = await supabase.from("diseases").select("id, name_id, name_en").in("id", disIds);
-
-    const formattedData: LeaderboardRow[] = rawData.map((row) => ({
-      ...row,
-      evidence_grade: row.evidence_grade as EvidenceGrade,
-      medication: meds?.find(m => m.id === row.medication_id) || null,
-      disease: dises?.find(d => d.id === row.disease_id) || null,
-    }));
-
-    return { success: true, data: formattedData };
-  } catch (error: unknown) { // Mengganti 'any' menjadi 'unknown'
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("DEBUG ANALYTICS ERROR:", errorMessage);
-    return { success: false, error: errorMessage };
+  } catch (error: unknown) {
+    console.error("[ANALYTICS ENGINE ERROR]:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Terjadi kesalahan sistem internal." 
+    };
   }
 }

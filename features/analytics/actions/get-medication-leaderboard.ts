@@ -1,4 +1,6 @@
 // features/analytics/actions/get-medication-leaderboard.ts
+// File yang Tidak Diperlukan (Bersih-bersih)
+// Karena kodenya sudah kita pusatkan dan optimalkan di analytics.actions.ts
 "use server";
 
 import { createClient } from "@/lib/supabase/server";

@@ -130,7 +130,6 @@ export default function TreatmentTab({ aquariumId }: Props) {
             return (
               <div key={session.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm flex flex-col relative group">
                 
-                {/* FIX: Tombol hapus di HP sekarang selalu muncul (opacity-100), di Laptop baru pakai hover (md:opacity-0 group-hover:opacity-100) */}
                 <button 
                   onClick={() => setDeleteTarget({id: session.id, type: 'active'})} 
                   className="absolute top-4 right-4 p-2 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm md:shadow-none"
@@ -178,21 +177,31 @@ export default function TreatmentTab({ aquariumId }: Props) {
         </div>
       )}
 
-      {/* RIWAYAT PENGOBATAN */}
+      {/* PAST TREATMENTS (HISTORY) DENGAN FIX UI */}
       {historyPatients.length > 0 && (
         <div className="pt-8 border-t border-slate-200 dark:border-slate-800">
-          <h4 className="text-sm font-black uppercase text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-4"><History className="w-4 h-4" /> {lang === 'id' ? "Riwayat Pengobatan Terdahulu" : "Past Treatment History"}</h4>
+          <h4 className="text-sm font-black uppercase text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-4">
+            <History className="w-4 h-4" /> {lang === 'id' ? "Riwayat Pengobatan Terdahulu" : "Past Treatment History"}
+          </h4>
           <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                {historyPatients.map((hist) => {
+                 // 💡 FIX: Menyesuaikan status persis dengan database
                  const isSuccess = hist.status === "Completed";
                  const isFailed = hist.status === "Failed";
-                 const statusColors = isSuccess ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800" : isFailed ? "bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800" : "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800";
+                 const isAborted = hist.status === "Aborted";
+                 
+                 const statusColors = isSuccess 
+                   ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800" 
+                   : isFailed 
+                     ? "bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800" 
+                     : "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800";
 
                  return (
-                   <div key={hist.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative group flex flex-col justify-between">
+                   <div key={hist.id} className={`bg-white dark:bg-slate-900 border rounded-2xl p-4 flex flex-col relative overflow-hidden transition-colors ${
+                     isSuccess ? 'border-emerald-200 dark:border-emerald-900/50' : isFailed ? 'border-red-200 dark:border-red-900/50' : 'border-amber-200 dark:border-amber-900/50'
+                   }`}>
                       
-                      {/* FIX: Tombol hapus di riwayat juga disesuaikan untuk HP */}
                       <button 
                         onClick={() => setDeleteTarget({id: hist.id, type: 'history'})} 
                         className="absolute top-3 right-3 p-2 text-slate-400 hover:text-red-500 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 dark:bg-slate-900/80 rounded-full shadow-sm z-10"
@@ -202,17 +211,32 @@ export default function TreatmentTab({ aquariumId }: Props) {
 
                       <div>
                         <div className="flex justify-between items-start mb-3 pr-8">
-                          <h5 className="font-bold text-slate-800 dark:text-slate-200 text-sm leading-tight">{lang === 'id' ? hist.disease?.name_id : hist.disease?.name_en}</h5>
+                          <h5 className="font-bold text-slate-800 dark:text-slate-200 text-sm leading-tight">
+                            {lang === 'id' ? (hist.disease?.name_id || hist.disease?.name_en) : hist.disease?.name_en}
+                          </h5>
                           {isSuccess ? <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> : isFailed ? <XCircle className="w-5 h-5 text-red-500 shrink-0" /> : <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />}
                         </div>
                         <div className="space-y-1.5 mb-4">
-                          <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center gap-2"><Syringe className="w-3.5 h-3.5 text-blue-500" /> {lang === 'id' ? hist.medication?.name_id : hist.medication?.name_en}</p>
-                          <p className="text-[10px] font-medium text-slate-500 flex items-center gap-2"><CalendarDays className="w-3 h-3" /> {formatDate(hist.started_at)} - {hist.completed_at ? formatDate(hist.completed_at) : '?'}</p>
-                          <p className="text-[10px] font-medium text-slate-500 flex items-center gap-2"><Clock className="w-3 h-3" /> Durasi: {calculateDuration(hist.started_at, hist.completed_at)} Hari</p>
+                          <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                            <Syringe className="w-3.5 h-3.5 text-blue-500" /> 
+                            {lang === 'id' ? (hist.medication?.name_id || hist.medication?.name_en) : hist.medication?.name_en}
+                          </p>
+                          <p className="text-[10px] font-medium text-slate-500 flex items-center gap-2">
+                            <CalendarDays className="w-3 h-3" /> {formatDate(hist.started_at)} - {hist.completed_at ? formatDate(hist.completed_at) : '?'}
+                          </p>
+                          <p className="text-[10px] font-medium text-slate-500 flex items-center gap-2">
+                            <Clock className="w-3 h-3" /> {lang === 'id' ? "Durasi:" : "Duration:"} {calculateDuration(hist.started_at, hist.completed_at)} {lang === 'id' ? "Hari" : "Days"}
+                          </p>
                         </div>
                       </div>
-                      <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-800 pt-3">
-                        <span className={`px-2 py-1 rounded text-[9px] font-black uppercase border ${statusColors}`}>STATUS: {hist.status}</span>
+                      <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-800 pt-3 mt-auto">
+                        <span className={`px-2 py-1 rounded text-[9px] font-black uppercase border ${statusColors}`}>
+                          {isSuccess 
+                            ? (lang === 'id' ? "BERHASIL SEMBUH" : "SUCCESSFULLY CURED") 
+                            : isFailed 
+                              ? (lang === 'id' ? "GAGAL (MATI)" : "FATAL (DIED)") 
+                              : (lang === 'id' ? "DIBATALKAN" : "ABORTED")}
+                        </span>
                         <span className="text-xs font-black text-slate-400 dark:text-slate-500">{hist.current_recovery_rate}% Recovery</span>
                       </div>
                    </div>

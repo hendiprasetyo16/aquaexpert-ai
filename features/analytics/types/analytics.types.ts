@@ -1,4 +1,6 @@
 // features/analytics/types/analytics.types.ts
+// File yang Tidak Diperlukan (Bersih-bersih)
+// Karena Karena tipe datanya sudah kita masukkan langsung ke dalam analytics.actions.ts
 export type EvidenceGrade = "High" | "Medium" | "Low" | "Experimental";
 
 export interface MedicationEfficacyStat {
