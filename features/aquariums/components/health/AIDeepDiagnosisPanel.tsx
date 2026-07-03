@@ -40,7 +40,7 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     setLoading(false);
   };
 
-  // 💡 ULTIMATE AUTO-TRANSLATOR (Menangani Teks Dinamis dengan RegEx)
+  // 💡 ULTIMATE AUTO-TRANSLATOR (Termasuk Value Transparency Log)
   const tr = (text: string) => {
     if (lang === 'id' || !text) return text;
     let en = text;
@@ -71,27 +71,21 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     if (en.includes("Risiko Hipotermia & Penyakit:")) return en.replace("Risiko Hipotermia & Penyakit:", "Hypothermia & Disease Risk:");
 
     // --- 3. DESCRIPTIONS (Dynamic Regex Replacement) ---
-    // Flora Anomaly
     if (en.includes("menyalahi pakem baku aliran kontes")) {
       return en.replace(/Peletakan tanaman (.*?) menyalahi pakem baku aliran kontes (.*?)\.?$/i, "The usage of $1 conflicts with classical layouts of $2 style.");
     }
-    // Flora Overgrown
     if (en.includes("tumbuh menembus ketinggian permukaan air")) {
       return en.replace(/Tanaman bertangkai (.*?) telah tumbuh menembus ketinggian permukaan air kaca tangki\.?/i, "Stem plants like $1 outgrew the vertical water surface line.");
     }
-    // Schooling
     if (en.includes("kurang dari batas kawanan minimal")) {
       return en.replace(/Jumlah ikan (.*?) \((.*?)\) kurang dari batas kawanan minimal \((.*?)\)\. Mempercepat kepunahan koloni\.?/i, "Colony size for $1 ($2) is below natural schooling thresholds ($3). Drastically induces stress.");
     }
-    // Jumpers
     if (en.includes("berisiko tinggi mematikan spesies pelompat")) {
       return en.replace(/Akuarium tanpa tutup atas berisiko tinggi mematikan spesies pelompat: (.*?)\.?$/i, "Tank top lacks physical boundaries for high-risk jumping species: $1.");
     }
-    // Flow/Oxygen
     if (en.includes("tidak mencukupi kebutuhan pasokan metabolisme aktif untuk")) {
       return en.replace(/Laju perputaran filter saat ini tidak mencukupi kebutuhan pasokan metabolisme aktif untuk: (.*?)\.?$/i, "Current filter turnover is suboptimal to support high-flow demand species: $1.");
     }
-    // Compatibility Conflict
     if (en.includes("berisiko tinggi bentrok fisik")) {
       en = en.replace(/(.*?) dan (.*?) berisiko tinggi bentrok fisik \(Skor (.*?)\)\. Alasan: (.*)/i, "$1 and $2 conflict warning (Score $3). Reason: $4");
       en = en.replace("Tercatat dalam matriks hubungan spesies.", "Direct species matrix confirmed.");
@@ -99,13 +93,10 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
       en = en.replace("Spesies agresif menekan mental spesies ringkih.", "Aggressive species suppressing vulnerable profiles.");
       return en;
     }
-    // Biotope
     if (en.includes("Pencampuran fauna Rift Lake Afrika")) return "Mixing African Rift species with Amazonian species causes fatal internal osmoregulation collapse.";
-    // Vulnerability
     if (en.includes("mengaktifkan kerentanan spesifik ras")) {
       return en.replace(/Akumulasi Nitrat \((.*?)\) mengaktifkan kerentanan spesifik ras (.*?) terhadap infeksi (.*?)\.?$/i, "Nitrate buildup ($1) catalyzes $2's acute species-specific vulnerability to $3.");
     }
-    // Hypothermia
     if (en.includes("Suhu jatuh di bawah toleransi minimal")) {
       return en.replace(/Suhu jatuh di bawah toleransi minimal \((.*?)\)\. Depresi imun memicu risiko tinggi (.*?) pada kawanan (.*?)\.?$/i, "Temperature fell below minimum threshold ($1). Immune depression triggers high risk of $2 for $3.");
     }
@@ -124,6 +115,21 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     if (en.includes("Lakukan water change berkala untuk menekan nitrat")) {
       return en.replace(/Lakukan water change berkala untuk menekan nitrat di bawah 15 ppm demi keselamatan (.*?)\.?$/i, "Perform water changes to drop nitrate below 15 ppm for $1.");
     }
+
+    // --- 5. VALUE TRANSPARENCY LOGS (DEDUCTION LABELS) ---
+    if (en.includes("Keracunan Amonia Berbahaya")) en = en.replace("Keracunan Amonia Berbahaya", "Dangerous Ammonia Poisoning");
+    if (en.includes("Penyumbatan Oksigen (Nitrite/Nitrate)")) en = en.replace("Penyumbatan Oksigen (Nitrite/Nitrate)", "Oxygen Depletion (Nitrite/Nitrate)");
+    if (en.includes("Penyumbatan Oksigen (Nitrit)")) en = en.replace("Penyumbatan Oksigen (Nitrit)", "Nitrite Poisoning");
+    if (en.includes("Penumpukan Nitrat Berlebih")) en = en.replace("Penumpukan Nitrat Berlebih", "Excessive Nitrate Buildup");
+    if (en.includes("pH Merugikan Populasi")) en = en.replace("pH Merugikan Populasi", "Harmful pH Levels");
+    if (en.includes("Suhu Air Mematikan")) en = en.replace("Suhu Air Mematikan", "Lethal Water Temperature");
+    if (en.includes("Kepadatan Tanaman Sangat Rendah")) en = en.replace("Kepadatan Tanaman Sangat Rendah", "Critically Low Plant Density");
+    if (en.includes("Tidak Ada Aktivitas Fauna")) en = en.replace("Tidak Ada Aktivitas Fauna", "No Fauna Activity");
+    if (en.includes("Kepadatan Fauna Sangat Ekstrem (Overstock)")) en = en.replace("Kepadatan Fauna Sangat Ekstrem (Overstock)", "Extreme Fauna Overstocking");
+    if (en.includes("Konflik Sosial/Teritorial Spesies")) en = en.replace("Konflik Sosial/Teritorial Spesies", "Social/Territorial Species Conflict");
+    if (en.includes("Tugas Perawatan Tertunda Parah")) en = en.replace("Tugas Perawatan Tertunda Parah", "Severely Overdue Maintenance Tasks");
+    if (en.includes("Sirkulasi Filter Kurang Memadai")) en = en.replace("Sirkulasi Filter Kurang Memadai", "Insufficient Filter Circulation");
+    if (en.includes("Sengketa Area (Konflik Teritorial)")) en = en.replace("Sengketa Area (Konflik Teritorial)", "Territorial Density Conflict");
 
     // Generic fallback
     en = en.replace(/Poin/g, "Pts");
@@ -224,9 +230,18 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
               }`}>
                 {result.expertAIExtras.generatedByGemini && <Sparkles className="absolute -right-4 -top-4 w-24 h-24 text-indigo-500/20 rotate-12 pointer-events-none" />}
                 
-                <h4 className={`text-xs font-black uppercase tracking-widest mb-3 flex items-center gap-2 ${result.expertAIExtras.generatedByGemini ? 'text-indigo-800 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400'}`}>
-                  <Bot className="w-4 h-4" /> {lang === 'id' ? "Catatan Pakar Ekologi (AI Assistant)" : "Expert Ecological Notes (AI)"}
-                </h4>
+                <div className="flex justify-between items-center mb-3 relative z-10">
+                  <h4 className={`text-xs font-black uppercase tracking-widest flex items-center gap-2 ${result.expertAIExtras.generatedByGemini ? 'text-indigo-800 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                    <Bot className="w-4 h-4" /> {lang === 'id' ? "Catatan Pakar Ekologi (AI Assistant)" : "Expert Ecological Notes (AI)"}
+                  </h4>
+                  
+                  {/* TOMBOL RE-DIAGNOSE KHUSUS JIKA BAHASA CACHE BERBEDA */}
+                  {lang === 'en' && result.expertAIExtras.commentary.includes("Saya memahami") && (
+                    <Button onClick={handleRunDiagnosis} size="sm" variant="ghost" className="h-7 text-[10px] text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100">
+                      Translate AI Notes
+                    </Button>
+                  )}
+                </div>
                 
                 {result.expertAIExtras.generatedByGemini ? (
                   <div className="text-sm md:text-base font-bold leading-relaxed text-indigo-950 dark:text-slate-300 space-y-3 whitespace-pre-wrap relative z-10">
