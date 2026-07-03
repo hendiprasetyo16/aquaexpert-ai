@@ -207,8 +207,7 @@ export default function AdminAquariumList() {
                       )}
                     </div>
 
-                    {/* FUNGSI ADMIN: TOMBOL HAPUS & ARSIP - HYBRID RESPONSIVE */}
-                    {/* Tampil permanen di HP (opacity-100), menjadi efek "Hover" di layar menengah-keatas (md:opacity-0 md:group-hover:opacity-100) */}
+                    {/* FUNGSI ADMIN: TOMBOL HAPUS & ARSIP */}
                     <div className="absolute top-3 right-3 flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 md:-translate-y-2 md:group-hover:translate-y-0">
                       <Button 
                         size="icon" 
@@ -237,18 +236,26 @@ export default function AdminAquariumList() {
                       {aq.name || (lang === "id" ? "Akuarium Tanpa Nama" : "Unnamed Aquarium")}
                     </h3>
                     
-                    {/* INFO PEMILIK (USER) - DESAIN PREMIUM GRADIENT */}
+                    {/* 💡 INFO PEMILIK DENGAN EMAIL DITAMBAHKAN */}
                     <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/40 dark:to-blue-900/20 p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-800/50 mb-4 relative overflow-hidden group/owner shadow-inner">
                       <div className="absolute -right-3 -top-3 text-indigo-500/5 dark:text-indigo-400/5 transition-transform duration-500 group-hover/owner:scale-110">
                         <User className="w-20 h-20" />
                       </div>
                       
-                      <div className="relative z-10 flex items-center gap-2.5 text-sm font-black text-indigo-900 dark:text-indigo-100 mb-1.5 truncate">
+                      {/* Nama Lengkap */}
+                      <div className="relative z-10 flex items-center gap-2.5 text-sm font-black text-indigo-900 dark:text-indigo-100 mb-0.5 truncate">
                         <div className="p-1.5 bg-indigo-500 text-white rounded-lg shadow-sm shadow-indigo-500/30">
                           <User className="w-3.5 h-3.5" />
                         </div>
-                        {aq.owner?.full_name || aq.owner?.email || "Unknown User"}
+                        {aq.owner?.full_name || "Unknown User"}
                       </div>
+                      
+                      {/* 💡 Email Ditambahkan Di Sini */}
+                      <div className="relative z-10 text-[11px] font-semibold text-indigo-500 dark:text-indigo-400 pl-[34px] mb-2 truncate">
+                        {aq.owner?.email || "No Email"}
+                      </div>
+
+                      {/* Login Terakhir */}
                       <div className="relative z-10 flex items-center gap-1.5 text-[10px] font-bold text-indigo-600/80 dark:text-indigo-300/80 pl-[34px]">
                         {lang === 'id' ? "Login Terakhir:" : "Last Login:"} <span className="text-indigo-700 dark:text-indigo-300">{formatDateTime(aq.owner?.last_login_at)}</span>
                       </div>
