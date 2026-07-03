@@ -177,7 +177,7 @@ export default function TreatmentTab({ aquariumId }: Props) {
         </div>
       )}
 
-      {/* PAST TREATMENTS (HISTORY) DENGAN FIX UI */}
+      {/* PAST TREATMENTS (HISTORY) */}
       {historyPatients.length > 0 && (
         <div className="pt-8 border-t border-slate-200 dark:border-slate-800">
           <h4 className="text-sm font-black uppercase text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-4">
@@ -186,7 +186,6 @@ export default function TreatmentTab({ aquariumId }: Props) {
           <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                {historyPatients.map((hist) => {
-                 // 💡 FIX: Menyesuaikan status persis dengan database
                  const isSuccess = hist.status === "Completed";
                  const isFailed = hist.status === "Failed";
                  const isAborted = hist.status === "Aborted";
@@ -198,7 +197,8 @@ export default function TreatmentTab({ aquariumId }: Props) {
                      : "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800";
 
                  return (
-                   <div key={hist.id} className={`bg-white dark:bg-slate-900 border rounded-2xl p-4 flex flex-col relative overflow-hidden transition-colors ${
+                   // 💡 FIX: Menambahkan class 'group' agar tombol trash bisa mendeteksi hover
+                   <div key={hist.id} className={`group bg-white dark:bg-slate-900 border rounded-2xl p-4 flex flex-col relative overflow-hidden transition-colors ${
                      isSuccess ? 'border-emerald-200 dark:border-emerald-900/50' : isFailed ? 'border-red-200 dark:border-red-900/50' : 'border-amber-200 dark:border-amber-900/50'
                    }`}>
                       
