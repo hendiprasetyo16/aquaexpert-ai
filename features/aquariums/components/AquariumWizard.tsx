@@ -247,7 +247,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
     }
   };
 
-  const handleSubmit = async () => {
+const handleSubmit = async () => {
     try {
       createAquariumSchema.parse(formData);
       setLoading(true);
@@ -256,20 +256,29 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
       let finalImageUrl = mode === "edit" ? initialData?.image_url : null;
       const supabase = createClient();
       
+      // Ganti bagian di dalam handleSubmit, tepatnya pada blok `if (coverFile) { ... }`
       if (coverFile) {
-        // HAPUS KODE PENGHAPUSAN CLIENT-SIDE DI SINI. BIARKAN SERVER YANG MENGERJAKANNYA.
-        
         const { data: { user } } = await supabase.auth.getUser();
-        const rawName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "user";
-        const cleanName = rawName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+        
+        // 1. Ekstraksi identitas (Email & Nama)
+        const emailPart = user?.email?.split('@')[0] || "user";
+        const fullName = user?.user_metadata?.full_name || "unknown";
+        
+        // 2. Bersihkan karakter agar aman untuk file system (hanya huruf, angka, underscore)
+        const cleanEmail = emailPart.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase().substring(0, 15);
+        const cleanName = fullName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase().substring(0, 15);
         const cleanTheme = (formData.aquascape_style || "bebas").replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
         
-        const date = new Date();
-        const dateStr = `${String(date.getDate()).padStart(2, '0')}${String(date.getMonth() + 1).padStart(2, '0')}${date.getFullYear()}`;
-        const randomStr = Math.random().toString(36).substring(2, 6); 
+        // 3. Tanggal (Format: YYYYMMDD)
+        const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, ""); 
+        
+        // 4. Random ID untuk menjamin tidak ada file yang tertimpa
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
         const fileExt = coverFile.name.split('.').pop() || "jpg";
         
-        const customFileName = `${cleanName}_${cleanTheme}_${dateStr}_${randomStr}.${fileExt}`;
+        // Format Final: email_nama_tema_tanggal_random.jpg
+        // Contoh: hendi_hendiprasetyo_iwagumi_20260704_x9z2k1.jpg
+        const customFileName = `${cleanEmail}_${cleanName}_${cleanTheme}_${dateStr}_${randomSuffix}.${fileExt}`;
         const filePath = `covers/${customFileName}`; 
 
         const { error: uploadError } = await supabase.storage.from("aquariums").upload(filePath, coverFile);
