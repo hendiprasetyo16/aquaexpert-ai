@@ -37,14 +37,13 @@ export interface ActiveTreatmentDto {
 export async function getTreatmentDropdownOptionsAction() {
   try {
     const supabase = await createClient();
-    // Ubah bagian kueri ini:
+    
     const { data: diseases } = await supabase.from("diseases")
-      .select("id, name_id, name_en, severity, quarantine_required") // 💡 TAMBAHKAN quarantine_required
+      .select("id, name_id, name_en, severity, quarantine_required") 
       .eq("is_active", true).order("name_id", { ascending: true });
 
-    // 💡 FIX 1: Ubah 'name' menjadi 'name_id, name_en'
     const { data: medications } = await supabase.from("medications")
-      .select("id, name_id, name_en, dosage_unit, safe_for_plants, safe_for_inverts") // 💡 TAMBAHKAN safe_for_plants & inverts
+      .select("id, name_id, name_en, dosage_unit, safe_for_plants, safe_for_inverts") 
       .order("name_id", { ascending: true });
 
     return { success: true, diseases: diseases || [], medications: medications || [] };
@@ -85,7 +84,10 @@ export async function getActiveTreatmentsAction(aquariumIdFilter?: string): Prom
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, data: [], error: "Session expired." };
 
-    // 💡 FIX 2: Pada select medication, ganti 'name' dengan 'id, name_id, name_en'
+    // 💡 CEK SUPER ADMIN: Agar Admin bisa melihat data global pasien semua user
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    const isSuperAdmin = profile?.role === 'super_admin';
+
     let query = supabase
       .from("treatment_sessions")
       .select(`
@@ -98,13 +100,16 @@ export async function getActiveTreatmentsAction(aquariumIdFilter?: string): Prom
       .order("started_at", { ascending: false });
 
     if (aquariumIdFilter) {
+      // Akses dari Tab Lokal: Kueri super cepat karena menembak langsung Index Aquarium ID
       query = query.eq("aquarium_id", aquariumIdFilter);
-    } else {
+    } else if (!isSuperAdmin) {
+      // Akses dari Global Ward (User Biasa): Wajib di-filter agar hanya mengambil tank miliknya
       const { data: myAquariums } = await supabase.from("my_aquariums").select("id").eq("user_id", user.id);
       if (!myAquariums || myAquariums.length === 0) return { success: true, data: [] };
       const aquariumIds = myAquariums.map(aq => aq.id);
       query = query.in("aquarium_id", aquariumIds);
     }
+    // Jika Super Admin buka Global Ward -> Langsung lolos tanpa filter (melihat seluruh pasien di server)
 
     const { data: sessions, error: sessionErr } = await query;
     if (sessionErr) throw new Error(sessionErr.message);
@@ -129,7 +134,6 @@ export async function getActiveTreatmentsAction(aquariumIdFilter?: string): Prom
         initial_symptoms: Array.isArray(s.initial_symptoms) ? s.initial_symptoms.map(String) : [],
         aquarium: aq ? { name: String(aq.name) } : null,
         disease: dis ? { name_id: String(dis.name_id), name_en: String(dis.name_en) } : null,
-        // 💡 FIX 3: Petakan properti medication sesuai interface ActiveTreatmentDto yang diminta TypeScript
         medication: med ? { 
           id: String(med.id), 
           name_id: String(med.name_id), 
