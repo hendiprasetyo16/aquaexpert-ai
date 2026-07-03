@@ -87,10 +87,11 @@ export default function TreatmentWardPage() {
               const diseaseName = lang === 'id' ? session.disease?.name_id : session.disease?.name_en;
               const hasLoggedToday = session.latest_log?.day_number === dayNum;
               
-              // 💡 CEK STATUS: Matikan form jika sudah Selesai atau Gagal
+              // 💡 FIX: Menambahkan "Aborted" ke dalam logika isDone
               const isCompleted = session.status === "Completed";
               const isFailed = session.status === "Failed";
-              const isDone = isCompleted || isFailed;
+              const isAborted = session.status === "Aborted";
+              const isDone = isCompleted || isFailed || isAborted;
 
               return (
                 <div key={session.id} className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col ${isDone ? 'opacity-70 grayscale-[30%]' : ''}`}>
@@ -99,6 +100,7 @@ export default function TreatmentWardPage() {
                       <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border mb-3 ${
                         isCompleted ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400' 
                         : isFailed ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400'
+                        : isAborted ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400'
                         : 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400'
                       }`}>
                         {isCompleted ? <CheckCircle2 className="w-3.5 h-3.5" /> : isFailed ? <XCircle className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
@@ -131,10 +133,12 @@ export default function TreatmentWardPage() {
                   </div>
 
                   <div className="p-5 pt-0">
-                    {/* 💡 TOMBOL DISABLED JIKA SUDAH SELESAI/GAGAL */}
+                    {/* 💡 FIX: TOMBOL DISABLED JIKA SUDAH SELESAI/GAGAL/DIBATALKAN */}
                     {isDone ? (
                       <Button disabled className="w-full h-12 rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 font-black uppercase tracking-widest text-xs border border-slate-200 dark:border-slate-700 cursor-not-allowed">
-                        {isCompleted ? <><CheckCircle2 className="w-4 h-4 mr-2" /> {lang === 'id' ? "Selesai" : "Completed"}</> : <><XCircle className="w-4 h-4 mr-2" /> {lang === 'id' ? "Gagal" : "Failed"}</>}
+                        {isCompleted ? <><CheckCircle2 className="w-4 h-4 mr-2" /> {lang === 'id' ? "Selesai" : "Completed"}</> 
+                         : isFailed ? <><XCircle className="w-4 h-4 mr-2" /> {lang === 'id' ? "Gagal" : "Failed"}</>
+                         : <><AlertCircle className="w-4 h-4 mr-2" /> {lang === 'id' ? "Dibatalkan" : "Aborted"}</>}
                       </Button>
                     ) : (
                       <Button 
