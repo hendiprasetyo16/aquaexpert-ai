@@ -5,14 +5,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { 
   Loader2, FolderPlus, RefreshCw, Server, AlertTriangle, 
-  Database, HardDriveDownload, Leaf, Bug, Container, Eye, Fish, Activity, BookOpen, ChevronDown, ChevronUp 
+  Database, HardDriveDownload, Leaf, Bug, Container, Eye, Fish, Activity, BookOpen, ChevronDown, ChevronUp, User
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/providers/LanguageProvider";
 
 const ADMIN_SECRET = "aquaexpert-sinkron-2024";
 
-type ActionType = "plant_folder" | "plant_sync" | "algae_folder" | "algae_sync" | "fish_folder" | "fish_sync" | "disease_sync" | "aquarium_folder" | "aquarium_sync" | "db_backup" | "db_restore" | null;
+type ActionType = "plant_folder" | "plant_sync" | "algae_folder" | "algae_sync" | "fish_folder" | "fish_sync" | "disease_sync" | "aquarium_folder" | "aquarium_sync" | "avatar_folder" | "avatar_sync" | "db_backup" | "db_restore" | null;
 
 interface ControlPanelDict {
   warningTitle?: string;
@@ -38,7 +38,7 @@ interface ControlPanelDict {
 export default function SetupStorage() {
   const [loading, setLoading] = useState(false);
   const [actionModal, setActionModal] = useState<ActionType>(null);
-  const [showGuide, setShowGuide] = useState(false); // State untuk Panduan Admin
+  const [showGuide, setShowGuide] = useState(false); 
 
   const { dict, language } = useLanguage();
   const lang = language as "id" | "en";
@@ -69,6 +69,8 @@ export default function SetupStorage() {
         case "disease_sync": endpoint = "/api/diseases/sync-images"; break;
         case "aquarium_folder": endpoint = "/api/aquariums/create-folders"; break;
         case "aquarium_sync": endpoint = "/api/aquariums/sync-images"; break;
+        case "avatar_folder": endpoint = "/api/avatars/create-folders"; break;
+        case "avatar_sync": endpoint = "/api/avatars/sync-images"; break;
         case "db_backup": 
           endpoint = "/api/backup-restore"; method = "POST"; body = JSON.stringify({ action: "BACKUP" }); break;
         case "db_restore": 
@@ -109,6 +111,8 @@ export default function SetupStorage() {
       case "disease_sync": return lang === 'id' ? "Sinkronisasi URL gambar Penyakit ke database?" : "Auto-sync Disease image URLs?";
       case "aquarium_folder": return lang === 'id' ? "Siapkan folder 'covers' di bucket Aquariums?" : "Setup 'covers' folder in Aquariums bucket?";
       case "aquarium_sync": return lang === 'id' ? "Validasi integritas Storage Akuarium?" : "Validate Aquarium storage integrity?";
+      case "avatar_folder": return lang === 'id' ? "Inisialisasi bucket 'avatars' untuk pengguna?" : "Initialize 'avatars' bucket for users?";
+      case "avatar_sync": return lang === 'id' ? "Validasi integritas Storage Avatar?" : "Validate Avatar storage integrity?";
       case "db_backup": return cpDict.confirmBackup || "Backup database sekarang?";
       case "db_restore": return cpDict.confirmRestore || "Restore database? (Peringatan: Akan menimpa data)";
       default: return "";
@@ -348,7 +352,41 @@ export default function SetupStorage() {
           </div>
         </div>
 
-        {/* KARTU 6: DISASTER RECOVERY */}
+        {/* KARTU 6: SISTEM AVATAR (BARU) */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col">
+          <div className="bg-purple-50 dark:bg-purple-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
+            <div className="bg-purple-100 dark:bg-purple-900/50 p-2 rounded-lg text-purple-600 dark:text-purple-400">
+              <User className="h-5 w-5" />
+            </div>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100">{lang === 'id' ? "Sistem Avatar" : "Avatar System"}</h3>
+          </div>
+          <div className="p-5 space-y-4 flex-1 flex flex-col">
+            <button 
+              onClick={() => setActionModal("avatar_folder")} 
+              disabled={loading} 
+              className="group flex w-full items-center justify-between rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 hover:border-slate-400 dark:hover:bg-slate-700 dark:hover:border-slate-500 disabled:opacity-50 transition-all cursor-pointer"
+            >
+              <span className="flex items-center gap-2 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                <FolderPlus className="h-4 w-4 text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200" />
+                {cpDict.setupFolder || (lang === 'id' ? "Setup Folder Storage" : "Setup Storage Folders")}
+              </span>
+            </button>
+            <div className="pt-2 mt-auto space-y-3">
+              <button 
+                onClick={() => setActionModal("avatar_sync")} 
+                disabled={loading} 
+                className="group flex w-full items-center justify-between rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/40 px-4 py-3 text-sm font-medium text-purple-700 dark:text-purple-300 hover:bg-purple-100 hover:border-purple-400 dark:hover:bg-purple-800 dark:hover:border-purple-500 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                <span className="flex items-center gap-2 group-hover:text-purple-900 dark:group-hover:text-purple-100 transition-colors">
+                  <RefreshCw className="h-4 w-4" />
+                  {cpDict.syncImages || (lang === 'id' ? "Validasi Storage" : "Validate Storage")}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* KARTU 7: DISASTER RECOVERY */}
         <div className="lg:col-span-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col mt-4">
           <div className="bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
             <div className="bg-slate-200 dark:bg-slate-700 p-2 rounded-lg text-slate-700 dark:text-slate-300">
