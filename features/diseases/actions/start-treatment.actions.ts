@@ -71,6 +71,20 @@ export async function startNewTreatmentSessionAction(payload: StartTreatmentPayl
     });
 
     if (error) throw new Error(error.message);
+
+    // =====================================================================
+    // 💡 FITUR BARU: MENGIRIM NOTIFIKASI LONCENG OTOMATIS SAAT SESI DIMULAI
+    // =====================================================================
+    const { data: profileData } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
+    const userName = profileData?.full_name || "Aquarist";
+    
+    await supabase.from("system_activities").insert({
+      title: "Sesi Pengobatan Baru Dimulai",
+      message: `${userName} baru saja memulai sesi karantina/pengobatan baru di akuariumnya. Segera pantau perkembangannya setiap hari.`,
+      category: "alert",
+      created_by: "AquaExpert AI"
+    });
+
     revalidatePath(`/dashboard/my-aquarium/${payload.aquariumId}`);
     return { success: true };
   } catch (error: unknown) {
@@ -84,7 +98,9 @@ export async function getActiveTreatmentsAction(aquariumIdFilter?: string): Prom
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, data: [], error: "Session expired." };
 
-    // 💡 CEK SUPER ADMIN: Agar Admin bisa melihat data global pasien semua user
+    // =====================================================================
+    // 💡 FITUR BAPAK: CEK SUPER ADMIN AGAR BISA MEMANTAU GLOBAL WARD
+    // =====================================================================
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     const isSuperAdmin = profile?.role === 'super_admin';
 
