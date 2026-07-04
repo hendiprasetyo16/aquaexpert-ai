@@ -12,22 +12,27 @@ import {
 } from "../repositories/aquarium.repository";
 import { createMaintenanceTask } from "../repositories/maintenance.repository";
 import { Aquarium, CreateAquariumInput, UpdateAquariumInput } from "../types/aquarium.types";
+import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; // 💡 IMPORT NOTIFIKASI
 
 // 💡 HELPER CERDAS: Memecah URL Supabase menjadi path murni yang akurat
 function extractStoragePath(url: string | null | undefined) {
   if (!url) return null;
   try {
     const decodedUrl = decodeURIComponent(url);
-    // Logika: Cari kata "/aquariums/" (nama bucket) lalu ambil sisanya
     const parts = decodedUrl.split('/aquariums/');
     if (parts.length > 1) {
-      // Menghasilkan murni "covers/nama_file.jpg"
       return parts[1].split('?')[0].split('#')[0]; 
     }
     return null;
   } catch {
     return null;
   }
+}
+
+// 💡 HELPER BARU: Mengambil nama pengguna berdasarkan ID
+async function getProfileName(supabase: any, userId: string) {
+  const { data } = await supabase.from('profiles').select('full_name').eq('id', userId).single();
+  return data?.full_name || "Unknown User";
 }
 
 export async function getUserAquariumsAction() {
@@ -110,6 +115,15 @@ export async function createAquariumAction(payload: CreateAquariumInput) {
       }).catch(err => console.error("Gagal auto-generate Fert task:", err));
     }
 
+    // 💡 KIRIM NOTIFIKASI: User Membuat Akuarium Baru
+    const ownerName = await getProfileName(supabase, user.id);
+    await pushNotificationAction(
+      "Akuarium Baru Dibuat",
+      `${ownerName} telah membuat akuarium baru bernama "${payload.name}".`,
+      "user_activity", // Masuk kategori aktivitas pengguna agar Admin juga bisa pantau
+      ownerName
+    );
+
     revalidatePath("/dashboard/my-aquarium");
     return { success: true, data };
   } catch (error: unknown) {
@@ -141,15 +155,10 @@ export async function updateAquariumAction(id: string, payload: UpdateAquariumIn
        targetUserId = oldAq.user_id;
     }
 
-    // 💡 EKSEKUSI PENGHAPUSAN FILE LAMA DI SERVER 
     if (oldAq?.image_url && payload.image_url && oldAq.image_url !== payload.image_url) {
       const oldPath = extractStoragePath(oldAq.image_url);
-      console.log(`[SERVER UPDATE] Mencoba menghapus: "${oldPath}"`);
       if (oldPath) {
-        const { data: rmData, error: rmErr } = await supabase.storage.from('aquariums').remove([oldPath]);
-        if (rmErr) console.error("❌ GAGAL HAPUS:", rmErr.message);
-        else if (rmData && rmData.length === 0) console.warn("⚠️ File tidak ditemukan (Cek Policy SELECT!)");
-        else console.log("✅ FOTO LAMA BERHASIL DIBERSIHKAN!");
+        await supabase.storage.from('aquariums').remove([oldPath]);
       }
     }
 
@@ -176,26 +185,33 @@ export async function deleteAquariumAction(id: string) {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     const isSuperAdmin = profile?.role === 'super_admin';
 
-    const { data: oldAq } = await supabase.from("my_aquariums").select("image_url, user_id").eq("id", id).single();
+    const { data: oldAq } = await supabase.from("my_aquariums").select("name, image_url, user_id").eq("id", id).single();
+    const aqName = oldAq?.name || "Tanpa Nama";
 
     let targetUserId = user.id;
     if (isSuperAdmin && oldAq) {
        targetUserId = oldAq.user_id;
     }
 
-    // 💡 EKSEKUSI PENGHAPUSAN FOTO LAMA KETIKA TANGKI DIHAPUS
     if (oldAq?.image_url) {
       const oldPath = extractStoragePath(oldAq.image_url);
-      console.log(`[SERVER DELETE] Mencoba menghapus: "${oldPath}"`);
       if (oldPath) {
-        const { data: rmData, error: rmErr } = await supabase.storage.from('aquariums').remove([oldPath]);
-        if (rmErr) console.error("❌ GAGAL HAPUS:", rmErr.message);
-        else if (rmData && rmData.length === 0) console.warn("⚠️ File tidak ditemukan (Cek Policy SELECT!)");
-        else console.log("✅ FOTO LAMA BERHASIL DIBERSIHKAN!");
+        await supabase.storage.from('aquariums').remove([oldPath]);
       }
     }
 
     await deleteAquarium(supabase, id, targetUserId);
+
+    // 💡 KIRIM NOTIFIKASI: User Menghapus Akuariumnya Sendiri
+    if (!isSuperAdmin) {
+      const ownerName = await getProfileName(supabase, user.id);
+      await pushNotificationAction(
+        "Akuarium Dihapus",
+        `${ownerName} telah menghapus akuarium "${aqName}" miliknya.`,
+        "user_activity",
+        ownerName
+      );
+    }
 
     revalidatePath("/dashboard/my-aquarium");
     return { success: true };
@@ -278,21 +294,27 @@ export async function adminDeleteAquariumAction(id: string) {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     if (profile?.role !== 'super_admin') throw new Error("Forbidden: Super Admin only");
 
-    const { data: oldAq } = await supabase.from("my_aquariums").select("image_url").eq("id", id).single();
+    const { data: oldAq } = await supabase.from("my_aquariums").select("name, image_url, user_id").eq("id", id).single();
+    const aqName = oldAq?.name || "Tanpa Nama";
 
     if (oldAq?.image_url) {
       const oldPath = extractStoragePath(oldAq.image_url);
-      console.log(`[ADMIN DELETE] Mencoba menghapus: "${oldPath}"`);
       if (oldPath) {
-        const { data: rmData, error: rmErr } = await supabase.storage.from('aquariums').remove([oldPath]);
-        if (rmErr) console.error("❌ GAGAL HAPUS:", rmErr.message);
-        else if (rmData && rmData.length === 0) console.warn("⚠️ File tidak ditemukan (Cek Policy SELECT!)");
-        else console.log("✅ FOTO LAMA BERHASIL DIBERSIHKAN!");
+        await supabase.storage.from('aquariums').remove([oldPath]);
       }
     }
 
     const { error } = await supabase.from("my_aquariums").delete().eq("id", id);
     if (error) throw new Error(error.message);
+
+    // 💡 KIRIM NOTIFIKASI: Super Admin Menghapus Akuarium User
+    const adminName = await getProfileName(supabase, user.id);
+    await pushNotificationAction(
+      "Penghapusan Paksa (Admin)",
+      `${adminName} telah menghapus paksa akuarium "${aqName}" milik pengguna lain.`,
+      "data_crud", // Kategori data_crud, agar hanya terlihat oleh Super Admin lain (jika ada)
+      adminName
+    );
 
     revalidatePath("/dashboard/admin-panel/aquariums");
     return { success: true };

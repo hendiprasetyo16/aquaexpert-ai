@@ -4,7 +4,21 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Algae } from "../types/algae.types";
-// Hapus import removeAlgaeImage dari sini karena kita akan menggunakan metode khusus server
+import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; // 💡 IMPORT NOTIFIKASI
+
+// Fungsi Helper untuk mendapatkan nama Admin yang sedang login
+async function getAdminName(supabase: any) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return "System";
+  
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", user.id)
+    .single();
+    
+  return profile?.full_name || "Unknown Admin";
+}
 
 export async function createAlgaeAction(payload: Partial<Algae>) {
   try {
@@ -21,6 +35,15 @@ export async function createAlgaeAction(payload: Partial<Algae>) {
       .single();
 
     if (error) throw new Error(error.message);
+
+    // 💡 KIRIM NOTIFIKASI: Data Baru
+    const adminName = await getAdminName(supabase);
+    await pushNotificationAction(
+      "Alga Baru Ditambahkan",
+      `Menambahkan data alga baru: ${payload.name_id || payload.name_en}.`,
+      "data_crud",
+      adminName
+    );
 
     revalidatePath("/dashboard/algae");
     return { success: true, data };
@@ -41,6 +64,15 @@ export async function updateAlgaeAction(id: string, payload: Partial<Algae>) {
 
     if (error) throw new Error(error.message);
 
+    // 💡 KIRIM NOTIFIKASI: Data Diubah
+    const adminName = await getAdminName(supabase);
+    await pushNotificationAction(
+      "Data Alga Diperbarui",
+      `Mengubah data alga: ${data.name_id}.`,
+      "data_crud",
+      adminName
+    );
+
     revalidatePath("/dashboard/algae");
     revalidatePath(`/dashboard/algae/${id}`);
     return { success: true, data };
@@ -52,12 +84,23 @@ export async function updateAlgaeAction(id: string, payload: Partial<Algae>) {
 export async function restoreAlgaeAction(id: string) {
   try {
     const supabase = await createClient();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("algae")
       .update({ is_active: true, updated_at: new Date().toISOString() })
-      .eq("id", id);
+      .eq("id", id)
+      .select("name_id")
+      .single();
 
     if (error) throw new Error(error.message);
+
+    // 💡 KIRIM NOTIFIKASI: Data Dipulihkan
+    const adminName = await getAdminName(supabase);
+    await pushNotificationAction(
+      "Data Alga Dipulihkan",
+      `Memulihkan alga ${data?.name_id || 'ID '+id} dari arsip.`,
+      "data_crud",
+      adminName
+    );
 
     revalidatePath("/dashboard/algae");
     revalidatePath("/dashboard/algae/archive");
@@ -69,11 +112,11 @@ export async function restoreAlgaeAction(id: string) {
 
 export async function hardDeleteAlgaeAction(id: string) {
   try {
-    // Supabase ini adalah SERVER CLIENT yang sudah memiliki kredensial Admin
     const supabase = await createClient();
     
-    // 1. Ambil data untuk tahu URL gambarnya
-    const { data: algae } = await supabase.from("algae").select("image_url, gallery_urls").eq("id", id).single();
+    // 1. Ambil data untuk tahu URL gambarnya dan namanya untuk notifikasi
+    const { data: algae } = await supabase.from("algae").select("name_id, image_url, gallery_urls").eq("id", id).single();
+    const algaeName = algae?.name_id || 'ID '+id;
     
     // 2. Hapus data dari database (Ini akan sukses terhapus lebih dulu)
     const { error } = await supabase.from("algae").delete().eq("id", id);
@@ -84,7 +127,6 @@ export async function hardDeleteAlgaeAction(id: string) {
       const parts = imageUrl.split("/algae-images/");
       if (parts.length === 2) {
         const fileName = parts[1];
-        // Memastikan menggunakan server client yang sama dengan penghapusan database
         await supabase.storage.from("algae-images").remove([fileName]);
       }
     };
@@ -99,6 +141,15 @@ export async function hardDeleteAlgaeAction(id: string) {
         await deleteStorageImage(url);
       }
     }
+
+    // 💡 KIRIM NOTIFIKASI: Data Dihapus Permanen
+    const adminName = await getAdminName(supabase);
+    await pushNotificationAction(
+      "Data Alga Dihapus",
+      `Menghapus permanen alga: ${algaeName} beserta seluruh gambarnya.`,
+      "data_crud",
+      adminName
+    );
 
     // Refresh halaman agar tabel ter-update
     revalidatePath("/dashboard/algae");
