@@ -44,6 +44,46 @@ interface FishFormDict {
   modalDeleteDesc4: string; typeFishName: string; btnConfirmDelete: string;
 }
 
+// Letakkan sebelum export default function FishForm(...) {
+const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        
+        if (!ctx) { reject(new Error("Failed to get canvas context")); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+                type: "image/jpeg", lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else { reject(new Error("Canvas to Blob failed")); }
+          }, "image/jpeg", quality);
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 export default function FishForm({ mode = "create", fish }: FishFormProps) {
   const router = useRouter();
   const { role } = useAuth();
@@ -180,29 +220,68 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
     });
   }
 
-  function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
+      const originalFile = e.target.files[0];
       const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-      if (!validTypes.includes(file.type)) { setError(lang === 'id' ? "Format harus JPG, PNG atau WEBP." : "Format must be JPG, PNG or WEBP."); return; }
-      if (file.size > 2 * 1024 * 1024) { setError(lang === 'id' ? "Ukuran maksimal 2MB." : "Max size is 2MB."); return; }
+      
+      if (!validTypes.includes(originalFile.type)) { 
+        // Sesuaikan state error ini dengan state error yang kamu gunakan di FishForm
+        toast.error("Format Cover harus JPG, PNG atau WEBP."); 
+        return; 
+      }
 
-      setError(null); setCoverFile(file); setCoverPreview(URL.createObjectURL(file));
-      if (mode === "edit" && fish?.image_url && !imagesToDeleteRef.current.includes(fish.image_url)) imagesToDeleteRef.current.push(fish.image_url);
+      try {
+        // 🔥 Lakukan kompresi otomatis
+        const compressedFile = await compressImage(originalFile);
+        
+        setCoverFile(compressedFile); 
+        setCoverPreview(URL.createObjectURL(compressedFile));
+        
+        if (mode === "edit" && fish?.image_url && !imagesToDeleteRef.current.includes(fish.image_url)) {
+          imagesToDeleteRef.current.push(fish.image_url);
+        }
+      } catch (err) {
+        toast.error("Gagal memproses kompresi gambar.");
+      }
     }
   }
 
-  function handleGalleryChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleGalleryChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
       const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-      const newValidFiles = filesArray.filter(f => validTypes.includes(f.type) && f.size <= 2 * 1024 * 1024);
+      
+      // Hanya terima yang formatnya valid, abaikan ukuran file karena akan dikompres
+      const validFiles = filesArray.filter(f => validTypes.includes(f.type));
+      if (validFiles.length !== filesArray.length) {
+        toast.error("Beberapa file diabaikan karena format bukan JPG/PNG/WEBP.");
+      }
 
       const spaceLeft = 8 - (existingGallery.length + newGallery.length);
-      if (spaceLeft <= 0) { toast.error(lang === 'id' ? "Maksimal 8 gambar galeri." : "Maximum 8 gallery images."); return; }
+      if (spaceLeft <= 0) { 
+        toast.error("Maksimal 8 gambar pada galeri."); 
+        return; 
+      }
 
-      const filesToAdd = newValidFiles.slice(0, spaceLeft).map(f => ({ file: f, preview: URL.createObjectURL(f) }));
-      setNewGallery([...newGallery, ...filesToAdd]);
+      // Ambil file yang cukup untuk mengisi sisa slot
+      const filesToProcess = validFiles.slice(0, spaceLeft);
+      
+      try {
+        // 🔥 Kompres seluruh gambar galeri yang dipilih pengguna secara paralel
+        const compressedFiles = await Promise.all(
+          filesToProcess.map(file => compressImage(file))
+        );
+
+        const filesToAdd = compressedFiles.map(file => ({ 
+          file, 
+          preview: URL.createObjectURL(file) 
+        }));
+        
+        setNewGallery([...newGallery, ...filesToAdd]);
+      } catch (err) {
+        toast.error("Gagal memproses kompresi galeri gambar.");
+      }
     }
   }
 
