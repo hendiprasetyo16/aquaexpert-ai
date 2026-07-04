@@ -153,7 +153,7 @@ export default function SetupStorage() {
               </div>
               <div className="space-y-2 md:col-span-2">
                 <h4 className="font-black text-rose-600 dark:text-rose-400">3. Apa fungsi API_SECRET_KEY?</h4>
-                <p className="leading-relaxed">Route API ini (<code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-xs">/api/plants/sync-images</code>, dll) melakukan operasi masif (Bulk Update/Insert). Jika terekspos publik, hacker bisa memicu server down. <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-xs font-bold text-rose-500">aquaexpert-sinkron-2024</code> bertindak sebagai gembok (password) antar muka UI dan Backend agar perintah hanya sah jika ditekan dari panel ini.</p>
+                <p className="leading-relaxed">Route API ini melakukan operasi masif. Jika terekspos publik, hacker bisa memicu server down. Kunci rahasia (yang diatur dalam variabel environment <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-xs font-bold text-rose-500">API_SECRET_KEY</code>) bertindak sebagai gembok antar muka UI dan Backend agar perintah hanya sah jika ditekan dari panel ini.</p>
               </div>
             </div>
           </div>

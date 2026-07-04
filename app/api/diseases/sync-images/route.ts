@@ -25,48 +25,49 @@ export async function GET(request: Request) {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    const { data: fishesData, error: fishesError } = await supabase
-      .from("fishes")
+    const { data: diseasesData, error: diseasesError } = await supabase
+      .from("diseases")
       .select("id, slug, name_id")
       .eq("is_active", true);
 
-    if (fishesError) throw new Error(fishesError.message);
-    if (!fishesData || fishesData.length === 0) throw new Error("Tidak ada data ikan.");
+    if (diseasesError) throw new Error(diseasesError.message);
+    if (!diseasesData || diseasesData.length === 0) throw new Error("Tidak ada data penyakit.");
+
+    // 💡 PERBEDAAN: Ambil semua file di root bucket ('')
+    const { data: rootFiles, error: rootFilesError } = await supabase.storage
+      .from("disease-images")
+      .list("");
+
+    if (rootFilesError) throw new Error(`Gagal akses storage: ${rootFilesError.message}`);
+    const validRootFiles = (rootFiles || []).filter(f => !f.name.startsWith("."));
 
     let updatedCount = 0;
     const failedSyncs: string[] = [];
 
-    for (const item of fishesData) {
-      if (!item.slug) {
-        failedSyncs.push(`${item.name_id} (Slug kosong)`);
-        continue;
+    for (const item of diseasesData) {
+      if (!item.slug) continue;
+
+      // Cari file yang namanya diawali dengan slug penyakit ini
+      const matchingFiles = validRootFiles.filter(f => f.name.startsWith(item.slug!));
+
+      if (matchingFiles.length === 0) {
+        continue; // Lewati jika belum ada gambarnya, bukan berarti error
       }
 
-      const { data: files, error: filesError } = await supabase.storage
-        .from("fish-images")
-        .list(item.slug);
+      // Urutkan abjad agar gambar utama konsisten
+      matchingFiles.sort((a, b) => a.name.localeCompare(b.name));
 
-      if (filesError) {
-        failedSyncs.push(`${item.name_id} (Gagal akses storage)`);
-        continue;
-      }
-
-      if (!files || files.length === 0) continue;
-
-      const validFiles = files.filter(f => !f.name.startsWith("."));
-      if (validFiles.length === 0) continue;
-
-      const publicUrls = validFiles.map((file) => {
+      const publicUrls = matchingFiles.map((file) => {
         return supabase.storage
-          .from("fish-images")
-          .getPublicUrl(`${item.slug}/${file.name}`).data.publicUrl;
+          .from("disease-images")
+          .getPublicUrl(file.name).data.publicUrl;
       });
 
       const newCoverUrl = publicUrls[0]; 
       const newGalleryUrls = publicUrls.slice(1, 9);
 
       const { error: updateError } = await supabase
-        .from("fishes")
+        .from("diseases")
         .update({
           image_url: newCoverUrl,
           gallery_urls: newGalleryUrls.length > 0 ? newGalleryUrls : null,
@@ -83,14 +84,14 @@ export async function GET(request: Request) {
     if (failedSyncs.length > 0) {
        return NextResponse.json({ 
         success: true, 
-        message: `Selesai dengan catatan. Berhasil Sync: ${updatedCount} Ikan. Gagal: ${failedSyncs.length}`,
+        message: `Berhasil Sync: ${updatedCount} Penyakit. Gagal: ${failedSyncs.length}`,
         errors: failedSyncs
       });
     }
 
     return NextResponse.json({ 
       success: true, 
-      message: `TADAA! 🎉 Berhasil melakukan sinkronisasi URL gambar untuk ${updatedCount} Ikan.` 
+      message: `Berhasil melakukan sinkronisasi URL gambar untuk ${updatedCount} Penyakit.` 
     });
 
   } catch (error: unknown) {

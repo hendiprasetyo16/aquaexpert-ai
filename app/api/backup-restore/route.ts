@@ -40,10 +40,16 @@ const TABLES_TO_BACKUP = [
 ];
 
 export async function POST(request: Request) {
-  // 1. KEAMANAN TERBARU: Menggunakan Env Variable, BUKAN Hardcoded!
+  // 1. KEAMANAN STRICT MODE (TANPA FALLBACK)
   const secret = request.headers.get("x-admin-secret");
-  const validSecret = process.env.API_SECRET_KEY || "aquaexpert-sinkron-2024"; 
+  const validSecret = process.env.API_SECRET_KEY; // Murni mengambil dari brankas server
   
+  // Cek apakah Admin Server sudah mengatur password di Vercel/.env
+  if (!validSecret) {
+    return NextResponse.json({ error: "Sistem Terkunci. API_SECRET_KEY belum diatur di Environment Variables server." }, { status: 500 });
+  }
+
+  // Cek apakah password yang dikirim dari tombol Control Panel cocok
   if (secret !== validSecret) {
     return NextResponse.json({ error: "Akses Ditolak. Secret key tidak valid." }, { status: 401 });
   }

@@ -5,9 +5,13 @@ import { NextResponse } from "next/server";
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  // 1. KEAMANAN STRICT MODE (TANPA HARDCODE)
   const secret = request.headers.get("x-admin-secret");
-  const validSecret = process.env.API_SECRET_KEY || "aquaexpert-sinkron-2024";
+  const validSecret = process.env.API_SECRET_KEY;
 
+  if (!validSecret) {
+    return NextResponse.json({ error: "Sistem Terkunci. API_SECRET_KEY belum diatur di server." }, { status: 500 });
+  }
   if (secret !== validSecret) {
     return NextResponse.json({ error: "Akses Ditolak. Secret key salah." }, { status: 401 });
   }
@@ -36,7 +40,6 @@ export async function GET(request: Request) {
       message: `Berhasil! Folder 'covers' di bucket 'aquariums' sudah siap digunakan oleh User.` 
     });
 
-  // REFAKTOR: Mengubah any menjadi unknown
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan internal";
     return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
