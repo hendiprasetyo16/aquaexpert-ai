@@ -15,7 +15,7 @@ import type { Disease, DiseaseCategory } from "../types/disease.types";
 import { createDiseaseAction, updateDiseaseAction, toggleDiseaseArchiveAction, hardDeleteDiseaseAction } from "../actions/disease.actions";
 import { uploadDiseaseImage } from "../repositories/disease.repository";
 
-// FUNGSI KOMPRESI GAMBAR (Ditambahkan di luar komponen utama)
+// FUNGSI KOMPRESI GAMBAR
 const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<File> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -116,7 +116,6 @@ export function DiseaseForm({ initialData, mode }: Props) {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Menerapkan fitur kompresi otomatis ke handleCoverChange
   const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -128,7 +127,6 @@ export function DiseaseForm({ initialData, mode }: Props) {
       }
 
       try {
-        // Melakukan kompresi otomatis tanpa mempedulikan ukuran asal
         const compressedFile = await compressImage(file);
         setCoverFile(compressedFile);
         setCoverPreview(URL.createObjectURL(compressedFile));
@@ -145,15 +143,19 @@ export function DiseaseForm({ initialData, mode }: Props) {
     try {
       let finalImageUrl = initialData?.image_url || null;
       
+      // 1. Buat SLUG standar untuk database (sesuai skema)
+      const finalNameEn = formData.name_en?.trim() || formData.name_id?.trim() || "diseases";
+      const diseaseSlug = mode === "edit" && initialData?.slug 
+        ? initialData.slug 
+        : finalNameEn.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      
       if (coverFile) {
         toast.loading(lang === 'id' ? "Mengompresi & mengunggah gambar..." : "Compressing & uploading image...", { id: "upload" });
         
-        // Penamaan gambar disesuaikan dengan nama penyakit secara otomatis
-        const baseName = formData.name_id || formData.name_en || "Penyakit";
-        const safeName = baseName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
-        const timestamp = new Date().getTime();
+        // 2. Format penamaan gambar persis seperti screenshot: slug-cover-timestamp.jpg
+        const timestamp = Date.now();
         const ext = coverFile.name.split('.').pop() || 'jpg';
-        const newFileName = `${safeName}_${timestamp}.${ext}`;
+        const newFileName = `${diseaseSlug}-cover-${timestamp}.${ext}`;
         
         const renamedFile = new File([coverFile], newFileName, { type: coverFile.type });
         const uploadedUrl = await uploadDiseaseImage(renamedFile, initialData?.image_url);
@@ -166,12 +168,10 @@ export function DiseaseForm({ initialData, mode }: Props) {
         }
       }
 
-      const finalNameEn = formData.name_en?.trim() || formData.name_id?.trim() || "Disease";
-
       const payload: Partial<Disease> = {
         name_id: formData.name_id?.trim() || "Penyakit",
         name_en: finalNameEn,
-        slug: finalNameEn.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        slug: diseaseSlug, // Masukkan slug ke payload database
         scientific_name: formData.scientific_name?.trim() || null,
         description_id: formData.description_id?.trim() || null,
         description_en: formData.description_en?.trim() || null,
