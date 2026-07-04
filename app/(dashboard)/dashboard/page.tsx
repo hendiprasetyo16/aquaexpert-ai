@@ -33,10 +33,10 @@ interface DashboardStats {
   flora: number;
 }
 
-// Tipe Data untuk Riwayat Aktivitas
+// 💡 UPDATE TIPE: Tambahkan "system" ke dalam jenis log
 interface ActivityLog {
   id: string;
-  type: "parameter" | "maintenance" | "treatment";
+  type: "parameter" | "maintenance" | "treatment" | "system";
   title_id: string;
   title_en: string;
   desc_id: string;
@@ -44,7 +44,6 @@ interface ActivityLog {
   date: Date;
 }
 
-// Tipe untuk pengelompokan data agar bebas dari 'any'
 interface DbRow { 
   aquarium_id: string; 
   [key: string]: unknown; 
@@ -54,7 +53,6 @@ interface InventoryRow extends DbRow {
   quantity?: number;
 }
 
-// Helper cerdas untuk mengelompokkan data dalam hitungan milidetik
 const groupByAquarium = <T extends DbRow>(data: T[] | null) => {
   return (data || []).reduce<Record<string, T[]>>((acc, curr) => {
     acc[curr.aquarium_id] = acc[curr.aquarium_id] || [];
@@ -113,6 +111,9 @@ export default function DashboardPage() {
       setLoadingPage(true);
 
       try {
+        const logs: ActivityLog[] = [];
+
+        // 1. CARI AKUARIUM USER
         const { data: aquariums } = await supabase
           .from("my_aquariums")
           .select("*")
@@ -128,9 +129,6 @@ export default function DashboardPage() {
           });
           if (!aquariums.some(t => t.is_primary)) aquariums[0].is_primary = true;
 
-          // =========================================================================
-          // OPTIMASI SUPER (JURUS SAPUJAGAT): 1 Kali Tarik Untuk Semua Akuarium
-          // =========================================================================
           const [
             { data: rawParams },
             { data: rawFishes },
@@ -149,7 +147,6 @@ export default function DashboardPage() {
             supabase.from("aquarium_treatments").select("id, started_at, status").in("aquarium_id", tankIds).order('started_at', { ascending: false }).limit(4)
           ]);
 
-          // Kelompokkan data yang ditarik berdasarkan ID Akuarium (0 millisecond delay)
           const groupedParams = groupByAquarium(rawParams as DbRow[]);
           const groupedFishes = groupByAquarium(rawFishes as InventoryRow[]);
           const groupedPlants = groupByAquarium(rawPlants as InventoryRow[]);
@@ -159,17 +156,14 @@ export default function DashboardPage() {
           let totalFauna = 0;
           let totalFlora = 0;
 
-          // Proses analisis dalam memori browser (Sangat Cepat)
           const processedTanks = aquariums.map((aq) => {
             const aqParams = groupedParams[aq.id] || [];
             const aqFishes = groupedFishes[aq.id] || [];
             const aqPlants = groupedPlants[aq.id] || [];
             const aqMaintenance = groupedMaint[aq.id] || [];
 
-            // Urutkan parameter dari yang terbaru
             aqParams.sort((a, b) => new Date(String(b.record_date)).getTime() - new Date(String(a.record_date)).getTime());
 
-            // Sanitasi tipe data tanpa 'any'
             const sanitizedParams: AquariumParameterLog[] = aqParams.map(param => ({
               ...param,
               temperature: typeof param.temperature === 'number' ? param.temperature : null,
@@ -182,7 +176,7 @@ export default function DashboardPage() {
             const healthAnalysis = analyzeAquariumHealth({
               aquarium: aq,
               parameters: sanitizedParams,
-              fishes: aqFishes as unknown as any[], // Safe casting untuk health-engine internal
+              fishes: aqFishes as unknown as any[], 
               plants: aqPlants as unknown as any[],
               maintenanceStatus: aqMaintenance as unknown as any[]
             });
@@ -209,9 +203,6 @@ export default function DashboardPage() {
           setTankList(processedTanks);
           setStats({ tanks: aquariums.length, alerts: totalAlerts, fauna: totalFauna, flora: totalFlora });
 
-          // === GABUNGKAN LOG AKTIVITAS (Bebas dari 'any') ===
-          const logs: ActivityLog[] = [];
-          
           paramLogsRes?.forEach(log => {
             logs.push({
               id: String(log.id),
@@ -236,6 +227,19 @@ export default function DashboardPage() {
             });
           });
 
+          // 💡 FITUR BARU: Tambahkan Pembuatan Jadwal Tugas Perawatan Baru ke Log Aktivitas
+          rawMaint?.forEach((task: any) => {
+            logs.push({
+              id: `task-${task.id}`,
+              type: "maintenance",
+              title_id: "Jadwal Perawatan Baru",
+              title_en: "New Maintenance Scheduled",
+              desc_id: `Tugas "${task.title}" dijadwalkan untuk rutin dilakukan setiap ${task.interval_days} hari.`,
+              desc_en: `Task "${task.title}" scheduled routinely every ${task.interval_days} days.`,
+              date: new Date(String(task.created_at))
+            });
+          });
+
           treatmentLogsRes?.forEach(log => {
             logs.push({
               id: String(log.id),
@@ -247,11 +251,35 @@ export default function DashboardPage() {
               date: new Date(String(log.started_at || new Date().toISOString()))
             });
           });
-
-          // Urutkan dan ambil 5 terbaru
-          logs.sort((a, b) => b.date.getTime() - a.date.getTime());
-          setRecentActivities(logs.slice(0, 5));
         }
+
+        // 💡 2. FITUR BARU: JIKA ADMIN/SUPER ADMIN, TARIK JUGA LOG NOTIFIKASI SISTEM
+        if (role === "super_admin" || role === "admin") {
+          const { data: sysLogs } = await supabase
+            .from("system_activities")
+            .select("*")
+            .order("created_at", { ascending: false })
+            .limit(5); // Ambil 5 aktivitas terbaru dari tabel notifikasi
+
+          sysLogs?.forEach(sys => {
+            // Admin biasa tidak boleh melihat log 'data_crud', hanya 'user_activity'
+            if (role === "admin" && sys.category === "data_crud") return;
+
+            logs.push({
+              id: `sys-${sys.id}`,
+              type: "system", // Gunakan tipe 'system' agar warnanya beda (Ungu)
+              title_id: `[Admin] ${sys.title}`,
+              title_en: `[Admin] ${sys.title}`,
+              desc_id: sys.message,
+              desc_en: sys.message,
+              date: new Date(String(sys.created_at))
+            });
+          });
+        }
+
+        // 3. GABUNGKAN & URUTKAN (Akuarium + Sistem), lalu ambil 6 teratas
+        logs.sort((a, b) => b.date.getTime() - a.date.getTime());
+        setRecentActivities(logs.slice(0, 6));
 
         setLoadingPage(false);
 
@@ -262,7 +290,7 @@ export default function DashboardPage() {
     }
 
     if (!isLoading) fetchDashboardData();
-  }, [user?.id, isLoading]);
+  }, [user?.id, isLoading, role]);
 
   if (isLoading || loadingPage) {
     return (
@@ -273,7 +301,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Tipe Kamus Terstruktur Bebas 'any'
   const rootDict = (dict as unknown as Record<string, Record<string, string>>) || {};
   const dashDict = rootDict.dashboard || {};
   
@@ -323,7 +350,6 @@ export default function DashboardPage() {
             <div className="shrink-0 flex flex-col md:items-end gap-4 w-full sm:w-auto">
               {primaryTank ? (
                 <>
-                  {/* TANGKI UTAMA */}
                   <div 
                     onClick={() => router.push(`/dashboard/my-aquarium/${primaryTank.id}`)}
                     className="cursor-pointer bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md hover:border-teal-300 dark:hover:border-teal-800 transition-all flex items-center gap-6 group w-full sm:w-80"
@@ -362,7 +388,6 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* TANGKI SEKUNDER */}
                   {secondaryTanks.length > 0 && (
                     <div className="flex flex-wrap md:justify-end gap-2 w-full max-w-sm">
                       {secondaryTanks.map(tank => (
@@ -529,7 +554,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="relative z-10 grid grid-cols-2 gap-3 mt-auto">
-                  {/* 1. DATA IKAN (GLOW BIRU MAKSIMAL) */}
+                 {/* 1. DATA IKAN */}
                 <div 
                   onClick={() => router.push("/dashboard/fish-expert/engine")} 
                   className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50/70 dark:hover:bg-blue-950/40 border border-slate-100 dark:border-slate-700/50 hover:border-blue-400 dark:hover:border-blue-500 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] hover:shadow-[0_0_25px_rgba(59,130,246,0.45)]"
@@ -540,7 +565,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
   
-                {/* 2. TANAMAN AIR (GLOW HIJU MAKSIMAL) */}
+                {/* 2. TANAMAN AIR */}
                 <div 
                   onClick={() => router.push("/dashboard/plant-expert/engine")} 
                   className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/40 border border-slate-100 dark:border-slate-700/50 hover:border-emerald-400 dark:hover:border-emerald-500 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] hover:shadow-[0_0_25px_rgba(16,185,129,0.45)]"
@@ -551,7 +576,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
   
-                {/* 3. JENIS ALGA (UBAH KE GLOW KUNING/AMBER MAKSIMAL) */}
+                {/* 3. JENIS ALGA */}
                 <div 
                   onClick={() => router.push("/dashboard/algae-expert")} 
                   className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-amber-50/70 dark:hover:bg-amber-950/40 border border-slate-100 dark:border-slate-700/50 hover:border-amber-400 dark:hover:border-amber-500 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] hover:shadow-[0_0_25px_rgba(245,158,11,0.45)]"
@@ -562,7 +587,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
   
-                {/* 4. PATOGEN & PENYAKIT (UBAH KE GLOW MERAH TERANG MAKSIMAL) */}
+                {/* 4. PATOGEN & PENYAKIT */}
                 <div 
                   onClick={() => router.push("/dashboard/diseases")} 
                   className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-red-50/70 dark:hover:bg-red-950/40 border border-slate-100 dark:border-slate-700/50 hover:border-red-400 dark:hover:border-red-500 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] hover:shadow-[0_0_25px_rgba(239,68,68,0.45)]"
@@ -659,7 +684,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* KOLOM KANAN (Riwayat Aktivitas - Di samping modul AI) */}
+          {/* KOLOM KANAN (Riwayat Aktivitas & Notifikasi Sistem) */}
           <div className="space-y-6">
             <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 px-1">
               <Clock className="w-5 h-5 text-slate-400" />
@@ -671,8 +696,12 @@ export default function DashboardPage() {
                 <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-60">
                   <Activity className="w-8 h-8 text-slate-400 mb-2" />
                   <p className="text-sm font-bold text-slate-500 dark:text-slate-400">{lang === 'id' ? "Belum ada aktivitas terekam." : "No recorded activities yet."}</p>
+                  
+                  {/* Peringatan Beda untuk Admin vs User Biasa */}
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-medium px-4">
-                    {lang === 'id' ? "Log pekerjaan harian, pencatatan air, dan hasil diagnosa AI Anda akan muncul di sini." : "Daily task logs, water recordings, and AI diagnoses will appear here."}
+                    {role === 'super_admin' || role === 'admin' 
+                      ? (lang === 'id' ? "Log pekerjaan harian akuarium dan aktivitas notifikasi sistem akan muncul di sini." : "Daily aquarium logs and system notification activities will appear here.")
+                      : (lang === 'id' ? "Log pekerjaan harian, pencatatan air, dan hasil diagnosa AI Anda akan muncul di sini." : "Daily task logs, water recordings, and AI diagnoses will appear here.")}
                   </p>
                 </div>
               ) : (
@@ -681,9 +710,12 @@ export default function DashboardPage() {
                   {recentActivities.map((log) => (
                     <div key={log.id} className="flex gap-4 relative z-10 group">
                       <div className="flex flex-col items-center pt-0.5 shrink-0">
+                        {/* 💡 WARNA BARU UNTUK SYSTEM ACTIVITY (VIOLET) */}
                         <div className={`w-3.5 h-3.5 rounded-full ring-4 ring-white dark:ring-slate-900 transition-transform group-hover:scale-125 ${
                           log.type === 'parameter' ? 'bg-blue-500' :
-                          log.type === 'maintenance' ? 'bg-emerald-500' : 'bg-rose-500'
+                          log.type === 'maintenance' ? 'bg-emerald-500' : 
+                          log.type === 'system' ? 'bg-violet-500' : 
+                          'bg-rose-500' 
                         }`} />
                       </div>
                       <div className="pb-1 w-full bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700/50 group-hover:border-slate-300 dark:group-hover:border-slate-600 transition-colors">
@@ -691,7 +723,7 @@ export default function DashboardPage() {
                           <Clock className="w-3 h-3" />
                           {log.date.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </p>
-                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                        <p className={`text-sm font-bold leading-tight ${log.type === 'system' ? 'text-violet-600 dark:text-violet-400' : 'text-slate-800 dark:text-slate-200'}`}>
                           {lang === 'id' ? log.title_id : log.title_en}
                         </p>
                         <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
