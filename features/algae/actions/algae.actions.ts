@@ -4,7 +4,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Algae } from "../types/algae.types";
-import { removeAlgaeImage } from "../repositories/algae.repository";
+// Hapus import removeAlgaeImage dari sini karena kita akan menggunakan metode khusus server
 
 export async function createAlgaeAction(payload: Partial<Algae>) {
   try {
@@ -24,7 +24,6 @@ export async function createAlgaeAction(payload: Partial<Algae>) {
 
     revalidatePath("/dashboard/algae");
     return { success: true, data };
-  // REFAKTOR: Hapus any, ganti unknown + Type Guard
   } catch (error: unknown) {
     return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
@@ -45,7 +44,6 @@ export async function updateAlgaeAction(id: string, payload: Partial<Algae>) {
     revalidatePath("/dashboard/algae");
     revalidatePath(`/dashboard/algae/${id}`);
     return { success: true, data };
-  // REFAKTOR: Hapus any, ganti unknown + Type Guard
   } catch (error: unknown) {
     return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
@@ -64,7 +62,6 @@ export async function restoreAlgaeAction(id: string) {
     revalidatePath("/dashboard/algae");
     revalidatePath("/dashboard/algae/archive");
     return { success: true };
-  // REFAKTOR: Hapus any, ganti unknown + Type Guard
   } catch (error: unknown) {
     return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
@@ -72,27 +69,41 @@ export async function restoreAlgaeAction(id: string) {
 
 export async function hardDeleteAlgaeAction(id: string) {
   try {
+    // Supabase ini adalah SERVER CLIENT yang sudah memiliki kredensial Admin
     const supabase = await createClient();
     
     // 1. Ambil data untuk tahu URL gambarnya
     const { data: algae } = await supabase.from("algae").select("image_url, gallery_urls").eq("id", id).single();
     
-    // 2. Hapus data dari database
+    // 2. Hapus data dari database (Ini akan sukses terhapus lebih dulu)
     const { error } = await supabase.from("algae").delete().eq("id", id);
     if (error) throw new Error(error.message);
 
-    // 3. Hapus gambar fisik dari Storage
-    if (algae?.image_url) await removeAlgaeImage(algae.image_url);
-    if (algae?.gallery_urls) {
+    // 3. Helper baru: Hapus gambar fisik dari Storage menggunakan Server Client
+    const deleteStorageImage = async (imageUrl: string) => {
+      const parts = imageUrl.split("/algae-images/");
+      if (parts.length === 2) {
+        const fileName = parts[1];
+        // Memastikan menggunakan server client yang sama dengan penghapusan database
+        await supabase.storage.from("algae-images").remove([fileName]);
+      }
+    };
+
+    // Eksekusi penghapusan semua gambarnya dari bucket
+    if (algae?.image_url) {
+      await deleteStorageImage(algae.image_url);
+    }
+    
+    if (algae?.gallery_urls && algae.gallery_urls.length > 0) {
       for (const url of algae.gallery_urls) {
-        await removeAlgaeImage(url);
+        await deleteStorageImage(url);
       }
     }
 
+    // Refresh halaman agar tabel ter-update
     revalidatePath("/dashboard/algae");
     revalidatePath("/dashboard/algae/archive");
     return { success: true };
-  // REFAKTOR: Hapus any, ganti unknown + Type Guard
   } catch (error: unknown) {
     return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
