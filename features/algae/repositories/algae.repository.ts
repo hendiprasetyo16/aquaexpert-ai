@@ -59,18 +59,19 @@ export async function deleteAlgae(id: string): Promise<void> {
 
 export async function uploadAlgaeImage(file: File, slug: string, prefix: "cover" | "gallery"): Promise<string> {
   const supabase = createClient();
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${slug}-${prefix}-${Date.now()}.${fileExt}`;
   
-  // PERBAIKAN: Gunakan bucket algae-images tanpa membuat sub-folder tambahan yang membingungkan.
-  // Semua gambar langsung masuk ke algae-images dengan format nama: slug-cover-12345.jpg
+  // ✅ GUNAKAN NAMA FILE ASLI (file.name) yang dikirim dari AlgaeForm
+  const fileName = file.name; 
+  const filePath = `${slug}/${fileName}`; // Dimasukkan ke folder slug agar lebih rapi
+  
+  // Asumsi nama bucket Anda adalah "algae-images" atau "algae" (sesuaikan jika berbeda)
   const { error: uploadError } = await supabase.storage
-    .from("algae-images") 
-    .upload(fileName, file, { cacheControl: "3600", upsert: false });
+    .from("algae-images") // PENTING: Sesuaikan nama bucket ini dengan milik Anda!
+    .upload(filePath, file, { cacheControl: "3600", upsert: false });
 
   if (uploadError) throw new Error(`Gagal mengunggah gambar: ${uploadError.message}`);
 
-  const { data } = supabase.storage.from("algae-images").getPublicUrl(fileName);
+  const { data } = supabase.storage.from("algae-images").getPublicUrl(filePath);
   return data.publicUrl;
 }
 

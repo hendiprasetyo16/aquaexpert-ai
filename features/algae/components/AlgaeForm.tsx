@@ -231,13 +231,31 @@ export default function AlgaeForm({ mode = "create", algae, onSuccess }: AlgaeFo
       let finalGalleryUrls = [...existingGallery];
       const algaeSlug = mode === "edit" ? algae?.slug || cleanNameId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") : cleanNameId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
+      // 🔥 1. Buat string tanggal hari ini (Format: YYYYMMDD)
+      const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, "");
+
       if (coverFile) {
-        finalCoverUrl = await uploadAlgaeImage(coverFile, algaeSlug, `cover`);
+        // 🔥 2. Buat nama baru untuk Cover dan Rename file-nya
+        const uniqueId = Math.random().toString(36).substring(2, 8);
+        const ext = coverFile.name.split('.').pop() || 'jpg';
+        const newFileName = `${algaeSlug}-cover-${dateStr}-${uniqueId}.${ext}`;
+        const renamedCover = new File([coverFile], newFileName, { type: coverFile.type });
+
+        // Kirim file yang sudah di-rename
+        finalCoverUrl = await uploadAlgaeImage(renamedCover, algaeSlug, `cover`);
         uploadedImagesToRollback.push(finalCoverUrl);
       }
 
       for (let i = 0; i < newGallery.length; i++) {
-         const gUrl = await uploadAlgaeImage(newGallery[i].file, algaeSlug, `gallery`);
+         // 🔥 3. Buat nama baru untuk Gallery dan Rename file-nya
+         const uniqueId = Math.random().toString(36).substring(2, 8);
+         const fileItem = newGallery[i].file;
+         const ext = fileItem.name.split('.').pop() || 'jpg';
+         const newFileName = `${algaeSlug}-gallery-${dateStr}-${uniqueId}-${i}.${ext}`;
+         const renamedGallery = new File([fileItem], newFileName, { type: fileItem.type });
+
+         // Kirim file yang sudah di-rename
+         const gUrl = await uploadAlgaeImage(renamedGallery, algaeSlug, `gallery`);
          finalGalleryUrls.push(gUrl);
          uploadedImagesToRollback.push(gUrl);
       }
