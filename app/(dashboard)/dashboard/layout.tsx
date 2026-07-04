@@ -36,7 +36,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="flex w-full flex-1 flex-col h-screen overflow-hidden relative">
         
         {/* HEADER */}
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 px-4 sm:px-6 backdrop-blur-md transition-colors">
+        <header className="flex z-50 relative h-16 shrink-0 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 px-4 sm:px-6 backdrop-blur-md transition-colors">
           
           {/* BAGIAN KIRI: Tombol Mobile */}
           <div className="flex items-center gap-3">

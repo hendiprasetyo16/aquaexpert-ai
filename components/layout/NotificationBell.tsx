@@ -19,7 +19,7 @@ export default function NotificationBell({ role }: { role: string }) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [unread, setUnread] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const bellRef = useRef<HTMLButtonElement>(null);
+  const bellRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
   const { dict } = useLanguage();
 
@@ -57,7 +57,6 @@ export default function NotificationBell({ role }: { role: string }) {
     return () => { supabase.removeChannel(channel); };
   }, [role, supabase]);
 
-  // Tutup popup jika diklik di luar kotak notifikasi
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (bellRef.current && !bellRef.current.contains(event.target as Node)) {
@@ -71,11 +70,10 @@ export default function NotificationBell({ role }: { role: string }) {
   if (role === "user") return null;
 
   return (
-    <div className="relative">
+    <div className="relative" ref={bellRef}>
       <button 
-        ref={bellRef}
         onClick={() => { setIsOpen(!isOpen); setUnread(false); }} 
-        className="relative p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors z-50"
+        className="relative p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors z-50 focus:outline-none"
       >
         <Bell className="h-5 w-5" />
         {unread && (
@@ -86,35 +84,47 @@ export default function NotificationBell({ role }: { role: string }) {
         )}
       </button>
 
-      {/* POPUP NOTIFIKASI MEMAKAI 'FIXED' AGAR TIDAK TERTUTUP FRAME LAYOUT/DASHBOARD */}
+      {/* 💡 FIX: Menggunakan 'absolute', menempel di elemen induk. */}
+      {/* 💡 FIX: Menggunakan z-[100] karena Header sekarang punya z-50. */}
       {isOpen && (
         <div 
-          className="fixed mt-3 w-80 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 shadow-2xl overflow-y-auto max-h-96"
-          style={{ 
-            zIndex: 999999, 
-            top: bellRef.current ? bellRef.current.getBoundingClientRect().bottom : '60px',
-            right: '1rem' // Menempel di kanan layar
-          }}
+          className="absolute right-0 top-full mt-3 w-80 sm:w-96 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 shadow-2xl overflow-y-auto max-h-[80vh] sm:max-h-96 z-[100] animate-in fade-in slide-in-from-top-2 duration-200"
         >
-          <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-400 uppercase tracking-wider sticky top-0 bg-white dark:bg-slate-900 z-10">
-            {role === 'super_admin' ? dict.notification.titleSuperAdmin : dict.notification.titleAdmin}
+          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm z-10 rounded-t-xl">
+            <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
+              {role === 'super_admin' ? dict.notification?.titleSuperAdmin || 'Super Admin Alerts' : dict.notification?.titleAdmin || 'Admin Alerts'}
+            </span>
           </div>
+          
           {activities.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-6">{dict.notification.empty}</p>
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <Bell className="w-10 h-10 text-slate-200 dark:text-slate-700 mb-3" />
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                {dict.notification?.empty || "Belum ada aktivitas sistem terbaru."}
+              </p>
+            </div>
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 mt-1">
               {activities.map((act) => (
-                <div key={act.id} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-md transition-colors cursor-default">
-                  <div className="flex items-center gap-2 mb-1">
-                    {act.category === "data_crud" ? (
-                      <Database className="h-3.5 w-3.5 text-teal-500 shrink-0" />
-                    ) : (
-                      <ShieldAlert className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                    )}
-                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 line-clamp-1">{act.title}</span>
+                <div key={act.id} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors cursor-default group">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 p-2 rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700 transition-colors">
+                      {act.category === "data_crud" ? (
+                        <Database className="h-4 w-4 text-teal-500" />
+                      ) : (
+                        <ShieldAlert className="h-4 w-4 text-amber-500" />
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{act.title}</span>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed mt-1 mb-2">
+                        {act.message}
+                      </p>
+                      <span className="text-[10px] font-black tracking-wider uppercase text-slate-400 dark:text-slate-500 block">
+                        {act.created_by} • {new Date(act.created_at).toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit'})}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{act.message}</p>
-                  <span className="text-[10px] text-slate-400 block mt-1.5 font-medium">{act.created_by} • {new Date(act.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                 </div>
               ))}
             </div>
