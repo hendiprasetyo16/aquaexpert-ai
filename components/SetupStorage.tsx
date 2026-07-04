@@ -5,14 +5,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { 
   Loader2, FolderPlus, RefreshCw, Server, AlertTriangle, 
-  Database, HardDriveDownload, Leaf, Bug, Container, Eye, Fish, Activity 
+  Database, HardDriveDownload, Leaf, Bug, Container, Eye, Fish, Activity, BookOpen, ChevronDown, ChevronUp 
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/providers/LanguageProvider";
 
 const ADMIN_SECRET = "aquaexpert-sinkron-2024";
 
-// 💡 UPDATE: Menambahkan tipe action baru untuk Ikan, Alga (folder), dan Penyakit
 type ActionType = "plant_folder" | "plant_sync" | "algae_folder" | "algae_sync" | "fish_folder" | "fish_sync" | "disease_sync" | "aquarium_folder" | "aquarium_sync" | "db_backup" | "db_restore" | null;
 
 interface ControlPanelDict {
@@ -39,6 +38,8 @@ interface ControlPanelDict {
 export default function SetupStorage() {
   const [loading, setLoading] = useState(false);
   const [actionModal, setActionModal] = useState<ActionType>(null);
+  const [showGuide, setShowGuide] = useState(false); // State untuk Panduan Admin
+
   const { dict, language } = useLanguage();
   const lang = language as "id" | "en";
 
@@ -58,7 +59,6 @@ export default function SetupStorage() {
       let method = "GET";
       let body: string | undefined = undefined;
 
-      // 💡 UPDATE: Rute endpoint (API) disiapkan untuk dihubungkan ke backend nanti
       switch (actionModal) {
         case "plant_folder": endpoint = "/api/plants/create-folders"; break;
         case "plant_sync": endpoint = "/api/plants/sync-images"; break;
@@ -121,15 +121,48 @@ export default function SetupStorage() {
       {/* WARNING BANNER */}
       <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 p-5 text-amber-800 dark:text-amber-200/80 transition-colors duration-300 shadow-sm">
         <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0 text-amber-600 dark:text-amber-500" />
-        <div className="text-sm leading-relaxed">
+        <div className="text-sm leading-relaxed flex-1">
           <strong className="block text-amber-700 dark:text-amber-400 font-bold text-base mb-1.5">{cpDict.warningTitle || "Peringatan Superadmin"}</strong>
           {cpDict.warningDesc || "Lakukan tindakan ini hanya saat diperlukan."}
         </div>
       </div>
 
+      {/* ADMIN CHEAT SHEET (PANDUAN MEMORI ADMIN) */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <button 
+          onClick={() => setShowGuide(!showGuide)}
+          className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        >
+          <div className="flex items-center gap-3 text-slate-700 dark:text-slate-200 font-bold">
+            <BookOpen className="w-5 h-5 text-indigo-500" />
+            {lang === 'id' ? "📖 Panduan Memori Admin (Cheat Sheet)" : "📖 Admin Memory Guide (Cheat Sheet)"}
+          </div>
+          {showGuide ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+        </button>
+        
+        {showGuide && (
+          <div className="p-5 border-t border-slate-200 dark:border-slate-800 text-sm text-slate-600 dark:text-slate-300 space-y-4 bg-white dark:bg-slate-900 animate-in slide-in-from-top-2">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <h4 className="font-black text-indigo-600 dark:text-indigo-400">1. Kenapa ada "Setup Folder"?</h4>
+                <p className="leading-relaxed">Supabase Storage tidak mengizinkan pembuatan folder kosong. Tombol ini otomatis membuat file <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-xs">.keep</code> tersembunyi berdasarkan slug di database agar folder terbentuk masal. Tanpa ini, admin harus membuat ratusan folder manual.</p>
+              </div>
+              <div className="space-y-2">
+                <h4 className="font-black text-emerald-600 dark:text-emerald-400">2. Kenapa ada "Sync Images"?</h4>
+                <p className="leading-relaxed">Setelah admin men-drag-and-drop puluhan gambar ke folder Supabase secara manual, database SQL belum tahu URL gambar tersebut. Tombol ini menyuruh server membaca semua gambar di Storage lalu mencatat URL-nya secara otomatis ke kolom <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-xs">image_url</code> database.</p>
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <h4 className="font-black text-rose-600 dark:text-rose-400">3. Apa fungsi API_SECRET_KEY?</h4>
+                <p className="leading-relaxed">Route API ini (<code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-xs">/api/plants/sync-images</code>, dll) melakukan operasi masif (Bulk Update/Insert). Jika terekspos publik, hacker bisa memicu server down. <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-xs font-bold text-rose-500">aquaexpert-sinkron-2024</code> bertindak sebagai gembok (password) antar muka UI dan Backend agar perintah hanya sah jika ditekan dari panel ini.</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         
-        {/* KARTU 1: MANAJEMEN IKAN (DITAMBAHKAN) */}
+        {/* KARTU 1: MANAJEMEN IKAN */}
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col">
           <div className="bg-blue-50 dark:bg-blue-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
             <div className="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg text-blue-600 dark:text-blue-400">
@@ -203,7 +236,7 @@ export default function SetupStorage() {
           </div>
         </div>
 
-        {/* KARTU 3: MANAJEMEN ALGAE (DIPERBARUI) */}
+        {/* KARTU 3: MANAJEMEN ALGAE */}
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col">
           <div className="bg-amber-50 dark:bg-amber-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
             <div className="bg-amber-100 dark:bg-amber-900/50 p-2 rounded-lg text-amber-600 dark:text-amber-400">
@@ -212,7 +245,6 @@ export default function SetupStorage() {
             <h3 className="font-bold text-slate-800 dark:text-slate-100">{lang === 'id' ? "Sistem Alga" : "Algae System"}</h3>
           </div>
           <div className="p-5 space-y-4 flex-1 flex flex-col">
-            {/* Tombol Setup Folder sekarang ditambahkan karena Algae pakai sub-folder */}
             <button 
               onClick={() => setActionModal("algae_folder")} 
               disabled={loading} 
@@ -241,7 +273,7 @@ export default function SetupStorage() {
           </div>
         </div>
 
-        {/* KARTU 4: MANAJEMEN PENYAKIT / DISEASES (DITAMBAHKAN) */}
+        {/* KARTU 4: MANAJEMEN PENYAKIT / DISEASES */}
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col">
           <div className="bg-rose-50 dark:bg-rose-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
             <div className="bg-rose-100 dark:bg-rose-900/50 p-2 rounded-lg text-rose-600 dark:text-rose-400">
@@ -250,7 +282,6 @@ export default function SetupStorage() {
             <h3 className="font-bold text-slate-800 dark:text-slate-100">{lang === 'id' ? "Sistem Penyakit" : "Disease System"}</h3>
           </div>
           <div className="p-5 space-y-4 flex-1 flex flex-col">
-            {/* Pesan khusus karena Penyakit tidak pakai sub-folder */}
             <div className="text-xs text-slate-600 dark:text-slate-300 mb-2 font-medium bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
               {lang === 'id' ? "ℹ️ Patogen/Penyakit tidak menggunakan sub-folder. Semua gambar berada di root bucket." : "ℹ️ Diseases do not use sub-folders. All images are in the root bucket."}
             </div>
@@ -357,7 +388,7 @@ export default function SetupStorage() {
 
       {/* CUSTOM CONFIRMATION MODAL */}
       {actionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-sm rounded-xl border border-amber-200 dark:border-amber-900/50 bg-white dark:bg-slate-900 p-6 shadow-2xl transition-all scale-in-95">
             <div className="mb-4 flex items-center gap-3">
               <div className="p-2 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">

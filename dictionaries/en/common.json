@@ -87,7 +87,7 @@
     "disasterRecovery": "2. Disaster Recovery (Database)",
     "backupDB": "Backup Database (JSON)",
     "restoreDB": "Restore Database (JSON)",
-    "confirmFolder": "Are you sure you want to create 120 folders in Supabase Storage?",
+    "confirmFolder": "Are you sure you want to create Plant storage folders in Supabase Storage?",
     "confirmSync": "Are you sure you want to resync image URLs to the Database?",
     "confirmBackup": "Backup all Database text to a JSON file in Supabase Storage? (This DOES NOT download physical images).",
     "confirmRestore": "WARNING! RESTORE will overwrite current data with the latest JSON backup file. Continue?",
