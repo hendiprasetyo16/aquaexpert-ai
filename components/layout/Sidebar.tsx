@@ -20,11 +20,9 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
   const { profile, role, isLoading } = useAuth();
   const { dict } = useLanguage();
 
-  // STATE UNTUK MODAL LOGOUT
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // FUNGSI EKSEKUSI LOGOUT
   const confirmLogout = async () => {
     setIsLoggingOut(true);
     try {
@@ -46,7 +44,6 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
 
   const menus = role ? MENU_BY_ROLE[role] : [];
 
-  // 💡 LOGIKA AVATAR KONSISTEN DENGAN HALAMAN PROFIL
   const avatarUrl = profile?.avatar_url || (profile?.full_name 
     ? `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.full_name)}&background=0D9488&color=fff&rounded=true&bold=true&size=128`
     : `https://ui-avatars.com/api/?name=User&background=random&rounded=true`);
@@ -100,8 +97,16 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
               className="mb-4 flex items-center gap-3 rounded-md bg-slate-50 dark:bg-slate-900 p-3 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 group"
               title={dict.sidebar.profileTooltip}
             >
-              {/* 💡 UPDATE: MENGGUNAKAN TAG IMG UNTUK MENAMPILKAN AVATAR */}
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 shadow-sm overflow-hidden border border-slate-200 dark:border-slate-700">
+              
+              {/* 💡 DESAIN NEON UNTUK AVATAR */}
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden 
+                ring-2 ring-teal-500/80 dark:ring-teal-400/80 
+                shadow-[0_0_12px_rgba(20,184,166,0.6)] dark:shadow-[0_0_12px_rgba(45,212,191,0.5)] 
+                transition-all duration-300 ease-in-out
+                group-hover:ring-teal-500 group-hover:dark:ring-teal-400
+                group-hover:shadow-[0_0_20px_rgba(20,184,166,1)] group-hover:dark:shadow-[0_0_20px_rgba(45,212,191,1)]
+                group-hover:scale-105"
+              >
                 <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               </div>
               
