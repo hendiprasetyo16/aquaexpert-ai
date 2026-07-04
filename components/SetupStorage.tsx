@@ -277,10 +277,10 @@ export default function SetupStorage() {
           </div>
         </div>
 
-        {/* KARTU 4: MANAJEMEN PENYAKIT / DISEASES */}
+        {/* KARTU 4: MANAJEMEN PENYAKIT / DISEASES (DIPERBAIKI) */}
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col">
-          <div className="bg-rose-50 dark:bg-rose-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
-            <div className="bg-rose-100 dark:bg-rose-900/50 p-2 rounded-lg text-rose-600 dark:text-rose-400">
+          <div className="bg-red-50 dark:bg-red-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
+            <div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-lg text-red-600 dark:text-red-400">
               <Activity className="h-5 w-5" />
             </div>
             <h3 className="font-bold text-slate-800 dark:text-slate-100">{lang === 'id' ? "Sistem Penyakit" : "Disease System"}</h3>
@@ -296,9 +296,9 @@ export default function SetupStorage() {
               <button 
                 onClick={() => setActionModal("disease_sync")} 
                 disabled={loading} 
-                className="group flex w-full items-center justify-between rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/40 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 hover:bg-rose-100 hover:border-rose-400 dark:hover:bg-rose-800 dark:hover:border-rose-500 disabled:opacity-50 transition-all cursor-pointer"
+                className="group flex w-full items-center justify-between rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/40 px-4 py-3 text-sm font-medium text-red-700 dark:text-red-300 hover:bg-red-100 hover:border-red-400 dark:hover:bg-red-800 dark:hover:border-red-500 disabled:opacity-50 transition-all cursor-pointer"
               >
-                <span className="flex items-center gap-2 group-hover:text-rose-900 dark:group-hover:text-rose-100 transition-colors">
+                <span className="flex items-center gap-2 group-hover:text-red-900 dark:group-hover:text-red-100 transition-colors">
                   <RefreshCw className="h-4 w-4" />
                   {cpDict.syncImages || (lang === 'id' ? "Sinkronisasi Gambar" : "Sync Images")}
                 </span>
@@ -352,10 +352,10 @@ export default function SetupStorage() {
           </div>
         </div>
 
-        {/* KARTU 6: SISTEM AVATAR (BARU) */}
+        {/* KARTU 6: SISTEM AVATAR (DIJAMIN BEBAS BUG PUTIH) */}
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col">
-          <div className="bg-purple-50 dark:bg-purple-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
-            <div className="bg-purple-100 dark:bg-purple-900/50 p-2 rounded-lg text-purple-600 dark:text-purple-400">
+          <div className="bg-indigo-50 dark:bg-indigo-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
+            <div className="bg-indigo-100 dark:bg-indigo-900/50 p-2 rounded-lg text-indigo-600 dark:text-indigo-400">
               <User className="h-5 w-5" />
             </div>
             <h3 className="font-bold text-slate-800 dark:text-slate-100">{lang === 'id' ? "Sistem Avatar" : "Avatar System"}</h3>
@@ -378,9 +378,9 @@ export default function SetupStorage() {
               <button 
                 onClick={() => setActionModal("avatar_sync")} 
                 disabled={loading} 
-                className="group flex w-full items-center justify-between rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/40 px-4 py-3 text-sm font-medium text-purple-700 dark:text-purple-300 hover:bg-purple-100 hover:border-purple-400 dark:hover:bg-purple-800 dark:hover:border-purple-500 disabled:opacity-50 transition-all cursor-pointer"
+                className="group flex w-full items-center justify-between rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/40 px-4 py-3 text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 hover:border-indigo-400 dark:hover:bg-indigo-800 dark:hover:border-indigo-500 disabled:opacity-50 transition-all cursor-pointer"
               >
-                <span className="flex items-center gap-2 group-hover:text-purple-900 dark:group-hover:text-purple-100 transition-colors">
+                <span className="flex items-center gap-2 group-hover:text-indigo-900 dark:group-hover:text-indigo-100 transition-colors">
                   <RefreshCw className="h-4 w-4" />
                   {cpDict.syncImages || (lang === 'id' ? "Validasi Storage" : "Validate Storage")}
                 </span>
