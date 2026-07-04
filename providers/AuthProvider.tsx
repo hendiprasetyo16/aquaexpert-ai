@@ -1,3 +1,4 @@
+// providers/AuthProvider.tsx
 "use client";
 
 import { createContext, useEffect, useState, ReactNode } from "react";
@@ -10,6 +11,10 @@ export interface Profile {
   full_name: string;
   role: UserRole;
   is_active: boolean;
+  // Tambahkan baris di bawah ini:
+  ip_address?: string | null;
+  last_login_at?: string | null;
+  created_at?: string;
 }
 
 interface AuthContextType {
@@ -71,7 +76,10 @@ export function AuthProvider({
           .select(`
             full_name,
             role,
-            is_active
+            is_active,
+            ip_address,
+            last_login_at,
+            created_at
           `)
           .eq("id", currentUser.id)
           .single();

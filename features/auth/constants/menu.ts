@@ -50,7 +50,7 @@ export const MENU_BY_ROLE = {
     
     { title: "Users", href: "/dashboard/users", icon: Users },
     { title: "Control Panel", href: "/dashboard/admin-panel", icon: Database }, 
-    { title: "Settings", href: "/admin/settings", icon: Settings },
+    { title: "Settings", href: "/dashboard/settings", icon: Settings },
   ],
 
   admin: [
