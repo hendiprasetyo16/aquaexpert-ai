@@ -15,6 +15,46 @@ import type { Disease, DiseaseCategory } from "../types/disease.types";
 import { createDiseaseAction, updateDiseaseAction, toggleDiseaseArchiveAction, hardDeleteDiseaseAction } from "../actions/disease.actions";
 import { uploadDiseaseImage } from "../repositories/disease.repository";
 
+// FUNGSI KOMPRESI GAMBAR (Ditambahkan di luar komponen utama)
+const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        
+        if (!ctx) { reject(new Error("Failed to get canvas context")); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+                type: "image/jpeg", lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else { reject(new Error("Canvas to Blob failed")); }
+          }, "image/jpeg", quality);
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 interface Props {
   initialData?: Disease | null;
   mode: "create" | "edit";
@@ -34,9 +74,6 @@ export function DiseaseForm({ initialData, mode }: Props) {
     setMounted(true);
   }, []);
 
-  // ==========================================
-  // PERBAIKAN: Menghilangkan 'any' sepenuhnya
-  // ==========================================
   const rootDict = (dict as Record<string, unknown>) || {};
   const diseaseScope = (rootDict.disease as Record<string, unknown>) || {};
   
@@ -79,11 +116,25 @@ export function DiseaseForm({ initialData, mode }: Props) {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Menerapkan fitur kompresi otomatis ke handleCoverChange
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setCoverFile(file);
-      setCoverPreview(URL.createObjectURL(file));
+      const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+      
+      if (!validTypes.includes(file.type)) {
+        toast.error(lang === 'id' ? "Format harus JPG, PNG atau WEBP." : "Format must be JPG, PNG or WEBP.");
+        return;
+      }
+
+      try {
+        // Melakukan kompresi otomatis tanpa mempedulikan ukuran asal
+        const compressedFile = await compressImage(file);
+        setCoverFile(compressedFile);
+        setCoverPreview(URL.createObjectURL(compressedFile));
+      } catch (err) {
+        toast.error(lang === 'id' ? "Gagal mengompresi gambar." : "Failed to compress image.");
+      }
     }
   };
 
@@ -96,6 +147,8 @@ export function DiseaseForm({ initialData, mode }: Props) {
       
       if (coverFile) {
         toast.loading(lang === 'id' ? "Mengompresi & mengunggah gambar..." : "Compressing & uploading image...", { id: "upload" });
+        
+        // Penamaan gambar disesuaikan dengan nama penyakit secara otomatis
         const baseName = formData.name_id || formData.name_en || "Penyakit";
         const safeName = baseName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
         const timestamp = new Date().getTime();

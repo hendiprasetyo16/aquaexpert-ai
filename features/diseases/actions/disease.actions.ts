@@ -48,7 +48,6 @@ export async function getAdminDiseasesAction(): Promise<{ success: boolean; data
 export async function createDiseaseAction(payload: Partial<Disease>) {
   try {
     const supabase = await createClient();
-    // Diizinkan untuk Admin & Super Admin
     const user = await verifyAdminAccess(supabase, false); 
 
     const { error } = await supabase.from("diseases").insert({
@@ -68,7 +67,6 @@ export async function createDiseaseAction(payload: Partial<Disease>) {
 export async function updateDiseaseAction(id: string, payload: Partial<Disease>) {
   try {
     const supabase = await createClient();
-    // Diizinkan untuk Admin & Super Admin
     const user = await verifyAdminAccess(supabase, false); 
 
     const { error } = await supabase.from("diseases").update({
@@ -89,7 +87,6 @@ export async function updateDiseaseAction(id: string, payload: Partial<Disease>)
 export async function toggleDiseaseArchiveAction(id: string, currentStatus: boolean) {
   try {
     const supabase = await createClient();
-    // Diizinkan untuk Admin & Super Admin
     await verifyAdminAccess(supabase, false); 
 
     const { error } = await supabase.from("diseases").update({ 
@@ -105,15 +102,46 @@ export async function toggleDiseaseArchiveAction(id: string, currentStatus: bool
   }
 }
 
-// 5. HAPUS PERMANEN (HARD DELETE)
+// 5. HAPUS PERMANEN (HARD DELETE) & PEMBERSIHAN STORAGE OTOMATIS
 export async function hardDeleteDiseaseAction(id: string) {
   try {
     const supabase = await createClient();
-    // Kunci Baja: HANYA Super Admin yang boleh
     await verifyAdminAccess(supabase, true); 
 
+    // 1. Ambil URL gambar yang tersimpan sebelum data dihapus
+    const { data: disease } = await supabase.from("diseases").select("image_url, gallery_urls").eq("id", id).single();
+
+    // 2. Hapus data record dari database
     const { error } = await supabase.from("diseases").delete().eq("id", id);
     if (error) throw new Error(error.message);
+
+    // 3. Fungsi Helper Cerdas: Ekstrak Bucket & Path lalu Hapus
+    const deleteStorageImage = async (imageUrl: string) => {
+      if (!imageUrl) return;
+      try {
+        const parts = imageUrl.split('/public/');
+        if (parts.length > 1) {
+          // Hasil pemotongan: "disease-images/folder/nama-file.jpg"
+          const subParts = parts[1].split('/');
+          const bucket = subParts[0]; // Otomatis mendapatkan nama bucket (misal: 'disease-images')
+          const fileName = subParts.slice(1).join('/'); // Path file aslinya
+          
+          await supabase.storage.from(bucket).remove([fileName]);
+        }
+      } catch (e) {
+        console.error("Gagal menghapus gambar storage:", e);
+      }
+    };
+
+    // Eksekusi pembersihan foto patogen
+    if (disease?.image_url) {
+      await deleteStorageImage(disease.image_url);
+    }
+    if (disease?.gallery_urls && Array.isArray(disease.gallery_urls)) {
+      for (const url of disease.gallery_urls) {
+        await deleteStorageImage(url);
+      }
+    }
 
     revalidatePath("/dashboard/diseases");
     return { success: true };
