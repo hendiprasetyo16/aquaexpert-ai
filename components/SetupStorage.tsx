@@ -3,13 +3,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Loader2, FolderPlus, RefreshCw, Server, AlertTriangle, Database, HardDriveDownload, Leaf, Bug, Container, Eye } from "lucide-react";
+import { 
+  Loader2, FolderPlus, RefreshCw, Server, AlertTriangle, 
+  Database, HardDriveDownload, Leaf, Bug, Container, Eye, Fish, Activity 
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/providers/LanguageProvider";
 
 const ADMIN_SECRET = "aquaexpert-sinkron-2024";
 
-type ActionType = "plant_folder" | "plant_sync" | "algae_sync" | "aquarium_folder" | "aquarium_sync" | "db_backup" | "db_restore" | null;
+// 💡 UPDATE: Menambahkan tipe action baru untuk Ikan, Alga (folder), dan Penyakit
+type ActionType = "plant_folder" | "plant_sync" | "algae_folder" | "algae_sync" | "fish_folder" | "fish_sync" | "disease_sync" | "aquarium_folder" | "aquarium_sync" | "db_backup" | "db_restore" | null;
 
 interface ControlPanelDict {
   warningTitle?: string;
@@ -54,10 +58,15 @@ export default function SetupStorage() {
       let method = "GET";
       let body: string | undefined = undefined;
 
+      // 💡 UPDATE: Rute endpoint (API) disiapkan untuk dihubungkan ke backend nanti
       switch (actionModal) {
         case "plant_folder": endpoint = "/api/plants/create-folders"; break;
         case "plant_sync": endpoint = "/api/plants/sync-images"; break;
+        case "algae_folder": endpoint = "/api/algae/create-folders"; break;
         case "algae_sync": endpoint = "/api/algae/sync-images"; break;
+        case "fish_folder": endpoint = "/api/fishes/create-folders"; break;
+        case "fish_sync": endpoint = "/api/fishes/sync-images"; break;
+        case "disease_sync": endpoint = "/api/diseases/sync-images"; break;
         case "aquarium_folder": endpoint = "/api/aquariums/create-folders"; break;
         case "aquarium_sync": endpoint = "/api/aquariums/sync-images"; break;
         case "db_backup": 
@@ -91,9 +100,13 @@ export default function SetupStorage() {
 
   const getModalDescription = () => {
     switch (actionModal) {
-      case "plant_folder": return cpDict.confirmFolder || "Buat kerangka folder storage?";
-      case "plant_sync": return cpDict.confirmSync || "Sinkronisasi otomatis URL gambar?";
+      case "plant_folder": return cpDict.confirmFolder || "Buat kerangka folder storage Tanaman?";
+      case "plant_sync": return cpDict.confirmSync || "Sinkronisasi otomatis URL gambar Tanaman?";
+      case "fish_folder": return lang === 'id' ? "Buat kerangka folder storage Ikan?" : "Create Fish storage folders?";
+      case "fish_sync": return lang === 'id' ? "Sinkronisasi URL gambar Ikan ke database?" : "Auto-sync Fish image URLs?";
+      case "algae_folder": return lang === 'id' ? "Buat kerangka folder storage Alga?" : "Create Algae storage folders?";
       case "algae_sync": return lang === 'id' ? "Sinkronisasi URL gambar Alga ke database?" : "Auto-sync Algae image URLs?";
+      case "disease_sync": return lang === 'id' ? "Sinkronisasi URL gambar Penyakit ke database?" : "Auto-sync Disease image URLs?";
       case "aquarium_folder": return lang === 'id' ? "Siapkan folder 'covers' di bucket Aquariums?" : "Setup 'covers' folder in Aquariums bucket?";
       case "aquarium_sync": return lang === 'id' ? "Validasi integritas Storage Akuarium?" : "Validate Aquarium storage integrity?";
       case "db_backup": return cpDict.confirmBackup || "Backup database sekarang?";
@@ -116,7 +129,44 @@ export default function SetupStorage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         
-        {/* KARTU 1: MANAJEMEN TANAMAN */}
+        {/* KARTU 1: MANAJEMEN IKAN (DITAMBAHKAN) */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col">
+          <div className="bg-blue-50 dark:bg-blue-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
+            <div className="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg text-blue-600 dark:text-blue-400">
+              <Fish className="h-5 w-5" />
+            </div>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100">{lang === 'id' ? "Sistem Ikan" : "Fish System"}</h3>
+          </div>
+          <div className="p-5 space-y-4 flex-1 flex flex-col">
+            <button 
+              onClick={() => setActionModal("fish_folder")} 
+              disabled={loading} 
+              className="group flex w-full items-center justify-between rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 hover:border-slate-400 dark:hover:bg-slate-700 dark:hover:border-slate-500 disabled:opacity-50 transition-all cursor-pointer"
+            >
+              <span className="flex items-center gap-2 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                <FolderPlus className="h-4 w-4 text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200" />
+                {cpDict.setupFolder || (lang === 'id' ? "Setup Folder Storage" : "Setup Storage Folders")}
+              </span>
+            </button>
+            <div className="pt-2 mt-auto">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 italic leading-relaxed text-justify">
+                {syncWarningText}
+              </div>
+              <button 
+                onClick={() => setActionModal("fish_sync")} 
+                disabled={loading} 
+                className="group flex w-full items-center justify-between rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/40 px-4 py-3 text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-100 hover:border-blue-400 dark:hover:bg-blue-800 dark:hover:border-blue-500 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                <span className="flex items-center gap-2 group-hover:text-blue-900 dark:group-hover:text-blue-100 transition-colors">
+                  <RefreshCw className="h-4 w-4" />
+                  {cpDict.syncImages || (lang === 'id' ? "Sinkronisasi Gambar" : "Sync Images")}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* KARTU 2: MANAJEMEN TANAMAN */}
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col">
           <div className="bg-emerald-50 dark:bg-emerald-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
             <div className="bg-emerald-100 dark:bg-emerald-900/50 p-2 rounded-lg text-emerald-600 dark:text-emerald-400">
@@ -125,8 +175,6 @@ export default function SetupStorage() {
             <h3 className="font-bold text-slate-800 dark:text-slate-100">{lang === 'id' ? "Sistem Tanaman" : "Plant System"}</h3>
           </div>
           <div className="p-5 space-y-4 flex-1 flex flex-col">
-            
-            {/* PERBAIKAN: Tombol Setup Folder */}
             <button 
               onClick={() => setActionModal("plant_folder")} 
               disabled={loading} 
@@ -137,13 +185,10 @@ export default function SetupStorage() {
                 {cpDict.setupFolder || (lang === 'id' ? "Setup Folder Storage" : "Setup Storage Folders")}
               </span>
             </button>
-
             <div className="pt-2 mt-auto">
               <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 italic leading-relaxed text-justify">
                 {syncWarningText}
               </div>
-              
-              {/* PERBAIKAN: Tombol Sync */}
               <button 
                 onClick={() => setActionModal("plant_sync")} 
                 disabled={loading} 
@@ -158,7 +203,76 @@ export default function SetupStorage() {
           </div>
         </div>
 
-        {/* KARTU 2: SISTEM AKUARIUM */}
+        {/* KARTU 3: MANAJEMEN ALGAE (DIPERBARUI) */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col">
+          <div className="bg-amber-50 dark:bg-amber-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
+            <div className="bg-amber-100 dark:bg-amber-900/50 p-2 rounded-lg text-amber-600 dark:text-amber-400">
+              <Bug className="h-5 w-5" />
+            </div>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100">{lang === 'id' ? "Sistem Alga" : "Algae System"}</h3>
+          </div>
+          <div className="p-5 space-y-4 flex-1 flex flex-col">
+            {/* Tombol Setup Folder sekarang ditambahkan karena Algae pakai sub-folder */}
+            <button 
+              onClick={() => setActionModal("algae_folder")} 
+              disabled={loading} 
+              className="group flex w-full items-center justify-between rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 hover:border-slate-400 dark:hover:bg-slate-700 dark:hover:border-slate-500 disabled:opacity-50 transition-all cursor-pointer"
+            >
+              <span className="flex items-center gap-2 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                <FolderPlus className="h-4 w-4 text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200" />
+                {cpDict.setupFolder || (lang === 'id' ? "Setup Folder Storage" : "Setup Storage Folders")}
+              </span>
+            </button>
+            <div className="pt-2 mt-auto">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 italic leading-relaxed text-justify">
+                {syncWarningText}
+              </div>
+              <button 
+                onClick={() => setActionModal("algae_sync")} 
+                disabled={loading} 
+                className="group flex w-full items-center justify-between rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/40 px-4 py-3 text-sm font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-100 hover:border-amber-400 dark:hover:bg-amber-800 dark:hover:border-amber-500 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                <span className="flex items-center gap-2 group-hover:text-amber-900 dark:group-hover:text-amber-100 transition-colors">
+                  <RefreshCw className="h-4 w-4" />
+                  {cpDict.syncImages || (lang === 'id' ? "Sinkronisasi Gambar" : "Sync Images")}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* KARTU 4: MANAJEMEN PENYAKIT / DISEASES (DITAMBAHKAN) */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col">
+          <div className="bg-rose-50 dark:bg-rose-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
+            <div className="bg-rose-100 dark:bg-rose-900/50 p-2 rounded-lg text-rose-600 dark:text-rose-400">
+              <Activity className="h-5 w-5" />
+            </div>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100">{lang === 'id' ? "Sistem Penyakit" : "Disease System"}</h3>
+          </div>
+          <div className="p-5 space-y-4 flex-1 flex flex-col">
+            {/* Pesan khusus karena Penyakit tidak pakai sub-folder */}
+            <div className="text-xs text-slate-600 dark:text-slate-300 mb-2 font-medium bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+              {lang === 'id' ? "ℹ️ Patogen/Penyakit tidak menggunakan sub-folder. Semua gambar berada di root bucket." : "ℹ️ Diseases do not use sub-folders. All images are in the root bucket."}
+            </div>
+            <div className="pt-2 mt-auto">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 italic leading-relaxed text-justify">
+                {syncWarningText}
+              </div>
+              <button 
+                onClick={() => setActionModal("disease_sync")} 
+                disabled={loading} 
+                className="group flex w-full items-center justify-between rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/40 px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300 hover:bg-rose-100 hover:border-rose-400 dark:hover:bg-rose-800 dark:hover:border-rose-500 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                <span className="flex items-center gap-2 group-hover:text-rose-900 dark:group-hover:text-rose-100 transition-colors">
+                  <RefreshCw className="h-4 w-4" />
+                  {cpDict.syncImages || (lang === 'id' ? "Sinkronisasi Gambar" : "Sync Images")}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* KARTU 5: SISTEM AKUARIUM */}
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col">
           <div className="bg-teal-50 dark:bg-teal-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
             <div className="bg-teal-100 dark:bg-teal-900/50 p-2 rounded-lg text-teal-600 dark:text-teal-400">
@@ -167,8 +281,6 @@ export default function SetupStorage() {
             <h3 className="font-bold text-slate-800 dark:text-slate-100">{lang === 'id' ? "Sistem Akuarium" : "Aquarium System"}</h3>
           </div>
           <div className="p-5 space-y-4 flex-1 flex flex-col">
-            
-            {/* PERBAIKAN: Tombol Setup Folder */}
             <button 
               onClick={() => setActionModal("aquarium_folder")} 
               disabled={loading} 
@@ -179,9 +291,7 @@ export default function SetupStorage() {
                 {cpDict.setupFolder || (lang === 'id' ? "Setup Folder Storage" : "Setup Storage Folders")}
               </span>
             </button>
-
             <div className="pt-2 mt-auto space-y-3">
-              {/* PERBAIKAN: Tombol Sync */}
               <button 
                 onClick={() => setActionModal("aquarium_sync")} 
                 disabled={loading} 
@@ -192,9 +302,7 @@ export default function SetupStorage() {
                   {cpDict.syncImages || (lang === 'id' ? "Validasi Storage" : "Validate Storage")}
                 </span>
               </button>
-              
               <Link href="/dashboard/admin-panel/aquariums" className="block">
-                {/* PERBAIKAN: Tombol View All */}
                 <button 
                   disabled={loading} 
                   className="group flex w-full items-center justify-between rounded-lg border border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/40 px-4 py-3 text-sm font-bold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 hover:border-indigo-400 dark:hover:bg-indigo-800 dark:hover:border-indigo-500 transition-all cursor-pointer"
@@ -209,39 +317,7 @@ export default function SetupStorage() {
           </div>
         </div>
 
-        {/* KARTU 3: MANAJEMEN ALGAE */}
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col">
-          <div className="bg-teal-50 dark:bg-teal-950/30 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
-            <div className="bg-teal-100 dark:bg-teal-900/50 p-2 rounded-lg text-teal-600 dark:text-teal-400">
-              <Bug className="h-5 w-5" />
-            </div>
-            <h3 className="font-bold text-slate-800 dark:text-slate-100">{lang === 'id' ? "Sistem Alga" : "Algae System"}</h3>
-          </div>
-          <div className="p-5 space-y-4 flex-1 flex flex-col">
-            <div className="text-xs text-slate-600 dark:text-slate-300 mb-2 font-medium bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-              {lang === 'id' ? "ℹ️ Alga tidak menggunakan sub-folder. Semua gambar berada di root bucket." : "ℹ️ Algae do not use sub-folders. All images are in the root bucket."}
-            </div>
-            <div className="pt-2 mt-auto">
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 italic leading-relaxed text-justify">
-                {syncWarningText}
-              </div>
-              
-              {/* PERBAIKAN: Tombol Sync */}
-              <button 
-                onClick={() => setActionModal("algae_sync")} 
-                disabled={loading} 
-                className="group flex w-full items-center justify-between rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-900/40 px-4 py-3 text-sm font-medium text-teal-700 dark:text-teal-300 hover:bg-teal-100 hover:border-teal-400 dark:hover:bg-teal-800 dark:hover:border-teal-500 disabled:opacity-50 transition-all cursor-pointer"
-              >
-                <span className="flex items-center gap-2 group-hover:text-teal-900 dark:group-hover:text-teal-100 transition-colors">
-                  <RefreshCw className="h-4 w-4" />
-                  {cpDict.syncImages || (lang === 'id' ? "Sinkronisasi Gambar" : "Sync Images")}
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* KARTU 4: DISASTER RECOVERY */}
+        {/* KARTU 6: DISASTER RECOVERY */}
         <div className="lg:col-span-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm flex flex-col mt-4">
           <div className="bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
             <div className="bg-slate-200 dark:bg-slate-700 p-2 rounded-lg text-slate-700 dark:text-slate-300">
@@ -254,7 +330,6 @@ export default function SetupStorage() {
               {cpDict.disasterHint || (lang === 'id' ? "ℹ️ File Backup (JSON) disimpan otomatis di Storage Supabase. Fitur Restore akan menimpa seluruh isi database saat ini secara permanen." : "ℹ️ Backup files (JSON) are auto-saved. Restore will overwrite the current database.")}
             </div>
             <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
-              {/* PERBAIKAN: Tombol Backup */}
               <button 
                 onClick={() => setActionModal("db_backup")} 
                 disabled={loading} 
@@ -265,7 +340,6 @@ export default function SetupStorage() {
                 </span>
               </button>
               
-              {/* PERBAIKAN: Tombol Restore */}
               <button 
                 onClick={() => setActionModal("db_restore")} 
                 disabled={loading} 
