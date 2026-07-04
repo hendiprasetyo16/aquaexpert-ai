@@ -1,16 +1,48 @@
-// D:\aquaexpert-ai\app\api\backup-restore\route.ts
+// app/api/backup-restore/route.ts
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
 export const dynamic = 'force-dynamic';
 
-const TABLES_TO_BACKUP = ['algae', 'diseases', 'fishes', 'plants', 'profiles', 'tanks', 'users']; 
+// 💡 UPDATE: Daftar 25 Tabel terbaru diurutkan secara hierarkis (Topological Sort)
+// Urutan ini SANGAT KRUSIAL saat RESTORE agar tidak terjadi error Foreign Key Constraint
+const TABLES_TO_BACKUP = [
+  // --- 1. MASTER DATA / BASE TABLES ---
+  'profiles',
+  'my_aquariums',
+  'fishes',
+  'plants',
+  'algae',
+  'diseases',
+  'symptoms',
+  'medications',
+  'system_activities',
+  'medication_efficacy_stats',
+
+  // --- 2. LEVEL 1 DEPENDENCIES (Relasi Langsung) ---
+  'disease_medications',
+  'disease_symptoms',
+  'fish_disease_relations',
+  'medication_environment_rules',
+  'medication_fauna_safety',
+  'medication_interactions',
+  'maintenance_tasks',
+  'aquarium_parameters',
+  'aquarium_fishes',
+  'aquarium_plants',
+  'aquarium_treatments',
+  'treatment_sessions',
+
+  // --- 3. LEVEL 2 DEPENDENCIES (Riwayat & Log) ---
+  'aquarium_maintenance_logs',
+  'treatment_logs',
+  'treatment_outcomes'
+];
 
 export async function POST(request: Request) {
   // 1. KEAMANAN TERBARU: Menggunakan Env Variable, BUKAN Hardcoded!
-  // Pastikan Anda menambahkan variabel API_SECRET_KEY di Vercel dengan nilai "aquaexpert-sinkron-2024"
   const secret = request.headers.get("x-admin-secret");
-  const validSecret = process.env.API_SECRET_KEY || "aquaexpert-sinkron-2024"; // Fallback sementara untuk lokal
+  const validSecret = process.env.API_SECRET_KEY || "aquaexpert-sinkron-2024"; 
   
   if (secret !== validSecret) {
     return NextResponse.json({ error: "Akses Ditolak. Secret key tidak valid." }, { status: 401 });
@@ -33,14 +65,11 @@ export async function POST(request: Request) {
     // LOGIKA BACKUP
     // ==========================================
     if (action === 'BACKUP') {
-      // REFAKTOR: Mengganti any[] menjadi Record<string, unknown>[]
-      // Baris dari database (row) adalah objek dengan key string dan value yang belum diketahui (unknown)
       const backupData: Record<string, Record<string, unknown>[]> = {};
 
       for (const tableName of TABLES_TO_BACKUP) {
         const { data, error } = await supabase.from(tableName).select('*');
         if (!error && data) {
-          // Melakukan type assertion yang aman dari Supabase data ke tipe kita
           backupData[tableName] = data as Record<string, unknown>[];
         }
       }
@@ -78,9 +107,11 @@ export async function POST(request: Request) {
       const json = JSON.parse(await fileContent.text());
       let restoredTables = 0;
 
-      for (const tableName of Object.keys(json)) {
+      // 💡 PERBAIKAN: Looping menggunakan array TABLES_TO_BACKUP, bukan Object.keys(json)
+      // Ini menjamin proses insert data dieksekusi dengan urutan yang aman (Master didahulukan sebelum Relasi).
+      for (const tableName of TABLES_TO_BACKUP) {
          const tableData = json[tableName];
-         // Memastikan tableData benar-benar sebuah Array sebelum di-upsert (Type Guard)
+         
          if (tableData && Array.isArray(tableData) && tableData.length > 0) {
              const { error: upsertError } = await supabase.from(tableName).upsert(tableData);
              if (!upsertError) {
@@ -98,8 +129,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ error: "Aksi tidak dikenali." }, { status: 400 });
-  } catch (error: unknown) { // REFAKTOR: Mengganti 'any' menjadi 'unknown'
-    // REFAKTOR: Pengecekan tipe error yang aman (Type Guarding)
+  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan internal server";
     return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
