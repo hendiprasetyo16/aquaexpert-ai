@@ -74,9 +74,21 @@ export async function POST(request: Request) {
         }
       }
       
+      // 💡 PERBAIKAN: Membuat format tanggal YYYYMMDD-HHMMSS
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      
+      const readableDate = `${year}${month}${day}-${hours}${minutes}${seconds}`;
+      const fileName = `backup-${readableDate}.json`;
+      
       const { error: uploadError } = await supabase.storage
         .from('system-backups')
-        .upload(`backup-${Date.now()}.json`, JSON.stringify(backupData), { upsert: true });
+        .upload(fileName, JSON.stringify(backupData), { upsert: true });
 
       if (uploadError) {
         throw new Error(`Gagal upload ke Storage: ${uploadError.message}`);
@@ -84,7 +96,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ 
         success: true, 
-        message: `Backup sukses! Menyimpan ${Object.keys(backupData).length} tabel ke Storage.` 
+        message: `Backup sukses! Menyimpan ${Object.keys(backupData).length} tabel dengan nama ${fileName}` 
       });
     }
 
