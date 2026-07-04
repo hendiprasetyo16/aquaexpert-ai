@@ -1,4 +1,6 @@
 // app/(dashboard)/dashboard/settings/page.tsx
+// tidak di pakai karena saya sudah punya profil yang sama menunya dengan ini, 
+// jadi saya hapus saja. Tapi saya simpan dulu di sini untuk referensi.
 "use client";
 
 import { useState, useEffect } from "react";

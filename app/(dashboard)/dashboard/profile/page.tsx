@@ -5,13 +5,16 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { updateProfileName, updateProfilePassword } from "@/features/profile/actions/profile.actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Save, KeyRound, User as UserIcon, Mail, ShieldAlert, Eye, EyeOff } from "lucide-react";
+import { 
+  Loader2, Save, KeyRound, User as UserIcon, Mail, ShieldAlert, Eye, EyeOff, Globe, Clock, Laptop 
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/providers/LanguageProvider"; // <-- IMPORT KAMUS
 
 export default function ProfilePage() {
   const { user, profile, role, isLoading } = useAuth();
-  const { dict } = useLanguage(); // <-- PANGGIL KAMUS
+  const { dict, language } = useLanguage(); // <-- PANGGIL KAMUS & BAHASA
+  const lang = language as "id" | "en";
   
   const [fullName, setFullName] = useState("");
   const [isSavingName, setIsSavingName] = useState(false);
@@ -43,9 +46,7 @@ export default function ProfilePage() {
         toast.error(result.error || "Gagal / Failed");
         setFullName(profile?.full_name || ""); 
       }
-    // REFAKTOR: Mengganti any menjadi unknown
     } catch (error: unknown) {
-      // REFAKTOR: Menambahkan type guard (pengecekan tipe error yang aman)
       const errorMessage = error instanceof Error ? error.message : "Error.";
       toast.error(errorMessage);
     } finally {
@@ -69,9 +70,7 @@ export default function ProfilePage() {
       } else {
         toast.error(result.error || "Gagal / Failed");
       }
-    // REFAKTOR: Mengganti any menjadi unknown
     } catch (error: unknown) {
-      // REFAKTOR: Menambahkan type guard (pengecekan tipe error yang aman)
       const errorMessage = error instanceof Error ? error.message : "Error.";
       toast.error(errorMessage);
     } finally {
@@ -86,6 +85,11 @@ export default function ProfilePage() {
       </div>
     );
   }
+
+  // Generate Avatar Otomatis
+  const avatarUrl = profile?.full_name 
+    ? `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.full_name)}&background=0D9488&color=fff&rounded=true&bold=true`
+    : `https://ui-avatars.com/api/?name=User&background=random&rounded=true`;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10 space-y-6">
@@ -105,16 +109,44 @@ export default function ProfilePage() {
             <CardDescription className="text-slate-500 dark:text-slate-400">{dict.profile.generalInfoDesc}</CardDescription>
           </CardHeader>
           <CardContent>
+            
+            {/* BAGIAN AVATAR & ROLE */}
             <div className="mb-6 flex items-center gap-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-100 dark:bg-teal-900/50 text-teal-600 dark:text-teal-400">
-                <UserIcon className="h-6 w-6" />
-              </div>
+              <img src={avatarUrl} alt="Avatar" className="h-12 w-12 rounded-full shadow-sm" />
               <div>
                 <p className="text-sm text-slate-500 dark:text-slate-400">{dict.profile.yourRole}</p>
                 <div className="flex items-center gap-2">
                   <p className="font-bold capitalize text-slate-800 dark:text-slate-200">{role?.replace("_", " ")}</p>
                   {role === "super_admin" && <ShieldAlert className="h-4 w-4 text-red-500 dark:text-red-400" />}
                 </div>
+              </div>
+            </div>
+
+            {/* INFO SISTEM (Berjejer 3) */}
+            <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 p-4 text-xs">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <Globe className="w-3 h-3" /> {lang === 'id' ? 'IP Terakhir' : 'Last IP'}
+                </span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  {profile?.ip_address || "-"}
+                </span>
+              </div>
+              <div className="flex flex-col border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-slate-700 pt-3 sm:pt-0 sm:pl-3">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> {lang === 'id' ? 'Login Terakhir' : 'Last Login'}
+                </span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  {profile?.last_login_at ? new Date(profile.last_login_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US') : "-"}
+                </span>
+              </div>
+              <div className="flex flex-col border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-slate-700 pt-3 sm:pt-0 sm:pl-3">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <Laptop className="w-3 h-3" /> {lang === 'id' ? 'Terdaftar' : 'Joined'}
+                </span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  {profile?.created_at ? new Date(profile.created_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US') : "-"}
+                </span>
               </div>
             </div>
 
