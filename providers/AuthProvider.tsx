@@ -15,6 +15,7 @@ export interface Profile {
   ip_address?: string | null;
   last_login_at?: string | null;
   created_at?: string;
+  avatar_url?: string | null; // <--- PASTIKAN BARIS INI ADA
 }
 
 interface AuthContextType {
@@ -79,7 +80,8 @@ export function AuthProvider({
             is_active,
             ip_address,
             last_login_at,
-            created_at
+            created_at,
+            avatar_url
           `)
           .eq("id", currentUser.id)
           .single();

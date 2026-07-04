@@ -1,20 +1,60 @@
-// D:\aquaexpert-ai\app\(dashboard)\dashboard\profile\page.tsx
+// app/(dashboard)/dashboard/profile/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { updateProfileName, updateProfilePassword } from "@/features/profile/actions/profile.actions";
+import { updateProfileName, updateProfilePassword, updateProfileAvatar } from "@/features/profile/actions/profile.actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Loader2, Save, KeyRound, User as UserIcon, Mail, 
-  ShieldAlert, Eye, EyeOff, Globe, Clock, Laptop, Shield 
+  ShieldAlert, Eye, EyeOff, Globe, Clock, Laptop, Shield, Camera 
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { useLanguage } from "@/providers/LanguageProvider"; // <-- IMPORT KAMUS
+import { useLanguage } from "@/providers/LanguageProvider";
+
+// 💡 FUNGSI KOMPRESI MILIK BAPAK (Diatur ke maksimal 400px agar super ringan)
+const compressImage = (file: File, maxWidth = 400, quality = 0.8): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        
+        if (!ctx) { reject(new Error("Failed to get canvas context")); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+                type: "image/jpeg", lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else { reject(new Error("Canvas to Blob failed")); }
+          }, "image/jpeg", quality);
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
 
 export default function ProfilePage() {
   const { user, profile, role, isLoading } = useAuth();
-  const { dict, language } = useLanguage(); // <-- PANGGIL KAMUS & BAHASA
+  const { dict, language } = useLanguage(); 
   const lang = language as "id" | "en";
   
   const [fullName, setFullName] = useState("");
@@ -27,11 +67,50 @@ export default function ProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name);
     }
   }, [profile]);
+
+  // AKSI UPLOAD FOTO PROFIL
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(lang === 'id' ? "File terlalu besar (Maks 5MB)" : "File too large (Max 5MB)");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    const loadingToast = toast.loading(lang === 'id' ? "Mengunggah foto..." : "Uploading photo...");
+
+    try {
+      // Panggil fungsi kompresi Bapak!
+      const compressedFile = await compressImage(file);
+      
+      const formData = new FormData();
+      formData.append("avatar", compressedFile);
+
+      const result = await updateProfileAvatar(formData);
+      if (result.success) {
+        toast.success(lang === 'id' ? "Foto profil diperbarui!" : "Avatar updated!", { id: loadingToast });
+        setTimeout(() => { window.location.reload(); }, 500);
+      } else {
+        toast.error(result.error || "Gagal mengunggah foto.", { id: loadingToast });
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Error.";
+      toast.error(errorMessage, { id: loadingToast });
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = ""; // Reset input
+    }
+  };
 
   const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,10 +166,14 @@ export default function ProfilePage() {
     );
   }
 
-  // 💡 FITUR AVATAR 0 BYTE: Otomatis generate dari inisial nama
-  const avatarUrl = profile?.full_name 
+  // 💡 LOGIKA AVATAR: Jika user punya avatar di database, gunakan itu. Jika tidak, gunakan inisial nama.
+  // Pastikan property 'avatar_url' sudah Bapak tambahkan di interface Profile (AuthProvider.tsx)
+  const fallbackAvatarUrl = profile?.full_name 
     ? `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.full_name)}&background=0D9488&color=fff&rounded=true&bold=true&size=128`
     : `https://ui-avatars.com/api/?name=User&background=random&rounded=true`;
+  
+  // @ts-ignore - Mengabaikan error sementara jika type avatar_url belum terbaca sempurna di editor Bapak
+  const currentAvatar = profile?.avatar_url || fallbackAvatarUrl;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10 space-y-6">
@@ -100,7 +183,6 @@ export default function ProfilePage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* KARTU 1: INFORMASI UMUM */}
         <Card className="h-fit border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm transition-colors duration-300">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-slate-100">
@@ -111,11 +193,34 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             
-            {/* 💡 UPDATE: MENGGUNAKAN AVATAR 0 BYTE + INFO ROLE */}
             <div className="mb-6 flex items-center gap-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
-              <div className="shrink-0">
-                <img src={avatarUrl} alt="Avatar" className="w-14 h-14 rounded-full shadow-sm ring-2 ring-white dark:ring-slate-800" />
+              
+              {/* TOMBOL UPLOAD AVATAR */}
+              <div className="relative shrink-0 group">
+                <img 
+                  src={currentAvatar} 
+                  alt="Avatar" 
+                  className={`w-16 h-16 rounded-full shadow-sm ring-2 ring-white dark:ring-slate-800 object-cover ${isUploadingAvatar ? 'opacity-50' : 'opacity-100'}`} 
+                />
+                
+                <input 
+                  type="file" 
+                  accept="image/jpeg, image/png, image/webp" 
+                  className="hidden" 
+                  ref={fileInputRef}
+                  onChange={handleAvatarChange}
+                />
+                
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingAvatar}
+                  title="Ubah Foto Profil"
+                  className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUploadingAvatar ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Camera className="w-5 h-5 text-white" />}
+                </button>
               </div>
+
               <div>
                 <p className="text-sm text-slate-500 dark:text-slate-400">{dict.profile?.yourRole}</p>
                 <div className="flex items-center gap-2 mt-0.5">
@@ -130,7 +235,7 @@ export default function ProfilePage() {
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{dict.profile?.emailLabel}</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
-                  <input type="email" value={user?.email || ""} disabled className="w-full rounded-md border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 py-2 pl-10 pr-4 text-slate-500 dark:text-slate-400 opacity-70 outline-none transition-colors cursor-not-allowed" />
+                  <input type="email" value={user?.email || ""} disabled className="w-full rounded-md border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 py-2 pl-10 pr-4 text-slate-500 dark:text-slate-400 opacity-70 outline-none cursor-not-allowed transition-colors" />
                 </div>
               </div>
               <div>
@@ -145,10 +250,7 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* KOLOM KANAN: BUNGKUS KARTU PASSWORD & KARTU INFO SISTEM */}
         <div className="space-y-6 flex flex-col h-full">
-          
-          {/* KARTU 2: GANTI PASSWORD */}
           <Card className="h-fit border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm transition-colors duration-300">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-slate-100">
@@ -185,10 +287,8 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* KARTU 3: INFO SISTEM (Posisi di bawah Password) */}
           <Card className="h-fit mt-auto border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 shadow-sm transition-colors duration-300">
             <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-              
               <div className="flex items-center gap-3 w-full sm:w-1/3">
                 <div className="p-2 bg-indigo-100 dark:bg-indigo-900/40 rounded-lg text-indigo-600 dark:text-indigo-400 shrink-0">
                   <Globe className="w-4 h-4" />
@@ -238,10 +338,8 @@ export default function ProfilePage() {
                   </p>
                 </div>
               </div>
-
             </CardContent>
           </Card>
-
         </div>
       </div>
     </div>

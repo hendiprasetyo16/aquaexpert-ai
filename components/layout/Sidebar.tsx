@@ -44,14 +44,12 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
     return "User";
   };
 
-  const getInitials = (name: string) => {
-    if (!name) return "U"; 
-    const words = name.trim().split(" ");
-    if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
-    return name.substring(0, 2).toUpperCase();
-  };
-
   const menus = role ? MENU_BY_ROLE[role] : [];
+
+  // 💡 LOGIKA AVATAR KONSISTEN DENGAN HALAMAN PROFIL
+  const avatarUrl = profile?.avatar_url || (profile?.full_name 
+    ? `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.full_name)}&background=0D9488&color=fff&rounded=true&bold=true&size=128`
+    : `https://ui-avatars.com/api/?name=User&background=random&rounded=true`);
 
   return (
     <>
@@ -102,9 +100,11 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
               className="mb-4 flex items-center gap-3 rounded-md bg-slate-50 dark:bg-slate-900 p-3 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 group"
               title={dict.sidebar.profileTooltip}
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-600 font-bold text-white shadow-md group-hover:bg-teal-500 transition-colors">
-                {getInitials(profile.full_name)}
+              {/* 💡 UPDATE: MENGGUNAKAN TAG IMG UNTUK MENAMPILKAN AVATAR */}
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 shadow-sm overflow-hidden border border-slate-200 dark:border-slate-700">
+                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               </div>
+              
               <div className="overflow-hidden">
                 <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-200 group-hover:text-black dark:group-hover:text-white transition-colors">
                   {profile.full_name}
