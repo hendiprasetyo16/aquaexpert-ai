@@ -372,6 +372,9 @@ export default function SetupStorage() {
               </span>
             </button>
             <div className="pt-2 mt-auto space-y-3">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-2 italic leading-relaxed text-justify">
+                {syncWarningText}
+              </div>
               <button 
                 onClick={() => setActionModal("avatar_sync")} 
                 disabled={loading} 
