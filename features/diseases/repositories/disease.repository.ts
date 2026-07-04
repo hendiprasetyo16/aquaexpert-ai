@@ -67,14 +67,13 @@ export async function uploadDiseaseImage(file: File, oldImageUrl?: string | null
     }
 
     // 3. Upload gambar baru
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+    const fileName = file.name; // ✅ CUKUP GUNAKAN NAMA FILE BAWAAN DARI FORM
     
     const { error } = await supabase.storage
       .from('disease-images')
       .upload(fileName, compressedFile, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false // Pastikan upsert false agar tidak tertimpa
       });
 
     if (error) throw error;

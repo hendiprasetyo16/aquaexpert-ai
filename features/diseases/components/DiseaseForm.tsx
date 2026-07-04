@@ -152,11 +152,19 @@ export function DiseaseForm({ initialData, mode }: Props) {
       if (coverFile) {
         toast.loading(lang === 'id' ? "Mengompresi & mengunggah gambar..." : "Compressing & uploading image...", { id: "upload" });
         
-        // 2. Format penamaan gambar persis seperti screenshot: slug-cover-timestamp.jpg
+        // 1. Buat slug secara dinamis (on-the-fly) dari inputan nama penyakit
+        // Contoh: "Bintik Putih (White Spot)" menjadi "bintik-putih-white-spot"
+        const dynamicSlug = (formData.name_id || "disease")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-') // Ganti karakter non-alfanumerik dengan strip (-)
+          .replace(/(^-|-$)+/g, '');   // Hapus strip di awal atau akhir
+
+        // 2. Format penamaan gambar persis seperti screenshot: slug-cover-timestamp.ext
         const timestamp = Date.now();
         const ext = coverFile.name.split('.').pop() || 'jpg';
-        const newFileName = `${diseaseSlug}-cover-${timestamp}.${ext}`;
+        const newFileName = `${dynamicSlug}-cover-${timestamp}.${ext}`;
         
+        // 3. Rename file dan Upload
         const renamedFile = new File([coverFile], newFileName, { type: coverFile.type });
         const uploadedUrl = await uploadDiseaseImage(renamedFile, initialData?.image_url);
         
