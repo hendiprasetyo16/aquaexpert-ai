@@ -36,11 +36,17 @@ export async function getFishById(id: string): Promise<Fish | null> {
 
 export async function uploadFishImage(file: File, slug: string, prefix: string): Promise<string> {
   const supabase = createClient();
-  const ext = file.name.split(".").pop();
-  const fileName = `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2)}.${ext}`;
+  
+  // ✅ Cukup gunakan nama file bawaan yang sudah di-generate dari FishForm
+  const fileName = file.name; 
   const filePath = `${slug}/${fileName}`;
-  const { error } = await supabase.storage.from("fish-images").upload(filePath, file, { upsert: false, cacheControl: "3600" });
+  
+  const { error } = await supabase.storage
+    .from("fish-images")
+    .upload(filePath, file, { upsert: false, cacheControl: "3600" });
+    
   if (error) throw error;
+  
   const { data } = supabase.storage.from("fish-images").getPublicUrl(filePath);
   return data.publicUrl;
 }

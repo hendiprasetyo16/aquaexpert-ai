@@ -335,17 +335,35 @@ export default function FishForm({ mode = "create", fish }: FishFormProps) {
 
       let finalCoverUrl = mode === "edit" ? (fish?.image_url || "") : "";
       let finalGalleryUrls = [...existingGallery];
-      const fishSlug = mode === "edit" ? fish?.slug || cleanNameId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") : cleanNameId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+      const fishSlug = mode === "edit" 
+        ? fish?.slug || cleanNameId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") 
+        : cleanNameId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+      // 1. Buat string tanggal untuk dibaca manual (Format: YYYYMMDD)
+      const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, "");
 
       if (coverFile) {
-        finalCoverUrl = await uploadFishImage(coverFile, fishSlug, `cover`);
+        // 2. Format penamaan gambar cover: slug-cover-tanggal-random.ext
+        const uniqueId = Math.random().toString(36).substring(2, 8);
+        const ext = coverFile.name.split('.').pop() || 'jpg';
+        const newFileName = `${fishSlug}-cover-${dateStr}-${uniqueId}.${ext}`;
+        const renamedCover = new File([coverFile], newFileName, { type: coverFile.type });
+
+        finalCoverUrl = await uploadFishImage(renamedCover, fishSlug, `cover`);
         uploadedImagesToRollback.push(finalCoverUrl);
       }
 
       for (let i = 0; i < newGallery.length; i++) {
-         const gUrl = await uploadFishImage(newGallery[i].file, fishSlug, `gallery`);
-         finalGalleryUrls.push(gUrl);
-         uploadedImagesToRollback.push(gUrl);
+        // 3. Format penamaan gambar galeri: slug-gallery-tanggal-random-index.ext
+        const uniqueId = Math.random().toString(36).substring(2, 8);
+        const ext = newGallery[i].file.name.split('.').pop() || 'jpg';
+        const newFileName = `${fishSlug}-gallery-${dateStr}-${uniqueId}-${i}.${ext}`;
+        const renamedGallery = new File([newGallery[i].file], newFileName, { type: newGallery[i].file.type });
+
+        const gUrl = await uploadFishImage(renamedGallery, fishSlug, `gallery`);
+        finalGalleryUrls.push(gUrl);
+        uploadedImagesToRollback.push(gUrl);
       }
 
       const payload: Partial<FishType> = {
