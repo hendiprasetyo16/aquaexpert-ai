@@ -301,17 +301,43 @@ export default function PlantForm({ mode = "create", plant }: PlantFormProps) {
 
       let finalCoverUrl = mode === "edit" ? (plant?.image_url || "") : "";
       let finalGalleryUrls = [...existingGallery];
-      const plantSlug = mode === "edit" ? plant?.slug || cleanNameId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") : cleanNameId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      
+      // Buat slug tanaman dari name_id secara aman
+      const plantSlug = (formData.name_id || "plant")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
 
+      // 1. Buat string tanggal hari ini (Format: YYYYMMDD)
+      const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, "");
+
+      // Proses gambar utama (Cover)
       if (coverFile) {
-        finalCoverUrl = await uploadPlantImage(coverFile, plantSlug, `cover`);
+        // 2. Format penamaan gambar cover: slug-cover-tanggal-random.ext
+        const uniqueId = Math.random().toString(36).substring(2, 8);
+        const ext = coverFile.name.split('.').pop() || 'jpg';
+        const newFileName = `${plantSlug}-cover-${dateStr}-${uniqueId}.${ext}`;
+        
+        // Rename file fisik sebelum di-upload
+        const renamedCover = new File([coverFile], newFileName, { type: coverFile.type });
+
+        finalCoverUrl = await uploadPlantImage(renamedCover, plantSlug, `cover`);
         uploadedImagesToRollback.push(finalCoverUrl);
       }
 
+      // Proses gambar galeri (jika ada multi-upload galeri)
       for (let i = 0; i < newGallery.length; i++) {
-         const gUrl = await uploadPlantImage(newGallery[i].file, plantSlug, `gallery`);
-         finalGalleryUrls.push(gUrl);
-         uploadedImagesToRollback.push(gUrl);
+        // 3. Format penamaan gambar galeri: slug-gallery-tanggal-random-index.ext
+        const uniqueId = Math.random().toString(36).substring(2, 8);
+        const ext = newGallery[i].file.name.split('.').pop() || 'jpg';
+        const newFileName = `${plantSlug}-gallery-${dateStr}-${uniqueId}-${i}.${ext}`;
+        
+        // Rename file galeri fisik
+        const renamedGallery = new File([newGallery[i].file], newFileName, { type: newGallery[i].file.type });
+
+        const gUrl = await uploadPlantImage(renamedGallery, plantSlug, `gallery`);
+        finalGalleryUrls.push(gUrl);
+        uploadedImagesToRollback.push(gUrl);
       }
 
       const payload: Partial<Plant> = {

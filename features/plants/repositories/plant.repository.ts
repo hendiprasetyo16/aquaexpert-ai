@@ -51,17 +51,19 @@ export async function getPlantById(id: string): Promise<Plant | null> {
 
 export async function uploadPlantImage(file: File, slug: string, prefix: string): Promise<string> {
   const supabase = createClient();
-  const ext = file.name.split(".").pop();
   
-  // CACHE-BUSTING: Nama file dijamin unik 100%
-  const fileName = `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2)}.${ext}`;
+  // ✅ GUNAKAN NAMA FILE ASLI (file.name) yang dikirim dari PlantForm
+  // Jangan biarkan ada Date.now() atau Math.random() lagi di sini agar tidak merusak format YYYYMMDD
+  const fileName = file.name; 
   const filePath = `${slug}/${fileName}`;
 
-  // UPSERT FALSE: Karena nama unik, tidak perlu repot menimpa file
-  const { error } = await supabase.storage.from("plant-images").upload(filePath, file, {
-    upsert: false, 
-    cacheControl: "3600"
-  });
+  // UPSERT FALSE: Karena nama unik, tidak perlu khawatir menimpa file lain
+  const { error } = await supabase.storage
+    .from("plant-images")
+    .upload(filePath, file, {
+      upsert: false, 
+      cacheControl: "3600"
+    });
   
   if (error) throw error;
 
