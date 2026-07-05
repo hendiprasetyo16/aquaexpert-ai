@@ -124,6 +124,7 @@ export default function MedicationDatabasePage() {
   return (
     <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors bg-slate-50 dark:bg-slate-950">
       
+      {/* MODAL HAPUS PERMANEN */}
       {medToDelete && activeView === "grid" && (
         <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 border-t-8 border-red-600 relative overflow-hidden">
@@ -158,6 +159,7 @@ export default function MedicationDatabasePage() {
         </div>
       )}
 
+      {/* MODAL PINDAH KE ARSIP */}
       {medToArchive && activeView === "grid" && (
         <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
@@ -186,7 +188,6 @@ export default function MedicationDatabasePage() {
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
               <div className="absolute -top-10 -right-10 w-48 h-48 bg-amber-500/10 dark:bg-amber-500/20 blur-[50px] rounded-full pointer-events-none"></div>
-              
               <div className="relative z-10">
                 <h2 className="text-3xl md:text-4xl font-extrabold text-amber-600 dark:text-amber-500 flex items-center gap-3">
                   <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-2xl">
@@ -198,17 +199,13 @@ export default function MedicationDatabasePage() {
                   {lang === 'id' ? "Daftar referensi obat yang telah disembunyikan atau dinonaktifkan dari sistem utama." : "List of medication references hidden or deactivated from the main system."}
                 </p>
               </div>
-              
               <Button onClick={() => setActiveView("grid")} className="relative z-10 h-12 bg-slate-800 hover:bg-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold px-6 rounded-xl shadow-md uppercase tracking-widest text-xs flex items-center gap-2 transition-all active:scale-[0.98]">
                 <ChevronLeft className="w-4 h-4" /> {lang === 'id' ? "Kembali ke Database" : "Back to Database"}
               </Button>
             </div>
-            
             <MedicationArchiveList onActionSuccess={fetchDatabase} />
           </div>
-
         ) : activeView === "form" ? (
-
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
               <div className="absolute -top-10 -right-10 w-48 h-48 bg-sky-500/10 dark:bg-sky-500/20 blur-[50px] rounded-full pointer-events-none"></div>
@@ -227,21 +224,10 @@ export default function MedicationDatabasePage() {
                 <ChevronLeft className="w-4 h-4" /> {lang === 'id' ? "Kembali ke Database" : "Back to Database"}
               </Button>
             </div>
-
-            <MedicationForm
-              initialData={editingMedication}
-              mode={formMode}
-              onSaveAction={createMedicationAction}
-              onUpdateAction={updateMedicationAction}
-              onSuccess={() => { setActiveView("grid"); fetchDatabase(); }}
-              onCancel={() => setActiveView("grid")}
-            />
+            <MedicationForm initialData={editingMedication} mode={formMode} onSaveAction={createMedicationAction} onUpdateAction={updateMedicationAction} onSuccess={() => { setActiveView("grid"); fetchDatabase(); }} onCancel={() => setActiveView("grid")} />
           </div>
-
         ) : (
-
           <div className="space-y-8 animate-in fade-in duration-500">
-            {/* HEADER TAMPILAN UTAMA (GRID) */}
             <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden transition-colors flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
               <div className="absolute -top-10 -right-10 w-48 h-48 bg-sky-500/10 dark:bg-sky-500/20 blur-[50px] rounded-full pointer-events-none"></div>
               
@@ -275,7 +261,6 @@ export default function MedicationDatabasePage() {
               </div>
             </div>
 
-            {/* DATA GRID UTAMA */}
             {isLoading ? (
               <div className="flex justify-center p-20"><Loader2 className="w-10 h-10 animate-spin text-sky-500 drop-shadow-[0_0_10px_rgba(14,165,233,0.5)]" /></div>
             ) : currentData.length === 0 ? (
@@ -285,115 +270,78 @@ export default function MedicationDatabasePage() {
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 gap-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {currentData.map((med, index) => (
-                    
-                    <div key={med.id} className="relative group mt-4">
-                      
-                      {/* LENCANA NOMOR WARNA DINAMIS */}
-                      <div className="absolute -top-3 -left-3 z-50 flex items-center justify-center w-8 h-8 rounded-full bg-slate-800 dark:bg-white text-white dark:text-slate-900 font-black text-xs shadow-md border-[3px] border-slate-50 dark:border-slate-950">
-                        {startIndex + index + 1}
-                      </div>
+                    <div key={med.id} className="relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-[0_0_20px_rgba(14,165,233,0.25)] dark:hover:shadow-[0_0_20px_rgba(14,165,233,0.15)] transition-all duration-300 hover:border-sky-300 dark:hover:border-sky-700 flex flex-col group">
 
-                      <div className="relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-[0_0_20px_rgba(14,165,233,0.25)] dark:hover:shadow-[0_0_20px_rgba(14,165,233,0.15)] transition-all duration-300 hover:border-sky-300 dark:hover:border-sky-700 flex flex-col h-full">
-
-                        <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-8 opacity-5 dark:opacity-10 pointer-events-none z-0">
-                          <FlaskConical className="w-48 h-48 text-sky-500" />
-                        </div>
-
-                        {/* 💡 PERBAIKAN 1, 2, 3: TOMBOL ADMIN ICON Z-INDEX, POINTER-EVENTS, OPACITY */}
-                        {isAdmin && (
-                          <div className="absolute top-3 right-3 z-[999] flex items-center gap-1.5 pointer-events-auto opacity-100 transition-all">
-                            
-                            <Button 
-                              size="icon" 
-                              variant="ghost" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormMode("edit"); setEditingMedication(med); setActiveView("form"); }} 
-                              className="relative z-[1000] pointer-events-auto cursor-pointer h-8 w-8 bg-white/90 dark:bg-slate-900/90 text-sky-600 dark:text-sky-400 border border-slate-200 dark:border-slate-700 hover:bg-sky-100 dark:hover:bg-slate-800 rounded-lg shadow-sm transition-colors"
-                              title={lang === 'id' ? "Edit Data" : "Edit Data"}
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                            </Button>
-
-                            <Button 
-                              size="icon" 
-                              variant="ghost" 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToArchive(med); }} 
-                              className="relative z-[1000] pointer-events-auto cursor-pointer h-8 w-8 bg-white/90 dark:bg-slate-900/90 text-amber-600 dark:text-amber-500 border border-slate-200 dark:border-slate-700 hover:bg-amber-100 dark:hover:bg-slate-800 rounded-lg shadow-sm transition-colors"
-                              title={lang === 'id' ? "Arsipkan Obat" : "Archive Meds"}
-                            >
-                              <Archive className="w-3.5 h-3.5" />
-                            </Button>
-
-                            {isSuperAdmin && (
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToDelete(med); }} 
-                                className="relative z-[1000] pointer-events-auto cursor-pointer h-8 w-8 bg-white/90 dark:bg-slate-900/90 text-red-600 dark:text-red-400 border border-slate-200 dark:border-slate-700 hover:bg-red-100 dark:hover:bg-slate-800 rounded-lg shadow-sm transition-colors"
-                                title={lang === 'id' ? "Hapus Permanen" : "Permanent Delete"}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
+{/* HEADER KARTU: TOMBOL & NOMOR URUT SEBARIS, JUDUL DI BAWAHNYA */}
+                      <div className="p-5 md:p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/50 flex flex-col relative z-10">
+                        
+                        {/* Baris 1: Tombol Aksi (Kiri) dan Nomor (Kanan) */}
+                        <div className="flex justify-between items-start w-full mb-3 min-h-[32px]">
+                          <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            {isAdmin && (
+                              <>
+                                <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormMode("edit"); setEditingMedication(med); setActiveView("form"); }} className="h-8 w-8 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 border border-slate-200 dark:border-slate-700 hover:bg-sky-100 dark:hover:bg-sky-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Edit Data" : "Edit Data"}>
+                                  <Edit className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToArchive(med); }} className="h-8 w-8 bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border border-slate-200 dark:border-slate-700 hover:bg-amber-100 dark:hover:bg-amber-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Arsipkan Obat" : "Archive Meds"}>
+                                  <Archive className="w-3.5 h-3.5" />
+                                </Button>
+                                {isSuperAdmin && (
+                                  <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToDelete(med); }} className="h-8 w-8 bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 border border-slate-200 dark:border-slate-700 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Hapus Permanen" : "Permanent Delete"}>
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                )}
+                              </>
                             )}
                           </div>
-                        )}
-
-                        {/* 💡 PERBAIKAN 4: MENGHAPUS 'relative z-10' DARI SEMUA SECTION BODY */}
-                        <div className="p-5 md:p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/50 flex flex-col gap-4 pt-8">
-                          <div className="w-full"> 
-                            <h3 className="text-xl md:text-2xl font-black text-slate-800 dark:text-slate-100 mb-2 leading-tight break-words pr-24">
-                              {lang === 'id' ? med.name_id : med.name_en}
-                            </h3>
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400 rounded-lg text-xs font-black uppercase tracking-widest border border-sky-200 dark:border-sky-800/50 w-fit max-w-full">
-                              <Beaker className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{med.active_ingredient}</span>
-                            </div>
+                          
+                          <div className="bg-sky-100 dark:bg-sky-900/60 text-sky-600 dark:text-sky-400 font-black text-xs px-3 py-1.5 rounded-lg shadow-sm shrink-0 ml-2">
+                            #{String(startIndex + index + 1).padStart(2, "0")}
                           </div>
                         </div>
 
-                        <div className="p-6 flex-1 space-y-5">
-                          <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed min-h-[40px] break-words whitespace-normal">{lang === 'id' ? med.description_id : med.description_en}</p>
-                          <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-950/80 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                            <div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{lang === 'id' ? 'Dosis Standar' : 'Standard Dosage'}</p>
-                              <p className="text-lg font-black text-sky-600 dark:text-sky-400 drop-shadow-[0_0_5px_rgba(14,165,233,0.2)]">{med.base_dosage_per_100l} <span className="text-xs font-bold text-sky-700 dark:text-sky-500">{med.dosage_unit} / 100L</span></p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{lang === 'id' ? 'Durasi' : 'Duration'}</p>
-                              <p className="text-lg font-black text-slate-700 dark:text-slate-200">{med.treatment_duration_days} <span className="text-xs font-bold text-slate-500">{lang === 'id' ? 'Hari' : 'Days'}</span></p>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3 pt-2">
-                            <div className={`p-3 rounded-xl border flex flex-col items-center justify-center text-center gap-2 transition-all ${med.safe_for_plants ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-400' : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-400'}`}>
-                              {med.safe_for_plants ? <Leaf className="w-5 h-5 drop-shadow-sm" /> : <AlertTriangle className="w-5 h-5 drop-shadow-sm" />}
-                              <span className="text-[10px] font-black uppercase tracking-widest">{lang === 'id' ? 'Tanaman' : 'Plants'}</span>
-                            </div>
-                            <div className={`p-3 rounded-xl border flex flex-col items-center justify-center text-center gap-2 transition-all ${med.safe_for_inverts ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-400' : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-400'}`}>
-                              {med.safe_for_inverts ? <Bug className="w-5 h-5 drop-shadow-sm" /> : <AlertTriangle className="w-5 h-5 drop-shadow-sm" />}
-                              <span className="text-[10px] font-black uppercase tracking-widest">{lang === 'id' ? 'Udang/Siput' : 'Inverts'}</span>
-                            </div>
+                        {/* Baris 2: Judul Obat */}
+                        <div className="w-full"> 
+                          <h3 className="text-lg md:text-xl font-black text-slate-800 dark:text-slate-100 mb-2 leading-tight break-words">{lang === 'id' ? med.name_id : med.name_en}</h3>
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400 rounded-lg text-xs font-black uppercase tracking-widest border border-sky-200 dark:border-sky-800/50 w-fit max-w-full">
+                            <Beaker className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{med.active_ingredient}</span>
                           </div>
                         </div>
 
-                        <div className="p-5 bg-slate-100 dark:bg-slate-950/80 flex justify-between items-center rounded-b-3xl border-t border-slate-200 dark:border-slate-800 transition-colors">
-                          <div className="text-center flex-1 border-r border-slate-300 dark:border-slate-800">
-                            <Activity className="w-5 h-5 mx-auto text-sky-500 drop-shadow-[0_0_8px_rgba(14,165,233,0.5)] mb-1.5" />
-                            <p className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-0.5">{lang === 'id' ? 'Skor Medis' : 'Med Score'}</p>
-                            <p className="text-xl font-black text-slate-800 dark:text-slate-100">{med.clinical_score_baseline}</p>
+                      </div>
+
+
+
+                      <div className="p-6 flex-1 space-y-5">
+                        <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed min-h-[40px] break-words whitespace-normal">{lang === 'id' ? med.description_id : med.description_en}</p>
+                        <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-950/80 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{lang === 'id' ? 'Dosis Standar' : 'Standard Dosage'}</p>
+                            <p className="text-lg font-black text-sky-600 dark:text-sky-400">{med.base_dosage_per_100l} <span className="text-xs font-bold text-sky-700 dark:text-sky-500">{med.dosage_unit} / 100L</span></p>
                           </div>
-                          <div className="text-center flex-1 border-r border-slate-300 dark:border-slate-800">
-                            <ShieldCheck className="w-5 h-5 mx-auto text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)] mb-1.5" />
-                            <p className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-0.5">{lang === 'id' ? 'Standar Sembuh' : 'Success Base'}</p>
-                            <p className="text-xl font-black text-slate-800 dark:text-slate-100">{med.success_rate_baseline_pct}%</p>
-                          </div>
-                          <div className="text-center flex-1">
-                            <Clock className="w-5 h-5 mx-auto text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)] mb-1.5" />
-                            <p className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-0.5">{lang === 'id' ? 'Rata-rata' : 'Avg Time'}</p>
-                            <p className="text-xl font-black text-slate-800 dark:text-slate-100">{med.avg_recovery_days_baseline} <span className="text-[10px]">{lang === 'id' ? 'Hari' : 'Days'}</span></p>
+                          <div className="text-right">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{lang === 'id' ? 'Durasi' : 'Duration'}</p>
+                            <p className="text-lg font-black text-slate-700 dark:text-slate-200">{med.treatment_duration_days} <span className="text-xs font-bold text-slate-500">{lang === 'id' ? 'Hari' : 'Days'}</span></p>
                           </div>
                         </div>
+                        <div className="grid grid-cols-2 gap-3 pt-2">
+                          <div className={`p-3 rounded-xl border flex flex-col items-center justify-center text-center gap-2 transition-all ${med.safe_for_plants ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-400' : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-400'}`}>
+                            {med.safe_for_plants ? <Leaf className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+                            <span className="text-[10px] font-black uppercase tracking-widest">{lang === 'id' ? 'Tanaman' : 'Plants'}</span>
+                          </div>
+                          <div className={`p-3 rounded-xl border flex flex-col items-center justify-center text-center gap-2 transition-all ${med.safe_for_inverts ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-400' : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-400'}`}>
+                            {med.safe_for_inverts ? <Bug className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+                            <span className="text-[10px] font-black uppercase tracking-widest">{lang === 'id' ? 'Udang/Siput' : 'Inverts'}</span>
+                          </div>
+                        </div>
+                      </div>
 
+                      <div className="p-5 bg-slate-100 dark:bg-slate-950/80 flex justify-between items-center rounded-b-3xl border-t border-slate-200 dark:border-slate-800 transition-colors">
+                        <div className="text-center flex-1 border-r border-slate-300 dark:border-slate-800"><Activity className="w-5 h-5 mx-auto text-sky-500 mb-1.5" /><p className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-0.5">{lang === 'id' ? 'Skor Medis' : 'Med Score'}</p><p className="text-xl font-black text-slate-800 dark:text-slate-100">{med.clinical_score_baseline}</p></div>
+                        <div className="text-center flex-1 border-r border-slate-300 dark:border-slate-800"><ShieldCheck className="w-5 h-5 mx-auto text-emerald-500 mb-1.5" /><p className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-0.5">{lang === 'id' ? 'Standar Sembuh' : 'Success Base'}</p><p className="text-xl font-black text-slate-800 dark:text-slate-100">{med.success_rate_baseline_pct}%</p></div>
+                        <div className="text-center flex-1"><Clock className="w-5 h-5 mx-auto text-amber-500 mb-1.5" /><p className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-0.5">{lang === 'id' ? 'Rata-rata' : 'Avg Time'}</p><p className="text-xl font-black text-slate-800 dark:text-slate-100">{med.avg_recovery_days_baseline} <span className="text-[10px]">{lang === 'id' ? 'Hari' : 'Days'}</span></p></div>
                       </div>
                     </div>
                   ))}
@@ -425,7 +373,6 @@ export default function MedicationDatabasePage() {
             )}
           </div>
         )}
-
       </div>
     </div>
   );
