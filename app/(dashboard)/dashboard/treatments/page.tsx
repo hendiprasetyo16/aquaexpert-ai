@@ -45,11 +45,14 @@ export default function TreatmentWardPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 💡 FIX 1: PENYAMAAAN LOGIKA WAKTU (00:00) SEPERTI DI BACKEND
   const calculateDayNumber = (startDate: string) => {
     const start = new Date(startDate);
     const today = new Date();
-    const diffTime = Math.abs(today.getTime() - start.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const startMidnight = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffTime = Math.abs(todayMidnight.getTime() - startMidnight.getTime());
+    return Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
   };
 
   const calculateDuration = (startStr: string, endStr: string | null) => {
@@ -113,7 +116,7 @@ export default function TreatmentWardPage() {
           </div>
         )}
 
-        {/* HEADER DENGAN DUKUNGAN BILINGUAL PENUH */}
+        {/* HEADER */}
         <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-rose-500/10 blur-[50px] rounded-full pointer-events-none"></div>
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -190,7 +193,10 @@ export default function TreatmentWardPage() {
                           {session.latest_log.action_taken === "Observed" ? (lang === 'id' ? "Hanya Observasi" : "Observed") 
                            : session.latest_log.action_taken === "Redosed" ? (lang === 'id' ? "Dosis Ulang" : "Redosed") 
                            : session.latest_log.action_taken === "Water Change" ? (lang === 'id' ? "Ganti Air" : "Water Change") : session.latest_log.action_taken}
-                          <span className="font-normal italic text-slate-500 block mt-0.5">{session.latest_log.notes ? `"${session.latest_log.notes}"` : ''}</span>
+                          
+                          <span className="font-normal italic text-slate-500 block mt-0.5 max-h-16 overflow-y-auto custom-scrollbar whitespace-pre-wrap">
+                            {session.latest_log.notes ? `"${session.latest_log.notes}"` : ''}
+                          </span>
                         </p>
                       </div>
                     )}

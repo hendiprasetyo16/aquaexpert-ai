@@ -52,7 +52,10 @@ export default function TreatmentTab({ aquariumId }: Props) {
   const calculateDayNumber = (startDate: string) => {
     const start = new Date(startDate);
     const today = new Date();
-    return Math.ceil(Math.abs(today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const startMidnight = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffTime = Math.abs(todayMidnight.getTime() - startMidnight.getTime());
+    return Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
   };
 
   const calculateDuration = (startStr: string, endStr: string | null) => {
@@ -155,7 +158,10 @@ export default function TreatmentTab({ aquariumId }: Props) {
                         {session.latest_log.action_taken === "Observed" ? (lang === 'id' ? "Hanya Observasi" : "Observed") 
                          : session.latest_log.action_taken === "Redosed" ? (lang === 'id' ? "Dosis Ulang" : "Redosed") 
                          : session.latest_log.action_taken === "Water Change" ? (lang === 'id' ? "Ganti Air" : "Water Change") : session.latest_log.action_taken}
-                        <span className="font-normal italic text-slate-500 block mt-0.5">{session.latest_log.notes ? `"${session.latest_log.notes}"` : ''}</span>
+                        
+                        <span className="font-normal italic text-slate-500 block mt-0.5 max-h-16 overflow-y-auto custom-scrollbar whitespace-pre-wrap">
+                          {session.latest_log.notes ? `"${session.latest_log.notes}"` : ''}
+                        </span>
                       </p>
                     </div>
                   )}
@@ -197,7 +203,6 @@ export default function TreatmentTab({ aquariumId }: Props) {
                      : "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800";
 
                  return (
-                   // 💡 FIX: Menambahkan class 'group' agar tombol trash bisa mendeteksi hover
                    <div key={hist.id} className={`group bg-white dark:bg-slate-900 border rounded-2xl p-4 flex flex-col relative overflow-hidden transition-colors ${
                      isSuccess ? 'border-emerald-200 dark:border-emerald-900/50' : isFailed ? 'border-red-200 dark:border-red-900/50' : 'border-amber-200 dark:border-amber-900/50'
                    }`}>

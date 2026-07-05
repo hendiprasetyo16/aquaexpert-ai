@@ -95,17 +95,14 @@ export async function logDailyTreatmentAction({
     const { data: diseaseInfo } = await supabase.from("diseases").select("name_id").eq("id", session.disease_id).single();
     const dName = diseaseInfo?.name_id || 'Penyakit';
 
-    // 💡 FIX 1: PERBAIKAN LOGIKA HARI ABSOLUT (00:00 ke 00:00)
-    // Supaya input jam 23:00 dan jam 01:00 pagi dihitung sebagai hari yang sama jika masih tanggal yang sama
     const startDate = new Date(session.started_at);
     const today = new Date();
     
-    // Normalisasi jam ke 00:00:00 lokal
     const startMidnight = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
     const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     
     const diffTime = Math.abs(todayMidnight.getTime() - startMidnight.getTime());
-    const dayNumber = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 karena hari pertama adalah Hari ke-1
+    const dayNumber = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1; 
 
     const initialCount = session.initial_symptoms?.length || 1;
     const currentCount = remainingSymptomIds.length;
@@ -155,23 +152,22 @@ export async function logDailyTreatmentAction({
       log_date: new Date().toISOString()
     };
     
-    // 💡 FIX 2: CARI APAKAH HARI INI SUDAH ADA LOG ATAU BELUM
     const { data: existingLog } = await supabase.from("treatment_logs").select("id, notes, action_taken").eq("session_id", sessionId).eq("day_number", dayNumber).maybeSingle();
     
     if (existingLog) {
-      // 💡 FITUR BAPAK: GABUNGKAN CATATAN JIKA UPDATE 2 KALI DI HARI YANG SAMA
-      // Jika sebelumnya hanya 'Observasi' dan sekarang 'Kasih Obat', maka catatannya di-update menjadi 'Kasih Obat' (Timpa)
-      // Tapi jika dua-duanya Kasih Obat, kita gabungkan 'Notes'-nya agar histori yang lama tidak hilang.
-      const updatedNotes = existingLog.notes ? `${existingLog.notes} \n[Update]: ${notes}` : notes;
+      // 💡 FIX 2: Catatan Terbaru Ditampilkan Paling Atas
+      let finalNotes = existingLog.notes || "";
+      if (notes && notes.trim() !== "") {
+        finalNotes = existingLog.notes ? `[Update]: ${notes} \n${existingLog.notes}` : notes;
+      }
       
       const { error } = await supabase.from("treatment_logs").update({
         ...logData,
-        notes: updatedNotes // Notes lama disambung dengan notes baru
+        notes: finalNotes 
       }).eq("id", existingLog.id);
       
       if (error) throw error;
       
-      // Ubah notifikasi karena ini adalah 'Update' log hari ini
       notifTitle = `Update Catatan Medis (Hari ${dayNumber})`;
       notifMessage = `${userName} merevisi catatan medis "${dName}" hari ini menjadi: ${actionTaken}.`;
       
