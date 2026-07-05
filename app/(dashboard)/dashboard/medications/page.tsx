@@ -272,32 +272,52 @@ export default function MedicationDatabasePage() {
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {currentData.map((med, index) => (
-                    <div key={med.id} className="relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-[0_0_20px_rgba(14,165,233,0.25)] dark:hover:shadow-[0_0_20px_rgba(14,165,233,0.15)] transition-all duration-300 hover:border-sky-300 dark:hover:border-sky-700 flex flex-col group">
-
-{/* HEADER KARTU: TOMBOL & NOMOR URUT SEBARIS, JUDUL DI BAWAHNYA */}
-                      <div className="p-5 md:p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/50 flex flex-col relative z-10">
+                    <div 
+                      key={med.id} 
+                      className="relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-[0_0_20px_rgba(14,165,233,0.15)] dark:hover:shadow-[0_0_20px_rgba(14,165,233,0.1)] transition-all duration-300 hover:border-sky-300 dark:hover:border-sky-500/40 dark:hover:bg-slate-800/50 flex flex-col group"
+                    >
+                      {/* HEADER KARTU: TOMBOL & NOMOR URUT SEBARIS, JUDUL DI BAWAHNYA */}
+                      <div className="p-5 md:p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-transparent flex flex-col relative z-10 transition-colors">
                         
                         {/* Baris 1: Tombol Aksi (Kiri) dan Nomor (Kanan) */}
                         <div className="flex justify-between items-start w-full mb-3 min-h-[32px]">
-                          <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                             {isAdmin && (
                               <>
-                                <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormMode("edit"); setEditingMedication(med); setActiveView("form"); }} className="h-8 w-8 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 border border-slate-200 dark:border-slate-700 hover:bg-sky-100 dark:hover:bg-sky-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Edit Data" : "Edit Data"}>
+                                <button 
+                                  type="button"
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormMode("edit"); setEditingMedication(med); setActiveView("form"); }} 
+                                  className="h-8 w-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sky-600 dark:text-sky-400 hover:bg-sky-500 hover:text-white dark:hover:bg-sky-500 dark:hover:text-white hover:border-sky-400 dark:hover:border-sky-400 rounded-lg shadow-sm transition-all duration-200" 
+                                  title={lang === 'id' ? "Edit Data" : "Edit Data"}
+                                >
                                   <Edit className="w-3.5 h-3.5" />
-                                </Button>
-                                <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToArchive(med); }} className="h-8 w-8 bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border border-slate-200 dark:border-slate-700 hover:bg-amber-100 dark:hover:bg-amber-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Arsipkan Obat" : "Archive Meds"}>
+                                </button>
+                                
+                                <button 
+                                  type="button" 
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToArchive(med); }} 
+                                  className="h-8 w-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-500 dark:hover:text-white hover:border-amber-400 dark:hover:border-amber-400 rounded-lg shadow-sm transition-all duration-200" 
+                                  title={lang === 'id' ? "Arsipkan Obat" : "Archive Meds"}
+                                >
                                   <Archive className="w-3.5 h-3.5" />
-                                </Button>
+                                </button>
+                                
                                 {isSuperAdmin && (
-                                  <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToDelete(med); }} className="h-8 w-8 bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 border border-slate-200 dark:border-slate-700 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Hapus Permanen" : "Permanent Delete"}>
+                                  <button 
+                                    type="button" 
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToDelete(med); }} 
+                                    className="h-8 w-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white dark:hover:bg-red-500 dark:hover:text-white hover:border-red-400 dark:hover:border-red-400 rounded-lg shadow-sm transition-all duration-200" 
+                                    title={lang === 'id' ? "Hapus Permanen" : "Permanent Delete"}
+                                  >
                                     <Trash2 className="w-3.5 h-3.5" />
-                                  </Button>
+                                  </button>
                                 )}
                               </>
                             )}
                           </div>
                           
-                          <div className="bg-sky-100 dark:bg-sky-900/60 text-sky-600 dark:text-sky-400 font-black text-xs px-3 py-1.5 rounded-lg shadow-sm shrink-0 ml-2">
+                          {/* BADGE NUMBER BERGAYA MODERN (GLASSMORPHISM) */}
+                          <div className="bg-sky-500/10 dark:bg-sky-500/15 border border-sky-200 dark:border-sky-500/30 text-sky-700 dark:text-sky-300 font-black text-xs px-3 py-1.5 rounded-xl backdrop-blur-sm shadow-sm shrink-0 ml-2">
                             #{String(startIndex + index + 1).padStart(2, "0")}
                           </div>
                         </div>
@@ -305,18 +325,16 @@ export default function MedicationDatabasePage() {
                         {/* Baris 2: Judul Obat */}
                         <div className="w-full"> 
                           <h3 className="text-lg md:text-xl font-black text-slate-800 dark:text-slate-100 mb-2 leading-tight break-words">{lang === 'id' ? med.name_id : med.name_en}</h3>
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400 rounded-lg text-xs font-black uppercase tracking-widest border border-sky-200 dark:border-sky-800/50 w-fit max-w-full">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400 rounded-lg text-xs font-black uppercase tracking-widest border border-sky-200 dark:border-sky-800/50 w-fit max-w-full transition-colors">
                             <Beaker className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{med.active_ingredient}</span>
                           </div>
                         </div>
 
                       </div>
 
-
-
                       <div className="p-6 flex-1 space-y-5">
                         <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed min-h-[40px] break-words whitespace-normal">{lang === 'id' ? med.description_id : med.description_en}</p>
-                        <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-950/80 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-950/80 p-4 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors">
                           <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{lang === 'id' ? 'Dosis Standar' : 'Standard Dosage'}</p>
                             <p className="text-lg font-black text-sky-600 dark:text-sky-400">{med.base_dosage_per_100l} <span className="text-xs font-bold text-sky-700 dark:text-sky-500">{med.dosage_unit} / 100L</span></p>
@@ -338,9 +356,9 @@ export default function MedicationDatabasePage() {
                         </div>
                       </div>
 
-                      <div className="p-5 bg-slate-100 dark:bg-slate-950/80 flex justify-between items-center rounded-b-3xl border-t border-slate-200 dark:border-slate-800 transition-colors">
-                        <div className="text-center flex-1 border-r border-slate-300 dark:border-slate-800"><Activity className="w-5 h-5 mx-auto text-sky-500 mb-1.5" /><p className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-0.5">{lang === 'id' ? 'Skor Medis' : 'Med Score'}</p><p className="text-xl font-black text-slate-800 dark:text-slate-100">{med.clinical_score_baseline}</p></div>
-                        <div className="text-center flex-1 border-r border-slate-300 dark:border-slate-800"><ShieldCheck className="w-5 h-5 mx-auto text-emerald-500 mb-1.5" /><p className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-0.5">{lang === 'id' ? 'Standar Sembuh' : 'Success Base'}</p><p className="text-xl font-black text-slate-800 dark:text-slate-100">{med.success_rate_baseline_pct}%</p></div>
+                      <div className="p-5 bg-slate-100 dark:bg-slate-900/50 flex justify-between items-center rounded-b-3xl border-t border-slate-200 dark:border-slate-800 transition-colors">
+                        <div className="text-center flex-1 border-r border-slate-300 dark:border-slate-700"><Activity className="w-5 h-5 mx-auto text-sky-500 mb-1.5" /><p className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-0.5">{lang === 'id' ? 'Skor Medis' : 'Med Score'}</p><p className="text-xl font-black text-slate-800 dark:text-slate-100">{med.clinical_score_baseline}</p></div>
+                        <div className="text-center flex-1 border-r border-slate-300 dark:border-slate-700"><ShieldCheck className="w-5 h-5 mx-auto text-emerald-500 mb-1.5" /><p className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-0.5">{lang === 'id' ? 'Standar Sembuh' : 'Success Base'}</p><p className="text-xl font-black text-slate-800 dark:text-slate-100">{med.success_rate_baseline_pct}%</p></div>
                         <div className="text-center flex-1"><Clock className="w-5 h-5 mx-auto text-amber-500 mb-1.5" /><p className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-0.5">{lang === 'id' ? 'Rata-rata' : 'Avg Time'}</p><p className="text-xl font-black text-slate-800 dark:text-slate-100">{med.avg_recovery_days_baseline} <span className="text-[10px]">{lang === 'id' ? 'Hari' : 'Days'}</span></p></div>
                       </div>
                     </div>
