@@ -3,7 +3,7 @@
 
 import { useState, useEffect, ChangeEvent } from "react";
 import { useLanguage } from "@/providers/LanguageProvider";
-import { Pill, FlaskConical, Beaker, Leaf, Bug, AlertTriangle, ShieldCheck, Clock, Activity, Loader2, Search, Edit, Trash2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive } from "lucide-react";
+import { Pill, FlaskConical, Beaker, Leaf, Bug, AlertTriangle, ShieldCheck, Clock, Activity, Loader2, Search, Database, Edit, Trash2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive } from "lucide-react";
 import { getMedicationsDatabaseAction, getUserRoleAction, deleteMedicationAction, createMedicationAction, updateMedicationAction, toggleMedicationArchiveAction, MedicationDto } from "@/features/diseases/actions/medication.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -274,36 +274,30 @@ export default function MedicationDatabasePage() {
                   {currentData.map((med, index) => (
                     <div key={med.id} className="relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-[0_0_20px_rgba(14,165,233,0.25)] dark:hover:shadow-[0_0_20px_rgba(14,165,233,0.15)] transition-all duration-300 hover:border-sky-300 dark:hover:border-sky-700 flex flex-col group">
 
-                      {/* BAGIAN KANAN ATAS: TOMBOL AKSI & NOMOR URUT */}
-                      <div className="absolute top-0 right-0 flex items-start z-30">
-                        {isAdmin && (
-                          <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300 pr-2 pt-1.5">
-                            <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormMode("edit"); setEditingMedication(med); setActiveView("form"); }} className="h-8 w-8 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 text-sky-600 dark:text-sky-400 border border-slate-200 dark:border-slate-700 hover:bg-sky-50 dark:hover:bg-sky-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Edit Data" : "Edit Data"}>
-                              <Edit className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToArchive(med); }} className="h-8 w-8 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 text-amber-600 dark:text-amber-500 border border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Arsipkan Obat" : "Archive Meds"}>
-                              <Archive className="w-3.5 h-3.5" />
-                            </Button>
-                            {isSuperAdmin && (
-                              <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToDelete(med); }} className="h-8 w-8 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 text-red-600 dark:text-red-400 border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Hapus Permanen" : "Permanent Delete"}>
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                        <div className="bg-sky-100 dark:bg-sky-900/60 text-sky-600 dark:text-sky-400 font-black text-xs px-4 py-2 rounded-bl-xl shadow-sm border-b border-l border-sky-100 dark:border-sky-800/50">
-                          #{String(startIndex + index + 1).padStart(2, '0')}
-                        </div>
+                      {/* NOMOR URUT (DI KANAN ATAS, SEPERTI DI ARSIP) */}
+                      <div className="absolute top-0 right-0 bg-sky-100 dark:bg-sky-900/60 text-sky-600 dark:text-sky-400 font-black text-xs px-4 py-1.5 rounded-bl-xl z-20">
+                        #{String(startIndex + index + 1).padStart(2, '0')}
                       </div>
 
                       <div className="p-5 md:p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/50 flex flex-col gap-4 relative z-10 pt-8">
                         <div className="flex justify-between items-start gap-4">
+                          
                           <div className="w-full"> 
-                            <h3 className="text-xl md:text-2xl font-black text-slate-800 dark:text-slate-100 mb-2 leading-tight break-words pr-12">{lang === 'id' ? med.name_id : med.name_en}</h3>
+                            <h3 className="text-xl md:text-2xl font-black text-slate-800 dark:text-slate-100 mb-2 leading-tight break-words">{lang === 'id' ? med.name_id : med.name_en}</h3>
                             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400 rounded-lg text-xs font-black uppercase tracking-widest border border-sky-200 dark:border-sky-800/50 w-fit max-w-full">
                               <Beaker className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{med.active_ingredient}</span>
                             </div>
                           </div>
+
+                          {isAdmin && (
+                            <div className="flex items-center gap-1.5 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300 shrink-0">
+                              <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormMode("edit"); setEditingMedication(med); setActiveView("form"); }} className="h-8 w-8 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 border border-slate-200 dark:border-slate-700 hover:bg-sky-50 dark:hover:bg-sky-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Edit Data" : "Edit Data"}><Edit className="w-3.5 h-3.5" /></Button>
+                              <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToArchive(med); }} className="h-8 w-8 bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-500 border border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Arsipkan Obat" : "Archive Meds"}><Archive className="w-3.5 h-3.5" /></Button>
+                              {isSuperAdmin && (
+                                <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToDelete(med); }} className="h-8 w-8 bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Hapus Permanen" : "Permanent Delete"}><Trash2 className="w-3.5 h-3.5" /></Button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 
