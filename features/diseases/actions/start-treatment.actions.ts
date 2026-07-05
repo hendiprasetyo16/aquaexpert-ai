@@ -4,6 +4,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { verifyAquariumOwnership } from "@/features/aquariums/repositories/security.repository";
+import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; // 💡 IMPORT NOTIFIKASI
 
 interface StartTreatmentPayload {
   aquariumId: string;
@@ -32,6 +33,16 @@ export interface ActiveTreatmentDto {
     dosage_unit: string;
   } | null;
   latest_log: { action_taken: string; notes: string; day_number: number } | null;
+}
+
+// 💡 HELPER: Mengambil nama pengguna & nama akuarium untuk Notifikasi
+async function getUserAndAquariumName(supabase: any, userId: string, aquariumId: string) {
+  const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', userId).single();
+  const { data: aq } = await supabase.from("my_aquariums").select("name").eq("id", aquariumId).single();
+  return { 
+    userName: profile?.full_name || "User", 
+    aqName: aq?.name || "Akuarium" 
+  };
 }
 
 export async function getTreatmentDropdownOptionsAction() {
@@ -73,17 +84,17 @@ export async function startNewTreatmentSessionAction(payload: StartTreatmentPayl
     if (error) throw new Error(error.message);
 
     // =====================================================================
-    // 💡 FITUR BARU: MENGIRIM NOTIFIKASI LONCENG OTOMATIS SAAT SESI DIMULAI
+    // 💡 FITUR BARU: NOTIFIKASI MEMULAI PENGOBATAN
     // =====================================================================
-    const { data: profileData } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
-    const userName = profileData?.full_name || "Aquarist";
+    const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, payload.aquariumId);
+    const { data: disease } = await supabase.from("diseases").select("name_id").eq("id", payload.diseaseId).single();
     
-    await supabase.from("system_activities").insert({
-      title: "Sesi Pengobatan Baru Dimulai",
-      message: `${userName} baru saja memulai sesi karantina/pengobatan baru di akuariumnya. Segera pantau perkembangannya setiap hari.`,
-      category: "alert",
-      created_by: "AquaExpert AI"
-    });
+    await pushNotificationAction(
+      "Sesi Pengobatan Dimulai",
+      `${userName} memulai sesi pengobatan untuk indikasi "${disease?.name_id || 'Penyakit'}" di akuarium "${aqName}".`,
+      "alert", // Muncul sebagai Peringatan Merah
+      userName
+    );
 
     revalidatePath(`/dashboard/my-aquarium/${payload.aquariumId}`);
     return { success: true };
@@ -98,9 +109,6 @@ export async function getActiveTreatmentsAction(aquariumIdFilter?: string): Prom
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, data: [], error: "Session expired." };
 
-    // =====================================================================
-    // 💡 FITUR BAPAK: CEK SUPER ADMIN AGAR BISA MEMANTAU GLOBAL WARD
-    // =====================================================================
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     const isSuperAdmin = profile?.role === 'super_admin';
 
@@ -116,16 +124,13 @@ export async function getActiveTreatmentsAction(aquariumIdFilter?: string): Prom
       .order("started_at", { ascending: false });
 
     if (aquariumIdFilter) {
-      // Akses dari Tab Lokal: Kueri super cepat karena menembak langsung Index Aquarium ID
       query = query.eq("aquarium_id", aquariumIdFilter);
     } else if (!isSuperAdmin) {
-      // Akses dari Global Ward (User Biasa): Wajib di-filter agar hanya mengambil tank miliknya
       const { data: myAquariums } = await supabase.from("my_aquariums").select("id").eq("user_id", user.id);
       if (!myAquariums || myAquariums.length === 0) return { success: true, data: [] };
       const aquariumIds = myAquariums.map(aq => aq.id);
       query = query.in("aquarium_id", aquariumIds);
     }
-    // Jika Super Admin buka Global Ward -> Langsung lolos tanpa filter (melihat seluruh pasien di server)
 
     const { data: sessions, error: sessionErr } = await query;
     if (sessionErr) throw new Error(sessionErr.message);
