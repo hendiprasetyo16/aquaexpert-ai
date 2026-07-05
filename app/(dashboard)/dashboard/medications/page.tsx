@@ -32,7 +32,6 @@ export default function MedicationDatabasePage() {
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingMedication, setEditingMedication] = useState<MedicationDto | null>(null);
 
-  // 💡 STATE KUNCI UNTUK MENGGANTI TAMPILAN (FULL PAGE ROUTING)
   const [activeView, setActiveView] = useState<"grid" | "archive" | "form">("grid"); 
 
   const fetchDatabase = async () => {
@@ -125,7 +124,7 @@ export default function MedicationDatabasePage() {
   return (
     <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors bg-slate-50 dark:bg-slate-950">
       
-      {/* 💡 MODAL HAPUS PERMANEN (TETAP SEBAGAI POP-UP DI HALAMAN GRID) */}
+      {/* MODAL HAPUS PERMANEN */}
       {medToDelete && activeView === "grid" && (
         <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 border-t-8 border-red-600 relative overflow-hidden">
@@ -160,7 +159,7 @@ export default function MedicationDatabasePage() {
         </div>
       )}
 
-      {/* 💡 MODAL PINDAH KE ARSIP (TETAP SEBAGAI POP-UP DI HALAMAN GRID) */}
+      {/* MODAL PINDAH KE ARSIP */}
       {medToArchive && activeView === "grid" && (
         <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
@@ -185,16 +184,10 @@ export default function MedicationDatabasePage() {
 
       <div className="max-w-[1400px] mx-auto pb-10">
         
-        {/* ========================================================= */}
-        {/* CONDITIONAL RENDERING: TAMPILAN FULL PAGE BERDASARKAN STATE */}
-        {/* ========================================================= */}
-        
         {activeView === "archive" ? (
-          
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
               <div className="absolute -top-10 -right-10 w-48 h-48 bg-amber-500/10 dark:bg-amber-500/20 blur-[50px] rounded-full pointer-events-none"></div>
-              
               <div className="relative z-10">
                 <h2 className="text-3xl md:text-4xl font-extrabold text-amber-600 dark:text-amber-500 flex items-center gap-3">
                   <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-2xl">
@@ -206,17 +199,13 @@ export default function MedicationDatabasePage() {
                   {lang === 'id' ? "Daftar referensi obat yang telah disembunyikan atau dinonaktifkan dari sistem utama." : "List of medication references hidden or deactivated from the main system."}
                 </p>
               </div>
-              
               <Button onClick={() => setActiveView("grid")} className="relative z-10 h-12 bg-slate-800 hover:bg-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold px-6 rounded-xl shadow-md uppercase tracking-widest text-xs flex items-center gap-2 transition-all active:scale-[0.98]">
                 <ChevronLeft className="w-4 h-4" /> {lang === 'id' ? "Kembali ke Database" : "Back to Database"}
               </Button>
             </div>
-            
             <MedicationArchiveList onActionSuccess={fetchDatabase} />
           </div>
-
         ) : activeView === "form" ? (
-
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
               <div className="absolute -top-10 -right-10 w-48 h-48 bg-sky-500/10 dark:bg-sky-500/20 blur-[50px] rounded-full pointer-events-none"></div>
@@ -235,22 +224,10 @@ export default function MedicationDatabasePage() {
                 <ChevronLeft className="w-4 h-4" /> {lang === 'id' ? "Kembali ke Database" : "Back to Database"}
               </Button>
             </div>
-
-            {/* FORM COMPONENT */}
-            <MedicationForm
-              initialData={editingMedication}
-              mode={formMode}
-              onSaveAction={createMedicationAction}
-              onUpdateAction={updateMedicationAction}
-              onSuccess={() => { setActiveView("grid"); fetchDatabase(); }}
-              onCancel={() => setActiveView("grid")}
-            />
+            <MedicationForm initialData={editingMedication} mode={formMode} onSaveAction={createMedicationAction} onUpdateAction={updateMedicationAction} onSuccess={() => { setActiveView("grid"); fetchDatabase(); }} onCancel={() => setActiveView("grid")} />
           </div>
-
         ) : (
-
           <div className="space-y-8 animate-in fade-in duration-500">
-            {/* HEADER TAMPILAN UTAMA (GRID) */}
             <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden transition-colors flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
               <div className="absolute -top-10 -right-10 w-48 h-48 bg-sky-500/10 dark:bg-sky-500/20 blur-[50px] rounded-full pointer-events-none"></div>
               
@@ -284,7 +261,6 @@ export default function MedicationDatabasePage() {
               </div>
             </div>
 
-            {/* DATA GRID UTAMA */}
             {isLoading ? (
               <div className="flex justify-center p-20"><Loader2 className="w-10 h-10 animate-spin text-sky-500 drop-shadow-[0_0_10px_rgba(14,165,233,0.5)]" /></div>
             ) : currentData.length === 0 ? (
@@ -298,14 +274,23 @@ export default function MedicationDatabasePage() {
                   {currentData.map((med, index) => (
                     <div key={med.id} className="relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-[0_0_20px_rgba(14,165,233,0.25)] dark:hover:shadow-[0_0_20px_rgba(14,165,233,0.15)] transition-all duration-300 hover:border-sky-300 dark:hover:border-sky-700 flex flex-col group">
 
-                      <div className="p-5 md:p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/50 flex flex-col gap-4 relative z-10">
+                      {/* NOMOR URUT (DI KANAN ATAS, SEPERTI DI ARSIP) */}
+                      <div className="absolute top-0 right-0 bg-sky-100 dark:bg-sky-900/60 text-sky-600 dark:text-sky-400 font-black text-xs px-4 py-1.5 rounded-bl-xl z-20">
+                        #{String(startIndex + index + 1).padStart(2, '0')}
+                      </div>
+
+                      <div className="p-5 md:p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/50 flex flex-col gap-4 relative z-10 pt-8">
                         <div className="flex justify-between items-start gap-4">
-                          <div className="shrink-0 w-10 h-10 rounded-full bg-white dark:bg-slate-800 border-2 border-sky-400 dark:border-sky-500 flex items-center justify-center text-sky-600 dark:text-sky-400 font-black text-sm shadow-[0_0_10px_rgba(14,165,233,0.3)] group-hover:scale-110 transition-transform">
-                            {startIndex + index + 1}
+                          
+                          <div className="w-full"> 
+                            <h3 className="text-xl md:text-2xl font-black text-slate-800 dark:text-slate-100 mb-2 leading-tight break-words">{lang === 'id' ? med.name_id : med.name_en}</h3>
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400 rounded-lg text-xs font-black uppercase tracking-widest border border-sky-200 dark:border-sky-800/50 w-fit max-w-full">
+                              <Beaker className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{med.active_ingredient}</span>
+                            </div>
                           </div>
 
                           {isAdmin && (
-                            <div className="flex items-center gap-1.5 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="flex items-center gap-1.5 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300 shrink-0">
                               <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormMode("edit"); setEditingMedication(med); setActiveView("form"); }} className="h-8 w-8 bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 border border-slate-200 dark:border-slate-700 hover:bg-sky-50 dark:hover:bg-sky-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Edit Data" : "Edit Data"}><Edit className="w-3.5 h-3.5" /></Button>
                               <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToArchive(med); }} className="h-8 w-8 bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-500 border border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Arsipkan Obat" : "Archive Meds"}><Archive className="w-3.5 h-3.5" /></Button>
                               {isSuperAdmin && (
@@ -313,13 +298,6 @@ export default function MedicationDatabasePage() {
                               )}
                             </div>
                           )}
-                        </div>
-
-                        <div className="w-full"> 
-                          <h3 className="text-xl md:text-2xl font-black text-slate-800 dark:text-slate-100 mb-2 leading-tight break-words">{lang === 'id' ? med.name_id : med.name_en}</h3>
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400 rounded-lg text-xs font-black uppercase tracking-widest border border-sky-200 dark:border-sky-800/50 w-fit max-w-full">
-                            <Beaker className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{med.active_ingredient}</span>
-                          </div>
                         </div>
                       </div>
 
