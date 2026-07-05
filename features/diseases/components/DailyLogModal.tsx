@@ -2,10 +2,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Save, Loader2, Syringe, Droplets, Eye, ArrowRightLeft, Info, Trash2, AlertTriangle, Activity, ArchiveX } from "lucide-react";
+import { X, Save, Loader2, Syringe, Droplets, Eye, ArrowRightLeft, Info, Trash2, AlertTriangle, Activity, ArchiveX, Beaker } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import toast from "react-hot-toast";
+import { createClient } from "@/lib/supabase/client";
 
 import { ActiveTreatmentDto } from "../actions/start-treatment.actions";
 import { logDailyTreatmentAction, deleteTreatmentSessionAction } from "../actions/log-treatment.actions";
@@ -15,10 +16,15 @@ interface Props {
   session: ActiveTreatmentDto;
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => Promise<void> | void; // Disesuaikan agar bisa menerima Async
+  onSuccess: () => Promise<void> | void; 
   tDict: Record<string, string>;
   lang: "id" | "en";
   hasLoggedToday: boolean;
+}
+
+interface MedicationInfo {
+  base_dosage_per_100l: number;
+  dosage_unit: string;
 }
 
 export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDict, lang, hasLoggedToday }: Props) {
@@ -37,11 +43,38 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
   const [notes, setNotes] = useState(session.latest_log?.notes || "");
   
   const [remainingSymptoms, setRemainingSymptoms] = useState<string[]>(session.initial_symptoms || []);
+  
+  // 💡 STATE BARU UNTUK INFO OBAT
+  const [medInfo, setMedInfo] = useState<MedicationInfo | null>(null);
+  const [isLoadingMedInfo, setIsLoadingMedInfo] = useState(true);
 
   const initialCount = Math.max(1, session.initial_symptoms?.length || 1);
   const currentCount = remainingSymptoms.length;
-  // Kalkulasi Real-time yang langsung terlihat di UI
   const projectedRecovery = Math.max(0, Math.min(100, Math.round(((initialCount - currentCount) / initialCount) * 100)));
+
+  // 💡 MENGAMBIL INFO DOSIS OBAT DARI DATABASE
+  useEffect(() => {
+    if (!isOpen || !session.medication_id) return;
+    
+    let isMounted = true;
+    const fetchMedInfo = async () => {
+      setIsLoadingMedInfo(true);
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('medications')
+        .select('base_dosage_per_100l, dosage_unit')
+        .eq('id', session.medication_id)
+        .single();
+        
+      if (isMounted) {
+        if (data) setMedInfo(data as MedicationInfo);
+        setIsLoadingMedInfo(false);
+      }
+    };
+    
+    fetchMedInfo();
+    return () => { isMounted = false; };
+  }, [isOpen, session.medication_id]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -90,7 +123,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
         aquariumId: session.aquarium_id,
         sessionId: session.id,
         remainingSymptomIds: remainingSymptoms,
-        actionTaken: "Medication Changed", // Ini kode di backend untuk membatalkan
+        actionTaken: "Medication Changed", 
         medicationDose: 0,
         newFishLostCount: 0,
         notes: "Sesi dibatalkan oleh pengguna (Ganti Obat/Lainnya).",
@@ -99,8 +132,8 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
 
       if (res.success) {
         toast.success(lang === 'id' ? "Sesi dipindahkan ke Riwayat!" : "Session moved to History!");
-        await onSuccess(); // Tunggu data ter-refresh dulu
-        onClose();         // Baru tutup modal
+        await onSuccess(); 
+        onClose();        
       } else {
         toast.error(res.error || "Gagal membatalkan sesi.");
       }
@@ -132,8 +165,8 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
         toast.success(lang === 'id' ? "Rekam medis tersimpan!" : "Medical log saved!");
         if (res.analytics) toast(lang === 'id' ? res.analytics.aiRecommendationId : res.analytics.aiRecommendationEn, { icon: "🤖", duration: 6000 });
         
-        await onSuccess(); // PENTING: Refresh tabel di latar belakang dulu
-        onClose();         // Baru tutup modal, agar data di layar langsung berubah!
+        await onSuccess(); 
+        onClose();         
       } else {
         toast.error(res.error || "Gagal menyimpan rekam medis.");
       }
@@ -152,7 +185,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
 
   return (
     <>
-      {/* MODAL PERINGATAN HAPUS SALAH INPUT (Z-INDEX SUPER TINGGI 9999) */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[9999] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
@@ -177,7 +209,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
         </div>
       )}
 
-      {/* MODAL PERINGATAN BATALKAN SESI / PINDAH RIWAYAT (Z-INDEX SUPER TINGGI 9999) */}
       {showAbortConfirm && (
         <div className="fixed inset-0 z-[9999] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
@@ -202,7 +233,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
         </div>
       )}
 
-      {/* FORM UTAMA */}
       <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-slate-900/80 dark:bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
         <div className="w-full max-w-2xl bg-white dark:bg-slate-950 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] md:max-h-[85vh] border border-slate-200 dark:border-slate-800 my-auto">
           
@@ -228,13 +258,12 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                   <Info className="w-5 h-5 shrink-0 mt-0.5" />
                   <p className="text-[11px] sm:text-xs font-bold leading-relaxed">
                     {lang === 'id' 
-                      ? "Sistem membatasi 1 log per hari. Anda SUDAH MENGISI log hari ini. Jika Anda menekan Simpan, data yang sebelumnya akan di-UPDATE (ditimpa)." 
-                      : "You HAVE LOGGED today. Saving this form will UPDATE (Overwrite) your previous entry for today."}
+                      ? "Anda SUDAH MENGISI log hari ini. Jika Anda menekan Simpan, catatan yang baru akan digabungkan (di-update) ke dalam catatan Anda sebelumnya." 
+                      : "You HAVE LOGGED today. Saving this form will UPDATE and append to your previous entry for today."}
                   </p>
                 </div>
               )}
 
-              {/* REAL-TIME PREVIEW PANEL DENGAN WARNA TERANG YANG AMAN */}
               <div className="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
                  <div className="flex justify-between items-end mb-2">
                    <div className="flex items-center gap-2">
@@ -267,7 +296,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                     {lang === 'id' ? "Tindakan Utama Hari Ini" : "Main Action Today"}
                   </label>
                   
-                  {/* TOMBOL BATAL/PINDAH RIWAYAT */}
                   <Button 
                     type="button" 
                     onClick={() => setShowAbortConfirm(true)} 
@@ -301,7 +329,21 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                     disabled={actionTaken === "Observed" || actionTaken === "Medication Changed"} 
                     className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold dark:text-slate-100 focus:border-blue-500" 
                   />
+                  
+                  {/* 💡 FITUR BARU: INFO DOSIS OBAT */}
+                  {actionTaken === "Redosed" && !isLoadingMedInfo && medInfo && (
+                    <div className="flex items-start gap-1.5 mt-1.5 p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50">
+                      <Beaker className="w-3.5 h-3.5 shrink-0 text-indigo-500 mt-0.5" />
+                      <p className="text-[10px] text-indigo-700 dark:text-indigo-400 font-medium leading-snug">
+                        {lang === 'id' ? "Anjuran AI:" : "AI Guideline:"} <strong>{medInfo.base_dosage_per_100l} {medInfo.dosage_unit} / 100L</strong>
+                      </p>
+                    </div>
+                  )}
+                  {actionTaken === "Redosed" && isLoadingMedInfo && (
+                    <div className="flex items-center gap-1 mt-1.5"><Loader2 className="w-3 h-3 animate-spin text-slate-400"/> <span className="text-[10px] text-slate-400">Loading AI Guideline...</span></div>
+                  )}
                 </div>
+
                 <div className="space-y-2">
                   <label className="text-[11px] font-black text-rose-500 uppercase tracking-widest">
                     {lang === 'id' ? "Kematian Baru (Ekor)" : "New Casualties"}

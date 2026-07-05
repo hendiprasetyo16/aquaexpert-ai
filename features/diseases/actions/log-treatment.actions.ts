@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { verifyAquariumOwnership } from "@/features/aquariums/repositories/security.repository";
 import type { LogTreatmentResponse, TreatmentStatus, ActionTaken } from "../types/treatment.types";
 import { revalidatePath } from "next/cache";
-import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; // 💡 IMPORT NOTIFIKASI
+import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; 
 
 interface LogPayload {
   aquariumId: string;
@@ -18,7 +18,6 @@ interface LogPayload {
   lang?: "id" | "en";
 }
 
-// 💡 HELPER: Mengambil nama pengguna & nama akuarium untuk Notifikasi
 async function getUserAndAquariumName(supabase: any, userId: string, aquariumId: string) {
   const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', userId).single();
   const { data: aq } = await supabase.from("my_aquariums").select("name").eq("id", aquariumId).single();
@@ -35,15 +34,12 @@ export async function deleteTreatmentSessionAction(sessionId: string, aquariumId
     if (!user) throw new Error("Sesi berakhir.");
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
     
-    // 1. Ambil data sesi sebelum dibakar
     const { data: sessionData } = await supabase.from("treatment_sessions").select("disease_id, medication_id, status").eq("id", sessionId).single();
     const { data: disease } = await supabase.from("diseases").select("name_id").eq("id", sessionData?.disease_id).single();
 
-    // 2. Bakar/Hapus sesi dari tabel utama
     const { error } = await supabase.from("treatment_sessions").delete().eq("id", sessionId);
     if (error) throw new Error(error.message);
 
-    // 3. SINKRONISASI ANALITIK
     if (sessionData && ["Completed", "Failed", "Aborted"].includes(sessionData.status)) {
       const { data: statData } = await supabase.from("medication_efficacy_stats").select("*").eq("disease_id", sessionData.disease_id).eq("medication_id", sessionData.medication_id).single();
 
@@ -66,7 +62,6 @@ export async function deleteTreatmentSessionAction(sessionId: string, aquariumId
       }
     }
 
-    // 💡 NOTIFIKASI: HAPUS SESI
     const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, aquariumId);
     await pushNotificationAction(
       "Sesi Pengobatan Dihapus",
@@ -100,11 +95,17 @@ export async function logDailyTreatmentAction({
     const { data: diseaseInfo } = await supabase.from("diseases").select("name_id").eq("id", session.disease_id).single();
     const dName = diseaseInfo?.name_id || 'Penyakit';
 
+    // 💡 FIX 1: PERBAIKAN LOGIKA HARI ABSOLUT (00:00 ke 00:00)
+    // Supaya input jam 23:00 dan jam 01:00 pagi dihitung sebagai hari yang sama jika masih tanggal yang sama
     const startDate = new Date(session.started_at);
     const today = new Date();
-    const startMidnight = Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate());
-    const todayMidnight = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
-    const dayNumber = Math.floor((todayMidnight - startMidnight) / (1000 * 60 * 60 * 24)) + 1;
+    
+    // Normalisasi jam ke 00:00:00 lokal
+    const startMidnight = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    const diffTime = Math.abs(todayMidnight.getTime() - startMidnight.getTime());
+    const dayNumber = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 karena hari pertama adalah Hari ke-1
 
     const initialCount = session.initial_symptoms?.length || 1;
     const currentCount = remainingSymptomIds.length;
@@ -117,7 +118,6 @@ export async function logDailyTreatmentAction({
     let recId = "Pengobatan dicatat. Terus pantau fauna.";
     let recEn = "Treatment logged. Keep monitoring.";
 
-    // 💡 PENENTUAN STATUS & NOTIFIKASI
     const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, aquariumId);
     let notifTitle = `Catat Medis (Hari ${dayNumber})`;
     let notifMessage = `${userName} mencatat perkembangan "${dName}" di akuarium "${aqName}". Aksi: ${actionTaken}.`;
@@ -127,7 +127,6 @@ export async function logDailyTreatmentAction({
       autoUpdateStatus = "Aborted";
       finalOutcomeReason = "Berhenti untuk ganti obat baru.";
       recId = "Sesi ditutup otomatis karena ganti obat. Silakan mulai sesi baru.";
-      
       notifTitle = "Pengobatan Dibatalkan/Ganti Obat";
       notifMessage = `${userName} membatalkan/mengganti obat untuk "${dName}" di akuarium "${aqName}".`;
       notifCategory = "alert";
@@ -135,13 +134,11 @@ export async function logDailyTreatmentAction({
       autoUpdateStatus = "Completed";
       finalOutcomeReason = "Sembuh Total";
       recId = "Kesembuhan 100%! Ikan ditandai Sembuh Total.";
-
       notifTitle = "Pengobatan Berhasil Selesai 🎉";
       notifMessage = `Luar Biasa! ${userName} berhasil menyembuhkan "${dName}" di akuarium "${aqName}".`;
-      notifCategory = "system"; // Warna ungu khusus momen keberhasilan!
+      notifCategory = "system"; 
     } else if (newFishLostCount > 0) {
       recId = "Ada kematian. Tolong cek ulang kecocokan obat.";
-      
       notifTitle = "Peringatan: Ada Korban Jiwa";
       notifMessage = `${userName} mencatat ada kematian selama pengobatan "${dName}" di akuarium "${aqName}".`;
       notifCategory = "alert";
@@ -158,19 +155,31 @@ export async function logDailyTreatmentAction({
       log_date: new Date().toISOString()
     };
     
-    // 1. Cek absen hari ini
-    const { data: existingLog } = await supabase.from("treatment_logs").select("id").eq("session_id", sessionId).eq("day_number", dayNumber).maybeSingle();
+    // 💡 FIX 2: CARI APAKAH HARI INI SUDAH ADA LOG ATAU BELUM
+    const { data: existingLog } = await supabase.from("treatment_logs").select("id, notes, action_taken").eq("session_id", sessionId).eq("day_number", dayNumber).maybeSingle();
     
-    // 2. Lakukan Update Jika Ada, Insert Jika Baru
     if (existingLog) {
-      const { error } = await supabase.from("treatment_logs").update(logData).eq("id", existingLog.id);
+      // 💡 FITUR BAPAK: GABUNGKAN CATATAN JIKA UPDATE 2 KALI DI HARI YANG SAMA
+      // Jika sebelumnya hanya 'Observasi' dan sekarang 'Kasih Obat', maka catatannya di-update menjadi 'Kasih Obat' (Timpa)
+      // Tapi jika dua-duanya Kasih Obat, kita gabungkan 'Notes'-nya agar histori yang lama tidak hilang.
+      const updatedNotes = existingLog.notes ? `${existingLog.notes} \n[Update]: ${notes}` : notes;
+      
+      const { error } = await supabase.from("treatment_logs").update({
+        ...logData,
+        notes: updatedNotes // Notes lama disambung dengan notes baru
+      }).eq("id", existingLog.id);
+      
       if (error) throw error;
+      
+      // Ubah notifikasi karena ini adalah 'Update' log hari ini
+      notifTitle = `Update Catatan Medis (Hari ${dayNumber})`;
+      notifMessage = `${userName} merevisi catatan medis "${dName}" hari ini menjadi: ${actionTaken}.`;
+      
     } else {
       const { error } = await supabase.from("treatment_logs").insert(logData);
       if (error) throw error;
     }
 
-    // 3. Update status tangki pasien
     const { error: updateError } = await supabase.from("treatment_sessions")
     .update({
         current_recovery_rate: recoveryRate,
@@ -182,7 +191,6 @@ export async function logDailyTreatmentAction({
 
     if(updateError) return { success:false, analytics:null, error:updateError.message };
 
-    // 4. Masukkan ke papan Analitik jika selesai
     if (autoUpdateStatus !== "Active") {
       const { error: outcomeError } = await supabase.from("treatment_outcomes")
       .upsert({
@@ -200,7 +208,6 @@ export async function logDailyTreatmentAction({
       if(outcomeError) return { success:false, analytics:null, error:outcomeError.message };
     }
 
-    // 💡 EKSEKUSI PENGIRIMAN NOTIFIKASI KE DATABASE
     await pushNotificationAction(notifTitle, notifMessage, notifCategory, userName);
 
     revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
