@@ -287,7 +287,7 @@ export default function MedicationDatabasePage() {
                                 <button 
                                   type="button"
                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormMode("edit"); setEditingMedication(med); setActiveView("form"); }} 
-                                  className="h-8 w-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sky-600 dark:text-sky-400 hover:bg-sky-500 hover:text-white dark:hover:bg-sky-500 dark:hover:text-white hover:border-sky-400 dark:hover:border-sky-400 rounded-lg shadow-sm transition-all duration-200" 
+                                  className="h-8 w-8 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sky-600 dark:text-sky-400 hover:bg-sky-100 hover:text-sky-700 dark:hover:bg-sky-500 dark:hover:text-white hover:border-sky-300 dark:hover:border-sky-400 rounded-lg shadow-sm transition-all duration-200"
                                   title={lang === 'id' ? "Edit Data" : "Edit Data"}
                                 >
                                   <Edit className="w-3.5 h-3.5" />
