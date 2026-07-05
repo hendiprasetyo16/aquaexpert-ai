@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; // 💡 IMPORT NOTIFIKASI
 
 // 1. STRICT TYPING
 export interface AquariumParameterLog {
@@ -58,6 +59,16 @@ async function verifyAquariumOwnership(supabase: SupabaseClient, aquariumId: str
   return true;
 }
 
+// 💡 HELPER BARU: Mengambil nama pengguna & nama akuarium untuk Notifikasi
+async function getUserAndAquariumName(supabase: SupabaseClient, userId: string, aquariumId: string) {
+  const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', userId).single();
+  const { data: aq } = await supabase.from("my_aquariums").select("name").eq("id", aquariumId).single();
+  return { 
+    userName: profile?.full_name || "User", 
+    aqName: aq?.name || "Akuarium" 
+  };
+}
+
 export async function getParametersAction(aquariumId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -65,7 +76,6 @@ export async function getParametersAction(aquariumId: string) {
   if (!user) return { success: false, error: "Unauthorized" };
 
   try {
-    // SECURITY FIX: Cegah IDOR dengan validasi kepemilikan mutlak
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
     const { data, error } = await supabase
@@ -79,7 +89,6 @@ export async function getParametersAction(aquariumId: string) {
     if (error) throw new Error(error.message);
     return { success: true, data: data as AquariumParameterLog[] };
   } catch (error: unknown) {
-    // ZERO ANY POLICY APPLIED
     return { success: false, error: error instanceof Error ? error.message : "Process failed" };
   }
 }
@@ -92,17 +101,23 @@ export async function addParameterAction(payload: z.infer<typeof parameterSchema
 
   try {
     const validatedData = parameterSchema.parse(payload);
-    
-    // SECURITY FIX: Cegah Inject Parameter ke Tank Orang Lain
     await verifyAquariumOwnership(supabase, validatedData.aquarium_id, user.id);
 
     const { error } = await supabase.from("aquarium_parameters").insert([validatedData]);
     if (error) throw new Error(error.message);
 
+    // 💡 KIRIM NOTIFIKASI
+    const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, validatedData.aquarium_id);
+    await pushNotificationAction(
+      "Parameter Air Dicatat",
+      `${userName} mencatat kualitas air baru di akuarium "${aqName}".`,
+      "user_activity",
+      userName
+    );
+
     revalidatePath(`/dashboard/my-aquarium/${payload.aquarium_id}`);
     return { success: true };
   } catch (error: unknown) {
-    // ZERO ANY POLICY APPLIED
     return { success: false, error: error instanceof Error ? error.message : "Process failed" };
   }
 }
@@ -115,26 +130,35 @@ export async function deleteParameterAction(id: string, aquariumId: string) {
   if (!user) return { success: false, error: "Unauthorized" };
 
   try {
-    // SECURITY FIX: Cegah Hapus Parameter Orang Lain
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
+
+    // Ambil tanggal catatan sebelum dihapus untuk detail notifikasi
+    const { data: oldParam } = await supabase.from("aquarium_parameters").select("record_date").eq("id", id).single();
 
     const { data, error } = await supabase
       .from("aquarium_parameters")
       .delete() 
       .eq("id", id)
-      .eq("aquarium_id", aquariumId) // Double Check
+      .eq("aquarium_id", aquariumId) 
       .select();
     
     if (error) throw new Error(error.message);
+    if (!data || data.length === 0) throw new Error("Akses ditolak atau data tidak ditemukan.");
 
-    if (!data || data.length === 0) {
-      throw new Error("Akses ditolak atau data tidak ditemukan.");
-    }
+    // 💡 KIRIM NOTIFIKASI
+    const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, aquariumId);
+    const dateStr = oldParam?.record_date ? new Date(oldParam.record_date).toLocaleDateString('id-ID') : 'lama';
+    
+    await pushNotificationAction(
+      "Catatan Air Dihapus",
+      `${userName} menghapus riwayat parameter air (tgl ${dateStr}) dari akuarium "${aqName}".`,
+      "user_activity",
+      userName
+    );
 
     revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
     return { success: true };
   } catch (error: unknown) {
-    // ZERO ANY POLICY APPLIED
     return { success: false, error: error instanceof Error ? error.message : "Process failed" };
   }
 }

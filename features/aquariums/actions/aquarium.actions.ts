@@ -120,7 +120,7 @@ export async function createAquariumAction(payload: CreateAquariumInput) {
     await pushNotificationAction(
       "Akuarium Baru Dibuat",
       `${ownerName} telah membuat akuarium baru bernama "${payload.name}".`,
-      "user_activity", // Masuk kategori aktivitas pengguna agar Admin juga bisa pantau
+      "user_activity",
       ownerName
     );
 
@@ -144,7 +144,7 @@ export async function updateAquariumAction(id: string, payload: UpdateAquariumIn
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     const isSuperAdmin = profile?.role === 'super_admin';
 
-    const { data: oldAq } = await supabase.from("my_aquariums").select("image_url, user_id").eq("id", id).single();
+    const { data: oldAq } = await supabase.from("my_aquariums").select("name, image_url, user_id").eq("id", id).single();
 
     if (payload.is_primary) {
       await clearPrimaryAquarium(supabase, user.id);
@@ -163,6 +163,17 @@ export async function updateAquariumAction(id: string, payload: UpdateAquariumIn
     }
 
     const data = await updateAquarium(supabase, id, targetUserId, payload);
+
+    // 💡 KIRIM NOTIFIKASI: User Memperbarui Akuarium
+    if (!isSuperAdmin) {
+      const ownerName = await getProfileName(supabase, user.id);
+      await pushNotificationAction(
+        "Akuarium Diperbarui",
+        `${ownerName} memperbarui pengaturan akuarium "${payload.name || oldAq?.name || 'Tangki'}".`,
+        "user_activity",
+        ownerName
+      );
+    }
 
     revalidatePath("/dashboard/my-aquarium");
     revalidatePath(`/dashboard/my-aquarium/${id}`);
@@ -226,9 +237,21 @@ export async function setPrimaryAquariumAction(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
+    // Ambil nama akuarium untuk notifikasi
+    const { data: aq } = await supabase.from("my_aquariums").select("name").eq("id", id).single();
+
     await clearPrimaryAquarium(supabase, user.id);
     const data = await updateAquarium(supabase, id, user.id, { is_primary: true });
     
+    // 💡 KIRIM NOTIFIKASI: Perubahan Akuarium Utama
+    const ownerName = await getProfileName(supabase, user.id);
+    await pushNotificationAction(
+      "Status Utama Diubah",
+      `${ownerName} menetapkan "${aq?.name || 'Akuarium'}" sebagai akuarium utama.`,
+      "user_activity",
+      ownerName
+    );
+
     revalidatePath("/dashboard/my-aquarium");
     return { success: true, data };
   } catch (error: unknown) {
@@ -312,7 +335,7 @@ export async function adminDeleteAquariumAction(id: string) {
     await pushNotificationAction(
       "Penghapusan Paksa (Admin)",
       `${adminName} telah menghapus paksa akuarium "${aqName}" milik pengguna lain.`,
-      "data_crud", // Kategori data_crud, agar hanya terlihat oleh Super Admin lain (jika ada)
+      "data_crud", 
       adminName
     );
 
@@ -332,8 +355,20 @@ export async function adminToggleArchiveAquariumAction(id: string, currentStatus
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     if (profile?.role !== 'super_admin') throw new Error("Forbidden: Super Admin only");
 
+    const { data: aq } = await supabase.from("my_aquariums").select("name").eq("id", id).single();
+
     const { error } = await supabase.from("my_aquariums").update({ is_active: !currentStatus }).eq("id", id);
     if (error) throw new Error(error.message);
+
+    // 💡 KIRIM NOTIFIKASI: Admin Arsip/Aktifkan Tangki
+    const adminName = await getProfileName(supabase, user.id);
+    await pushNotificationAction(
+      currentStatus ? "Akuarium Dinonaktifkan" : "Akuarium Diaktifkan",
+      `${adminName} mengubah status akuarium "${aq?.name || 'Akuarium'}".`,
+      "data_crud", 
+      adminName
+    );
+
     revalidatePath("/dashboard/admin-panel/aquariums");
     return { success: true };
   } catch (error: unknown) {

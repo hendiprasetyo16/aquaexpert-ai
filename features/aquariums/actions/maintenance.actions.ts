@@ -3,7 +3,7 @@
 
 import { z, ZodIssue } from "zod";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server"; // IMPORT BARU: Untuk auth & verifikasi
+import { createClient } from "@/lib/supabase/server";
 import { 
   createMaintenanceTask, 
   updateMaintenanceTask, 
@@ -15,10 +15,11 @@ import {
   getUpcomingTasks,
   getMaintenanceLogs,
   getLatestLogByTaskId,
-  verifyAquariumOwnership, // IMPORT BARU: Security helper
-  verifyTaskOwnership      // IMPORT BARU: Security helper
+  verifyAquariumOwnership, 
+  verifyTaskOwnership      
 } from "../repositories/maintenance.repository";
 import { MaintenanceDashboardStatus } from "../types/maintenance.types";
+import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; // 💡 IMPORT NOTIFIKASI
 
 // ==========================================
 // 1. ZOD SCHEMAS & HELPERS
@@ -70,6 +71,16 @@ function isSameDate(dateStr1: string | null | undefined, dateStr2: string | null
   return new Date(dateStr1).getTime() === new Date(dateStr2).getTime();
 }
 
+// 💡 HELPER BARU: Mengambil nama pengguna & nama akuarium untuk Notifikasi
+async function getUserAndAquariumName(supabase: any, userId: string, aquariumId: string) {
+  const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', userId).single();
+  const { data: aq } = await supabase.from("my_aquariums").select("name").eq("id", aquariumId).single();
+  return { 
+    userName: profile?.full_name || "User", 
+    aqName: aq?.name || "Akuarium" 
+  };
+}
+
 // ==========================================
 // 2. TASK ACTIONS (MANAJEMEN JADWAL)
 // ==========================================
@@ -81,8 +92,6 @@ export async function addTaskAction(payload: z.infer<typeof createTaskSchema>) {
     if (!user) throw new Error("Unauthorized");
 
     const validatedData = createTaskSchema.parse(payload);
-
-    // SECURITY FIX: Verifikasi kepemilikan Akuarium sebelum menambah Tugas
     await verifyAquariumOwnership(supabase, validatedData.aquarium_id, user.id);
 
     const nextDue = calculateNextDueDate(new Date(), validatedData.interval_days);
@@ -92,6 +101,15 @@ export async function addTaskAction(payload: z.infer<typeof createTaskSchema>) {
       next_due_at: nextDue.toISOString()
     });
     
+    // 💡 KIRIM NOTIFIKASI
+    const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, validatedData.aquarium_id);
+    await pushNotificationAction(
+      "Jadwal Perawatan Dibuat",
+      `${userName} menjadwalkan tugas "${validatedData.title}" di akuarium "${aqName}".`,
+      "user_activity",
+      userName
+    );
+
     revalidatePath(`/dashboard/my-aquarium/${validatedData.aquarium_id}`);
     return { success: true };
   } catch (error: unknown) {
@@ -110,7 +128,6 @@ export async function editTaskAction(payload: z.infer<typeof updateTaskSchema>) 
     
     if (!id) throw new Error("ID Tugas diperlukan.");
 
-    // SECURITY FIX: Verifikasi bahwa Tugas ini benar milik User (via my_aquariums)
     await verifyTaskOwnership(supabase, id, user.id);
 
     const existingTask = await getMaintenanceTaskById(id);
@@ -132,9 +149,17 @@ export async function editTaskAction(payload: z.infer<typeof updateTaskSchema>) 
 
     await updateMaintenanceTask(id, payloadToUpdate);
     
+    // 💡 KIRIM NOTIFIKASI
     const aquariumIdToRevalidate = validatedData.aquarium_id || existingTask.aquarium_id;
+    const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, aquariumIdToRevalidate);
+    await pushNotificationAction(
+      "Jadwal Perawatan Diperbarui",
+      `${userName} mengubah jadwal tugas "${updateData.title || existingTask.title}" di akuarium "${aqName}".`,
+      "user_activity",
+      userName
+    );
+
     revalidatePath(`/dashboard/my-aquarium/${aquariumIdToRevalidate}`);
-    
     return { success: true };
   } catch (error: unknown) {
     return { success: false, error: formatError(error) };
@@ -147,11 +172,24 @@ export async function removeTaskAction(taskId: string, aquariumId: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    // SECURITY FIX: Cek kepemilikan ganda (Task dan Akuarium)
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
     await verifyTaskOwnership(supabase, taskId, user.id);
 
+    // Ambil nama task sebelum dihapus
+    const existingTask = await getMaintenanceTaskById(taskId);
+    const taskName = existingTask?.title || "Tugas";
+
     await deleteMaintenanceTask(taskId);
+
+    // 💡 KIRIM NOTIFIKASI
+    const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, aquariumId);
+    await pushNotificationAction(
+      "Jadwal Perawatan Dihapus",
+      `${userName} menghapus jadwal tugas "${taskName}" dari akuarium "${aqName}".`,
+      "user_activity",
+      userName
+    );
+
     revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
     return { success: true };
   } catch (error: unknown) {
@@ -171,10 +209,8 @@ export async function logMaintenanceAction(payload: z.infer<typeof createLogSche
 
     const validatedData = createLogSchema.parse(payload);
     
-    // SECURITY FIX: Pastikan Akuarium milik User
     await verifyAquariumOwnership(supabase, validatedData.aquarium_id, user.id);
     
-    // Jika log ini terikat dengan suatu Task, pastikan Task tersebut milik User
     if (validatedData.task_id) {
       await verifyTaskOwnership(supabase, validatedData.task_id, user.id);
     }
@@ -205,6 +241,16 @@ export async function logMaintenanceAction(payload: z.infer<typeof createLogSche
       }
     }
 
+    // 💡 KIRIM NOTIFIKASI
+    const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, validatedData.aquarium_id);
+    const activityName = validatedData.maintenance_type.replace('_', ' ');
+    await pushNotificationAction(
+      "Pekerjaan Diselesaikan",
+      `${userName} mencatat aktivitas "${activityName}" di akuarium "${aqName}".`,
+      "user_activity",
+      userName
+    );
+
     revalidatePath(`/dashboard/my-aquarium/${validatedData.aquarium_id}`);
     return { success: true, data: newLog };
   } catch (error: unknown) {
@@ -218,10 +264,8 @@ export async function removeLogAction(logId: string, aquariumId: string, taskId?
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    // SECURITY FIX: Cek kepemilikan Akuarium
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
-    // SECURITY FIX: Jika Log berkaitan dengan Task, pastikan Task milik User
     if (taskId) {
       await verifyTaskOwnership(supabase, taskId, user.id);
     }
@@ -254,6 +298,15 @@ export async function removeLogAction(logId: string, aquariumId: string, taskId?
       }
     }
 
+    // 💡 KIRIM NOTIFIKASI
+    const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, aquariumId);
+    await pushNotificationAction(
+      "Riwayat Perawatan Dihapus",
+      `${userName} menghapus salah satu riwayat pekerjaan dari akuarium "${aqName}".`,
+      "user_activity",
+      userName
+    );
+
     revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
     return { success: true };
   } catch (error: unknown) {
@@ -271,7 +324,6 @@ export async function getMaintenanceDashboardAction(aquariumId: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    // SECURITY FIX: Pastikan User yang mengambil data adalah pemilik sah
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
     const [tasks, logs] = await Promise.all([
