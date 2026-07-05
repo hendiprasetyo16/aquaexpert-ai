@@ -6,7 +6,7 @@ import { getArchivedMedications, toggleMedicationArchiveAction, hardDeleteMedica
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/providers/LanguageProvider"; 
 
-import { Loader2, RefreshCcw, Trash2, Pill, AlertCircle, AlertTriangle } from "lucide-react";
+import { Loader2, RefreshCcw, Trash2, Pill, AlertCircle, AlertTriangle, Archive } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
@@ -18,8 +18,6 @@ interface MedicationArchiveListProps {
 export default function MedicationArchiveList({ onActionSuccess }: MedicationArchiveListProps) {
   const { role } = useAuth();
   const { dict, language } = useLanguage(); 
-  
-  // 💡 HACK TYPESCRIPT: Ubah menjadi string statis agar TS tidak melakukan Narrowing yang kaku
   const langString = String(language); 
 
   const [medData, setMedData] = useState<MedicationDto[]>([]);
@@ -30,15 +28,12 @@ export default function MedicationArchiveList({ onActionSuccess }: MedicationArc
   const [medToDelete, setMedToDelete] = useState<MedicationDto | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rootDict = (dict as Record<string, any>) || {};
   const arcDict = rootDict.medication?.archiveList || rootDict.medicationArchiveList || {};
 
-  // 💡 HELPER FUNCTION: Menentukan nama yang tampil tanpa memicu error TypeScript
   const getMedName = (med: MedicationDto | null) => {
     if (!med) return "";
     if (langString === "en" && med.name_en) return med.name_en;
-    // Fallback: Jika ID kosong, tampilkan EN
     return med.name_id || med.name_en || "Unnamed Medication";
   };
 
@@ -88,8 +83,6 @@ export default function MedicationArchiveList({ onActionSuccess }: MedicationArc
     if (!medToDelete) return;
 
     const expectedName = getMedName(medToDelete);
-    
-    // Keamanan Ketat: Harus sama persis (Case-sensitive)
     if (deleteConfirmText !== expectedName) {
       toast.error(langString === "id" ? "Nama obat tidak cocok!" : "Medication name mismatch!");
       return;
@@ -118,10 +111,10 @@ export default function MedicationArchiveList({ onActionSuccess }: MedicationArc
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-        <Loader2 className="h-8 w-8 animate-spin text-sky-500 mb-2" />
-        <p className="text-xs font-bold uppercase tracking-widest">
-          {arcDict.loading || (langString === "id" ? "Memuat Arsip..." : "Loading Archive...")}
+      <div className="flex flex-col items-center justify-center py-24 text-slate-500">
+        <Loader2 className="h-10 w-10 animate-spin text-amber-500 mb-4" />
+        <p className="text-sm font-bold uppercase tracking-widest animate-pulse">
+          {arcDict.loading || (langString === "id" ? "Membongkar Arsip..." : "Loading Archive...")}
         </p>
       </div>
     );
@@ -129,55 +122,59 @@ export default function MedicationArchiveList({ onActionSuccess }: MedicationArc
 
   if (medData.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center bg-slate-50 dark:bg-slate-950 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-        <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-400 mb-3">
-          <AlertCircle className="w-6 h-6" />
+      <div className="flex flex-col items-center justify-center py-20 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="w-20 h-20 rounded-full bg-slate-50 dark:bg-slate-950 border-2 border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 mb-5">
+          <Archive className="w-8 h-8" />
         </div>
-        <p className="text-sm font-bold text-slate-500">
-          {arcDict.emptyState || (langString === "id" ? "Tidak ada obat yang diarsip." : "No archived medications found.")}
+        <h3 className="text-xl font-black text-slate-700 dark:text-slate-300 mb-2">
+          {langString === "id" ? "Arsip Obat Kosong" : "Medication Archive Empty"}
+        </h3>
+        <p className="text-sm font-medium text-slate-500">
+          {arcDict.emptyState || (langString === "id" ? "Belum ada referensi obat yang diarsipkan." : "No archived medication references found.")}
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-      <div className="grid grid-cols-1 gap-3">
+    <div className="animate-in fade-in duration-500">
+      
+      {/* KONTEN UTAMA ARSIP */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {medData.map((med) => {
           const name = getMedName(med);
           return (
-            <Card key={med.id} className="overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm rounded-xl">
-              <CardContent className="p-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 shrink-0">
-                    <Pill className="w-5 h-5" />
+            <Card key={med.id} className="overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm rounded-3xl hover:shadow-md transition-shadow">
+              <CardContent className="p-5 md:p-6 flex flex-col h-full gap-4">
+                
+                <div className="flex items-start gap-4">
+                  <div className="p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">
+                    <Pill className="w-6 h-6" />
                   </div>
-                  <div className="min-w-0">
-                    <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm truncate">{name}</h4>
-                    <p className="text-xs text-slate-400 truncate">{med.active_ingredient}</p>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-black text-slate-800 dark:text-slate-200 text-lg leading-tight line-clamp-2 mb-1">{name}</h4>
+                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest truncate">{med.active_ingredient}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="mt-auto pt-5 flex items-center gap-3 border-t border-slate-100 dark:border-slate-800">
                   <Button
-                    size="sm"
                     variant="outline"
                     onClick={() => setMedToRestore(med)}
-                    className="h-9 px-3 rounded-lg border-emerald-200 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 font-bold text-xs flex items-center gap-1.5"
+                    className="flex-1 h-11 rounded-xl border-emerald-200 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 hover:text-emerald-700 font-black text-xs uppercase tracking-widest transition-colors"
                   >
-                    <RefreshCcw className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{arcDict.btnRestore || (langString === "id" ? "Pulihkan" : "Restore")}</span>
+                    <RefreshCcw className="w-4 h-4 mr-2" />
+                    {arcDict.btnRestore || (langString === "id" ? "Pulihkan" : "Restore")}
                   </Button>
 
                   {role === "super_admin" && (
                     <Button
-                      size="sm"
                       variant="outline"
                       onClick={() => setMedToDelete(med)}
-                      className="h-9 px-3 rounded-lg border-red-200 dark:border-red-900/30 bg-red-50/50 dark:bg-slate-900 text-red-600 dark:text-red-400 hover:bg-red-100 font-bold text-xs flex items-center gap-1.5"
+                      className="flex-1 h-11 rounded-xl border-red-200 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10 text-red-600 dark:text-red-400 hover:bg-red-100 hover:text-red-700 font-black text-xs uppercase tracking-widest transition-colors"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">{arcDict.btnDelete || (langString === "id" ? "Hapus" : "Delete")}</span>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      {arcDict.btnDelete || (langString === "id" ? "Hapus" : "Delete")}
                     </Button>
                   )}
                 </div>
@@ -187,51 +184,53 @@ export default function MedicationArchiveList({ onActionSuccess }: MedicationArc
         })}
       </div>
 
-      {/* MODAL KONFIRMASI PULIHKAN */}
+      {/* MODAL KONFIRMASI PULIHKAN (NORMAL RENDER) */}
       {medToRestore && (
-        <div className="fixed inset-0 z-[100000] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95">
-            <h4 className="text-lg font-black text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-              <RefreshCcw className="w-5 h-5 text-emerald-500" />
-              {arcDict.modalRestoreTitle || (langString === "id" ? "Pulihkan Obat" : "Restore Medication")}
+        <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-slate-800 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+              <RefreshCcw className="w-8 h-8" />
+            </div>
+            <h4 className="text-xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">
+              {arcDict.modalRestoreTitle || (langString === "id" ? "Pulihkan Obat?" : "Restore Medication?")}
             </h4>
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
               {langString === "id" 
-                ? `Apakah Anda yakin ingin mengembalikan obat "${getMedName(medToRestore)}" agar muncul kembali di daftar aktif?`
-                : `Are you sure you want to restore "${getMedName(medToRestore)}" to the active database?`}
+                ? `Obat "${getMedName(medToRestore)}" akan diaktifkan dan muncul kembali di database utama.`
+                : `"${getMedName(medToRestore)}" will be reactivated and shown in the main database.`}
             </p>
             <div className="flex gap-3">
-              <Button type="button" variant="ghost" onClick={() => setMedToRestore(null)} disabled={processingId !== null} className="flex-1 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-xs uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                {arcDict.cancel || (langString === "id" ? "Batal" : "Cancel")}
+              <Button type="button" onClick={handleRestore} disabled={processingId !== null} className="flex-1 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20">
+                {processingId === medToRestore.id ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (arcDict.confirmRestore || (langString === "id" ? "YA, PULIHKAN" : "YES, RESTORE"))}
               </Button>
-              <Button type="button" onClick={handleRestore} disabled={processingId !== null} className="flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20">
-                {processingId === medToRestore.id ? <Loader2 className="w-4 h-4 animate-spin" /> : (arcDict.confirmRestore || (langString === "id" ? "PULIHKAN" : "RESTORE"))}
+              <Button type="button" variant="outline" onClick={() => setMedToRestore(null)} disabled={processingId !== null} className="flex-1 h-12 rounded-xl border-slate-200 dark:border-slate-800 font-bold text-xs uppercase tracking-widest text-slate-600 dark:text-slate-300">
+                {arcDict.cancel || (langString === "id" ? "Batal" : "Cancel")}
               </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL KONFIRMASI HAPUS PERMANEN (SUPER ADMIN ONLY) */}
+      {/* MODAL KONFIRMASI HAPUS PERMANEN (NORMAL RENDER) */}
       {medToDelete && role === "super_admin" && (
-        <div className="fixed inset-0 z-[100000] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95">
-            <div className="w-12 h-12 bg-red-100 dark:bg-slate-800 text-red-600 flex items-center justify-center rounded-full mb-3 mx-auto">
-              <AlertTriangle className="w-6 h-6" />
+        <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600 animate-in zoom-in-95 relative overflow-hidden text-center">
+            <div className="w-16 h-16 bg-red-100 dark:bg-slate-800 text-red-600 flex items-center justify-center rounded-full mx-auto mb-4 relative z-10">
+              <AlertTriangle className="w-8 h-8" />
             </div>
-            <h4 className="text-lg font-black text-red-600 text-center mb-2">
-              {arcDict.modalDeleteTitle || (langString === "id" ? "Hapus Permanen" : "Delete Permanently")}
+            <h4 className="text-xl font-black text-red-600 mb-2 uppercase tracking-tight relative z-10">
+              {arcDict.modalDeleteTitle || (langString === "id" ? "Hapus Permanen?" : "Delete Permanently?")}
             </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 text-center leading-relaxed mb-4">
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 leading-relaxed mb-6 relative z-10">
               {langString === "id" 
-                ? "Tindakan ini tidak bisa dibatalkan. Seluruh relasi data obat ini akan dihapus dari database." 
-                : "This action is irreversible. The medication and its relational records will be completely removed."}
+                ? "Tindakan ini tidak bisa dibatalkan. Seluruh relasi data obat ini akan dibakar dari database." 
+                : "This action is irreversible. The medication will be completely removed."}
             </p>
-            <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-4 text-center">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+            <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 mb-6 relative z-10">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">
                 {langString === "id" ? "Ketik nama obat untuk konfirmasi:" : "Type medication name to confirm:"}
               </span>
-              <div className="font-bold text-xs text-slate-700 dark:text-slate-300 mb-2 select-all bg-white dark:bg-slate-900 py-1 rounded border border-slate-200 dark:border-slate-700">
+              <div className="font-bold text-sm text-slate-700 dark:text-slate-300 mb-3 select-all bg-white dark:bg-slate-900 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
                 {getMedName(medToDelete)}
               </div>
               <input
@@ -239,19 +238,19 @@ export default function MedicationArchiveList({ onActionSuccess }: MedicationArc
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder={langString === "id" ? "Ketik persis seperti di atas..." : "Type exactly as above..."}
-                className="h-10 w-full text-center text-xs font-bold bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/40 focus:border-red-500 outline-none rounded-lg transition-colors text-slate-800 dark:text-slate-200"
+                className="h-12 w-full text-center text-xs font-bold bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/40 focus:border-red-500 outline-none rounded-xl transition-colors text-slate-800 dark:text-slate-200"
               />
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3 relative z-10">
               <Button
                 type="button"
                 onClick={handleHardDelete}
                 disabled={processingId !== null || deleteConfirmText !== getMedName(medToDelete)}
-                className="w-full h-11 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider shadow-md disabled:opacity-40 transition-colors"
+                className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-red-500/20 disabled:opacity-40 transition-all"
               >
-                {processingId === medToDelete.id ? <Loader2 className="w-4 h-4 animate-spin" /> : (arcDict.btnConfirmDelete || (langString === "id" ? "KONFIRMASI HAPUS" : "CONFIRM DELETE"))}
+                {processingId === medToDelete.id ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (arcDict.btnConfirmDelete || (langString === "id" ? "YA, HAPUS PERMANEN" : "YES, DELETE PERMANENTLY"))}
               </Button>
-              <Button type="button" variant="ghost" onClick={() => { setMedToDelete(null); setDeleteConfirmText(""); }} disabled={processingId !== null} className="w-full h-11 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-xs uppercase tracking-wider text-slate-600 dark:text-slate-300">
+              <Button type="button" variant="outline" onClick={() => { setMedToDelete(null); setDeleteConfirmText(""); }} disabled={processingId !== null} className="w-full h-12 rounded-xl border-slate-200 dark:border-slate-800 font-bold text-xs uppercase tracking-widest text-slate-600 dark:text-slate-300">
                 {arcDict.cancel || (langString === "id" ? "Batal" : "Cancel")}
               </Button>
             </div>
