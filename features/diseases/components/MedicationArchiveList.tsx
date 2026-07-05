@@ -181,6 +181,7 @@ export default function MedicationArchiveList({ onActionSuccess }: MedicationArc
                   </div>
                 </div>
 
+                // Tombol Pulihkan dan Hapus Permanen
                 <div className="mt-auto pt-4 flex items-center gap-3">
                   <Button
                     variant="outline"
