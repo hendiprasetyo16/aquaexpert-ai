@@ -180,17 +180,18 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
   }, [mode, initialData]);
 
   useEffect(() => {
-    if (mode === "edit" && initialData && formData.length_cm === initialData.length_cm && formData.width_cm === initialData.width_cm && formData.height_cm === initialData.height_cm) {
-        return; 
-    }
-
     if (formData.length_cm > 0 && formData.width_cm > 0 && formData.height_cm > 0) {
       const volumeBruto = (formData.length_cm * formData.width_cm * formData.height_cm) / 1000;
       const volumeNetto = volumeBruto * 0.85; 
-      setFormData(prev => ({ ...prev, volume_liters: Number(volumeNetto.toFixed(1)) }));
-    }
-  }, [formData.length_cm, formData.width_cm, formData.height_cm, mode, initialData]);
+      const finalVolume = Number(volumeNetto.toFixed(1));
 
+      // Hanya update state JIKA angka volume yang baru berbeda dengan yang sedang ada di form
+      if (formData.volume_liters !== finalVolume) {
+        setFormData(prev => ({ ...prev, volume_liters: finalVolume }));
+      }
+    }
+  }, [formData.length_cm, formData.width_cm, formData.height_cm, formData.volume_liters]);
+  
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     if (type === 'checkbox') {
