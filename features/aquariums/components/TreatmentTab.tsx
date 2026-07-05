@@ -159,8 +159,15 @@ export default function TreatmentTab({ aquariumId }: Props) {
                          : session.latest_log.action_taken === "Redosed" ? (lang === 'id' ? "Dosis Ulang" : "Redosed") 
                          : session.latest_log.action_taken === "Water Change" ? (lang === 'id' ? "Ganti Air" : "Water Change") : session.latest_log.action_taken}
                         
-                        <span className="font-normal italic text-slate-500 block mt-0.5 max-h-16 overflow-y-auto custom-scrollbar whitespace-pre-wrap">
-                          {session.latest_log.notes ? `"${session.latest_log.notes}"` : ''}
+                        {/* 🔥 LOGIC REVERSE TERBARU ADA DI SINI 🔥 */}
+                        <span className="font-normal italic text-slate-500 block mt-1 max-h-20 overflow-y-auto custom-scrollbar whitespace-pre-wrap space-y-1">
+                          {session.latest_log.notes 
+                            ? session.latest_log.notes
+                                .split('\n')
+                                .filter(line => line.trim() !== '')
+                                .reverse()
+                                .join('\n')
+                            : ''}
                         </span>
                       </p>
                     </div>
@@ -194,7 +201,6 @@ export default function TreatmentTab({ aquariumId }: Props) {
                {historyPatients.map((hist) => {
                  const isSuccess = hist.status === "Completed";
                  const isFailed = hist.status === "Failed";
-                 const isAborted = hist.status === "Aborted";
                  
                  const statusColors = isSuccess 
                    ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800" 
