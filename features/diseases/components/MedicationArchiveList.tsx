@@ -6,7 +6,7 @@ import { getArchivedMedications, toggleMedicationArchiveAction, hardDeleteMedica
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/providers/LanguageProvider"; 
 
-import { Loader2, RefreshCcw, Trash2, Pill, AlertCircle, AlertTriangle, Archive } from "lucide-react";
+import { Loader2, RefreshCcw, Trash2, Pill, AlertCircle, AlertTriangle, Archive, Syringe, Clock, CalendarDays, Activity } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
@@ -141,11 +141,17 @@ export default function MedicationArchiveList({ onActionSuccess }: MedicationArc
       
       {/* KONTEN UTAMA ARSIP */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {medData.map((med) => {
+        {medData.map((med, index) => {
           const name = getMedName(med);
           return (
-            <Card key={med.id} className="overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm rounded-3xl hover:shadow-md transition-shadow">
-              <CardContent className="p-5 md:p-6 flex flex-col h-full gap-4">
+            <Card key={med.id} className="relative overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm rounded-3xl hover:shadow-md transition-shadow">
+              
+              {/* NOMOR URUT */}
+              <div className="absolute top-0 right-0 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-black text-xs px-4 py-1.5 rounded-bl-xl z-10">
+                #{String(index + 1).padStart(2, '0')}
+              </div>
+
+              <CardContent className="p-5 md:p-6 flex flex-col h-full gap-4 pt-8">
                 
                 <div className="flex items-start gap-4">
                   <div className="p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">
@@ -153,11 +159,29 @@ export default function MedicationArchiveList({ onActionSuccess }: MedicationArc
                   </div>
                   <div className="min-w-0 flex-1">
                     <h4 className="font-black text-slate-800 dark:text-slate-200 text-lg leading-tight line-clamp-2 mb-1">{name}</h4>
-                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest truncate">{med.active_ingredient}</p>
+                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest truncate">
+                      {med.active_ingredient || (langString === "id" ? "Bahan Aktif Tidak Diketahui" : "Unknown Active Ingredient")}
+                    </p>
                   </div>
                 </div>
 
-                <div className="mt-auto pt-5 flex items-center gap-3 border-t border-slate-100 dark:border-slate-800">
+                {/* DETAIL INFORMASI OBAT (DIPERBAIKI) */}
+                <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 space-y-2 mt-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> {langString === "id" ? "Standar Sembuh:" : "Success Rate:"}</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{med.success_rate_baseline_pct ? `${med.success_rate_baseline_pct}%` : "-"}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5"><Syringe className="w-3.5 h-3.5" /> {langString === "id" ? "Dosis:" : "Dosage:"}</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{med.base_dosage_per_100l ? `${med.base_dosage_per_100l} ${med.dosage_unit || ''} / 100L` : "-"}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" /> {langString === "id" ? "Durasi:" : "Duration:"}</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{med.treatment_duration_days ? `${med.treatment_duration_days} ${langString === "id" ? "Hari" : "Days"}` : "-"}</span>
+                  </div>
+                </div>
+
+                <div className="mt-auto pt-4 flex items-center gap-3">
                   <Button
                     variant="outline"
                     onClick={() => setMedToRestore(med)}
