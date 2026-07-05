@@ -275,26 +275,49 @@ export default function MedicationDatabasePage() {
                     <div key={med.id} className="relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-[0_0_20px_rgba(14,165,233,0.25)] dark:hover:shadow-[0_0_20px_rgba(14,165,233,0.15)] transition-all duration-300 hover:border-sky-300 dark:hover:border-sky-700 flex flex-col group">
 
                       {/* BAGIAN KANAN ATAS: TOMBOL AKSI & NOMOR URUT */}
-                      <div className="absolute top-0 right-0 flex items-start z-30">
-                        {isAdmin && (
-                          <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300 pr-2 pt-1.5">
-                            <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormMode("edit"); setEditingMedication(med); setActiveView("form"); }} className="h-8 w-8 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 text-sky-600 dark:text-sky-400 border border-slate-200 dark:border-slate-700 hover:bg-sky-50 dark:hover:bg-sky-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Edit Data" : "Edit Data"}>
-                              <Edit className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToArchive(med); }} className="h-8 w-8 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 text-amber-600 dark:text-amber-500 border border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Arsipkan Obat" : "Archive Meds"}>
-                              <Archive className="w-3.5 h-3.5" />
-                            </Button>
-                            {isSuperAdmin && (
-                              <Button size="icon" variant="ghost" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToDelete(med); }} className="h-8 w-8 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 text-red-600 dark:text-red-400 border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/40 rounded-lg shadow-sm transition-colors" title={lang === 'id' ? "Hapus Permanen" : "Permanent Delete"}>
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                        <div className="bg-sky-100 dark:bg-sky-900/60 text-sky-600 dark:text-sky-400 font-black text-xs px-4 py-2 rounded-bl-xl shadow-sm border-b border-l border-sky-100 dark:border-sky-800/50">
-                          #{String(startIndex + index + 1).padStart(2, '0')}
-                        </div>
-                      </div>
+<div className="absolute top-0 right-0 flex items-start z-30">
+  {isAdmin && (
+    <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300 pr-2 pt-1.5">
+      {/* TOMBOL EDIT */}
+      <Button 
+        size="icon" 
+        variant="ghost" 
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormMode("edit"); setEditingMedication(med); setActiveView("form"); }} 
+        className="h-8 w-8 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 text-sky-600 dark:text-sky-400 border border-slate-200 dark:border-slate-700 hover:bg-sky-100 dark:hover:bg-sky-900/50 hover:text-sky-700 dark:hover:text-sky-300 rounded-lg shadow-sm transition-colors" 
+        title={lang === 'id' ? "Edit Data" : "Edit Data"}
+      >
+        <Edit className="w-3.5 h-3.5" />
+      </Button>
+      
+      {/* TOMBOL ARSIP */}
+      <Button 
+        size="icon" 
+        variant="ghost" 
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToArchive(med); }} 
+        className="h-8 w-8 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 text-amber-600 dark:text-amber-500 border border-slate-200 dark:border-slate-700 hover:bg-amber-100 dark:hover:bg-amber-950/50 hover:text-amber-700 dark:hover:text-amber-400 rounded-lg shadow-sm transition-colors" 
+        title={lang === 'id' ? "Arsipkan Obat" : "Archive Meds"}
+      >
+        <Archive className="w-3.5 h-3.5" />
+      </Button>
+      
+      {/* TOMBOL DELETE */}
+      {isSuperAdmin && (
+        <Button 
+          size="icon" 
+          variant="ghost" 
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMedToDelete(med); }} 
+          className="h-8 w-8 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 text-red-600 dark:text-red-400 border border-slate-200 dark:border-slate-700 hover:bg-red-100 dark:hover:bg-red-950/50 hover:text-red-700 dark:hover:text-red-300 rounded-lg shadow-sm transition-colors" 
+          title={lang === 'id' ? "Hapus Permanen" : "Permanent Delete"}
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
+      )}
+    </div>
+  )}
+  <div className="bg-sky-100 dark:bg-sky-900/60 text-sky-600 dark:text-sky-400 font-black text-xs px-4 py-2 rounded-bl-xl shadow-sm border-b border-l border-sky-100 dark:border-sky-800/50">
+    #{String(startIndex + index + 1).padStart(2, '0')}
+  </div>
+</div>
 
                       <div className="p-5 md:p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/50 flex flex-col gap-4 relative z-10 pt-8">
                         <div className="flex justify-between items-start gap-4">
