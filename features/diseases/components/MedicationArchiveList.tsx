@@ -182,25 +182,25 @@ export default function MedicationArchiveList({ onActionSuccess }: MedicationArc
                 </div>
 
                 // Tombol Pulihkan dan Hapus Permanen
-                <div className="mt-auto pt-4 flex items-center gap-3">
-                  <Button
-                    variant="outline"
+<div className="mt-auto pt-4 flex items-center gap-3">
+                  <button
+                    type="button"
                     onClick={() => setMedToRestore(med)}
-                    className="flex-1 h-11 rounded-xl border-emerald-200 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 hover:text-emerald-700 font-black text-xs uppercase tracking-widest transition-colors"
+                    className="flex-1 flex items-center justify-center h-11 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 dark:hover:bg-emerald-500 dark:hover:text-white dark:hover:border-emerald-500 font-black text-xs uppercase tracking-widest transition-all duration-200"
                   >
                     <RefreshCcw className="w-4 h-4 mr-2" />
                     {arcDict.btnRestore || (langString === "id" ? "Pulihkan" : "Restore")}
-                  </Button>
+                  </button>
 
                   {role === "super_admin" && (
-                    <Button
-                      variant="outline"
+                    <button
+                      type="button"
                       onClick={() => setMedToDelete(med)}
-                      className="flex-1 h-11 rounded-xl border-red-200 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10 text-red-600 dark:text-red-400 hover:bg-red-100 hover:text-red-700 font-black text-xs uppercase tracking-widest transition-colors"
+                      className="flex-1 flex items-center justify-center h-11 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 dark:hover:bg-red-500 dark:hover:text-white dark:hover:border-red-500 font-black text-xs uppercase tracking-widest transition-all duration-200"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
                       {arcDict.btnDelete || (langString === "id" ? "Hapus" : "Delete")}
-                    </Button>
+                    </button>
                   )}
                 </div>
               </CardContent>
