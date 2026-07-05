@@ -317,7 +317,24 @@ export default function MedicationDatabasePage() {
                           </div>
                           
                           {/* BADGE NUMBER BERGAYA MODERN (GLASSMORPHISM) */}
-                          <div className="bg-sky-500/10 dark:bg-sky-500/15 border border-sky-200 dark:border-sky-500/30 text-sky-700 dark:text-sky-300 font-black text-xs px-3 py-1.5 rounded-xl backdrop-blur-sm shadow-sm shrink-0 ml-2">
+                          <div
+                            className="
+                              shrink-0 ml-2
+                              px-3 py-1.5
+                              rounded-xl
+                              font-black text-xs
+
+                              bg-sky-100
+                              border border-sky-200
+                              text-sky-700
+
+                              dark:bg-sky-900/40
+                              dark:border-sky-700
+                              dark:text-sky-300
+
+                              shadow-sm
+                              backdrop-blur
+                            ">
                             #{String(startIndex + index + 1).padStart(2, "0")}
                           </div>
                         </div>
