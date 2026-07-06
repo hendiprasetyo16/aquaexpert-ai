@@ -28,12 +28,15 @@ export interface HealthAnalysisResult {
   bonuses: string[]; 
 }
 
+// 💡 FIX 1: Pintu Masuk (Interface) Diperbarui untuk Menerima activeTreatments
 interface AnalyzeProps {
   aquarium: Aquarium;
   parameters: AquariumParameterLog[];
   plants: TankPlant[];
   fishes: TankFish[];
   maintenanceStatus?: MaintenanceDashboardStatus[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  activeTreatments?: any[]; 
 }
 
 function clampScore(score: number): number {
@@ -76,6 +79,8 @@ function getEcosystemSnapshot(
   plants: TankPlant[], 
   fishes: TankFish[], 
   maintenanceStatus: MaintenanceDashboardStatus[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  activeTreatments: any[], 
   anchorDate: Date
 ) {
   const alerts: string[] = [];
@@ -379,19 +384,28 @@ function getEcosystemSnapshot(
   // --- 5. KESEHATAN FAUNA (FAUNA HEALTH & POPULATION ENGINE) ---
   let fishHealthScore = 100;
   if (totalFishQuantity > 0) {
-    let sickCount = 0; let quarantinedCount = 0;
+    let sickPenaltyScore = 0; 
+    
+    // 💡 FIX 2: MENYEDOT DATA PENYAKIT DARI INVENTORY & TAB PENGOBATAN
     fishes.forEach(f => {
-      if (f.health_status === "Sick") sickCount += f.quantity;
-      if (f.health_status === "Quarantined") quarantinedCount += f.quantity;
+      if (f.health_status === "Sick" || f.health_status === "Quarantined") {
+        sickPenaltyScore += (f.quantity * 25); // Penalti berat jika inventory ditandai sakit
+      }
     });
 
-    if (sickCount > 0) {
-      const penalty = Math.min(60, sickCount * 20);
-      fishHealthScore -= penalty; deductions["Active Disease Outbreak"] = penalty;
-      recommendations.push("Segera isolasi fauna bergejala klinis sakit ke tangki karantina darurat.");
+    if (activeTreatments && activeTreatments.length > 0) {
+      const activeCasesCount = activeTreatments.filter(t => t.status === "Active").length;
+      if (activeCasesCount > 0) {
+        sickPenaltyScore += (activeCasesCount * 35); // Penalti sangat berat jika ada wabah aktif
+        alerts.push(`🚨 Wabah Aktif: Terdapat ${activeCasesCount} infeksi/penyakit yang sedang diobati.`);
+      }
     }
-    if (quarantinedCount > 0) {
-      fishHealthScore -= 10; deductions["Quarantined Fish Presence"] = 10;
+
+    if (sickPenaltyScore > 0) {
+      const penalty = Math.min(80, sickPenaltyScore); 
+      fishHealthScore -= penalty; 
+      deductions["Active Disease/Quarantine Event"] = penalty;
+      recommendations.push("Lanjutkan protokol pengobatan harian dan pantau ketat penyebaran gejala pada fauna lain.");
     }
 
     let schoolingStressPenalties = 0;
@@ -401,7 +415,6 @@ function getEcosystemSnapshot(
 
     groupedFishes.forEach((data) => {
       const f = data.fishInfo;
-      // FIX TEMUAN: Mengganti properti f.schooling yang tidak terdaftar di interface, menggunakan kondisi min_school_size murni.
       if (f.min_school_size != null && f.min_school_size > 1) {
         hasSchoolingSpecies = true;
         const minRequired = f.min_school_size;
@@ -492,7 +505,7 @@ function getEcosystemSnapshot(
   }
   fishHealthScore = clampScore(fishHealthScore);
 
-  // --- 6. OVERALL SCORE & CRITICAL INHERITANCE ---
+  // --- 6. OVERALL SCORE & CRITICAL INHERITANCE (PERBAIKAN TOTAL) ---
   let overallScore = 0;
   if (plantScore !== null) {
     overallScore = (waterScore * 0.30) + (fishHealthScore * 0.25) + (maintenanceScore * 0.15) + (bioloadScore * 0.15) + (plantScore * 0.15);
@@ -500,7 +513,7 @@ function getEcosystemSnapshot(
     overallScore = (waterScore * 0.35) + (fishHealthScore * 0.30) + (maintenanceScore * 0.15) + (bioloadScore * 0.20);
   }
   
-  const ecosystemCollapsed = waterScore <= 40 || fishHealthScore <= 40 || bioloadScore <= 40;
+  const ecosystemCollapsed = waterScore <= 40 || fishHealthScore <= 40 || bioloadScore <= 40 || maintenanceScore <= 40;
   const finalBonuses = ecosystemCollapsed ? [] : bonuses;
 
   if (!ecosystemCollapsed && ecosystemBonus > 0 && overallScore >= 80) {
@@ -508,9 +521,17 @@ function getEcosystemSnapshot(
   }
   overallScore = clampScore(overallScore);
 
+  // 💡 FIX 3: CRITICAL INHERITANCE (Jika ada 1 panel hancur lebur, nilai total wajib jatuh)
   if (waterScore <= 40) overallScore = Math.min(overallScore, waterScore);
   if (bioloadScore <= 40) overallScore = Math.min(overallScore, bioloadScore);
   if (fishHealthScore <= 40) overallScore = Math.min(overallScore, fishHealthScore);
+  
+  // Jika Perawatan 25, maka Skor Total TIDAK BOLEH melebihi 25 + 15 (Max 40)
+  if (maintenanceScore <= 40) {
+    overallScore = Math.min(overallScore, maintenanceScore + 15);
+    alerts.push("⚠️ Kritis: Penelantaran jadwal perawatan merusak stabilitas ekosistem secara drastis.");
+  }
+  
   overallScore = clampScore(overallScore);
 
   return {
@@ -526,10 +547,11 @@ function getEcosystemSnapshot(
 // ==========================================
 // MAIN EXPORT & SYSTEMIC TREND ENGINE WRAPPER
 // ==========================================
-export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, maintenanceStatus = [] }: AnalyzeProps): HealthAnalysisResult {
+export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, maintenanceStatus = [], activeTreatments = [] }: AnalyzeProps): HealthAnalysisResult {
   const sortedParams = [...parameters].sort((a, b) => new Date(b.record_date).getTime() - new Date(a.record_date).getTime());
   
-  const currentSnapshot = getEcosystemSnapshot(aquarium, sortedParams, plants, fishes, maintenanceStatus, new Date());
+  // 💡 Meneruskan Data Treatment ke Mesin Snapshot
+  const currentSnapshot = getEcosystemSnapshot(aquarium, sortedParams, plants, fishes, maintenanceStatus, activeTreatments, new Date());
 
   let healthTrend: HealthTrend = "stable";
   if (sortedParams.length > 1) {
@@ -538,7 +560,7 @@ export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, ma
 
     const historicalSlice = sortedParams.slice(1);
     const historicalAnchorDate = prevParamLog.record_date ? new Date(prevParamLog.record_date) : new Date();
-    const prevSnapshot = getEcosystemSnapshot(aquarium, historicalSlice, plants, fishes, maintenanceStatus, historicalAnchorDate);
+    const prevSnapshot = getEcosystemSnapshot(aquarium, historicalSlice, plants, fishes, maintenanceStatus, activeTreatments, historicalAnchorDate);
 
     let improvePoints = 0; 
     let declinePoints = 0;

@@ -31,16 +31,18 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     setLoading(true); setError("");
     sessionStorage.removeItem(`aquaexpert_diagnosis_v2_${aquariumId}`);
     const res = await getHybridDeepDiagnosisAction(aquariumId, lang);
+    
+    // 💡 PERBAIKAN: Menampilkan Error dengan Jelas Jika Gagal
     if (res.success && res.localDiagnosis) {
       setResult(res);
       sessionStorage.setItem(`aquaexpert_diagnosis_v2_${aquariumId}`, JSON.stringify(res));
     } else {
+      setResult(null);
       setError(res.error || "Gagal memproses diagnosis.");
     }
     setLoading(false);
   };
 
-  // 💡 ULTIMATE AUTO-TRANSLATOR (Termasuk Value Transparency Log)
   const tr = (text: string) => {
     if (lang === 'id' || !text) return text;
     let en = text;
@@ -185,7 +187,14 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
           <Button onClick={handleRunDiagnosis} className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 h-14 rounded-xl w-full sm:w-auto transition-all active:scale-95 shadow-lg shadow-indigo-500/20">
             <Activity className="w-5 h-5 mr-2" /> {lang === 'id' ? "MULAI DIAGNOSIS SISTEM" : "START DIAGNOSIS"}
           </Button>
-          {error && <p className="text-sm font-bold text-rose-500 mt-4">{error}</p>}
+          
+          {/* 💡 PESAN ERROR KINI TAMPIL DENGAN SANGAT JELAS */}
+          {error && (
+            <div className="mt-6 p-4 bg-rose-100 dark:bg-rose-900/30 border border-rose-300 dark:border-rose-800 rounded-xl flex items-start gap-3 text-left max-w-lg mx-auto">
+              <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              <p className="text-sm font-bold text-rose-800 dark:text-rose-300">{error}</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -235,7 +244,6 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
                   )}
                 </div>
                 
-                {/* 💡 PERBAIKAN: Selalu menampilkan commentary dengan elegan, tanpa teks 'API Offline' */}
                 <div className={`text-sm md:text-base font-bold leading-relaxed space-y-3 whitespace-pre-wrap relative z-10 ${result.expertAIExtras.generatedByGemini ? 'text-indigo-950 dark:text-slate-300' : 'text-slate-700 dark:text-slate-400'}`}>
                   {result.expertAIExtras.commentary}
                 </div>

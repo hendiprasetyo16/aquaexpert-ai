@@ -28,6 +28,9 @@ import { AquariumSpecsPanel } from "./AquariumSpecsPanel";
 import { getParametersAction } from "../actions/parameter.actions";
 import { getTankInventoryAction } from "../actions/inventory.actions";
 import { getMaintenanceDashboardAction } from "../actions/maintenance.actions";
+// 💡 IMPORT BARU: Mengambil data penyakit/karantina aktif dari database
+import { getActiveTreatmentsAction } from "@/features/diseases/actions/start-treatment.actions";
+
 import type { AquariumParameterLog } from "../types/parameter.types";
 import type { TankFish, TankPlant } from "../types/inventory.types";
 import { analyzeAquariumHealth, HealthAnalysisResult } from "../utils/health-engine";
@@ -101,26 +104,31 @@ export default function AquariumDetail() {
         if (!aqRes.success || !aqRes.data) throw new Error(aqRes.error || "Akuarium tidak ditemukan.");
         setAquarium(aqRes.data);
 
-        const [paramRes, invRes, maintRes] = await Promise.all([
+        // 💡 PERBAIKAN: Tambahkan pengambilan data Penyakit Aktif (Active Treatments)
+        const [paramRes, invRes, maintRes, treatRes] = await Promise.all([
           getParametersAction(aquariumId),
           getTankInventoryAction(aquariumId),
-          getMaintenanceDashboardAction(aquariumId)
+          getMaintenanceDashboardAction(aquariumId),
+          getActiveTreatmentsAction(aquariumId)
         ]);
 
         const paramData = paramRes.success ? (paramRes.data as AquariumParameterLog[]) : [];
         const plantData = invRes.success ? (invRes.plants as TankPlant[]) : [];
         const fishData = invRes.success ? (invRes.fishes as TankFish[]) : [];
         const maintData = maintRes.success ? maintRes.tasksStatus : [];
+        const treatData = treatRes.success ? treatRes.data : []; // Ekstrak data penyakit
 
         setTotalFishes(fishData.reduce((acc, curr) => acc + curr.quantity, 0));
         setTotalPlants(plantData.reduce((acc, curr) => acc + curr.quantity, 0));
 
+        // 💡 PERBAIKAN: Masukkan data penyakit ke dalam kalkulator mesin kesehatan
         const result = analyzeAquariumHealth({
           aquarium: aqRes.data,
           parameters: paramData,
           plants: plantData,
           fishes: fishData,
-          maintenanceStatus: maintData
+          maintenanceStatus: maintData,
+          activeTreatments: treatData // Meneruskan data penyakit ke mesin
         });
         
         setHealthResult(result);
@@ -168,7 +176,6 @@ export default function AquariumDetail() {
 
   const handleDelete = async () => {
     setLoading(true);
-    // HAPUS KODE PENGHAPUSAN CLIENT-SIDE DI SINI. BIARKAN SERVER YANG MENGERJAKANNYA.
     const res = await deleteAquariumAction(aquariumId);
     if (res.success) {
       toast.success(lang === 'id' ? "Akuarium dihapus." : "Aquarium deleted.");
