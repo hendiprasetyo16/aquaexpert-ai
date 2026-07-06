@@ -6,6 +6,8 @@ import { analyzeAquariumHealth } from "../utils/health-engine";
 import { getTankInventoryAction } from "./inventory.actions";
 import { createClient } from "@/lib/supabase/server";
 import { verifyAquariumOwnership } from "../repositories/security.repository";
+// 💡 MENGIMPOR LANGSUNG OTAK UTAMA DARI FILE CHAT AI
+import { askAquaExpert } from "@/features/ai/actions/ai.actions"; 
 
 export interface HybridDiagnosisResponse {
   success: boolean;
@@ -53,27 +55,26 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
     const healthResult = analyzeAquariumHealth({ aquarium, parameters: paramsList, plants, fishes });
     const localDiagnosis = generateDeepDiagnosis({ aquarium, health: healthResult, parameters: paramsList, fishes, plants, lang });
 
-    // 💡 PERBAIKAN: Teks Fallback Profesional tanpa menyebut 'Offline'
+    // Fallback Bawaan Jika Semua AI Mati / Timeout
     let expertCommentary = lang === 'id' 
       ? "Sistem bio-analitik kami telah memetakan kondisi akuarium Anda secara komprehensif. Berdasarkan data parameter saat ini, terdapat beberapa indikator yang memerlukan penyesuaian untuk mencapai harmoni ekosistem yang ideal.\n\nSilakan ikuti 'Rencana Eksekusi' di bawah ini secara seksama untuk menstabilkan kualitas air dan memulihkan kesehatan biota Anda."
       : "Our bio-analytic system has comprehensively mapped your aquarium's condition. Based on current parameter data, several indicators require adjustment to achieve ideal ecosystem harmony.\n\nPlease follow the 'Action Plan' below carefully to stabilize water quality and restore livestock health.";
     
     let generatedByAI = false;
-    let aiSuccess = false;
 
     if (localDiagnosis.rootCauses.length > 0) {
-      
       const issuesSummary = localDiagnosis.rootCauses.map(c => `- ${c.title}: ${c.description}`).join("\n");
       const actionsSummary = localDiagnosis.nextActions.map(a => `[${a.priority.toUpperCase()}] ${a.instruction}`).join("\n");
       
-      const systemPrompt = `You are an expert aquascaper and aquatic veterinarian. 
-Write an empathetic, deeply educational, and scientifically solid commentary based on this data.
-Strictly:
-1. Max 2 short paragraphs.
+      const diagnosisPrompt = `I need you to act as an expert aquatic veterinarian. 
+Please write an empathetic, educational, and scientifically solid commentary based on the following aquarium data.
+Strictly adhere to these rules:
+1. Write exactly 2 short paragraphs.
 2. Explain the biological consequence of the issues.
-3. Output entirely in: ${lang === 'id' ? 'Indonesian' : 'English'}.`;
-      
-      const userPrompt = `Aquarium: ${aquarium.name} (${aquarium.volume_liters}L, ${aquarium.aquascape_style})
+3. Output your response entirely in: ${lang === 'id' ? 'Indonesian' : 'English'}.
+
+Aquarium Data:
+Name: ${aquarium.name} (${aquarium.volume_liters}L, ${aquarium.aquascape_style})
 Score: ${healthResult.scores.overall}/100
 Status: ${localDiagnosis.riskLevel}
 
@@ -83,87 +84,26 @@ ${issuesSummary}
 Actions:
 ${actionsSummary}`;
 
-      const GROQ_KEY = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.replace(/['"]/g, '').trim() : null;
-      const GEMINI_KEY = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.replace(/['"]/g, '').trim() : null;
+      try {
+        // 💡 PERBAIKAN: Kita panggil fungsi askAquaExpert secara langsung!
+        // Kita juga tambahkan pelindung Timeout (8 detik) agar UI tidak bengong jika AI lama mikir
+        const timeoutPromise = new Promise<{error: string}>((_, reject) => 
+          setTimeout(() => reject(new Error("Timeout")), 15000)
+        );
+        
+        // Membungkus pesan seolah-olah user yang mengirim prompt di menu chat
+        const aiCallPromise = askAquaExpert([{ role: "user", content: diagnosisPrompt }]);
+        
+        // Balapan: Siapa yang lebih cepat? Jawaban AI atau Batas Waktu 8 Detik?
+        const aiResponse = await Promise.race([aiCallPromise, timeoutPromise]) as any;
 
-      // =====================================================================
-      // MESIN 1: GEMINI 2.5 FLASH (Prioritas Utama)
-      // =====================================================================
-      if (GEMINI_KEY && !aiSuccess) {
-        try {
-          const geminiContents = [
-            { role: "user", parts: [{ text: systemPrompt }] },
-            { role: "model", parts: [{ text: "Understood." }] },
-            { role: "user", parts: [{ text: userPrompt }] }
-          ];
-
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
-          
-          // Pembatasan Waktu (Timeout 8 Detik)
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 8000); 
-
-          const geminiRes = await fetch(geminiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: geminiContents }),
-            cache: "no-store",
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-
-          if (geminiRes.ok) {
-            const result = await geminiRes.json();
-            if (result.candidates && result.candidates.length > 0) {
-              expertCommentary = result.candidates[0].content.parts[0].text.trim();
-              generatedByAI = true;
-              aiSuccess = true;
-            }
-          }
-        } catch (err: unknown) {
-          console.warn("Gemini Timeout/Error, fallback to Groq...");
+        if (aiResponse && !aiResponse.error && aiResponse.reply) {
+          expertCommentary = aiResponse.reply.trim();
+          generatedByAI = true;
+          console.log("✅ [DIAGNOSIS AI SUCCESS] Menggunakan Otak Utama ai.actions.ts");
         }
-      }
-
-      // =====================================================================
-      // MESIN 2: GROQ LLAMA 3.3 70B (Cadangan Cepat)
-      // =====================================================================
-      if (GROQ_KEY && !aiSuccess) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 6000); // Timeout 6 Detik
-
-          const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${GROQ_KEY}`,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              model: "llama-3.3-70b-versatile",
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt }
-              ],
-              temperature: 0.6,
-              max_tokens: 1500
-            }),
-            cache: "no-store",
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-
-          if (groqRes.ok) {
-            const aiResult = await groqRes.json();
-            if (aiResult.choices && aiResult.choices[0]?.message?.content) {
-              expertCommentary = aiResult.choices[0].message.content.trim();
-              generatedByAI = true;
-              aiSuccess = true;
-            }
-          }
-        } catch (err: unknown) {
-          console.warn("Groq Timeout/Error, falling back to System default...");
-        }
+      } catch (err) {
+        console.warn("⚠️ [DIAGNOSIS AI TIMEOUT] AI terlalu lama berpikir. Menggunakan teks fallback.");
       }
     }
 
