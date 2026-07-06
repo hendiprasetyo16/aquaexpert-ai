@@ -9,20 +9,20 @@ type ChatMessage = {
 const SYSTEM_PROMPT = `Anda adalah AquaExpert AI, asisten cerdas spesialis Aquascape, ikan hias, tanaman air, dan parameter kualitas air. 
 Tugas Anda adalah memberikan jawaban yang profesional, akurat, mudah dipahami, dan solutif. Gunakan format Markdown (bold, list, bullet) agar mudah dibaca.`;
 
-export async function askAquaExpert(history: ChatMessage[]) {
-  let groqDiagnostic = "";
-  let geminiDiagnostic = "";
+// 💡 FIX 1: URL Murni (Anti-Copy-Paste Bug)
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
+export async function askAquaExpert(history: ChatMessage[]) {
   try {
     const GROQ_KEY = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.replace(/['"]/g, '').trim() : null;
     const GEMINI_KEY = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.replace(/['"]/g, '').trim() : null;
 
     if (!GROQ_KEY && !GEMINI_KEY) {
-      return { error: "API Key Kosong. Vercel tidak mendeteksi Environment Variables." };
+      return { error: "API Key kosong di sistem Vercel." };
     }
 
     // ====================================================================
-    // 1. UJI COBA GROQ API
+    // 1. GROQ API (Prioritas Utama)
     // ====================================================================
     if (GROQ_KEY) {
       try {
@@ -31,7 +31,7 @@ export async function askAquaExpert(history: ChatMessage[]) {
           ...history.map(m => ({ role: m.role === "ai" ? "assistant" : "user", content: m.content }))
         ];
 
-        const groqRes = await fetch("[https://api.groq.com/openai/v1/chat/completions](https://api.groq.com/openai/v1/chat/completions)", {
+        const groqRes = await fetch(GROQ_URL, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${GROQ_KEY}`,
@@ -49,20 +49,14 @@ export async function askAquaExpert(history: ChatMessage[]) {
         if (groqRes.ok) {
           const data = await groqRes.json();
           return { reply: data.choices[0].message.content };
-        } else {
-          // X-RAY: Tangkap alasan asli Groq menolak
-          const errText = await groqRes.text();
-          groqDiagnostic = `(Status ${groqRes.status}) ${errText}`;
         }
       } catch (e: any) {
-        groqDiagnostic = `Fetch Error: ${e.message}`;
+        console.warn("Groq gagal menyambung...");
       }
-    } else {
-      groqDiagnostic = "API Key tidak dipasang";
     }
 
     // ====================================================================
-    // 2. UJI COBA GEMINI API
+    // 2. GEMINI API (Fallback Darurat)
     // ====================================================================
     if (GEMINI_KEY) {
       try {
@@ -71,7 +65,10 @@ export async function askAquaExpert(history: ChatMessage[]) {
           parts: [{ text: m.content }]
         }));
 
-        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+        // 💡 FIX 2: Menggunakan nama endpoint model terbaru dari Google (Status 404 Cleared!)
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`;
+
+        const geminiRes = await fetch(geminiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -85,24 +82,17 @@ export async function askAquaExpert(history: ChatMessage[]) {
           const data = await geminiRes.json();
           return { reply: data.candidates[0].content.parts[0].text };
         } else {
-          // X-RAY: Tangkap alasan asli Google menolak
-          const errText = await geminiRes.text();
-          geminiDiagnostic = `(Status ${geminiRes.status}) ${errText}`;
+          // Jika terjadi error kuota/lainnya, lempar ke catch luar
+          throw new Error(`Google Gemini sibuk (Status: ${geminiRes.status})`);
         }
       } catch (e: any) {
-        geminiDiagnostic = `Fetch Error: ${e.message}`;
+        throw e;
       }
-    } else {
-      geminiDiagnostic = "API Key tidak dipasang";
     }
 
-    // Jika kode sampai ke titik ini, berarti kedua API GAGAL total.
-    // Kita tembakkan laporannya langsung ke layar chat Bapak!
-    return { 
-      error: `[DIAGNOSTIK SISTEM] \n\n🔴 GROQ: ${groqDiagnostic} \n\n🔵 GEMINI: ${geminiDiagnostic}` 
-    };
+    return { error: "Semua server AI (Groq & Gemini) sedang sibuk. Mohon coba lagi nanti." };
 
   } catch (error: any) {
-    return { error: `[CRITICAL ERROR FATAL]: ${error.message}` };
+    return { error: `Gagal memproses data AI: ${error.message}` };
   }
 }
