@@ -9,7 +9,6 @@ type ChatMessage = {
 const SYSTEM_PROMPT = `Anda adalah AquaExpert AI, asisten cerdas spesialis Aquascape, ikan hias, tanaman air, dan parameter kualitas air. 
 Tugas Anda adalah memberikan jawaban yang profesional, akurat, mudah dipahami, dan solutif. Gunakan format Markdown (bold, list, bullet) agar mudah dibaca.`;
 
-// 💡 FIX 1: URL Murni (Anti-Copy-Paste Bug)
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 export async function askAquaExpert(history: ChatMessage[]) {
@@ -22,7 +21,7 @@ export async function askAquaExpert(history: ChatMessage[]) {
     }
 
     // ====================================================================
-    // 1. GROQ API (Prioritas Utama)
+    // 1. GROQ API (Menggunakan Llama 3.1 8B Instant - Super Stabil)
     // ====================================================================
     if (GROQ_KEY) {
       try {
@@ -38,7 +37,8 @@ export async function askAquaExpert(history: ChatMessage[]) {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            model: "llama3-70b-8192", 
+            // 💡 FIX 1: Menggunakan model teringan & teraman milik Groq
+            model: "llama-3.1-8b-instant", 
             messages: groqMessages,
             temperature: 0.7,
             max_tokens: 1500
@@ -51,28 +51,33 @@ export async function askAquaExpert(history: ChatMessage[]) {
           return { reply: data.choices[0].message.content };
         }
       } catch (e: any) {
-        console.warn("Groq gagal menyambung...");
+        console.warn("Groq gagal menyambung, melompat ke Gemini...");
       }
     }
 
     // ====================================================================
-    // 2. GEMINI API (Fallback Darurat)
+    // 2. GEMINI API (Menggunakan Jalur Rilis Resmi 'v1' Anti-404)
     // ====================================================================
     if (GEMINI_KEY) {
       try {
-        const geminiContents = history.map(m => ({
-          role: m.role === "ai" ? "model" : "user",
-          parts: [{ text: m.content }]
-        }));
+        // 💡 FIX 2: Menyuntikkan instruksi ke dalam riwayat obrolan secara manual.
+        // Ini terbukti ampuh menghindari error 400/404 pada API Key versi baru.
+        const geminiContents = [
+          { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
+          { role: "model", parts: [{ text: "Baik, saya mengerti. Saya siap membantu sebagai AquaExpert AI." }] },
+          ...history.map(m => ({
+            role: m.role === "ai" ? "model" : "user",
+            parts: [{ text: m.content }]
+          }))
+        ];
 
-        // 💡 FIX 2: Menggunakan nama endpoint model terbaru dari Google (Status 404 Cleared!)
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`;
+        // 💡 FIX 3: Menggunakan endpoint /v1/ (Rilis Resmi) bukan /v1beta/
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
 
         const geminiRes = await fetch(geminiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
             contents: geminiContents
           }),
           cache: "no-store" 
@@ -82,8 +87,7 @@ export async function askAquaExpert(history: ChatMessage[]) {
           const data = await geminiRes.json();
           return { reply: data.candidates[0].content.parts[0].text };
         } else {
-          // Jika terjadi error kuota/lainnya, lempar ke catch luar
-          throw new Error(`Google Gemini sibuk (Status: ${geminiRes.status})`);
+          throw new Error(`Google API sibuk (Status: ${geminiRes.status})`);
         }
       } catch (e: any) {
         throw e;
