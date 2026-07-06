@@ -1,9 +1,6 @@
 // features/ai/actions/ai.actions.ts
 "use server";
 
-// 💡 FITUR BARU: Mencegah Vercel mematikan paksa server jika AI butuh waktu berpikir agak lama
-export const maxDuration = 60; 
-
 type ChatMessage = {
   role: "user" | "ai";
   content: string;
@@ -14,7 +11,7 @@ Tugas Anda adalah memberikan jawaban yang profesional, akurat, mudah dipahami, d
 
 export async function askAquaExpert(history: ChatMessage[]) {
   try {
-    // 💡 FIX: Membaca API Key dengan aman agar tidak crash saat di-deploy ke Vercel
+    // Membaca API Key dengan aman
     const GROQ_KEY = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.replace(/['"]/g, '').trim() : null;
     const GEMINI_KEY = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.replace(/['"]/g, '').trim() : null;
 
@@ -44,7 +41,7 @@ export async function askAquaExpert(history: ChatMessage[]) {
             temperature: 0.7,
             max_tokens: 1500
           }),
-          cache: "no-store" // Cegah Vercel memberikan cache error lama
+          cache: "no-store" 
         });
 
         if (groqRes.ok) {
@@ -75,7 +72,7 @@ export async function askAquaExpert(history: ChatMessage[]) {
             systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
             contents: geminiContents
           }),
-          cache: "no-store" // Cegah Vercel memberikan cache error lama
+          cache: "no-store" 
         });
 
         if (geminiRes.ok) {
