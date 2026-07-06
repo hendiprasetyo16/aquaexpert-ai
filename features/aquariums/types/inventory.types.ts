@@ -22,9 +22,16 @@ export interface TankPlant {
     light_requirement?: string | null;
     growth_speed_score?: number | null;
     nutrient_consumption_score?: number | null;
+    
+    // 💡 FIX: Sesuaikan properti suhu/pH tanaman dengan SQL Database
     preferred_ph?: number | null;
     preferred_temperature?: number | null;
     preferred_gh?: number | null;
+    temperature_min?: number | null;
+    temperature_max?: number | null;
+    ph_min?: number | null;
+    ph_max?: number | null;
+
     carpeting?: boolean | null;
     epiphyte?: boolean | null;
     floating?: boolean | null;
@@ -58,10 +65,14 @@ export interface TankFish {
     temperament_score?: number | null;
     shrimp_safe?: boolean | null;
     plant_safe?: boolean | null;
-    temperature_min?: number | null;
-    temperature_max?: number | null;
-    ph_min?: number | null;
-    ph_max?: number | null;
+    
+    // 💡 FIX FATAL: Nama variabel wajib SAMA PERSIS dengan SQL Database
+    ideal_temp_min?: number | null;
+    ideal_temp_max?: number | null;
+    ideal_ph_min?: number | null;
+    ideal_ph_max?: number | null;
+    
+    schooling?: boolean | null; // 💡 FIX: Menambahkan indikator kawanan
     min_school_size?: number | null;
     fin_nipper?: boolean | null;
     long_finned?: boolean | null;
@@ -87,7 +98,6 @@ export interface TankFish {
     jump_risk?: boolean | null;
     sensitive_to_nitrate?: boolean | null;
     conservation_status?: string | null;
-    // FIXX: Sinkronisasi Tipe Data Kuantitatif
     breeding_difficulty?: number | null;
     lifespan_years?: number | null;
   } | null;

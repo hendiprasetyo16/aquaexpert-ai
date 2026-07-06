@@ -147,11 +147,12 @@ function getEcosystemSnapshot(
         const qty = data.totalQty;
         const populationRatio = qty / totalFishQuantity;
 
-        const phSweetSpot = f.preferred_ph ?? ((f.ph_min ?? 6.5) + (f.ph_max ?? 7.5)) / 2;
-        const tempSweetSpot = f.preferred_temperature ?? ((f.temperature_min ?? 24) + (f.temperature_max ?? 28)) / 2;
+        // 💡 FIX: Sesuaikan nama variabel dengan Database (ideal_ph_min, ideal_temp_min, dll)
+        const phSweetSpot = f.preferred_ph ?? ((f.ideal_ph_min ?? 6.5) + (f.ideal_ph_max ?? 7.5)) / 2;
+        const tempSweetSpot = f.preferred_temperature ?? ((f.ideal_temp_min ?? 24) + (f.ideal_temp_max ?? 28)) / 2;
 
         let phPenalty = 0;
-        if (latestParam.ph! < (f.ph_min ?? 5.5) || latestParam.ph! > (f.ph_max ?? 8.5)) {
+        if (latestParam.ph! < (f.ideal_ph_min ?? 5.5) || latestParam.ph! > (f.ideal_ph_max ?? 8.5)) {
           phPenalty = 20; 
           phMismatchSpecies.push(f.name_id || f.name_en || "Unknown Species");
         } else if (Math.abs(latestParam.ph! - phSweetSpot) >= 0.8) {
@@ -161,7 +162,7 @@ function getEcosystemSnapshot(
 
         let tempPenalty = 0;
         if (latestParam.temperature != null) {
-          if (latestParam.temperature < (f.temperature_min ?? 20) || latestParam.temperature > (f.temperature_max ?? 32)) {
+          if (latestParam.temperature < (f.ideal_temp_min ?? 20) || latestParam.temperature > (f.ideal_temp_max ?? 32)) {
             tempPenalty = 25;
             tempMismatchSpecies.push(f.name_id || f.name_en || "Unknown Species");
           } else if (Math.abs(latestParam.temperature - tempSweetSpot) >= 2.5) {

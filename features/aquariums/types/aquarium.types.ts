@@ -14,6 +14,9 @@ export interface Aquarium {
   width_cm: number;
   height_cm: number;
   volume_liters: number;
+  
+  // 💡 FIX: Menambahkan Volume Air Bersih (Net) dari DB
+  net_water_volume_liters?: number | null;
 
   substrate_type?: string | null;
   filter_type?: string | null;
@@ -51,7 +54,6 @@ export interface Aquarium {
   };
 }
 
-// STRICT INPUT TYPES UNTUK MENCEGAH INJEKSI PAYLOAD
 export interface CreateAquariumInput {
   name: string;
   tank_type: string;
@@ -62,16 +64,17 @@ export interface CreateAquariumInput {
   width_cm: number;
   height_cm: number;
   volume_liters: number;
+  net_water_volume_liters?: number | null;
 
   image_url?: string | null;
   is_primary?: boolean;
 
   substrate_type?: string | null;
-  hardscape_type?: string[] | null; // FIX: Ditambahkan
-  lid_present?: boolean;            // FIX: Ditambahkan
+  hardscape_type?: string[] | null; 
+  lid_present?: boolean;            
 
   filter_type?: string | null;
-  filter_flow_lph?: number | null;  // FIX: Disinkronkan (bukan capacity lagi)
+  filter_flow_lph?: number | null;  
   
   light_type?: string | null;
   light_wattage?: number | null;
