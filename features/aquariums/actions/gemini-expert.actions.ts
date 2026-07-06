@@ -6,7 +6,6 @@ import { analyzeAquariumHealth } from "../utils/health-engine";
 import { getTankInventoryAction } from "./inventory.actions";
 import { createClient } from "@/lib/supabase/server";
 import { verifyAquariumOwnership } from "../repositories/security.repository";
-// 💡 MENGIMPOR LANGSUNG OTAK UTAMA DARI FILE CHAT AI
 import { askAquaExpert } from "@/features/ai/actions/ai.actions"; 
 
 export interface HybridDiagnosisResponse {
@@ -44,12 +43,22 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
 
     if (errParam) throw new Error("Failed to retrieve parameter history.");
 
+    const paramsList = parameters || [];
+
+    // 💡 PERBAIKAN: Mencegah Crash jika Akuarium belum memiliki data parameter air sama sekali
+    if (paramsList.length === 0) {
+      throw new Error(
+        lang === 'id' 
+        ? "Belum ada data Tes Air. Silakan input Parameter Air (Suhu, pH, dll) minimal 1 kali di tab 'Parameter Air' sebelum memulai diagnosa."
+        : "No Water Test data available. Please log Water Parameters at least once in the 'Water Parameters' tab first."
+      );
+    }
+
     const inventory = await getTankInventoryAction(aquariumId);
     if (!inventory.success) throw new Error(inventory.error || "Inventory synchronization failure.");
 
     const fishes = inventory.fishes || [];
     const plants = inventory.plants || [];
-    const paramsList = parameters || [];
 
     // 1. Eksekusi Mesin Kalkulasi Lokal (Akurasi Pasti 100%)
     const healthResult = analyzeAquariumHealth({ aquarium, parameters: paramsList, plants, fishes });
@@ -85,16 +94,14 @@ Actions:
 ${actionsSummary}`;
 
       try {
-        // 💡 PERBAIKAN: Kita panggil fungsi askAquaExpert secara langsung!
-        // Kita juga tambahkan pelindung Timeout (8 detik) agar UI tidak bengong jika AI lama mikir
+        // Waktu tunggu dimaksimalkan menjadi 15 Detik
         const timeoutPromise = new Promise<{error: string}>((_, reject) => 
           setTimeout(() => reject(new Error("Timeout")), 15000)
         );
         
-        // Membungkus pesan seolah-olah user yang mengirim prompt di menu chat
         const aiCallPromise = askAquaExpert([{ role: "user", content: diagnosisPrompt }]);
         
-        // Balapan: Siapa yang lebih cepat? Jawaban AI atau Batas Waktu 8 Detik?
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const aiResponse = await Promise.race([aiCallPromise, timeoutPromise]) as any;
 
         if (aiResponse && !aiResponse.error && aiResponse.reply) {
