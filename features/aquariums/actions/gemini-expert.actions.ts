@@ -1,8 +1,6 @@
 // features/aquariums/actions/gemini-expert.actions.ts
 "use server";
 
-import Groq from "groq-sdk";
-import { GoogleGenerativeAI } from "@google/generative-ai"; 
 import { generateDeepDiagnosis } from "../utils/deep-diagnosis";
 import { analyzeAquariumHealth } from "../utils/health-engine";
 import { getTankInventoryAction } from "./inventory.actions";
@@ -14,7 +12,7 @@ export interface HybridDiagnosisResponse {
   localDiagnosis: ReturnType<typeof generateDeepDiagnosis> | null;
   expertAIExtras: {
     commentary: string;
-    generatedByGemini: boolean; // Menandakan bahwa teks ini asli buatan AI (Groq atau Gemini)
+    generatedByGemini: boolean; 
   };
   error?: string;
 }
@@ -87,56 +85,86 @@ ${issuesSummary}
 Actions:
 ${actionsSummary}`;
 
+      const GROQ_KEY = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.replace(/['"]/g, '').trim() : null;
+      const GEMINI_KEY = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.replace(/['"]/g, '').trim() : null;
+
       // =====================================================================
-      // MESIN 1: GROQ (PRIORITAS UTAMA KARENA SUPER CEPAT)
+      // MESIN 1: GEMINI 2.5 FLASH (PRIORITAS UTAMA KARENA SUPER CERDAS)
       // =====================================================================
-      if (process.env.GROQ_API_KEY && !aiSuccess) {
+      if (GEMINI_KEY && !aiSuccess) {
         try {
-          console.log("\n🚀 [AI ENGINE] Mencoba Mesin 1: GROQ (Llama 3)...");
-          const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+          console.log("\n🤖 [AI ENGINE] Mencoba Mesin 1: GOOGLE GEMINI 2.5 Flash...");
           
-          const responsePromise = groq.chat.completions.create({
-            messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
-            model: "llama-3.3-70b-versatile",
-            temperature: 0.6,
+          // Struktur pesan anti-gagal
+          const geminiContents = [
+            { role: "user", parts: [{ text: systemPrompt }] },
+            { role: "model", parts: [{ text: "Understood. I will provide the analysis strictly following your rules." }] },
+            { role: "user", parts: [{ text: userPrompt }] }
+          ];
+
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
+          
+          const geminiRes = await fetch(geminiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: geminiContents }),
+            cache: "no-store"
           });
 
-          const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Groq Timeout")), 10000));
-          const aiResult = await Promise.race([responsePromise, timeoutPromise]);
-
-          if (aiResult && aiResult.choices && aiResult.choices[0]?.message?.content) {
-            expertCommentary = aiResult.choices[0].message.content.trim();
-            generatedByAI = true;
-            aiSuccess = true;
-            console.log("✅ [GROQ SUCCESS] Analisis Groq berhasil!");
+          if (geminiRes.ok) {
+            const result = await geminiRes.json();
+            if (result.candidates && result.candidates.length > 0) {
+              expertCommentary = result.candidates[0].content.parts[0].text.trim();
+              generatedByAI = true;
+              aiSuccess = true;
+              console.log("✅ [GEMINI SUCCESS] Analisis Gemini berhasil!");
+            }
+          } else {
+             console.warn(`Gemini sibuk (Status: ${geminiRes.status}), beralih ke Groq...`);
           }
-        } catch (err) {
-          console.warn("⚠️ [GROQ GAGAL] Mengalihkan ke mesin cadangan Gemini...", err instanceof Error ? err.message : err);
+        } catch (err: unknown) {
+          console.warn("⚠️ [GEMINI GAGAL] Mengalihkan ke mesin cadangan Groq...", err instanceof Error ? err.message : String(err));
         }
       }
 
       // =====================================================================
-      // MESIN 2: GOOGLE GEMINI (CADANGAN JIKA GROQ GAGAL/LIMIT)
+      // MESIN 2: GROQ (CADANGAN JIKA GEMINI GAGAL/LIMIT - MENGGUNAKAN LLAMA 3.3)
       // =====================================================================
-      if (process.env.GEMINI_API_KEY && !aiSuccess) {
+      if (GROQ_KEY && !aiSuccess) {
         try {
-          console.log("\n🤖 [AI ENGINE] Mencoba Mesin 2: GOOGLE GEMINI...");
-          const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-          const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: systemPrompt });
+          console.log("\n🚀 [AI ENGINE] Mencoba Mesin 2: GROQ (Llama 3.3 70B)...");
+          
+          const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${GROQ_KEY}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model: "llama-3.3-70b-versatile",
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt }
+              ],
+              temperature: 0.6,
+              max_tokens: 1500
+            }),
+            cache: "no-store" 
+          });
 
-          const responsePromise = model.generateContent(userPrompt);
-          const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Gemini Timeout")), 15000));
-          
-          const result = await Promise.race([responsePromise, timeoutPromise]);
-          
-          if (result && result.response) {
-            expertCommentary = result.response.text().trim();
-            generatedByAI = true;
-            aiSuccess = true;
-            console.log("✅ [GEMINI SUCCESS] Analisis Gemini berhasil!");
+          if (groqRes.ok) {
+            const aiResult = await groqRes.json();
+            if (aiResult.choices && aiResult.choices[0]?.message?.content) {
+              expertCommentary = aiResult.choices[0].message.content.trim();
+              generatedByAI = true;
+              aiSuccess = true;
+              console.log("✅ [GROQ SUCCESS] Analisis Groq berhasil!");
+            }
+          } else {
+            console.error("❌ [GROQ GAGAL] API Groq mengembalikan status:", groqRes.status);
           }
-        } catch (err) {
-          console.error("❌ [GEMINI GAGAL] Kedua mesin AI tumbang. Menggunakan fallback lokal.", err instanceof Error ? err.message : err);
+        } catch (err: unknown) {
+          console.error("❌ [GROQ GAGAL] Kedua mesin AI tumbang. Menggunakan fallback lokal.", err instanceof Error ? err.message : String(err));
         }
       }
     }
@@ -146,10 +174,15 @@ ${actionsSummary}`;
       localDiagnosis, 
       expertAIExtras: { 
         commentary: expertCommentary, 
-        generatedByGemini: generatedByAI // Variabel ini tetap bernama generatedByGemini agar UI berkilau Bapak tetap bekerja
+        generatedByGemini: generatedByAI 
       } 
     };
   } catch (error: unknown) {
-    return { success: false, localDiagnosis: null, expertAIExtras: { commentary: "", generatedByGemini: false }, error: error instanceof Error ? error.message : "Fatal error inside Hybrid Layer" };
+    return { 
+      success: false, 
+      localDiagnosis: null, 
+      expertAIExtras: { commentary: "", generatedByGemini: false }, 
+      error: error instanceof Error ? error.message : "Fatal error inside Hybrid Layer" 
+    };
   }
 }
