@@ -12,11 +12,14 @@ Tugas Anda adalah memberikan jawaban yang profesional, akurat, mudah dipahami, d
 
 export async function askAquaExpert(history: ChatMessage[]) {
   try {
-    
+    // 💡 ANTI-ERROR: Bersihkan API Key dari spasi tersembunyi atau tanda kutip secara otomatis
+    const GROQ_KEY = process.env.GROQ_API_KEY?.replace(/['"]/g, '').trim();
+    const GEMINI_KEY = process.env.GEMINI_API_KEY?.replace(/['"]/g, '').trim();
+
     // ====================================================================
     // 1. PRIORITAS UTAMA: GROQ API (Llama 3) - Sangat Cepat
     // ====================================================================
-    if (process.env.GROQ_API_KEY) {
+    if (GROQ_KEY) {
       try {
         const groqMessages = [
           { role: "system", content: SYSTEM_PROMPT },
@@ -26,7 +29,7 @@ export async function askAquaExpert(history: ChatMessage[]) {
         const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+            "Authorization": `Bearer ${GROQ_KEY}`,
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
@@ -39,48 +42,52 @@ export async function askAquaExpert(history: ChatMessage[]) {
 
         if (groqRes.ok) {
           const data = await groqRes.json();
-          // Jika sukses, langsung kembalikan jawaban dan hentikan proses di sini
           return { reply: data.choices[0].message.content };
+        } else {
+          console.warn(`⚠️ Groq API merespons dengan status: ${groqRes.status}`);
         }
-        console.warn("⚠️ Groq API gagal/sibuk, mencoba pindah ke Gemini...");
       } catch (e) {
-        console.warn("⚠️ Koneksi Groq terputus, mencoba pindah ke Gemini...", e);
+        console.warn("⚠️ Koneksi Groq terputus/gagal fetch, melompat ke Gemini...", e);
       }
     }
 
     // ====================================================================
     // 2. FALLBACK/CADANGAN: GOOGLE GEMINI API (Gemini 1.5 Flash)
     // ====================================================================
-    if (process.env.GEMINI_API_KEY) {
-      const geminiContents = history.map(m => ({
-        role: m.role === "ai" ? "model" : "user",
-        parts: [{ text: m.content }]
-      }));
+    if (GEMINI_KEY) {
+      try {
+        const geminiContents = history.map(m => ({
+          role: m.role === "ai" ? "model" : "user",
+          parts: [{ text: m.content }]
+        }));
 
-      const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: SYSTEM_PROMPT }]
-          },
-          contents: geminiContents
-        })
-      });
+        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: geminiContents
+          })
+        });
 
-      if (geminiRes.ok) {
-        const data = await geminiRes.json();
-        // Jika sukses menggunakan Gemini, kembalikan jawaban
-        return { reply: data.candidates[0].content.parts[0].text };
+        if (geminiRes.ok) {
+          const data = await geminiRes.json();
+          return { reply: data.candidates[0].content.parts[0].text };
+        } else {
+          console.warn(`⚠️ Gemini API merespons dengan status: ${geminiRes.status}`);
+          throw new Error(`Gemini gagal: ${geminiRes.statusText}`);
+        }
+      } catch (e) {
+        console.warn("⚠️ Koneksi Gemini terputus/gagal fetch...", e);
+        throw e; // Lemparkan ke penangkap error utama
       }
-      throw new Error("Gemini API juga gagal merespons.");
     }
 
-    // Jika di file .env Bapak belum memasukkan KEY sama sekali
-    return { error: "API Keys (GROQ_API_KEY atau GEMINI_API_KEY) belum dikonfigurasi di file .env" };
+    return { error: "API Keys (GROQ_API_KEY atau GEMINI_API_KEY) belum dikonfigurasi di file .env lokal Bapak." };
 
   } catch (error: any) {
     console.error("❌ AI FALLBACK ERROR FINAL:", error);
-    return { error: "Mohon maaf, seluruh server AI (Groq & Gemini) sedang sibuk. Silakan coba beberapa saat lagi." };
+    // Pesan error dipermudah agar pengguna tahu jika internet server bermasalah
+    return { error: "Gagal menyambung ke server AI. Mohon pastikan koneksi internet stabil dan Firewall/Antivirus tidak memblokir akses." };
   }
 }
