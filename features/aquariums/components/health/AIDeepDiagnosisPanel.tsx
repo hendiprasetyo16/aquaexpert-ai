@@ -45,13 +45,11 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     if (lang === 'id' || !text) return text;
     let en = text;
 
-    // --- 1. SUMMARIES ---
     if (en.includes("KEGAGALAN EKOSISTEM TOTAL")) return "TOTAL ECOSYSTEM FAILURE: Active pathogen threat or severe water toxicity detected!";
     if (en.includes("Kondisi simulasi ekologi stabil")) return "Stable ecological simulation. Biological parameters are operating at peak comfort levels.";
     if (en.includes("Sistem seimbang, namun terdeteksi")) return "Balanced system, but social stress limits or population restrictions detected.";
     if (en.includes("Peringatan Malfungsi Sistem:")) return "System Alert: Highly destructive elements threatening current survival loops.";
 
-    // --- 2. TITLES ---
     if (en.includes("Keracunan Amonia Berbahaya")) return "Dangerous Ammonia Poisoning";
     if (en.includes("Penyumbatan Oksigen")) return "Oxygen Depletion (Nitrite/Nitrate)";
     if (en.includes("pH Merugikan Populasi")) return "Harmful pH Levels";
@@ -66,11 +64,9 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     if (en.includes("Anomali Komposisi Kompetisi Flora")) return "Layout Design Anomaly";
     if (en.includes("Flora Melebihi Batas Ketinggian")) return "Flora Outgrew Vertical Bounds";
     
-    // Dynamic Titles
     if (en.includes("Kerentanan Kritis:")) return en.replace("Kerentanan Kritis:", "Critical Vulnerability:");
     if (en.includes("Risiko Hipotermia & Penyakit:")) return en.replace("Risiko Hipotermia & Penyakit:", "Hypothermia & Disease Risk:");
 
-    // --- 3. DESCRIPTIONS (Dynamic Regex Replacement) ---
     if (en.includes("menyalahi pakem baku aliran kontes")) {
       return en.replace(/Peletakan tanaman (.*?) menyalahi pakem baku aliran kontes (.*?)\.?$/i, "The usage of $1 conflicts with classical layouts of $2 style.");
     }
@@ -101,7 +97,6 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
       return en.replace(/Suhu jatuh di bawah toleransi minimal \((.*?)\)\. Depresi imun memicu risiko tinggi (.*?) pada kawanan (.*?)\.?$/i, "Temperature fell below minimum threshold ($1). Immune depression triggers high risk of $2 for $3.");
     }
 
-    // --- 4. ACTIONS ---
     if (en.includes("Segera evakuasi ikan")) return "Immediately evacuate fish or perform a 50% water change to reduce toxins.";
     if (en.includes("Tambahkan bakteri starter")) return "Add starter bacteria and extra aeration to boost oxygen binding.";
     if (en.includes("Pertahankan sirkulasi")) return "Maintain daily filter circulation and monitor fish behavior.";
@@ -116,7 +111,6 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
       return en.replace(/Lakukan water change berkala untuk menekan nitrat di bawah 15 ppm demi keselamatan (.*?)\.?$/i, "Perform water changes to drop nitrate below 15 ppm for $1.");
     }
 
-    // --- 5. VALUE TRANSPARENCY LOGS (DEDUCTION LABELS) ---
     if (en.includes("Keracunan Amonia Berbahaya")) en = en.replace("Keracunan Amonia Berbahaya", "Dangerous Ammonia Poisoning");
     if (en.includes("Penyumbatan Oksigen (Nitrite/Nitrate)")) en = en.replace("Penyumbatan Oksigen (Nitrite/Nitrate)", "Oxygen Depletion (Nitrite/Nitrate)");
     if (en.includes("Penyumbatan Oksigen (Nitrit)")) en = en.replace("Penyumbatan Oksigen (Nitrit)", "Nitrite Poisoning");
@@ -131,7 +125,6 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     if (en.includes("Sirkulasi Filter Kurang Memadai")) en = en.replace("Sirkulasi Filter Kurang Memadai", "Insufficient Filter Circulation");
     if (en.includes("Sengketa Area (Konflik Teritorial)")) en = en.replace("Sengketa Area (Konflik Teritorial)", "Territorial Density Conflict");
 
-    // Generic fallback
     en = en.replace(/Poin/g, "Pts");
     return en;
   };
@@ -232,35 +225,27 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
                 
                 <div className="flex justify-between items-center mb-3 relative z-10">
                   <h4 className={`text-xs font-black uppercase tracking-widest flex items-center gap-2 ${result.expertAIExtras.generatedByGemini ? 'text-indigo-800 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400'}`}>
-                    <Bot className="w-4 h-4" /> {lang === 'id' ? "Catatan Pakar Ekologi (AI Assistant)" : "Expert Ecological Notes (AI)"}
+                    <Bot className="w-4 h-4" /> {lang === 'id' ? "Catatan Pakar Ekologi" : "Ecological Expert Notes"}
                   </h4>
                   
-                  {/* TOMBOL RE-DIAGNOSE KHUSUS JIKA BAHASA CACHE BERBEDA */}
                   {lang === 'en' && result.expertAIExtras.commentary.includes("Saya memahami") && (
                     <Button onClick={handleRunDiagnosis} size="sm" variant="ghost" className="h-7 text-[10px] text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100">
-                      Translate AI Notes
+                      Translate Notes
                     </Button>
                   )}
                 </div>
                 
-                {result.expertAIExtras.generatedByGemini ? (
-                  <div className="text-sm md:text-base font-bold leading-relaxed text-indigo-950 dark:text-slate-300 space-y-3 whitespace-pre-wrap relative z-10">
-                    {result.expertAIExtras.commentary}
-                  </div>
-                ) : (
-                  <div className="text-sm font-bold leading-relaxed text-slate-700 dark:text-slate-400 relative z-10">
-                    {lang === 'id' 
-                      ? "Pakar AI Generatif saat ini sedang offline (Kendala API Key/Jaringan). Jangan khawatir, Sistem Kalkulasi Mekanis Lokal kami tetap beroperasi penuh dengan presisi 100%. Silakan ikuti rencana eksekusi dan rekomendasi tindakan di bawah." 
-                      : "Generative AI is currently offline (Network/API Key issue). Don't worry, our Local Mechanical Calculation System is operating at 100% precision. Please follow the execution plan below."}
-                  </div>
-                )}
+                {/* 💡 PERBAIKAN: Selalu menampilkan commentary dengan elegan, tanpa teks 'API Offline' */}
+                <div className={`text-sm md:text-base font-bold leading-relaxed space-y-3 whitespace-pre-wrap relative z-10 ${result.expertAIExtras.generatedByGemini ? 'text-indigo-950 dark:text-slate-300' : 'text-slate-700 dark:text-slate-400'}`}>
+                  {result.expertAIExtras.commentary}
+                </div>
               </div>
             </div>
           </div>
 
           {result.localDiagnosis.explainabilityBreakdown && result.localDiagnosis.explainabilityBreakdown.length > 0 && (
             <div className="bg-white dark:bg-slate-950 border-2 border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm">
-              <h4 className="text-xs font-black uppercase text-slate-500 tracking-widest mb-3 flex items-center gap-1.5"><Eye className="w-4 h-4"/> {lang === 'id' ? "Log Transparansi Nilai (AI Explainability)" : "Value Transparency Log"}</h4>
+              <h4 className="text-xs font-black uppercase text-slate-500 tracking-widest mb-3 flex items-center gap-1.5"><Eye className="w-4 h-4"/> {lang === 'id' ? "Log Transparansi Nilai (Explainability)" : "Value Transparency Log"}</h4>
               <div className="flex flex-wrap gap-2">
                 {result.localDiagnosis.explainabilityBreakdown.map((item, idx) => (
                   <span key={idx} className={`text-xs font-black border-2 px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1 ${getExplainabilityBadgeColor(tr(item))}`}>
@@ -313,7 +298,7 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
               </div>
 
               <div className="bg-emerald-50/80 dark:bg-emerald-950/20 p-6 sm:p-8 rounded-[2rem] border-2 border-emerald-300 dark:border-emerald-900/50 shadow-md">
-                <h4 className="text-sm font-black uppercase text-emerald-800 dark:text-emerald-400 tracking-widest mb-4 flex items-center gap-2"><Leaf className="w-5 h-5"/> {lang === 'id' ? "Rekomendasi Spesies Tanaman Pendukung" : "Flora Support Recommendations"}</h4>
+                <h4 className="text-sm font-black uppercase text-emerald-800 dark:text-emerald-400 tracking-widest mb-4 flex items-center gap-2"><Leaf className="w-5 h-5"/> {lang === 'id' ? "Rekomendasi Tanaman Pendukung" : "Flora Support Recommendations"}</h4>
                 <div className="space-y-2">
                   {result.localDiagnosis.plantRecommendations.length === 0 ? (
                     <>

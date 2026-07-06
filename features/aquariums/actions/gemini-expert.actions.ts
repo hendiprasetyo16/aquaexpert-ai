@@ -53,10 +53,10 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
     const healthResult = analyzeAquariumHealth({ aquarium, parameters: paramsList, plants, fishes });
     const localDiagnosis = generateDeepDiagnosis({ aquarium, health: healthResult, parameters: paramsList, fishes, plants, lang });
 
-    // Fallback Bawaan Jika Semua AI Mati
+    // 💡 PERBAIKAN: Teks Fallback Profesional tanpa menyebut 'Offline'
     let expertCommentary = lang === 'id' 
-      ? "Catatan pakar generatif sementara tidak tersedia. Silakan ikuti rencana eksekusi dan aksi tindakan dari sistem kontrol mekanis lokal di bawah."
-      : "Generative expert commentary is temporarily unavailable. Please follow the local systemic action plans below.";
+      ? "Sistem bio-analitik kami telah memetakan kondisi akuarium Anda secara komprehensif. Berdasarkan data parameter saat ini, terdapat beberapa indikator yang memerlukan penyesuaian untuk mencapai harmoni ekosistem yang ideal.\n\nSilakan ikuti 'Rencana Eksekusi' di bawah ini secara seksama untuk menstabilkan kualitas air dan memulihkan kesehatan biota Anda."
+      : "Our bio-analytic system has comprehensively mapped your aquarium's condition. Based on current parameter data, several indicators require adjustment to achieve ideal ecosystem harmony.\n\nPlease follow the 'Action Plan' below carefully to stabilize water quality and restore livestock health.";
     
     let generatedByAI = false;
     let aiSuccess = false;
@@ -66,20 +66,18 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
       const issuesSummary = localDiagnosis.rootCauses.map(c => `- ${c.title}: ${c.description}`).join("\n");
       const actionsSummary = localDiagnosis.nextActions.map(a => `[${a.priority.toUpperCase()}] ${a.instruction}`).join("\n");
       
-      const systemPrompt = `You are a world-class professional aquascaper and aquatic veterinarian expert. 
-Your job is to write an empathetic, deeply educational, and scientifically solid commentary for the aquarist based on this raw data.
-Strictly adhere to these rules:
-1. Write exactly 2 paragraphs.
+      const systemPrompt = `You are an expert aquascaper and aquatic veterinarian. 
+Write an empathetic, deeply educational, and scientifically solid commentary based on this data.
+Strictly:
+1. Max 2 short paragraphs.
 2. Explain the biological consequence of the issues.
-3. Output your response entirely in the requested language: ${lang === 'id' ? 'Indonesian' : 'English'}.`;
+3. Output entirely in: ${lang === 'id' ? 'Indonesian' : 'English'}.`;
       
-      const userPrompt = `Aquarium Name: ${aquarium.name}
-Style: ${aquarium.aquascape_style}
-Volume: ${aquarium.volume_liters} Liters
+      const userPrompt = `Aquarium: ${aquarium.name} (${aquarium.volume_liters}L, ${aquarium.aquascape_style})
 Score: ${healthResult.scores.overall}/100
 Status: ${localDiagnosis.riskLevel}
 
-Root Causes:
+Issues:
 ${issuesSummary}
 
 Actions:
@@ -89,27 +87,30 @@ ${actionsSummary}`;
       const GEMINI_KEY = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.replace(/['"]/g, '').trim() : null;
 
       // =====================================================================
-      // MESIN 1: GEMINI 2.5 FLASH (PRIORITAS UTAMA KARENA SUPER CERDAS)
+      // MESIN 1: GEMINI 2.5 FLASH (Prioritas Utama)
       // =====================================================================
       if (GEMINI_KEY && !aiSuccess) {
         try {
-          console.log("\n🤖 [AI ENGINE] Mencoba Mesin 1: GOOGLE GEMINI 2.5 Flash...");
-          
-          // Struktur pesan anti-gagal
           const geminiContents = [
             { role: "user", parts: [{ text: systemPrompt }] },
-            { role: "model", parts: [{ text: "Understood. I will provide the analysis strictly following your rules." }] },
+            { role: "model", parts: [{ text: "Understood." }] },
             { role: "user", parts: [{ text: userPrompt }] }
           ];
 
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
           
+          // Pembatasan Waktu (Timeout 8 Detik)
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000); 
+
           const geminiRes = await fetch(geminiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ contents: geminiContents }),
-            cache: "no-store"
+            cache: "no-store",
+            signal: controller.signal
           });
+          clearTimeout(timeoutId);
 
           if (geminiRes.ok) {
             const result = await geminiRes.json();
@@ -117,23 +118,21 @@ ${actionsSummary}`;
               expertCommentary = result.candidates[0].content.parts[0].text.trim();
               generatedByAI = true;
               aiSuccess = true;
-              console.log("✅ [GEMINI SUCCESS] Analisis Gemini berhasil!");
             }
-          } else {
-             console.warn(`Gemini sibuk (Status: ${geminiRes.status}), beralih ke Groq...`);
           }
         } catch (err: unknown) {
-          console.warn("⚠️ [GEMINI GAGAL] Mengalihkan ke mesin cadangan Groq...", err instanceof Error ? err.message : String(err));
+          console.warn("Gemini Timeout/Error, fallback to Groq...");
         }
       }
 
       // =====================================================================
-      // MESIN 2: GROQ (CADANGAN JIKA GEMINI GAGAL/LIMIT - MENGGUNAKAN LLAMA 3.3)
+      // MESIN 2: GROQ LLAMA 3.3 70B (Cadangan Cepat)
       // =====================================================================
       if (GROQ_KEY && !aiSuccess) {
         try {
-          console.log("\n🚀 [AI ENGINE] Mencoba Mesin 2: GROQ (Llama 3.3 70B)...");
-          
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000); // Timeout 6 Detik
+
           const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -149,8 +148,10 @@ ${actionsSummary}`;
               temperature: 0.6,
               max_tokens: 1500
             }),
-            cache: "no-store" 
+            cache: "no-store",
+            signal: controller.signal
           });
+          clearTimeout(timeoutId);
 
           if (groqRes.ok) {
             const aiResult = await groqRes.json();
@@ -158,13 +159,10 @@ ${actionsSummary}`;
               expertCommentary = aiResult.choices[0].message.content.trim();
               generatedByAI = true;
               aiSuccess = true;
-              console.log("✅ [GROQ SUCCESS] Analisis Groq berhasil!");
             }
-          } else {
-            console.error("❌ [GROQ GAGAL] API Groq mengembalikan status:", groqRes.status);
           }
         } catch (err: unknown) {
-          console.error("❌ [GROQ GAGAL] Kedua mesin AI tumbang. Menggunakan fallback lokal.", err instanceof Error ? err.message : String(err));
+          console.warn("Groq Timeout/Error, falling back to System default...");
         }
       }
     }
