@@ -21,7 +21,46 @@ export async function askAquaExpert(history: ChatMessage[]) {
     }
 
     // ====================================================================
-    // 1. GROQ API (Menggunakan Llama 3.1 8B Instant - Super Stabil)
+    // 1. GEMINI API (Prioritas UTAMA - Menggunakan Gemini 2.5 Flash)
+    // Sangat cerdas untuk Biologi dan siap untuk fitur Vision (Gambar)
+    // ====================================================================
+    if (GEMINI_KEY) {
+      try {
+        const geminiContents = [
+          { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
+          { role: "model", parts: [{ text: "Baik, saya mengerti. Saya siap membantu sebagai AquaExpert AI." }] },
+          ...history.map(m => ({
+            role: m.role === "ai" ? "model" : "user",
+            parts: [{ text: m.content }]
+          }))
+        ];
+
+        // 💡 Upgrade ke gemini-2.5-flash
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
+
+        const geminiRes = await fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: geminiContents }),
+          cache: "no-store" 
+        });
+
+        if (geminiRes.ok) {
+          const data = await geminiRes.json();
+          if (data.candidates && data.candidates.length > 0) {
+            return { reply: data.candidates[0].content.parts[0].text };
+          }
+        } else {
+          console.warn(`Gemini sibuk (Status: ${geminiRes.status}), beralih ke Groq...`);
+        }
+      } catch (e: unknown) {
+        console.warn("Koneksi Gemini gagal, melompat ke Groq...", e instanceof Error ? e.message : String(e));
+      }
+    }
+
+    // ====================================================================
+    // 2. GROQ API (Fallback/Cadangan - Menggunakan Llama 3.3 70B)
+    // Sangat cepat dan stabil jika Gemini sedang limit
     // ====================================================================
     if (GROQ_KEY) {
       try {
@@ -37,8 +76,8 @@ export async function askAquaExpert(history: ChatMessage[]) {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            // 💡 FIX 1: Menggunakan model teringan & teraman milik Groq
-            model: "llama-3.1-8b-instant", 
+            // 💡 Upgrade ke model tercerdas Groq saat ini
+            model: "llama-3.3-70b-versatile", 
             messages: groqMessages,
             temperature: 0.7,
             max_tokens: 1500
@@ -49,54 +88,19 @@ export async function askAquaExpert(history: ChatMessage[]) {
         if (groqRes.ok) {
           const data = await groqRes.json();
           return { reply: data.choices[0].message.content };
-        }
-      } catch (e: any) {
-        console.warn("Groq gagal menyambung, melompat ke Gemini...");
-      }
-    }
-
-    // ====================================================================
-    // 2. GEMINI API (Menggunakan Jalur Rilis Resmi 'v1' Anti-404)
-    // ====================================================================
-    if (GEMINI_KEY) {
-      try {
-        // 💡 FIX 2: Menyuntikkan instruksi ke dalam riwayat obrolan secara manual.
-        // Ini terbukti ampuh menghindari error 400/404 pada API Key versi baru.
-        const geminiContents = [
-          { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
-          { role: "model", parts: [{ text: "Baik, saya mengerti. Saya siap membantu sebagai AquaExpert AI." }] },
-          ...history.map(m => ({
-            role: m.role === "ai" ? "model" : "user",
-            parts: [{ text: m.content }]
-          }))
-        ];
-
-        // 💡 FIX 3: Menggunakan endpoint /v1/ (Rilis Resmi) bukan /v1beta/
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
-
-        const geminiRes = await fetch(geminiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: geminiContents
-          }),
-          cache: "no-store" 
-        });
-
-        if (geminiRes.ok) {
-          const data = await geminiRes.json();
-          return { reply: data.candidates[0].content.parts[0].text };
         } else {
-          throw new Error(`Google API sibuk (Status: ${geminiRes.status})`);
+          throw new Error(`Groq API Error: ${groqRes.status}`);
         }
-      } catch (e: any) {
-        throw e;
+      } catch (e: unknown) {
+        console.warn("Groq gagal menyambung...", e instanceof Error ? e.message : String(e));
+        if (!GEMINI_KEY) throw e; 
       }
     }
 
-    return { error: "Semua server AI (Groq & Gemini) sedang sibuk. Mohon coba lagi nanti." };
+    return { error: "Semua server AI (Gemini & Groq) sedang sibuk. Mohon coba lagi nanti." };
 
-  } catch (error: any) {
-    return { error: `Gagal memproses data AI: ${error.message}` };
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    return { error: `Gagal memproses data AI: ${errorMsg}` };
   }
 }
