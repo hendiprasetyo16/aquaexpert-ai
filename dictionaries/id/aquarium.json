@@ -101,5 +101,12 @@
     "placeholderNotes": "Contoh: Sirip robek parah, warna memudar sejak 2 hari lalu...",
     "btnSave": "Simpan Rekam Medis",
     "btnCancel": "Batal"
+  },
+  "diagnosis": {
+    "phAlert": "Peringatan: Tingkat pH ({ph}) merusak osmoregulasi {count} kawanan ({species}).",
+    "activeOutbreak": "🚨 Wabah Aktif: Terdapat {count} infeksi/penyakit yang sedang diobati.",
+    "invalidPopulation": "Populasi Invalid: Ekosistem kekurangan populasi minimum untuk {species}.",
+    "addSchooling": "Tambahkan populasi spesies ikan koloni hingga memenuhi ambang batas ukuran kawanan minimum.",
+    "maintenanceCritical": "⚠️ Kritis: Penelantaran jadwal perawatan merusak stabilitas ekosistem secara drastis."
   }
 }

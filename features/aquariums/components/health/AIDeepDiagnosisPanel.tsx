@@ -9,6 +9,7 @@ import {
   Stethoscope, Flame, ShieldCheck, Eye, Leaf, Bot, RefreshCw 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/providers/LanguageProvider"; 
 
 interface Props {
   aquariumId: string;
@@ -16,6 +17,12 @@ interface Props {
 }
 
 export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
+  const { dict } = useLanguage();
+  
+  // 💡 FIX 1: Membunuh 'any' dan membongkar objek kamus secara elegan (Strict Type)
+  const dictRoot = dict as { aquarium?: { diagnosis?: Record<string, string> } };
+  const diagDict = dictRoot.aquarium?.diagnosis || {}; 
+
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<HybridDiagnosisResponse | null>(null);
   const [error, setError] = useState("");
@@ -32,7 +39,6 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     sessionStorage.removeItem(`aquaexpert_diagnosis_v2_${aquariumId}`);
     const res = await getHybridDeepDiagnosisAction(aquariumId, lang);
     
-    // 💡 PERBAIKAN: Menampilkan Error dengan Jelas Jika Gagal
     if (res.success && res.localDiagnosis) {
       setResult(res);
       sessionStorage.setItem(`aquaexpert_diagnosis_v2_${aquariumId}`, JSON.stringify(res));
@@ -47,9 +53,20 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     if (lang === 'id' || !text) return text;
     let en = text;
 
+    const phMatch = en.match(/Peringatan: Tingkat pH \((.*?)\) merusak osmoregulasi (.*?) kawanan \((.*?)\)\./i);
+    if (phMatch) return (diagDict.phAlert || "Warning: pH level ({ph}) damages osmoregulation of {count} group(s) ({species}).").replace("{ph}", phMatch[1]).replace("{count}", phMatch[2]).replace("{species}", phMatch[3]);
+
+    const outbreakMatch = en.match(/Wabah Aktif: Terdapat (.*?) infeksi\/penyakit yang sedang diobati\./i);
+    if (outbreakMatch) return (diagDict.activeOutbreak || "🚨 Active Outbreak: There are {count} active infections being treated.").replace("{count}", outbreakMatch[1]);
+
+    const popMatch = en.match(/Populasi Invalid: Ekosistem kekurangan populasi minimum untuk (.*?)\./i);
+    if (popMatch) return (diagDict.invalidPopulation || "Invalid Population: Ecosystem lacks minimum population for {species}.").replace("{species}", popMatch[1]);
+
+    if (en.includes("Tambahkan populasi spesies ikan koloni")) return diagDict.addSchooling || "Add more schooling species to meet minimum natural colony thresholds.";
+    if (en.includes("Kritis: Penelantaran jadwal perawatan")) return diagDict.maintenanceCritical || "⚠️ Critical: Neglecting maintenance schedules drastically destroys ecosystem stability.";
+
     if (en.includes("KEGAGALAN EKOSISTEM TOTAL")) return "TOTAL ECOSYSTEM FAILURE: Active pathogen threat or severe water toxicity detected!";
     if (en.includes("Kondisi simulasi ekologi stabil")) return "Stable ecological simulation. Biological parameters are operating at peak comfort levels.";
-    if (en.includes("Sistem seimbang, namun terdeteksi")) return "Balanced system, but social stress limits or population restrictions detected.";
     if (en.includes("Peringatan Malfungsi Sistem:")) return "System Alert: Highly destructive elements threatening current survival loops.";
 
     if (en.includes("Keracunan Amonia Berbahaya")) return "Dangerous Ammonia Poisoning";
@@ -60,7 +77,6 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     if (en.includes("Suhu Air Mematikan")) return "Lethal Water Temperature";
     if (en.includes("Konflik Hubungan Spesies Parah")) return "Severe Species Relationship Conflict";
     if (en.includes("Tabrakan Ekosistem Biotope Ekstrem")) return "Fatal Biotope Ecosystem Clash";
-    if (en.includes("Stres Sosial (Schooling Size Invalid)")) return "Social Schooling Isolation Stress";
     if (en.includes("Ancaman Fatal Melompat Keluar")) return "Critical Open-Top Jump Hazard";
     if (en.includes("Defisit Suplai Arus & Oksigen")) return "Oxygen & Flow Deficit Alert";
     if (en.includes("Anomali Komposisi Kompetisi Flora")) return "Layout Design Anomaly";
@@ -74,9 +90,6 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     }
     if (en.includes("tumbuh menembus ketinggian permukaan air")) {
       return en.replace(/Tanaman bertangkai (.*?) telah tumbuh menembus ketinggian permukaan air kaca tangki\.?/i, "Stem plants like $1 outgrew the vertical water surface line.");
-    }
-    if (en.includes("kurang dari batas kawanan minimal")) {
-      return en.replace(/Jumlah ikan (.*?) \((.*?)\) kurang dari batas kawanan minimal \((.*?)\)\. Mempercepat kepunahan koloni\.?/i, "Colony size for $1 ($2) is below natural schooling thresholds ($3). Drastically induces stress.");
     }
     if (en.includes("berisiko tinggi mematikan spesies pelompat")) {
       return en.replace(/Akuarium tanpa tutup atas berisiko tinggi mematikan spesies pelompat: (.*?)\.?$/i, "Tank top lacks physical boundaries for high-risk jumping species: $1.");
@@ -147,12 +160,16 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     return "bg-teal-500 text-white border-teal-600 shadow-md shadow-teal-500/30";
   };
 
+  // 💡 FIX 2: Ekstraksi angka matematis dari string agar tidak ada rentang skor penalti yang lolos (Bocor)
   const getExplainabilityBadgeColor = (text: string) => {
     const lower = text.toLowerCase();
-    if (lower.includes("kritis") || lower.includes("keracunan") || lower.includes("critical") || lower.includes("-20") || lower.includes("-30") || lower.includes("bahaya")) {
+    const penaltyMatch = text.match(/-(\d+)/);
+    const penaltyValue = penaltyMatch ? parseInt(penaltyMatch[1], 10) : 0;
+
+    if (penaltyValue >= 20 || lower.includes("kritis") || lower.includes("keracunan") || lower.includes("critical") || lower.includes("bahaya") || lower.includes("fatal")) {
       return "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/50";
     }
-    if (lower.includes("rendah") || lower.includes("kosong") || lower.includes("warning") || lower.includes("-15") || lower.includes("-10")) {
+    if (penaltyValue >= 10 || lower.includes("rendah") || lower.includes("kosong") || lower.includes("warning")) {
       return "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50";
     }
     return "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50";
@@ -188,7 +205,6 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
             <Activity className="w-5 h-5 mr-2" /> {lang === 'id' ? "MULAI DIAGNOSIS SISTEM" : "START DIAGNOSIS"}
           </Button>
           
-          {/* 💡 PESAN ERROR KINI TAMPIL DENGAN SANGAT JELAS */}
           {error && (
             <div className="mt-6 p-4 bg-rose-100 dark:bg-rose-900/30 border border-rose-300 dark:border-rose-800 rounded-xl flex items-start gap-3 text-left max-w-lg mx-auto">
               <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />

@@ -101,5 +101,12 @@
     "placeholderNotes": "Example: Severe torn fins, faded colors since 2 days ago...",
     "btnSave": "Save Medical Record",
     "btnCancel": "Cancel"
+  },
+  "diagnosis": {
+    "phAlert": "Warning: pH level ({ph}) damages osmoregulation of {count} group(s) ({species}).",
+    "activeOutbreak": "🚨 Active Outbreak: There are {count} active infections/diseases being treated.",
+    "invalidPopulation": "Invalid Population: Ecosystem lacks minimum population for {species}.",
+    "addSchooling": "Add more schooling species to meet minimum natural colony thresholds.",
+    "maintenanceCritical": "⚠️ Critical: Neglecting maintenance schedules drastically destroys ecosystem stability."
   }
 }
