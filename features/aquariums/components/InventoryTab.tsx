@@ -108,15 +108,12 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
 
     if (showAddModal === "fish") {
       res = await addFishToTankAction({ 
-        aquarium_id: aquariumId, 
-        fish_id: selectedItemId, 
-        quantity, 
-        health_status: healthStatus, 
-        size_category: sizeCategory,
+        aquarium_id: aquariumId, fish_id: selectedItemId, quantity, 
+        health_status: healthStatus, size_category: sizeCategory,
         added_at: addedAt
       });
     } else {
-      // 💡 FIX: Memasukkan status: "Healthy" agar cocok dengan Zod Schema di file action
+      // 💡 FIX VERCEL: Mengirimkan status "Healthy" secara eksplisit agar TS tidak error
       res = await addPlantToTankAction({ 
         aquarium_id: aquariumId, 
         plant_id: selectedItemId, 

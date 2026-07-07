@@ -110,10 +110,11 @@ export default function DashboardPage() {
           if (!aquariums.some(t => t.is_primary)) aquariums[0].is_primary = true;
 
           // =========================================================================
-          // 💡 JURUS SAPUJAGAT: Tarik Data untuk Engine & Log Secara Berbarengan!
+          // 💡 JURUS SAPUJAGAT: Menarik Data Penyakit Bersamaan dengan Tabel Lainnya
           // =========================================================================
           const [
-            { data: rawParams }, { data: rawFishes }, { data: rawPlants }, { data: rawMaint }, { data: rawTreatments },
+            { data: rawParams }, { data: rawFishes }, { data: rawPlants }, { data: rawMaint }, 
+            { data: rawTreatments }, // 💡 DATANYA DIAMBIL DI SINI
             { data: paramLogsRes },
             { data: maintLogsRes },
             { data: taskLogsRes },
@@ -122,13 +123,16 @@ export default function DashboardPage() {
             { data: treatmentSessionsRes },
             { data: treatmentDailyLogsRes }
           ] = await Promise.all([
+            // Keperluan Kalkulasi Stats (Full Data)
             supabase.from("aquarium_parameters").select("*").in("aquarium_id", tankIds),
             supabase.from("aquarium_fishes").select("aquarium_id, quantity, fish_id, health_status, size_category, fish:fishes(*)").in("aquarium_id", tankIds),
             supabase.from("aquarium_plants").select("aquarium_id, quantity, plant_id, status, plant:plants(*)").in("aquarium_id", tankIds),
             supabase.from("maintenance_tasks").select("*").in("aquarium_id", tankIds),
+            
+            // 💡 FILTER PENYAKIT AKTIF
             supabase.from("treatment_sessions").select("id, aquarium_id, disease_id, medication_id, status, disease:diseases(name_id, name_en)").in("aquarium_id", tankIds).eq("status", "Active"),
             
-            // Keperluan Log Aktivitas (Limit 5 Terbaru)
+            // Keperluan Log Aktivitas
             supabase.from("aquarium_parameters").select("id, record_date, parameter_source").in("aquarium_id", tankIds).order('record_date', { ascending: false }).limit(5),
             supabase.from("aquarium_maintenance_logs").select("id, performed_at, maintenance_type, notes").in("aquarium_id", tankIds).order('performed_at', { ascending: false }).limit(5),
             supabase.from("maintenance_tasks").select("id, created_at, title, interval_days").in("aquarium_id", tankIds).order('created_at', { ascending: false }).limit(5),
@@ -142,11 +146,11 @@ export default function DashboardPage() {
           const groupedFishes = groupByAquarium(rawFishes as InventoryRow[]);
           const groupedPlants = groupByAquarium(rawPlants as InventoryRow[]);
           const groupedMaint = groupByAquarium(rawMaint as DbRow[]);
-          const groupedTreatments = groupByAquarium(rawTreatments as DbRow[]); 
+          const groupedTreatments = groupByAquarium(rawTreatments as DbRow[]); // 💡 Data penyakit dipisah berdasarkan Akuarium
 
           let totalAlerts = 0, totalFauna = 0, totalFlora = 0;
 
-          // 💡 FIX 2: Definisi Waktu 'Today' yang SINKRON 100% dengan MaintenanceTab
+          // 💡 DEFINISI WAKTU SINKRON UNTUK MAINTENANCE
           const now = new Date();
           const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -157,7 +161,6 @@ export default function DashboardPage() {
             const aqMaintenanceRaw = groupedMaint[aq.id] || [];
             const aqTreatments = groupedTreatments[aq.id] || []; 
 
-            // 💡 FIX 1: Gunakan 'as string' murni untuk mencegah Invalid Date di Safari
             aqParams.sort((a, b) => new Date(b.record_date as string).getTime() - new Date(a.record_date as string).getTime());
             
             const sanitizedParams = aqParams.map(param => ({ 
@@ -169,7 +172,7 @@ export default function DashboardPage() {
               nitrate: typeof param.nitrate === 'number' ? param.nitrate : null 
             } as AquariumParameterLog));
 
-            // 💡 FIX 2: Logika kalkulasi jatuh tempo yang 100% meniru persis MaintenanceTab
+            // 💡 MENYAMAKAN LOGIKA HITUNGAN TENGGAT WAKTU DENGAN HALAMAN DETAIL
             const mappedMaintenance: MaintenanceDashboardStatus[] = aqMaintenanceRaw.map((taskRaw) => {
               const task = taskRaw as unknown as MaintenanceTask;
               let isOverdue = false;
@@ -192,14 +195,14 @@ export default function DashboardPage() {
               return { task, isOverdue, daysRemaining, urgencyLevel, lastMaintenanceDaysAgo: null };
             });
 
-            // 💡 FIX 3: Type Assertion Aman yang Menghindari Engine Crash
+            // 💡 MENYUNTIKKAN DATA PENYAKIT & MAINTENANCE KE DALAM ENGINE SECARA BERSAMAAN
             const healthAnalysis = analyzeAquariumHealth({ 
               aquarium: aq as Aquarium, 
               parameters: sanitizedParams, 
               fishes: aqFishes as unknown as TankFish[], 
               plants: aqPlants as unknown as TankPlant[], 
               maintenanceStatus: mappedMaintenance,
-              activeTreatments: aqTreatments as unknown as ActiveTreatmentEngine[],
+              activeTreatments: aqTreatments as unknown as ActiveTreatmentEngine[], // 🎯 SKOR KESEHATAN IKAN KINI AKAN JATUH JIKA ADA WABAH
               lang 
             });
 
@@ -212,7 +215,7 @@ export default function DashboardPage() {
               id: aq.id, 
               name: aq.name, 
               is_primary: aq.is_primary || false, 
-              health_score: healthAnalysis.scores.overall, 
+              health_score: healthAnalysis.scores.overall, // 🎯 SKOR INI SUDAH 100% SAMA PERSIS DENGAN HALAMAN DETAIL
               alerts: healthAnalysis.alerts || [], 
               faunaCount, 
               floraCount 
@@ -223,7 +226,7 @@ export default function DashboardPage() {
           setStats({ tanks: aquariums.length, alerts: totalAlerts, fauna: totalFauna, flora: totalFlora });
 
           // ==========================================
-          // 💡 MERAKIT SELURUH LOG KE DALAM TIMELINE
+          // MERAKIT SELURUH LOG KE DALAM TIMELINE
           // ==========================================
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
