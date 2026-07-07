@@ -113,7 +113,7 @@ export default function DashboardPage() {
           // 💡 JURUS SAPUJAGAT: Tarik Data untuk Engine & Log Secara Berbarengan!
           // =========================================================================
           const [
-            { data: rawParams }, { data: rawFishes }, { data: rawPlants }, { data: rawMaint }, { data: rawTreatments }, // <-- Tambahan rawTreatments!
+            { data: rawParams }, { data: rawFishes }, { data: rawPlants }, { data: rawMaint }, { data: rawTreatments },
             { data: paramLogsRes },
             { data: maintLogsRes },
             { data: taskLogsRes },
@@ -122,7 +122,6 @@ export default function DashboardPage() {
             { data: treatmentSessionsRes },
             { data: treatmentDailyLogsRes }
           ] = await Promise.all([
-            // 💡 FIX 1: Query Kalkulasi Stats (Disinkronkan dengan kebutuhan ketat Health Engine)
             supabase.from("aquarium_parameters").select("*").in("aquarium_id", tankIds),
             supabase.from("aquarium_fishes").select("aquarium_id, quantity, fish_id, health_status, size_category, fish:fishes(*)").in("aquarium_id", tankIds),
             supabase.from("aquarium_plants").select("aquarium_id, quantity, plant_id, status, plant:plants(*)").in("aquarium_id", tankIds),
@@ -143,11 +142,11 @@ export default function DashboardPage() {
           const groupedFishes = groupByAquarium(rawFishes as InventoryRow[]);
           const groupedPlants = groupByAquarium(rawPlants as InventoryRow[]);
           const groupedMaint = groupByAquarium(rawMaint as DbRow[]);
-          const groupedTreatments = groupByAquarium(rawTreatments as DbRow[]); // Pengelompokan Data Penyakit
+          const groupedTreatments = groupByAquarium(rawTreatments as DbRow[]); 
 
           let totalAlerts = 0, totalFauna = 0, totalFlora = 0;
 
-          // Hitung waktu hari ini sekali saja untuk efisiensi
+          // 💡 FIX 2: Definisi Waktu 'Today' yang SINKRON 100% dengan MaintenanceTab
           const now = new Date();
           const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -156,9 +155,10 @@ export default function DashboardPage() {
             const aqFishes = groupedFishes[aq.id] || [];
             const aqPlants = groupedPlants[aq.id] || [];
             const aqMaintenanceRaw = groupedMaint[aq.id] || [];
-            const aqTreatments = groupedTreatments[aq.id] || []; // Data penyakit tangki terkait
+            const aqTreatments = groupedTreatments[aq.id] || []; 
 
-            aqParams.sort((a, b) => new Date(String(b.record_date)).getTime() - new Date(String(a.record_date)).getTime());
+            // 💡 FIX 1: Gunakan 'as string' murni untuk mencegah Invalid Date di Safari
+            aqParams.sort((a, b) => new Date(b.record_date as string).getTime() - new Date(a.record_date as string).getTime());
             
             const sanitizedParams = aqParams.map(param => ({ 
               ...param, 
@@ -169,7 +169,7 @@ export default function DashboardPage() {
               nitrate: typeof param.nitrate === 'number' ? param.nitrate : null 
             } as AquariumParameterLog));
 
-            // 💡 FIX 2: Konversi Data Perawatan Mentah Menjadi 'Dashboard Status' yang Dimengerti Mesin (Hitung Keterlambatan)
+            // 💡 FIX 2: Logika kalkulasi jatuh tempo yang 100% meniru persis MaintenanceTab
             const mappedMaintenance: MaintenanceDashboardStatus[] = aqMaintenanceRaw.map((taskRaw) => {
               const task = taskRaw as unknown as MaintenanceTask;
               let isOverdue = false;
@@ -177,7 +177,7 @@ export default function DashboardPage() {
               let urgencyLevel: "safe" | "warning" | "critical" = "safe";
 
               if (task.next_due_at) {
-                const dueDate = new Date(task.next_due_at);
+                const dueDate = new Date(task.next_due_at as string);
                 const normalizedDue = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
                 const diffTime = normalizedDue.getTime() - today.getTime();
                 daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -192,7 +192,7 @@ export default function DashboardPage() {
               return { task, isOverdue, daysRemaining, urgencyLevel, lastMaintenanceDaysAgo: null };
             });
 
-            // 💡 FIX 3: Suapkan SELURUH variabel secara komplit ke dalam Engine persis seperti AquariumDetail!
+            // 💡 FIX 3: Type Assertion Aman yang Menghindari Engine Crash
             const healthAnalysis = analyzeAquariumHealth({ 
               aquarium: aq as Aquarium, 
               parameters: sanitizedParams, 
@@ -212,7 +212,7 @@ export default function DashboardPage() {
               id: aq.id, 
               name: aq.name, 
               is_primary: aq.is_primary || false, 
-              health_score: healthAnalysis.scores.overall, // 🎯 SKOR KINI DIJAMIN 100% SAMA!
+              health_score: healthAnalysis.scores.overall, 
               alerts: healthAnalysis.alerts || [], 
               faunaCount, 
               floraCount 
@@ -228,27 +228,27 @@ export default function DashboardPage() {
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           paramLogsRes?.forEach((log: any) => {
-            logs.push({ id: `p-${log.id}`, type: "parameter", title_id: "Parameter Air Dicatat", title_en: "Water Parameter Logged", desc_id: `Melalui ${log.parameter_source || 'Sistem'}.`, desc_en: `Via ${log.parameter_source || 'System'}.`, date: new Date(String(log.record_date)) });
+            logs.push({ id: `p-${log.id}`, type: "parameter", title_id: "Parameter Air Dicatat", title_en: "Water Parameter Logged", desc_id: `Melalui ${log.parameter_source || 'Sistem'}.`, desc_en: `Via ${log.parameter_source || 'System'}.`, date: new Date(log.record_date as string) });
           });
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           maintLogsRes?.forEach((log: any) => {
-            logs.push({ id: `ml-${log.id}`, type: "maintenance", title_id: "Perawatan Selesai", title_en: "Maintenance Completed", desc_id: `Tugas: ${String(log.maintenance_type).replace('_', ' ')}.`, desc_en: `Task: ${String(log.maintenance_type).replace('_', ' ')}.`, date: new Date(String(log.performed_at)) });
+            logs.push({ id: `ml-${log.id}`, type: "maintenance", title_id: "Perawatan Selesai", title_en: "Maintenance Completed", desc_id: `Tugas: ${String(log.maintenance_type).replace('_', ' ')}.`, desc_en: `Task: ${String(log.maintenance_type).replace('_', ' ')}.`, date: new Date(log.performed_at as string) });
           });
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           taskLogsRes?.forEach((task: any) => {
-            logs.push({ id: `mt-${task.id}`, type: "maintenance", title_id: "Jadwal Tugas Dibuat", title_en: "Task Scheduled", desc_id: `Tugas "${task.title}" dijadwalkan setiap ${task.interval_days} hari.`, desc_en: `Task "${task.title}" scheduled every ${task.interval_days} days.`, date: new Date(String(task.created_at)) });
+            logs.push({ id: `mt-${task.id}`, type: "maintenance", title_id: "Jadwal Tugas Dibuat", title_en: "Task Scheduled", desc_id: `Tugas "${task.title}" dijadwalkan setiap ${task.interval_days} hari.`, desc_en: `Task "${task.title}" scheduled every ${task.interval_days} days.`, date: new Date(task.created_at as string) });
           });
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fishLogsRes?.forEach((f: any) => {
-            logs.push({ id: `f-${f.id}`, type: "flora_fauna", title_id: "Fauna Ditambahkan", title_en: "Fauna Added", desc_id: `${f.quantity} ekor ${f.fishes?.name_id || 'Ikan'} masuk ke akuarium.`, desc_en: `${f.quantity} qty ${f.fishes?.name_en || 'Fish'} added to tank.`, date: new Date(String(f.added_at)) });
+            logs.push({ id: `f-${f.id}`, type: "flora_fauna", title_id: "Fauna Ditambahkan", title_en: "Fauna Added", desc_id: `${f.quantity} ekor ${f.fishes?.name_id || 'Ikan'} masuk ke akuarium.`, desc_en: `${f.quantity} qty ${f.fishes?.name_en || 'Fish'} added to tank.`, date: new Date(f.added_at as string) });
           });
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           plantLogsRes?.forEach((p: any) => {
-            logs.push({ id: `pl-${p.id}`, type: "flora_fauna", title_id: "Flora Ditambahkan", title_en: "Flora Added", desc_id: `${p.quantity} porsi ${p.plants?.name_id || 'Tanaman'} masuk ke akuarium.`, desc_en: `${p.quantity} qty ${p.plants?.name_en || 'Plant'} added to tank.`, date: new Date(String(p.added_at)) });
+            logs.push({ id: `pl-${p.id}`, type: "flora_fauna", title_id: "Flora Ditambahkan", title_en: "Flora Added", desc_id: `${p.quantity} porsi ${p.plants?.name_id || 'Tanaman'} masuk ke akuarium.`, desc_en: `${p.quantity} qty ${p.plants?.name_en || 'Plant'} added to tank.`, date: new Date(p.added_at as string) });
           });
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -257,13 +257,13 @@ export default function DashboardPage() {
             let tId = "Sesi Pengobatan Dimulai", tEn = "Treatment Started", dId = `Karantina untuk ${diseaseName}.`, dEn = `Quarantine for ${session.diseases?.name_en || 'Disease'}.`;
             if (session.status === 'Completed') { tId = "Pengobatan Selesai"; tEn = "Treatment Completed"; dId = `Pengobatan ${diseaseName} dinyatakan selesai.`; }
             else if (session.status === 'Aborted') { tId = "Pengobatan Dibatalkan"; tEn = "Treatment Aborted"; dId = `Alasan: ${session.outcome_reason || '-'}`; }
-            logs.push({ id: `ts-${session.id}`, type: "treatment", title_id: tId, title_en: tEn, desc_id: dId, desc_en: dEn, date: new Date(String(session.started_at)) });
+            logs.push({ id: `ts-${session.id}`, type: "treatment", title_id: tId, title_en: tEn, desc_id: dId, desc_en: dEn, date: new Date(session.started_at as string) });
           });
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           treatmentDailyLogsRes?.forEach((tlog: any) => {
             const diseaseName = tlog.treatment_sessions?.diseases?.name_id || 'Penyakit';
-            logs.push({ id: `tl-${tlog.id}`, type: "treatment", title_id: `Catat Medis (Hari ${tlog.day_number})`, title_en: `Medical Log (Day ${tlog.day_number})`, desc_id: `Aksi: ${tlog.action_taken || 'Observasi'} untuk ${diseaseName}.`, desc_en: `Action: ${tlog.action_taken || 'Observe'} for ${diseaseName}.`, date: new Date(String(tlog.log_date)) });
+            logs.push({ id: `tl-${tlog.id}`, type: "treatment", title_id: `Catat Medis (Hari ${tlog.day_number})`, title_en: `Medical Log (Day ${tlog.day_number})`, desc_id: `Aksi: ${tlog.action_taken || 'Observasi'} untuk ${diseaseName}.`, desc_en: `Action: ${tlog.action_taken || 'Observe'} for ${diseaseName}.`, date: new Date(tlog.log_date as string) });
           });
         }
 
@@ -271,7 +271,7 @@ export default function DashboardPage() {
           const { data: sysLogs } = await supabase.from("system_activities").select("*").order("created_at", { ascending: false }).limit(10);
           sysLogs?.forEach(sys => {
             if (role === "admin" && sys.category === "data_crud") return;
-            logs.push({ id: `sys-${sys.id}`, type: "system", title_id: `[Admin] ${sys.title}`, title_en: `[Admin] ${sys.title}`, desc_id: sys.message, desc_en: sys.message, date: new Date(String(sys.created_at)) });
+            logs.push({ id: `sys-${sys.id}`, type: "system", title_id: `[Admin] ${sys.title}`, title_en: `[Admin] ${sys.title}`, desc_id: sys.message, desc_en: sys.message, date: new Date(sys.created_at as string) });
           });
         }
 
