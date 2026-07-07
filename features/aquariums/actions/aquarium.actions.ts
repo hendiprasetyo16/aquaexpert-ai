@@ -12,9 +12,9 @@ import {
 } from "../repositories/aquarium.repository";
 import { createMaintenanceTask } from "../repositories/maintenance.repository";
 import { Aquarium, CreateAquariumInput, UpdateAquariumInput } from "../types/aquarium.types";
-import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; // 💡 IMPORT NOTIFIKASI
+import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; 
+import { SupabaseClient } from "@supabase/supabase-js";
 
-// 💡 HELPER CERDAS: Memecah URL Supabase menjadi path murni yang akurat
 function extractStoragePath(url: string | null | undefined) {
   if (!url) return null;
   try {
@@ -29,8 +29,8 @@ function extractStoragePath(url: string | null | undefined) {
   }
 }
 
-// 💡 HELPER BARU: Mengambil nama pengguna berdasarkan ID
-async function getProfileName(supabase: any, userId: string) {
+// 💡 FIX 1: Membunuh 'any' dan menggunakan SupabaseClient resmi
+async function getProfileName(supabase: SupabaseClient, userId: string) {
   const { data } = await supabase.from('profiles').select('full_name').eq('id', userId).single();
   return data?.full_name || "Unknown User";
 }
@@ -83,11 +83,14 @@ export async function createAquariumAction(payload: CreateAquariumInput) {
 
     const data = await createAquarium(supabase, { ...payload, user_id: user.id });
 
-    const now = new Date();
+    // 💡 FIX 1: Menggunakan tanggal Setup sebagai pijakan awal jadwal (bukan waktu real-time)
+    const baseDate = payload.setup_date ? new Date(payload.setup_date) : new Date();
+
     if (payload.water_change_interval_days && payload.water_change_interval_days > 0) {
-      const nextDue = new Date(now);
+      const nextDue = new Date(baseDate);
       nextDue.setDate(nextDue.getDate() + payload.water_change_interval_days);
       const wcPercent = payload.water_change_percent ? ` ${payload.water_change_percent}%` : "";
+      
       await createMaintenanceTask({
         aquarium_id: data.id,
         task_type: "water_change",
@@ -103,8 +106,9 @@ export async function createAquariumAction(payload: CreateAquariumInput) {
       if (payload.fertilizer_type.includes("Daily") || payload.fertilizer_type === "Estimative Index (EI)" || payload.fertilizer_type === "PPS-Pro") {
         fertInterval = 1;
       }
-      const nextDueFert = new Date(now);
+      const nextDueFert = new Date(baseDate);
       nextDueFert.setDate(nextDueFert.getDate() + fertInterval);
+      
       await createMaintenanceTask({
         aquarium_id: data.id,
         task_type: "fertilizer",
@@ -115,7 +119,6 @@ export async function createAquariumAction(payload: CreateAquariumInput) {
       }).catch(err => console.error("Gagal auto-generate Fert task:", err));
     }
 
-    // 💡 KIRIM NOTIFIKASI: User Membuat Akuarium Baru
     const ownerName = await getProfileName(supabase, user.id);
     await pushNotificationAction(
       "Akuarium Baru Dibuat",
@@ -164,7 +167,6 @@ export async function updateAquariumAction(id: string, payload: UpdateAquariumIn
 
     const data = await updateAquarium(supabase, id, targetUserId, payload);
 
-    // 💡 KIRIM NOTIFIKASI: User Memperbarui Akuarium
     if (!isSuperAdmin) {
       const ownerName = await getProfileName(supabase, user.id);
       await pushNotificationAction(
@@ -213,7 +215,6 @@ export async function deleteAquariumAction(id: string) {
 
     await deleteAquarium(supabase, id, targetUserId);
 
-    // 💡 KIRIM NOTIFIKASI: User Menghapus Akuariumnya Sendiri
     if (!isSuperAdmin) {
       const ownerName = await getProfileName(supabase, user.id);
       await pushNotificationAction(
@@ -237,13 +238,11 @@ export async function setPrimaryAquariumAction(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    // Ambil nama akuarium untuk notifikasi
     const { data: aq } = await supabase.from("my_aquariums").select("name").eq("id", id).single();
 
     await clearPrimaryAquarium(supabase, user.id);
     const data = await updateAquarium(supabase, id, user.id, { is_primary: true });
     
-    // 💡 KIRIM NOTIFIKASI: Perubahan Akuarium Utama
     const ownerName = await getProfileName(supabase, user.id);
     await pushNotificationAction(
       "Status Utama Diubah",
@@ -258,10 +257,6 @@ export async function setPrimaryAquariumAction(id: string) {
     return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan" };
   }
 }
-
-// =========================================================================
-// FITUR KHUSUS SUPERADMIN
-// =========================================================================
 
 export async function getAdminAllAquariumsAction() {
   try {
@@ -330,7 +325,6 @@ export async function adminDeleteAquariumAction(id: string) {
     const { error } = await supabase.from("my_aquariums").delete().eq("id", id);
     if (error) throw new Error(error.message);
 
-    // 💡 KIRIM NOTIFIKASI: Super Admin Menghapus Akuarium User
     const adminName = await getProfileName(supabase, user.id);
     await pushNotificationAction(
       "Penghapusan Paksa (Admin)",
@@ -360,7 +354,6 @@ export async function adminToggleArchiveAquariumAction(id: string, currentStatus
     const { error } = await supabase.from("my_aquariums").update({ is_active: !currentStatus }).eq("id", id);
     if (error) throw new Error(error.message);
 
-    // 💡 KIRIM NOTIFIKASI: Admin Arsip/Aktifkan Tangki
     const adminName = await getProfileName(supabase, user.id);
     await pushNotificationAction(
       currentStatus ? "Akuarium Dinonaktifkan" : "Akuarium Diaktifkan",

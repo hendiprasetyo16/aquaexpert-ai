@@ -28,15 +28,26 @@ export interface HealthAnalysisResult {
   bonuses: string[]; 
 }
 
-// 💡 FIX 1: Pintu Masuk (Interface) Diperbarui untuk Menerima activeTreatments
+// 💡 FIX 1: Buat interface khusus pengikat data wabah/penyakit
+export interface ActiveTreatmentEngine {
+  id: string;
+  disease_id: string;
+  medication_id: string;
+  status: string;
+  disease?: {
+    name_id: string;
+    name_en: string;
+  } | null;
+}
+
 interface AnalyzeProps {
   aquarium: Aquarium;
   parameters: AquariumParameterLog[];
   plants: TankPlant[];
   fishes: TankFish[];
   maintenanceStatus?: MaintenanceDashboardStatus[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  activeTreatments?: any[]; 
+  // 💡 FIX 2: Bebas dari 'any', terikat ketat dengan interface di atas!
+  activeTreatments?: ActiveTreatmentEngine[]; 
 }
 
 function clampScore(score: number): number {
@@ -416,9 +427,9 @@ function getEcosystemSnapshot(
 
     groupedFishes.forEach((data) => {
       const f = data.fishInfo;
-      if (f.min_school_size != null && f.min_school_size > 1) {
+      if (f.min_group_size != null && f.min_group_size > 1) {
         hasSchoolingSpecies = true;
-        const minRequired = f.min_school_size;
+        const minRequired = f.min_group_size;
         if (data.totalQty < minRequired) {
           schoolingStressPenalties += 15;
           invalidSchoolingSpecies.push(`${f.name_id || f.name_en || "Unknown Species"} (${data.totalQty}/${minRequired})`);

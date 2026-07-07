@@ -23,7 +23,6 @@ export interface TankPlant {
     growth_speed_score?: number | null;
     nutrient_consumption_score?: number | null;
     
-    // 💡 FIX: Sesuaikan properti suhu/pH tanaman dengan SQL Database
     preferred_ph?: number | null;
     preferred_temperature?: number | null;
     preferred_gh?: number | null;
@@ -66,14 +65,16 @@ export interface TankFish {
     shrimp_safe?: boolean | null;
     plant_safe?: boolean | null;
     
-    // 💡 FIX FATAL: Nama variabel wajib SAMA PERSIS dengan SQL Database
     ideal_temp_min?: number | null;
     ideal_temp_max?: number | null;
     ideal_ph_min?: number | null;
     ideal_ph_max?: number | null;
     
-    schooling?: boolean | null; // 💡 FIX: Menambahkan indikator kawanan
-    min_school_size?: number | null;
+    schooling?: boolean | null; 
+    
+    // 💡 FIX FATAL: Mengganti min_school_size menjadi min_group_size agar sesuai DB
+    min_group_size?: number | null; 
+    
     fin_nipper?: boolean | null;
     long_finned?: boolean | null;
     minimum_tank_length_cm?: number | null;

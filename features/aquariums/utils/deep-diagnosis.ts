@@ -178,7 +178,8 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
               priority: "high"
             });
           }
-          if (latest.temperature != null && f.temperature_min != null && latest.temperature < f.temperature_min) {
+          // KODE BARU YANG BENAR:
+          if (latest.temperature != null && f.ideal_temp_min != null && latest.temperature < f.ideal_temp_min) {
              highRiskDiseaseTriggered = true;
              rootCauses.push({
               title: lang === 'id' ? `Risiko Hipotermia & Penyakit: ${diseaseName}` : `Hypothermia & Disease Risk: ${diseaseName}`, severity: "high",
@@ -195,12 +196,12 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
       const fInfo = data.fishInfo;
       const fishName = getSafeName(fInfo.name_id, fInfo.name_en, lang);
 
-      if (fInfo.min_school_size != null && fInfo.min_school_size > 1 && data.totalQty < fInfo.min_school_size) {
+      if (fInfo.min_group_size != null && fInfo.min_group_size > 1 && data.totalQty < fInfo.min_group_size) {
         rootCauses.push({
           title: lang === 'id' ? "Stres Sosial (Schooling Size Invalid)" : "Social Schooling Isolation Stress", severity: "medium",
           description: lang === 'id'
-            ? `Jumlah ikan ${fishName} (${data.totalQty} ekor) kurang dari batas kawanan minimal (${fInfo.min_school_size} ekor). Mempercepat kepunahan koloni.`
-            : `Colony size for ${fishName} (${data.totalQty}) is below natural schooling thresholds (${fInfo.min_school_size}). Drastically induces stress.`
+            ? `Jumlah ikan ${fishName} (${data.totalQty} ekor) kurang dari batas kawanan minimal (${fInfo.min_group_size} ekor). Mempercepat kepunahan koloni.`
+            : `Colony size for ${fishName} (${data.totalQty}) is below natural schooling thresholds (${fInfo.min_group_size}). Drastically induces stress.`
         });
       }
 

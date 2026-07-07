@@ -18,13 +18,17 @@ export const createAquariumSchema = z.object({
   width_cm: z.number().min(1, "Lebar harus > 0 cm"),
   height_cm: z.number().min(1, "Tinggi harus > 0 cm"),
   volume_liters: z.number().min(0.1, "Volume tidak valid"),
+  
+  // 💡 FIX: Menambahkan net_water_volume_liters agar tidak ditolak oleh Zod
+  net_water_volume_liters: z.number().min(0.1, "Volume bersih tidak valid").nullable().optional(),
+
   substrate_type: z.enum(SUBSTRATE_TYPES as unknown as [string, ...string[]]).nullable().optional(),
-  hardscape_type: z.array(z.string()).nullable().optional(), // FIX: Ditambahkan
-  lid_present: z.boolean().default(false),                   // FIX: Ditambahkan
+  hardscape_type: z.array(z.string()).nullable().optional(), 
+  lid_present: z.boolean().default(false),                   
 
   // Step 3: Peralatan
   filter_type: z.enum(FILTER_TYPES as unknown as [string, ...string[]]).nullable().optional(),
-  filter_flow_lph: z.number().nullable().optional(),         // FIX: Menggunakan flow_lph
+  filter_flow_lph: z.number().nullable().optional(),         
   light_type: z.enum(LIGHT_TYPES as unknown as [string, ...string[]]).nullable().optional(),
   light_wattage: z.number().nullable().optional(),
   photoperiod_hours: z.number().min(0).max(24).nullable().optional(),

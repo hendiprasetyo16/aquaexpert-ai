@@ -7,6 +7,8 @@ import { getTankInventoryAction } from "./inventory.actions";
 import { createClient } from "@/lib/supabase/server";
 import { verifyAquariumOwnership } from "../repositories/security.repository";
 import { askAquaExpert } from "@/features/ai/actions/ai.actions"; 
+import { getActiveTreatmentsAction } from "@/features/diseases/actions/start-treatment.actions"; // 💡 FIX: Ambil data wabah
+import { AIProviderResponse } from "@/features/ai/types/ai.types"; // 💡 FIX: Import tipe data anti-any
 
 export interface HybridDiagnosisResponse {
   success: boolean;
@@ -45,7 +47,6 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
 
     const paramsList = parameters || [];
 
-    // 💡 CEGAH CRASH: Memastikan akuarium punya data air!
     if (paramsList.length === 0) {
       return { 
         success: false, 
@@ -55,24 +56,28 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
       };
     }
 
-    const inventory = await getTankInventoryAction(aquariumId);
+    // 💡 FIX: Menambahkan penarikan data penyakit secara berbarengan
+    const [inventory, treatRes] = await Promise.all([
+      getTankInventoryAction(aquariumId),
+      getActiveTreatmentsAction(aquariumId)
+    ]);
+    
     if (!inventory.success) throw new Error(inventory.error || "Inventory sync failed.");
 
     const fishes = inventory.fishes || [];
     const plants = inventory.plants || [];
+    const activeTreatments = treatRes.success && treatRes.data ? treatRes.data : []; 
 
-    // 1. Eksekusi Mesin Kalkulasi Lokal (Sangat Cepat & Akurat)
-    const healthResult = analyzeAquariumHealth({ aquarium, parameters: paramsList, plants, fishes });
+    // 1. Eksekusi Mesin Kalkulasi Lokal (Ditambah Variabel activeTreatments)
+    const healthResult = analyzeAquariumHealth({ aquarium, parameters: paramsList, plants, fishes, activeTreatments });
     const localDiagnosis = generateDeepDiagnosis({ aquarium, health: healthResult, parameters: paramsList, fishes, plants, lang });
 
-    // Fallback Bawaan
     let expertCommentary = lang === 'id' 
       ? "Sistem bio-analitik lokal telah memetakan kondisi Anda. Silakan ikuti 'Rencana Eksekusi' di bawah ini untuk menstabilkan kualitas air."
       : "Local system has mapped your condition. Follow the 'Action Plan' below to stabilize water quality.";
     
     let generatedByAI = false;
 
-    // 💡 PERBAIKAN: Prompt Dirampingkan agar tidak memberatkan server AI
     if (localDiagnosis.rootCauses.length > 0) {
       const issues = localDiagnosis.rootCauses.map(c => `- ${c.title}`).join("\n");
       
@@ -86,8 +91,8 @@ Explain the biological impact briefly.`;
       try {
         const aiResponse = await askAquaExpert([{ role: "user", content: diagnosisPrompt }]);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result = aiResponse as any;
+        // 💡 FIX 1: Membunuh `any` dengan interface resmi `AIProviderResponse`
+        const result = aiResponse as AIProviderResponse;
 
         if (result && !result.error && result.reply) {
           expertCommentary = result.reply.trim();
@@ -100,7 +105,6 @@ Explain the biological impact briefly.`;
         console.warn("⚠️ [DIAGNOSIS AI TIMEOUT] Menggunakan teks fallback.");
       }
     } else {
-       // Jika tidak ada masalah (Akuarium Sempurna)
        expertCommentary = lang === 'id' ? "Luar biasa! Ekosistem Anda beroperasi dalam harmoni sempurna. Pertahankan rutinitas pemeliharaan Anda." : "Excellent! Your ecosystem operates in perfect harmony. Keep up the maintenance routine.";
        generatedByAI = true;
     }

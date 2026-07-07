@@ -6,12 +6,13 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { TankPlant, TankFish } from "../types/inventory.types";
-import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; // 💡 IMPORT NOTIFIKASI
+import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; 
 
 const plantSchema = z.object({
   aquarium_id: z.string().uuid(),
   plant_id: z.string().uuid(),
   quantity: z.number().min(1).default(1),
+  status: z.string().default("Healthy"), // 💡 FIX 1: Menambahkan properti status pada Zod
   added_at: z.string().optional(),
 });
 
@@ -36,7 +37,6 @@ async function verifyAquariumOwnership(supabase: SupabaseClient, aquariumId: str
   return true;
 }
 
-// 💡 HELPER BARU: Mengambil nama pengguna & nama akuarium untuk Notifikasi
 async function getUserAndAquariumName(supabase: SupabaseClient, userId: string, aquariumId: string) {
   const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', userId).single();
   const { data: aq } = await supabase.from("my_aquariums").select("name").eq("id", aquariumId).single();
@@ -78,10 +78,16 @@ export async function addPlantToTankAction(payload: z.infer<typeof plantSchema>)
     await verifyAquariumOwnership(supabase, validated.aquarium_id, user.id);
     const safeAddedAt = validated.added_at || new Date().toISOString().split('T')[0];
 
-    // Ambil nama tanaman untuk Notifikasi
     const { data: plantMaster } = await supabase.from("plants").select("name_id").eq("id", validated.plant_id).single();
 
-    const { data: existing } = await supabase.from("aquarium_plants").select("id, quantity").eq("aquarium_id", validated.aquarium_id).eq("plant_id", validated.plant_id).eq("added_at", safeAddedAt).maybeSingle();
+    // 💡 FIX 2: Memasukkan validasi status agar query maybeSingle() tidak crash akibat hasil ganda
+    const { data: existing } = await supabase.from("aquarium_plants")
+      .select("id, quantity")
+      .eq("aquarium_id", validated.aquarium_id)
+      .eq("plant_id", validated.plant_id)
+      .eq("status", validated.status) 
+      .eq("added_at", safeAddedAt)
+      .maybeSingle();
 
     if (existing) {
       const { error } = await supabase.from("aquarium_plants").update({ quantity: existing.quantity + validated.quantity }).eq("id", existing.id);
@@ -91,7 +97,6 @@ export async function addPlantToTankAction(payload: z.infer<typeof plantSchema>)
       if (error) throw new Error(error.message);
     }
 
-    // 💡 KIRIM NOTIFIKASI
     const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, validated.aquarium_id);
     await pushNotificationAction(
       "Tanaman Ditambahkan",
@@ -117,10 +122,16 @@ export async function addFishToTankAction(payload: z.infer<typeof fishSchema>) {
     await verifyAquariumOwnership(supabase, validated.aquarium_id, user.id);
     const safeAddedAt = validated.added_at || new Date().toISOString().split('T')[0];
 
-    // Ambil nama ikan untuk Notifikasi
     const { data: fishMaster } = await supabase.from("fishes").select("name_id").eq("id", validated.fish_id).single();
 
-    const { data: existing } = await supabase.from("aquarium_fishes").select("id, quantity").eq("aquarium_id", validated.aquarium_id).eq("fish_id", validated.fish_id).eq("size_category", validated.size_category).eq("health_status", validated.health_status).eq("added_at", safeAddedAt).maybeSingle();
+    const { data: existing } = await supabase.from("aquarium_fishes")
+      .select("id, quantity")
+      .eq("aquarium_id", validated.aquarium_id)
+      .eq("fish_id", validated.fish_id)
+      .eq("size_category", validated.size_category)
+      .eq("health_status", validated.health_status)
+      .eq("added_at", safeAddedAt)
+      .maybeSingle();
 
     if (existing) {
       const { error } = await supabase.from("aquarium_fishes").update({ quantity: existing.quantity + validated.quantity }).eq("id", existing.id);
@@ -130,7 +141,6 @@ export async function addFishToTankAction(payload: z.infer<typeof fishSchema>) {
       if (error) throw new Error(error.message);
     }
 
-    // 💡 KIRIM NOTIFIKASI
     const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, validated.aquarium_id);
     await pushNotificationAction(
       "Fauna Ditambahkan",
@@ -153,18 +163,25 @@ export async function updateFishInventoryAction(id: string, aquariumId: string, 
     if (!user) return { success: false, error: "Unauthorized" };
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
-    // Ambil nama ikan sebelum diupdate untuk notif
     const { data: fishRef } = await supabase.from("aquarium_fishes").select("fishes(name_id)").eq("id", id).single();
 
     const { error } = await supabase.from("aquarium_fishes").update({ 
         quantity: updates.quantity, health_status: updates.health_status, size_category: updates.size_category, ...(updates.added_at ? { added_at: updates.added_at } : {})
       }).eq("id", id).eq("aquarium_id", aquariumId);
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.code === '23505') { 
+         throw new Error("Kategori ukuran dan status kesehatan ini sudah ada di tanggal yang sama. Silakan hapus salah satu atau edit data yang sudah ada.");
+      }
+      throw new Error(error.message);
+    }
 
-    // 💡 KIRIM NOTIFIKASI
     const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, aquariumId);
-    const fishName = (fishRef?.fishes as any)?.name_id || 'Ikan';
+    
+    // 💡 FIX 2: Membunuh 'any' dengan Type Assertion yang ketat
+    type JoinedFish = { name_id: string } | null;
+    const fishName = (fishRef?.fishes as unknown as JoinedFish)?.name_id || 'Ikan';
+    
     await pushNotificationAction(
       "Status Fauna Diubah",
       `${userName} memperbarui status "${fishName}" (Qty: ${updates.quantity}, Status: ${updates.health_status}) di "${aqName}".`,
@@ -186,20 +203,21 @@ export async function removeInventoryItemAction(table: "aquarium_fishes" | "aqua
     if (!user) return { success: false, error: "Unauthorized" };
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
-    // Ambil nama item sebelum dihapus
     let itemName = "Item";
+    // 💡 FIX: Membunuh `any` dengan tipe objek terstruktur di kedua cabang if-else
     if (table === "aquarium_fishes") {
       const { data } = await supabase.from(table).select("fishes(name_id)").eq("id", id).single();
-      itemName = (data?.fishes as any)?.name_id || "Ikan";
+      type JoinedFish = { name_id: string } | null;
+      itemName = (data?.fishes as unknown as JoinedFish)?.name_id || "Ikan";
     } else {
       const { data } = await supabase.from(table).select("plants(name_id)").eq("id", id).single();
-      itemName = (data?.plants as any)?.name_id || "Tanaman";
+      type JoinedPlant = { name_id: string } | null;
+      itemName = (data?.plants as unknown as JoinedPlant)?.name_id || "Tanaman";
     }
 
     const { error } = await supabase.from(table).delete().eq("id", id).eq("aquarium_id", aquariumId);
     if (error) throw new Error(error.message);
     
-    // 💡 KIRIM NOTIFIKASI
     const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, aquariumId);
     await pushNotificationAction(
       table === "aquarium_fishes" ? "Fauna Dihapus" : "Flora Dihapus",
