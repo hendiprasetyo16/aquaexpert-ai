@@ -8,20 +8,21 @@ import { z } from "zod";
 import type { TankPlant, TankFish } from "../types/inventory.types";
 import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; 
 
+// 💡 FIX: Tambahkan .optional() sebelum .default() agar TypeScript tidak marah saat UI (InventoryTab) tidak mengirimkannya
 const plantSchema = z.object({
   aquarium_id: z.string().uuid(),
   plant_id: z.string().uuid(),
-  quantity: z.number().min(1).default(1),
-  status: z.string().default("Healthy"), // 💡 FIX 1: Menambahkan properti status pada Zod
+  quantity: z.number().min(1).optional().default(1),
+  status: z.string().optional().default("Healthy"), 
   added_at: z.string().optional(),
 });
 
 const fishSchema = z.object({
   aquarium_id: z.string().uuid(),
   fish_id: z.string().uuid(),
-  quantity: z.number().min(1).default(1),
-  health_status: z.enum(["Healthy", "Sick", "Quarantined"]).default("Healthy"),
-  size_category: z.enum(["Juvenile", "Adult"]).default("Adult"),
+  quantity: z.number().min(1).optional().default(1),
+  health_status: z.enum(["Healthy", "Sick", "Quarantined"]).optional().default("Healthy"),
+  size_category: z.enum(["Juvenile", "Adult"]).optional().default("Adult"),
   added_at: z.string().optional(),
 });
 
@@ -80,7 +81,7 @@ export async function addPlantToTankAction(payload: z.infer<typeof plantSchema>)
 
     const { data: plantMaster } = await supabase.from("plants").select("name_id").eq("id", validated.plant_id).single();
 
-    // 💡 FIX 2: Memasukkan validasi status agar query maybeSingle() tidak crash akibat hasil ganda
+    // Validasi ini sekarang akan otomatis menggunakan status "Healthy" jika UI tidak mengirimkannya
     const { data: existing } = await supabase.from("aquarium_plants")
       .select("id, quantity")
       .eq("aquarium_id", validated.aquarium_id)
@@ -178,7 +179,7 @@ export async function updateFishInventoryAction(id: string, aquariumId: string, 
 
     const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, aquariumId);
     
-    // 💡 FIX 2: Membunuh 'any' dengan Type Assertion yang ketat
+    // Membunuh error tipe `any`
     type JoinedFish = { name_id: string } | null;
     const fishName = (fishRef?.fishes as unknown as JoinedFish)?.name_id || 'Ikan';
     
@@ -204,7 +205,8 @@ export async function removeInventoryItemAction(table: "aquarium_fishes" | "aqua
     await verifyAquariumOwnership(supabase, aquariumId, user.id);
 
     let itemName = "Item";
-    // 💡 FIX: Membunuh `any` dengan tipe objek terstruktur di kedua cabang if-else
+    
+    // Membunuh error tipe `any`
     if (table === "aquarium_fishes") {
       const { data } = await supabase.from(table).select("fishes(name_id)").eq("id", id).single();
       type JoinedFish = { name_id: string } | null;

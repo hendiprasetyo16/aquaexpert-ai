@@ -108,12 +108,22 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
 
     if (showAddModal === "fish") {
       res = await addFishToTankAction({ 
-        aquarium_id: aquariumId, fish_id: selectedItemId, quantity, 
-        health_status: healthStatus, size_category: sizeCategory,
+        aquarium_id: aquariumId, 
+        fish_id: selectedItemId, 
+        quantity, 
+        health_status: healthStatus, 
+        size_category: sizeCategory,
         added_at: addedAt
       });
     } else {
-      res = await addPlantToTankAction({ aquarium_id: aquariumId, plant_id: selectedItemId, quantity, added_at: addedAt });
+      // 💡 FIX: Memasukkan status: "Healthy" agar cocok dengan Zod Schema di file action
+      res = await addPlantToTankAction({ 
+        aquarium_id: aquariumId, 
+        plant_id: selectedItemId, 
+        quantity, 
+        status: "Healthy", 
+        added_at: addedAt 
+      });
     }
 
     if (res?.success) {
@@ -334,14 +344,12 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
                       <div key={item.id} onClick={() => setSelectedItemId(item.id)} className={`relative cursor-pointer rounded-2xl border-2 p-2 sm:p-3 flex flex-col items-center gap-2.5 bg-white dark:bg-slate-900 group ${isSelected ? (isFish ? "border-blue-500 bg-blue-50/30" : "border-emerald-500 bg-emerald-50/30") : "border-slate-100 hover:border-slate-300 dark:border-slate-800"}`}>
                         <div className="absolute top-2 left-2 w-5 h-5 flex items-center justify-center rounded bg-white dark:bg-slate-800 shadow-sm text-[9px] font-black text-slate-500 z-10">{idx + 1}</div> 
                         
-                        {/* FIX FLICKER: Gunakan display block/none daripada opacity untuk CheckCircle */}
                         {isSelected && (
                           <div className={`absolute top-2 right-2 rounded-full bg-white dark:bg-slate-900 z-10 ${isFish ? 'text-blue-500' : 'text-emerald-500'}`}>
                             <CheckCircle2 className="w-5 h-5" />
                           </div>
                         )}
                         
-                        {/* FIX FLICKER: Gunakan width/height absolut, TIDAK MENGGUNAKAN aspect-square agar browser HP tidak bingung me-render ukurannya */}
                         <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 relative bg-slate-100 dark:bg-slate-800 flex items-center justify-center`}>
                            {item.image_url ? ( 
                              <img src={item.image_url} alt="species" className="w-full h-full object-cover" /> 
