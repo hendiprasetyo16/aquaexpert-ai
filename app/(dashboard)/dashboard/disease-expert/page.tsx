@@ -220,7 +220,7 @@ export default function DiseaseExpertPage() {
               <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 lg:p-8 flex flex-col h-full shadow-inner transition-colors">
                 <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-4">
                   <ShieldPlus className="w-6 h-6 text-blue-600 dark:text-blue-500" /> 
-                  {lang === 'id' ? "Hasil Analisis Patologi AI" : "AI Pathology Analysis Results"}
+                  {lang === 'id' ? "Hasil Analisis Patologi" : "AI Pathology Analysis Results"}
                 </h3>
 
                 {isDiagnosing ? (

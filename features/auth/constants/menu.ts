@@ -30,17 +30,17 @@ export const MENU_BY_ROLE = {
     // --- MENU BARU RAWAT INAP (TREATMENT) ---
     { title: "Treatment Ward", href: "/dashboard/treatments", icon: HeartPulse, color: "text-rose-500 dark:text-rose-400" },
 
-    { title: "Plant Expert", href: "/dashboard/plants", icon: Leaf },
-    { title: "Plant Expert AI", href: "/dashboard/plant-expert/engine", icon: Cpu, color: AI_COLORS.plants },
+    { title: "Plant Database", href: "/dashboard/plants", icon: Leaf },
+    { title: "Plant Expert", href: "/dashboard/plant-expert/engine", icon: Cpu, color: AI_COLORS.plants },
     
-    { title: "Algae Expert", href: "/dashboard/algae", icon: Bug },
-    { title: "Algae Expert AI", href: "/dashboard/algae-expert", icon: Cpu, color: AI_COLORS.algae }, 
+    { title: "Algae Database", href: "/dashboard/algae", icon: Bug },
+    { title: "Algae Expert", href: "/dashboard/algae-expert", icon: Cpu, color: AI_COLORS.algae }, 
     
-    { title: "Fish Expert", href: "/dashboard/fishes", icon: Fish },
-    { title: "Fish Expert AI", href: "/dashboard/fish-expert/engine", icon: Cpu, color: AI_COLORS.fishes },
+    { title: "Fish Database", href: "/dashboard/fishes", icon: Fish },
+    { title: "Fish Expert", href: "/dashboard/fish-expert/engine", icon: Cpu, color: AI_COLORS.fishes },
     
     { title: "Disease Database", href: "/dashboard/diseases", icon: Activity },
-    { title: "Disease Expert AI", href: "/dashboard/disease-expert", icon: Cpu, color: AI_COLORS.diseases },
+    { title: "Disease Expert", href: "/dashboard/disease-expert", icon: Cpu, color: AI_COLORS.diseases },
     
     // --- MENU BARU: DATABASE OBAT ---
     { title: "Medication Database", href: "/dashboard/medications", icon: Pill, color: "text-sky-500 dark:text-sky-400" },
@@ -57,14 +57,14 @@ export const MENU_BY_ROLE = {
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { title: "My Aquarium", href: "/dashboard/my-aquarium", icon: Container },
     { title: "Treatment Ward", href: "/dashboard/treatments", icon: HeartPulse, color: "text-rose-500 dark:text-rose-400" }, // Tambahan
-    { title: "Plant Expert", href: "/dashboard/plants", icon: Leaf },
-    { title: "Plant Expert AI", href: "/dashboard/plant-expert/engine", icon: Cpu, color: AI_COLORS.plants },
-    { title: "Algae Expert", href: "/dashboard/algae", icon: Bug },
-    { title: "Algae Expert AI", href: "/dashboard/algae-expert", icon: Cpu, color: AI_COLORS.algae }, 
-    { title: "Fish Expert", href: "/dashboard/fishes", icon: Fish },
-    { title: "Fish Expert AI", href: "/dashboard/fish-expert/engine", icon: Cpu, color: AI_COLORS.fishes },
+    { title: "Plant Database", href: "/dashboard/plants", icon: Leaf },
+    { title: "Plant Expert", href: "/dashboard/plant-expert/engine", icon: Cpu, color: AI_COLORS.plants },
+    { title: "Algae Database", href: "/dashboard/algae", icon: Bug },
+    { title: "Algae Expert", href: "/dashboard/algae-expert", icon: Cpu, color: AI_COLORS.algae }, 
+    { title: "Fish Database", href: "/dashboard/fishes", icon: Fish },
+    { title: "Fish Expert", href: "/dashboard/fish-expert/engine", icon: Cpu, color: AI_COLORS.fishes },
     { title: "Disease Database", href: "/dashboard/diseases", icon: Activity },
-    { title: "Disease Expert AI", href: "/dashboard/disease-expert", icon: Cpu, color: AI_COLORS.diseases },
+    { title: "Disease Expert", href: "/dashboard/disease-expert", icon: Cpu, color: AI_COLORS.diseases },
     { title: "Medication Database", href: "/dashboard/medications", icon: Pill, color: "text-sky-500 dark:text-sky-400" },
     { title: "Clinical Analytics", href: "/dashboard/analytics", icon: BarChart, color: "text-indigo-500 dark:text-indigo-400" }, // Tambahan
     { title: "Users", href: "/dashboard/users", icon: Users },
@@ -74,14 +74,14 @@ export const MENU_BY_ROLE = {
     { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { title: "My Aquarium", href: "/dashboard/my-aquarium", icon: Container },
     { title: "Treatment Ward", href: "/dashboard/treatments", icon: HeartPulse, color: "text-rose-500 dark:text-rose-400" }, // Tambahan
-    { title: "Plant Expert", href: "/dashboard/plants", icon: Leaf },
-    { title: "Plant Expert AI", href: "/dashboard/plant-expert/engine", icon: Cpu, color: AI_COLORS.plants },
-    { title: "Algae Expert", href: "/dashboard/algae", icon: Bug },
-    { title: "Algae Expert AI", href: "/dashboard/algae-expert", icon: Cpu, color: AI_COLORS.algae }, 
-    { title: "Fish Expert", href: "/dashboard/fishes", icon: Fish },
-    { title: "Fish Expert AI", href: "/dashboard/fish-expert/engine", icon: Cpu, color: AI_COLORS.fishes },
+    { title: "Plant Database", href: "/dashboard/plants", icon: Leaf },
+    { title: "Plant Expert", href: "/dashboard/plant-expert/engine", icon: Cpu, color: AI_COLORS.plants },
+    { title: "Algae Database", href: "/dashboard/algae", icon: Bug },
+    { title: "Algae Expert", href: "/dashboard/algae-expert", icon: Cpu, color: AI_COLORS.algae }, 
+    { title: "Fish Database", href: "/dashboard/fishes", icon: Fish },
+    { title: "Fish Expert", href: "/dashboard/fish-expert/engine", icon: Cpu, color: AI_COLORS.fishes },
     { title: "Disease Database", href: "/dashboard/diseases", icon: Activity },
-    { title: "Disease Expert AI", href: "/dashboard/disease-expert", icon: Cpu, color: AI_COLORS.diseases },
+    { title: "Disease Expert", href: "/dashboard/disease-expert", icon: Cpu, color: AI_COLORS.diseases },
     { title: "Medication Database", href: "/dashboard/medications", icon: Pill, color: "text-sky-500 dark:text-sky-400" },
     { title: "Clinical Analytics", href: "/dashboard/analytics", icon: BarChart, color: "text-indigo-500 dark:text-indigo-400" }, // Tambahan
   ],
