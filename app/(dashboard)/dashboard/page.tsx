@@ -12,8 +12,11 @@ import {
   Cpu, BarChart, HeartPulse, Globe, Bug, Database, Zap
 } from "lucide-react";
 
-import { analyzeAquariumHealth } from "@/features/aquariums/utils/health-engine";
+import { analyzeAquariumHealth, ActiveTreatmentEngine } from "@/features/aquariums/utils/health-engine";
 import type { AquariumParameterLog } from "@/features/aquariums/types/parameter.types";
+import type { Aquarium } from "@/features/aquariums/types/aquarium.types";
+import type { TankFish, TankPlant } from "@/features/aquariums/types/inventory.types";
+import type { MaintenanceTask, MaintenanceDashboardStatus } from "@/features/aquariums/types/maintenance.types";
 
 interface TankInfo {
   id: string;
@@ -32,7 +35,6 @@ interface DashboardStats {
   flora: number;
 }
 
-// 💡 UPDATE TIPE LENGKAP: flora_fauna untuk ikan/tanaman
 interface ActivityLog {
   id: string;
   type: "parameter" | "maintenance" | "treatment" | "system" | "flora_fauna";
@@ -108,10 +110,10 @@ export default function DashboardPage() {
           if (!aquariums.some(t => t.is_primary)) aquariums[0].is_primary = true;
 
           // =========================================================================
-          // 💡 JURUS SAPUJAGAT: Tarik SELURUH histori aktivitas dari 7 Tabel Sekaligus!
+          // 💡 JURUS SAPUJAGAT: Tarik Data untuk Engine & Log Secara Berbarengan!
           // =========================================================================
           const [
-            { data: rawParams }, { data: rawFishes }, { data: rawPlants }, { data: rawMaint },
+            { data: rawParams }, { data: rawFishes }, { data: rawPlants }, { data: rawMaint }, { data: rawTreatments }, // <-- Tambahan rawTreatments!
             { data: paramLogsRes },
             { data: maintLogsRes },
             { data: taskLogsRes },
@@ -120,11 +122,12 @@ export default function DashboardPage() {
             { data: treatmentSessionsRes },
             { data: treatmentDailyLogsRes }
           ] = await Promise.all([
-            // Keperluan Kalkulasi Stats (Full Data)
+            // 💡 FIX 1: Query Kalkulasi Stats (Disinkronkan dengan kebutuhan ketat Health Engine)
             supabase.from("aquarium_parameters").select("*").in("aquarium_id", tankIds),
-            supabase.from("aquarium_fishes").select("aquarium_id, quantity, fish_id, fishes(*)").in("aquarium_id", tankIds),
-            supabase.from("aquarium_plants").select("aquarium_id, quantity, plant_id, plants(*)").in("aquarium_id", tankIds),
+            supabase.from("aquarium_fishes").select("aquarium_id, quantity, fish_id, health_status, size_category, fish:fishes(*)").in("aquarium_id", tankIds),
+            supabase.from("aquarium_plants").select("aquarium_id, quantity, plant_id, status, plant:plants(*)").in("aquarium_id", tankIds),
             supabase.from("maintenance_tasks").select("*").in("aquarium_id", tankIds),
+            supabase.from("treatment_sessions").select("id, aquarium_id, disease_id, medication_id, status, disease:diseases(name_id, name_en)").in("aquarium_id", tankIds).eq("status", "Active"),
             
             // Keperluan Log Aktivitas (Limit 5 Terbaru)
             supabase.from("aquarium_parameters").select("id, record_date, parameter_source").in("aquarium_id", tankIds).order('record_date', { ascending: false }).limit(5),
@@ -140,25 +143,80 @@ export default function DashboardPage() {
           const groupedFishes = groupByAquarium(rawFishes as InventoryRow[]);
           const groupedPlants = groupByAquarium(rawPlants as InventoryRow[]);
           const groupedMaint = groupByAquarium(rawMaint as DbRow[]);
+          const groupedTreatments = groupByAquarium(rawTreatments as DbRow[]); // Pengelompokan Data Penyakit
 
           let totalAlerts = 0, totalFauna = 0, totalFlora = 0;
+
+          // Hitung waktu hari ini sekali saja untuk efisiensi
+          const now = new Date();
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
           const processedTanks = aquariums.map((aq) => {
             const aqParams = groupedParams[aq.id] || [];
             const aqFishes = groupedFishes[aq.id] || [];
             const aqPlants = groupedPlants[aq.id] || [];
-            const aqMaintenance = groupedMaint[aq.id] || [];
+            const aqMaintenanceRaw = groupedMaint[aq.id] || [];
+            const aqTreatments = groupedTreatments[aq.id] || []; // Data penyakit tangki terkait
 
             aqParams.sort((a, b) => new Date(String(b.record_date)).getTime() - new Date(String(a.record_date)).getTime());
-            const sanitizedParams = aqParams.map(param => ({ ...param, temperature: typeof param.temperature === 'number' ? param.temperature : null, ph: typeof param.ph === 'number' ? param.ph : null, ammonia: typeof param.ammonia === 'number' ? param.ammonia : null, nitrite: typeof param.nitrite === 'number' ? param.nitrite : null, nitrate: typeof param.nitrate === 'number' ? param.nitrate : null } as AquariumParameterLog));
+            
+            const sanitizedParams = aqParams.map(param => ({ 
+              ...param, 
+              temperature: typeof param.temperature === 'number' ? param.temperature : null, 
+              ph: typeof param.ph === 'number' ? param.ph : null, 
+              ammonia: typeof param.ammonia === 'number' ? param.ammonia : null, 
+              nitrite: typeof param.nitrite === 'number' ? param.nitrite : null, 
+              nitrate: typeof param.nitrate === 'number' ? param.nitrate : null 
+            } as AquariumParameterLog));
 
-            const healthAnalysis = analyzeAquariumHealth({ aquarium: aq, parameters: sanitizedParams, fishes: aqFishes as unknown as any[], plants: aqPlants as unknown as any[], maintenanceStatus: aqMaintenance as unknown as any[] });
+            // 💡 FIX 2: Konversi Data Perawatan Mentah Menjadi 'Dashboard Status' yang Dimengerti Mesin (Hitung Keterlambatan)
+            const mappedMaintenance: MaintenanceDashboardStatus[] = aqMaintenanceRaw.map((taskRaw) => {
+              const task = taskRaw as unknown as MaintenanceTask;
+              let isOverdue = false;
+              let daysRemaining = 0;
+              let urgencyLevel: "safe" | "warning" | "critical" = "safe";
+
+              if (task.next_due_at) {
+                const dueDate = new Date(task.next_due_at);
+                const normalizedDue = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+                const diffTime = normalizedDue.getTime() - today.getTime();
+                daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (daysRemaining < 0) {
+                  isOverdue = true;
+                  urgencyLevel = daysRemaining <= -3 ? "critical" : "warning";
+                } else if (daysRemaining <= 2) {
+                  urgencyLevel = "warning";
+                }
+              }
+              return { task, isOverdue, daysRemaining, urgencyLevel, lastMaintenanceDaysAgo: null };
+            });
+
+            // 💡 FIX 3: Suapkan SELURUH variabel secara komplit ke dalam Engine persis seperti AquariumDetail!
+            const healthAnalysis = analyzeAquariumHealth({ 
+              aquarium: aq as Aquarium, 
+              parameters: sanitizedParams, 
+              fishes: aqFishes as unknown as TankFish[], 
+              plants: aqPlants as unknown as TankPlant[], 
+              maintenanceStatus: mappedMaintenance,
+              activeTreatments: aqTreatments as unknown as ActiveTreatmentEngine[],
+              lang 
+            });
+
             const faunaCount = aqFishes.reduce((acc, f) => acc + (f.quantity || 0), 0);
             const floraCount = aqPlants.reduce((acc, p) => acc + (p.quantity || 0), 0);
 
             totalAlerts += (healthAnalysis.alerts || []).length; totalFauna += faunaCount; totalFlora += floraCount;
 
-            return { id: aq.id, name: aq.name, is_primary: aq.is_primary || false, health_score: healthAnalysis.scores.overall, alerts: healthAnalysis.alerts || [], faunaCount, floraCount };
+            return { 
+              id: aq.id, 
+              name: aq.name, 
+              is_primary: aq.is_primary || false, 
+              health_score: healthAnalysis.scores.overall, // 🎯 SKOR KINI DIJAMIN 100% SAMA!
+              alerts: healthAnalysis.alerts || [], 
+              faunaCount, 
+              floraCount 
+            };
           });
 
           setTankList(processedTanks);
@@ -168,32 +226,32 @@ export default function DashboardPage() {
           // 💡 MERAKIT SELURUH LOG KE DALAM TIMELINE
           // ==========================================
 
-          // 1. Log Parameter Air
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           paramLogsRes?.forEach((log: any) => {
             logs.push({ id: `p-${log.id}`, type: "parameter", title_id: "Parameter Air Dicatat", title_en: "Water Parameter Logged", desc_id: `Melalui ${log.parameter_source || 'Sistem'}.`, desc_en: `Via ${log.parameter_source || 'System'}.`, date: new Date(String(log.record_date)) });
           });
 
-          // 2. Log Catat Pekerjaan Selesai
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           maintLogsRes?.forEach((log: any) => {
             logs.push({ id: `ml-${log.id}`, type: "maintenance", title_id: "Perawatan Selesai", title_en: "Maintenance Completed", desc_id: `Tugas: ${String(log.maintenance_type).replace('_', ' ')}.`, desc_en: `Task: ${String(log.maintenance_type).replace('_', ' ')}.`, date: new Date(String(log.performed_at)) });
           });
 
-          // 3. Log Buat Jadwal Tugas Baru
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           taskLogsRes?.forEach((task: any) => {
             logs.push({ id: `mt-${task.id}`, type: "maintenance", title_id: "Jadwal Tugas Dibuat", title_en: "Task Scheduled", desc_id: `Tugas "${task.title}" dijadwalkan setiap ${task.interval_days} hari.`, desc_en: `Task "${task.title}" scheduled every ${task.interval_days} days.`, date: new Date(String(task.created_at)) });
           });
 
-          // 4. Log Tambah Ikan
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fishLogsRes?.forEach((f: any) => {
             logs.push({ id: `f-${f.id}`, type: "flora_fauna", title_id: "Fauna Ditambahkan", title_en: "Fauna Added", desc_id: `${f.quantity} ekor ${f.fishes?.name_id || 'Ikan'} masuk ke akuarium.`, desc_en: `${f.quantity} qty ${f.fishes?.name_en || 'Fish'} added to tank.`, date: new Date(String(f.added_at)) });
           });
 
-          // 5. Log Tambah Tanaman
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           plantLogsRes?.forEach((p: any) => {
             logs.push({ id: `pl-${p.id}`, type: "flora_fauna", title_id: "Flora Ditambahkan", title_en: "Flora Added", desc_id: `${p.quantity} porsi ${p.plants?.name_id || 'Tanaman'} masuk ke akuarium.`, desc_en: `${p.quantity} qty ${p.plants?.name_en || 'Plant'} added to tank.`, date: new Date(String(p.added_at)) });
           });
 
-          // 6. Log Status Sesi Pengobatan (Mulai, Selesai, Batal)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           treatmentSessionsRes?.forEach((session: any) => {
             const diseaseName = session.diseases?.name_id || 'Penyakit';
             let tId = "Sesi Pengobatan Dimulai", tEn = "Treatment Started", dId = `Karantina untuk ${diseaseName}.`, dEn = `Quarantine for ${session.diseases?.name_en || 'Disease'}.`;
@@ -202,14 +260,13 @@ export default function DashboardPage() {
             logs.push({ id: `ts-${session.id}`, type: "treatment", title_id: tId, title_en: tEn, desc_id: dId, desc_en: dEn, date: new Date(String(session.started_at)) });
           });
 
-          // 7. Log Edit Data Hari Ini (Catatan Medis Harian)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           treatmentDailyLogsRes?.forEach((tlog: any) => {
             const diseaseName = tlog.treatment_sessions?.diseases?.name_id || 'Penyakit';
             logs.push({ id: `tl-${tlog.id}`, type: "treatment", title_id: `Catat Medis (Hari ${tlog.day_number})`, title_en: `Medical Log (Day ${tlog.day_number})`, desc_id: `Aksi: ${tlog.action_taken || 'Observasi'} untuk ${diseaseName}.`, desc_en: `Action: ${tlog.action_taken || 'Observe'} for ${diseaseName}.`, date: new Date(String(tlog.log_date)) });
           });
         }
 
-        // 8. LOG NOTIFIKASI SISTEM (Khusus Admin/Super Admin)
         if (role === "super_admin" || role === "admin") {
           const { data: sysLogs } = await supabase.from("system_activities").select("*").order("created_at", { ascending: false }).limit(10);
           sysLogs?.forEach(sys => {
@@ -218,7 +275,6 @@ export default function DashboardPage() {
           });
         }
 
-        // Urutkan Keseluruhan Log dari yang terbaru dan ambil 8 teratas agar UI padat dan informatif
         logs.sort((a, b) => b.date.getTime() - a.date.getTime());
         setRecentActivities(logs.slice(0, 8));
 
@@ -231,7 +287,7 @@ export default function DashboardPage() {
     }
 
     if (!isLoading) fetchDashboardData();
-  }, [user?.id, isLoading, role]);
+  }, [user?.id, isLoading, role, lang]);
 
   if (isLoading || loadingPage) {
     return (
@@ -565,18 +621,6 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div onClick={() => router.push("/dashboard/algae-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-teal-500/50 dark:hover:border-teal-500/50 hover:shadow-[0_0_30px_rgba(20,184,166,0.15)] dark:hover:shadow-[0_0_30px_rgba(20,184,166,0.2)]">
-                <div className="absolute -top-10 -right-10 w-32 h-32 bg-teal-500/10 dark:bg-teal-500/20 blur-3xl rounded-full group-hover:bg-teal-500/20 dark:group-hover:bg-teal-500/30 transition-colors duration-500"></div>
-                <div className="relative z-10">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform">
-                    <Bug className="w-6 h-6 drop-shadow-[0_0_8px_rgba(20,184,166,0.5)]" />
-                  </div>
-                  <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">Algae Expert AI</h4>
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Identifikasi dan solusi pembasmian ledakan alga pada akuarium." : "Identification and eradication solutions for algae blooms in aquariums."}</p>
-                  <div className="flex items-center text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-4 h-4" /></div>
-                </div>
-              </div>
-
               <div onClick={() => router.push("/dashboard/analytics")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-indigo-500/50 dark:hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] sm:col-span-2 lg:col-span-1">
                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 blur-3xl rounded-full group-hover:bg-indigo-500/20 dark:group-hover:bg-indigo-500/30 transition-colors duration-500"></div>
                 <div className="relative z-10">
@@ -616,7 +660,6 @@ export default function DashboardPage() {
                   {recentActivities.map((log) => (
                     <div key={log.id} className="flex gap-4 relative z-10 group">
                       <div className="flex flex-col items-center pt-0.5 shrink-0">
-                        {/* 💡 WARNA BARU UNTUK SETIAP KATEGORI */}
                         <div className={`w-3.5 h-3.5 rounded-full ring-4 ring-white dark:ring-slate-900 transition-transform group-hover:scale-125 ${
                           log.type === 'parameter' ? 'bg-blue-500' :
                           log.type === 'maintenance' ? 'bg-emerald-500' : 
