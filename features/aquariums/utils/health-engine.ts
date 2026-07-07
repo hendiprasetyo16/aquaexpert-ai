@@ -28,7 +28,6 @@ export interface HealthAnalysisResult {
   bonuses: string[]; 
 }
 
-// 💡 FIX 1: Buat interface khusus pengikat data wabah/penyakit
 export interface ActiveTreatmentEngine {
   id: string;
   disease_id: string;
@@ -46,8 +45,8 @@ interface AnalyzeProps {
   plants: TankPlant[];
   fishes: TankFish[];
   maintenanceStatus?: MaintenanceDashboardStatus[];
-  // 💡 FIX 2: Bebas dari 'any', terikat ketat dengan interface di atas!
   activeTreatments?: ActiveTreatmentEngine[]; 
+  lang?: "id" | "en"; // 💡 FITUR BARU: Parameter Dwibahasa Tertanam
 }
 
 function clampScore(score: number): number {
@@ -90,10 +89,13 @@ function getEcosystemSnapshot(
   plants: TankPlant[], 
   fishes: TankFish[], 
   maintenanceStatus: MaintenanceDashboardStatus[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  activeTreatments: any[], 
-  anchorDate: Date
+  activeTreatments: ActiveTreatmentEngine[], // 💡 FIX: Tipe Data Strict, bebas 'any'
+  anchorDate: Date,
+  lang: "id" | "en" // 💡 Inject Bahasa
 ) {
+  // 💡 HELPER INTERNAL: Sistem Penerjemah Super Cepat
+  const t = (idText: string, enText: string) => lang === 'en' ? enText : idText;
+
   const alerts: string[] = [];
   const recommendations: string[] = []; 
   const bonuses: string[] = []; 
@@ -125,7 +127,7 @@ function getEcosystemSnapshot(
     if (daysSinceLastParameter > 30) {
       const p = daysSinceLastParameter > 60 ? 40 : 25;
       waterScore -= p; deductions["Outdated Water Parameter"] = p;
-      recommendations.push("Uji ulang air dan perbarui log parameter dasar minggu ini demi validitas diagnosis otomatis.");
+      recommendations.push(t("Uji ulang air dan perbarui log parameter dasar minggu ini demi validitas diagnosis otomatis.", "Retest water and update baseline parameter logs this week for automated diagnosis validity."));
     }
 
     const avgAmmonia = getAverage(parameters, p => p.ammonia, anchorDate);
@@ -134,16 +136,16 @@ function getEcosystemSnapshot(
 
     if (avgAmmonia != null && avgAmmonia > 0) {
       const p = Math.min(60, avgAmmonia * 30); waterScore -= p; deductions["Ammonia Poisoning Factor"] = p;
-      recommendations.push("Segera lakukan penggantian air darurat sebesar 40% dan periksa keandalan sirkulasi media biologis filter.");
+      recommendations.push(t("Segera lakukan penggantian air darurat sebesar 40% dan periksa keandalan sirkulasi media biologis filter.", "Immediately perform an emergency water change of 40% and check biological filter media circulation."));
     }
     if (avgNitrite != null && avgNitrite > 0) {
       const p = Math.min(50, avgNitrite * 25); waterScore -= p; deductions["Nitrite Poisoning Factor"] = p;
-      recommendations.push("Puasakan ikan selama 24 jam dan tambahkan dosis bakteri starter guna mempercepat reduksi senyawa toksik.");
+      recommendations.push(t("Puasakan ikan selama 24 jam dan tambahkan dosis bakteri starter guna mempercepat reduksi senyawa toksik.", "Fast the fish for 24 hours and add starter bacteria to accelerate toxin reduction."));
     }
     
     if (avgAmmonia === 0 && avgNitrite === 0 && parameters.length >= 3) {
       ecosystemBonus += 5;
-      bonuses.push("🌟 Bonus Siklus Nitrogen: Histori kualitas air terbebas dari racun Amonia & Nitrit.");
+      bonuses.push(t("🌟 Bonus Siklus Nitrogen: Histori kualitas air terbebas dari racun Amonia & Nitrit.", "🌟 Nitrogen Cycle Bonus: Water quality history is free from Ammonia & Nitrite toxins."));
     }
 
     if (groupedFishes.size > 0 && latestParam.ph != null && totalFishQuantity > 0) {
@@ -158,7 +160,6 @@ function getEcosystemSnapshot(
         const qty = data.totalQty;
         const populationRatio = qty / totalFishQuantity;
 
-        // 💡 FIX: Sesuaikan nama variabel dengan Database (ideal_ph_min, ideal_temp_min, dll)
         const phSweetSpot = f.preferred_ph ?? ((f.ideal_ph_min ?? 6.5) + (f.ideal_ph_max ?? 7.5)) / 2;
         const tempSweetSpot = f.preferred_temperature ?? ((f.ideal_temp_min ?? 24) + (f.ideal_temp_max ?? 28)) / 2;
 
@@ -184,12 +185,18 @@ function getEcosystemSnapshot(
       });
 
       if (phMismatchSpecies.length > 0) {
-        alerts.push(`Peringatan: Tingkat pH (${latestParam.ph}) merusak osmoregulasi ${phMismatchSpecies.length} kawanan (${phMismatchSpecies.join(", ")}).`);
-        recommendations.push("Gunakan buffer pengontrol pH atau periksa kandungan dekorasi internal tangki yang mendistorsi keasaman.");
+        alerts.push(t(
+          `Peringatan: Tingkat pH (${latestParam.ph}) merusak osmoregulasi ${phMismatchSpecies.length} kawanan (${phMismatchSpecies.join(", ")}).`, 
+          `Warning: pH level (${latestParam.ph}) damages osmoregulation of ${phMismatchSpecies.length} group(s) (${phMismatchSpecies.join(", ")}).`
+        ));
+        recommendations.push(t("Gunakan buffer pengontrol pH atau periksa kandungan dekorasi internal tangki yang mendistorsi keasaman.", "Use pH control buffers or check tank internal decorations distorting acidity."));
       }
       if (tempMismatchSpecies.length > 0) {
-        alerts.push(`Kritis: Suhu (${latestParam.temperature}°C) memicu shock termal pada ${tempMismatchSpecies.length} kawanan (${tempMismatchSpecies.join(", ")}).`);
-        recommendations.push("Pasang termostat heater penyeimbang suhu atau integrasikan cooling fan pendingin.");
+        alerts.push(t(
+          `Kritis: Suhu (${latestParam.temperature}°C) memicu shock termal pada ${tempMismatchSpecies.length} kawanan (${tempMismatchSpecies.join(", ")}).`,
+          `Critical: Temperature (${latestParam.temperature}°C) triggers thermal shock in ${tempMismatchSpecies.length} group(s) (${tempMismatchSpecies.join(", ")}).`
+        ));
+        recommendations.push(t("Pasang termostat heater penyeimbang suhu atau integrasikan cooling fan pendingin.", "Install a thermostat heater or integrate a cooling fan."));
       }
 
       if (totalWeightedPhPenalty > 0) {
@@ -202,23 +209,23 @@ function getEcosystemSnapshot(
 
     if (avgNitrate != null && avgNitrate > 20) {
       const p = Math.min(30, (avgNitrate - 20) * 0.5); waterScore -= p; deductions["Nitrate High Accumulation"] = p;
-      recommendations.push("Tingkatkan frekuensi penggantian air berkala secara disiplin untuk menurunkan akumulasi senyawa nitrat.");
+      recommendations.push(t("Tingkatkan frekuensi penggantian air berkala secara disiplin untuk menurunkan akumulasi senyawa nitrat.", "Increase regular water change frequency strictly to reduce nitrate accumulation."));
       
       const hasNitrateSensitiveFish = Array.from(groupedFishes.values()).some(d => d.fishInfo.sensitive_to_nitrate === true);
       if (hasNitrateSensitiveFish && avgNitrate >= 25) {
         waterScore -= 15; deductions["Nitrate Sensitive Species Stress"] = 15;
-        alerts.push("Bahaya: Akumulasi nitrat menekan imunitas spesies rentan (Risiko Penyakit Kronis).");
+        alerts.push(t("Bahaya: Akumulasi nitrat menekan imunitas spesies rentan (Risiko Penyakit Kronis).", "Danger: Nitrate accumulation suppresses immunity of vulnerable species (Chronic Disease Risk)."));
       }
     }
 
     if (latestParam.ammonia != null && latestParam.ammonia >= 1.0) {
-      alerts.push(`Bahaya: Amonia mematikan terdeteksi (${latestParam.ammonia} ppm)`);
+      alerts.push(t(`Bahaya: Amonia mematikan terdeteksi (${latestParam.ammonia} ppm)`, `Danger: Lethal ammonia detected (${latestParam.ammonia} ppm)`));
       waterScore = Math.min(waterScore, 40); 
     }
   } else {
     waterScore = 50; deductions["Missing Water Logs"] = 50;
-    alerts.push("Tidak ada log parameter air terdata.");
-    recommendations.push("Masukkan data log parameter air dasar (pH, Amonia, Nitrat) untuk memicu fungsi diagnosa.");
+    alerts.push(t("Tidak ada log parameter air terdata.", "No water parameter logs recorded."));
+    recommendations.push(t("Masukkan data log parameter air dasar (pH, Amonia, Nitrat) untuk memicu fungsi diagnosa.", "Input baseline water parameters (pH, Ammonia, Nitrate) to trigger diagnosis functions."));
   }
   waterScore = clampScore(waterScore);
 
@@ -241,12 +248,12 @@ function getEcosystemSnapshot(
     maintenanceScore -= totalMaintenancePenalty;
     if (totalMaintenancePenalty > 0) {
       if (!deductions["Overdue Tasks Penalty"]) deductions["Overdue Tasks Penalty"] = Math.min(100, totalMaintenancePenalty);
-      recommendations.push("Selesaikan seluruh sisa tunggakan pemeliharaan fisik yang terjadwal guna menghindari kelelahan ekosistem.");
+      recommendations.push(t("Selesaikan seluruh sisa tunggakan pemeliharaan fisik yang terjadwal guna menghindari kelelahan ekosistem.", "Complete all remaining scheduled physical maintenance to avoid ecosystem exhaustion."));
     }
     
     if (criticalCount === 0 && warningCount === 0 && maintenanceStatus.length >= 2) {
       ecosystemBonus += 5;
-      bonuses.push("🌟 Bonus Kepatuhan: Kedisiplinan perawatan tangki 100% terpenuhi.");
+      bonuses.push(t("🌟 Bonus Kepatuhan: Kedisiplinan perawatan tangki 100% terpenuhi.", "🌟 Compliance Bonus: 100% tank maintenance discipline achieved."));
     }
   }
   maintenanceScore = clampScore(maintenanceScore);
@@ -298,32 +305,32 @@ function getEcosystemSnapshot(
     if (co2DeficitPenalty > 0) {
       const p = Math.min(35, co2DeficitPenalty);
       basePlantScore -= p; deductions["Missing CO2 for High-Tech Plants"] = p;
-      recommendations.push("Tambahkan sistem injeksi CO₂ gas/cair atau gantilah tanaman bertipe hitech dengan spesies low-tech.");
+      recommendations.push(t("Tambahkan sistem injeksi CO₂ gas/cair atau gantilah tanaman bertipe hitech dengan spesies low-tech.", "Add gas/liquid CO₂ injection system or replace high-tech plants with low-tech species."));
     }
     if (lightDeficitPenalty > 0) {
       const p = Math.min(25, lightDeficitPenalty);
       basePlantScore -= p; deductions["Inadequate Lighting for Demanding Flora"] = p;
-      recommendations.push("Tingkatkan intensitas lux/wattage pencahayaan menggunakan armatur lampu berspektrum penuh WRGB.");
+      recommendations.push(t("Tingkatkan intensitas lux/wattage pencahayaan menggunakan armatur lampu berspektrum penuh WRGB.", "Increase lighting lux/wattage intensity using full-spectrum WRGB fixtures."));
     }
 
     const substrate = aquarium.substrate_type?.toLowerCase() || "";
     const isInertSubstrate = substrate === "sand" || substrate === "gravel" || substrate === "bare bottom";
     if (rootFeederCount > 0 && isInertSubstrate) {
       basePlantScore -= 15; deductions["Inert Substrate for Root Feeders"] = 15;
-      recommendations.push("Suntikkan pupuk tancap nutrisi (root tabs) secara berkala di dasar perakaran tanaman jenis root feeder.");
+      recommendations.push(t("Suntikkan pupuk tancap nutrisi (root tabs) secara berkala di dasar perakaran tanaman jenis root feeder.", "Regularly inject root tabs at the base of root-feeder plants."));
     }
 
     if (basePlantScore === 100 && co2DeficitPenalty === 0 && lightDeficitPenalty === 0 && !deductions["Inert Substrate for Root Feeders"]) {
       ecosystemBonus += 5;
-      bonuses.push("🌟 Bonus Flora: Kepadatan vegetasi dan infrastruktur botani sangat sempurna.");
+      bonuses.push(t("🌟 Bonus Flora: Kepadatan vegetasi dan infrastruktur botani sangat sempurna.", "🌟 Flora Bonus: Vegetation density and botanical infrastructure are perfect."));
     }
 
     plantScore = clampScore(basePlantScore);
   } else if (totalFishQuantity > 5 && aquarium.aquascape_style !== "Blackwater" && aquarium.aquascape_style !== "Iwagumi") {
     deductions["Zero Plant Ecosystem Risk"] = 30;
     missingPlantBioloadPenalty = 15; 
-    alerts.push("Risiko Ekosistem: Absennya tanaman hidup menurunkan daya filtrasi biologis alami secara signifikan.");
-    recommendations.push("Pertimbangkan menanam flora tangguh minim perawatan (seperti Java Fern/Anubias) sebagai filter penyerap racun alami.");
+    alerts.push(t("Risiko Ekosistem: Absennya tanaman hidup menurunkan daya filtrasi biologis alami secara signifikan.", "Ecosystem Risk: Absence of live plants significantly reduces natural biological filtration."));
+    recommendations.push(t("Pertimbangkan menanam flora tangguh minim perawatan (seperti Java Fern/Anubias) sebagai filter penyerap racun alami.", "Consider planting hardy, low-maintenance flora (like Java Fern/Anubias) as natural toxin filters."));
   }
 
   // --- 4. BEBAN BIOLOGIS (BIOLOAD & AGGRESSIVE TERRITORIAL SCORE) ---
@@ -344,13 +351,13 @@ function getEcosystemSnapshot(
 
     if (layers.size >= 3 && bioloadRatio <= 1.0) {
       ecosystemBonus += 5;
-      bonuses.push("🌟 Bonus Biodiversitas: Distribusi fauna harmonis di seluruh lapisan (Atas, Tengah, Dasar).");
+      bonuses.push(t("🌟 Bonus Biodiversitas: Distribusi fauna harmonis di seluruh lapisan (Atas, Tengah, Dasar).", "🌟 Biodiversity Bonus: Harmonious fauna distribution across all layers (Top, Mid, Bottom)."));
     }
 
     if (bioloadRatio > 1.0) {
       const p = Math.min(60, bioloadRatio > 1.5 ? 60 : 30);
       bioloadScore -= p; deductions[bioloadRatio > 1.5 ? "Severe Tank Overstocking" : "Mild Tank Overstocking"] = p;
-      recommendations.push("Kurangi kepadatan populasi fauna atau upgrade dimensi tangki ke ukuran kapasitas volume air yang lebih besar.");
+      recommendations.push(t("Kurangi kepadatan populasi fauna atau upgrade dimensi tangki ke ukuran kapasitas volume air yang lebih besar.", "Reduce fauna population or upgrade to a larger tank volume."));
     }
 
     let territorialAggressionScore = 0;
@@ -367,8 +374,8 @@ function getEcosystemSnapshot(
         const p = territorialAggressionScore >= 4 ? 40 : 20;
         bioloadScore -= p; 
         deductions["Weighted Territorial Density Conflict"] = p;
-        alerts.push(`Kepadatan Agresi Teritorial: Area tangki memicu sengketa ruang gerak.`);
-        recommendations.push("Sediakan rintangan visual seperti susunan batu/hardscape guna memecah dominasi area agresi.");
+        alerts.push(t(`Kepadatan Agresi Teritorial: Area tangki memicu sengketa ruang gerak.`, `Territorial Aggression Density: Tank area triggers movement space disputes.`));
+        recommendations.push(t("Sediakan rintangan visual seperti susunan batu/hardscape guna memecah dominasi area agresi.", "Provide visual barriers like rock/hardscape layouts to break up aggression dominance areas."));
       }
     }
 
@@ -377,17 +384,17 @@ function getEcosystemSnapshot(
       const missingFilterPenalty = aquarium.volume_liters > 200 ? 25 : 15;
       bioloadScore -= missingFilterPenalty; 
       deductions["Missing Filtration Data"] = missingFilterPenalty;
-      alerts.push(`Data LPH filter kosong. Skala tangki ${aquarium.volume_liters}L memicu risiko penumpukan limbah.`);
-      recommendations.push("Segera input daya laju alir LPH filter pompa Anda untuk memicu akurasi kalkulasi sirkulasi air.");
+      alerts.push(t(`Data LPH filter kosong. Skala tangki ${aquarium.volume_liters}L memicu risiko penumpukan limbah.`, `Filter LPH data is missing. Tank volume of ${aquarium.volume_liters}L triggers a high risk of waste accumulation.`));
+      recommendations.push(t("Segera input daya laju alir LPH filter pompa Anda untuk memicu akurasi kalkulasi sirkulasi air.", "Input your pump filter's LPH flow rate to trigger accurate water circulation calculations."));
     } else {
       const turnoverRate = filterFlow / aquarium.volume_liters;
       if (bioloadRatio >= 0.8 && turnoverRate < 4.0) {
         bioloadScore -= 20; deductions["Inadequate Filtration Turnover"] = 20;
-        recommendations.push("Tingkatkan kapasitas volume sirkulasi pompa filter atau pasang internal powerhead tambahan.");
+        recommendations.push(t("Tingkatkan kapasitas volume sirkulasi pompa filter atau pasang internal powerhead tambahan.", "Increase filter pump circulation capacity or install an additional internal powerhead."));
       }
       if (turnoverRate >= 6.0 && bioloadRatio <= 1.2) {
         ecosystemBonus += 5;
-        bonuses.push("🌟 Bonus Oksigenasi: Sistem filtrasi (Turnover LPH tinggi) memasok oksigen dan kebersihan absolut.");
+        bonuses.push(t("🌟 Bonus Oksigenasi: Sistem filtrasi (Turnover LPH tinggi) memasok oksigen dan kebersihan absolut.", "🌟 Oxygenation Bonus: Filtration system (High LPH Turnover) provides absolute oxygen and cleanliness."));
       }
     }
   }
@@ -398,18 +405,17 @@ function getEcosystemSnapshot(
   if (totalFishQuantity > 0) {
     let sickPenaltyScore = 0; 
     
-    // 💡 FIX 2: MENYEDOT DATA PENYAKIT DARI INVENTORY & TAB PENGOBATAN
     fishes.forEach(f => {
       if (f.health_status === "Sick" || f.health_status === "Quarantined") {
-        sickPenaltyScore += (f.quantity * 25); // Penalti berat jika inventory ditandai sakit
+        sickPenaltyScore += (f.quantity * 25);
       }
     });
 
     if (activeTreatments && activeTreatments.length > 0) {
       const activeCasesCount = activeTreatments.filter(t => t.status === "Active").length;
       if (activeCasesCount > 0) {
-        sickPenaltyScore += (activeCasesCount * 35); // Penalti sangat berat jika ada wabah aktif
-        alerts.push(`🚨 Wabah Aktif: Terdapat ${activeCasesCount} infeksi/penyakit yang sedang diobati.`);
+        sickPenaltyScore += (activeCasesCount * 35); 
+        alerts.push(t(`🚨 Wabah Aktif: Terdapat ${activeCasesCount} infeksi/penyakit yang sedang diobati.`, `🚨 Active Outbreak: There are ${activeCasesCount} active infections being treated.`));
       }
     }
 
@@ -417,7 +423,7 @@ function getEcosystemSnapshot(
       const penalty = Math.min(80, sickPenaltyScore); 
       fishHealthScore -= penalty; 
       deductions["Active Disease/Quarantine Event"] = penalty;
-      recommendations.push("Lanjutkan protokol pengobatan harian dan pantau ketat penyebaran gejala pada fauna lain.");
+      recommendations.push(t("Lanjutkan protokol pengobatan harian dan pantau ketat penyebaran gejala pada fauna lain.", "Continue daily treatment protocols and closely monitor symptom spread to other fauna."));
     }
 
     let schoolingStressPenalties = 0;
@@ -439,8 +445,8 @@ function getEcosystemSnapshot(
     });
 
     if (invalidSchoolingSpecies.length > 0) {
-      alerts.push(`Populasi Invalid: Ekosistem kekurangan populasi minimum untuk ${invalidSchoolingSpecies.join(", ")}.`);
-      recommendations.push("Tambahkan populasi spesies ikan koloni hingga memenuhi ambang batas ukuran kawanan minimum.");
+      alerts.push(t(`Populasi Invalid: Ekosistem kekurangan populasi minimum untuk ${invalidSchoolingSpecies.join(", ")}.`, `Invalid Population: Ecosystem lacks minimum population for ${invalidSchoolingSpecies.join(", ")}.`));
+      recommendations.push(t("Tambahkan populasi spesies ikan koloni hingga memenuhi ambang batas ukuran kawanan minimum.", "Add more schooling species to meet minimum natural colony thresholds."));
     }
 
     if (schoolingStressPenalties > 0) {
@@ -449,7 +455,7 @@ function getEcosystemSnapshot(
     } 
     else if (hasSchoolingSpecies && allSchoolingValid) {
       ecosystemBonus += 5;
-      bonuses.push("🌟 Bonus Sosial Ekosistem: Kebutuhan koloni/kawanan fauna terpenuhi secara mutlak.");
+      bonuses.push(t("🌟 Bonus Sosial Ekosistem: Kebutuhan koloni/kawanan fauna terpenuhi secara mutlak.", "🌟 Social Ecosystem Bonus: Fauna colony/schooling needs are absolutely fulfilled."));
     }
 
     if (groupedFishes.size > 1) {
@@ -510,14 +516,14 @@ function getEcosystemSnapshot(
          const p = Math.min(45, compatibilityPenalty);
          fishHealthScore -= p;
          deductions["Severe Species Relationship Conflict"] = p;
-         alerts.push(`Risiko Agresi: Konflik kompatibilitas spesies menekan kesehatan ikan.`);
-         recommendations.push("Segera pisahkan atau keluarkan spesies predator/agresif yang mengancam silsilah hidup ikan damai.");
+         alerts.push(t(`Risiko Agresi: Konflik kompatibilitas spesies menekan kesehatan ikan.`, `Aggression Risk: Species compatibility conflict suppresses fish health.`));
+         recommendations.push(t("Segera pisahkan atau keluarkan spesies predator/agresif yang mengancam silsilah hidup ikan damai.", "Immediately separate or remove predatory/aggressive species threatening peaceful fish."));
       }
     }
   }
   fishHealthScore = clampScore(fishHealthScore);
 
-  // --- 6. OVERALL SCORE & CRITICAL INHERITANCE (PERBAIKAN TOTAL) ---
+  // --- 6. OVERALL SCORE & CRITICAL INHERITANCE ---
   let overallScore = 0;
   if (plantScore !== null) {
     overallScore = (waterScore * 0.30) + (fishHealthScore * 0.25) + (maintenanceScore * 0.15) + (bioloadScore * 0.15) + (plantScore * 0.15);
@@ -533,15 +539,13 @@ function getEcosystemSnapshot(
   }
   overallScore = clampScore(overallScore);
 
-  // 💡 FIX 3: CRITICAL INHERITANCE (Jika ada 1 panel hancur lebur, nilai total wajib jatuh)
   if (waterScore <= 40) overallScore = Math.min(overallScore, waterScore);
   if (bioloadScore <= 40) overallScore = Math.min(overallScore, bioloadScore);
   if (fishHealthScore <= 40) overallScore = Math.min(overallScore, fishHealthScore);
   
-  // Jika Perawatan 25, maka Skor Total TIDAK BOLEH melebihi 25 + 15 (Max 40)
   if (maintenanceScore <= 40) {
     overallScore = Math.min(overallScore, maintenanceScore + 15);
-    alerts.push("⚠️ Kritis: Penelantaran jadwal perawatan merusak stabilitas ekosistem secara drastis.");
+    alerts.push(t("⚠️ Kritis: Penelantaran jadwal perawatan merusak stabilitas ekosistem secara drastis.", "⚠️ Critical: Neglecting maintenance schedules drastically destroys ecosystem stability."));
   }
   
   overallScore = clampScore(overallScore);
@@ -559,11 +563,11 @@ function getEcosystemSnapshot(
 // ==========================================
 // MAIN EXPORT & SYSTEMIC TREND ENGINE WRAPPER
 // ==========================================
-export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, maintenanceStatus = [], activeTreatments = [] }: AnalyzeProps): HealthAnalysisResult {
+export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, maintenanceStatus = [], activeTreatments = [], lang = "id" }: AnalyzeProps): HealthAnalysisResult {
   const sortedParams = [...parameters].sort((a, b) => new Date(b.record_date).getTime() - new Date(a.record_date).getTime());
   
-  // 💡 Meneruskan Data Treatment ke Mesin Snapshot
-  const currentSnapshot = getEcosystemSnapshot(aquarium, sortedParams, plants, fishes, maintenanceStatus, activeTreatments, new Date());
+  // 💡 Meneruskan Injeksi Bahasa ke Mesin Snapshot
+  const currentSnapshot = getEcosystemSnapshot(aquarium, sortedParams, plants, fishes, maintenanceStatus, activeTreatments, new Date(), lang);
 
   let healthTrend: HealthTrend = "stable";
   if (sortedParams.length > 1) {
@@ -572,7 +576,7 @@ export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, ma
 
     const historicalSlice = sortedParams.slice(1);
     const historicalAnchorDate = prevParamLog.record_date ? new Date(prevParamLog.record_date) : new Date();
-    const prevSnapshot = getEcosystemSnapshot(aquarium, historicalSlice, plants, fishes, maintenanceStatus, activeTreatments, historicalAnchorDate);
+    const prevSnapshot = getEcosystemSnapshot(aquarium, historicalSlice, plants, fishes, maintenanceStatus, activeTreatments, historicalAnchorDate, lang);
 
     let improvePoints = 0; 
     let declinePoints = 0;
