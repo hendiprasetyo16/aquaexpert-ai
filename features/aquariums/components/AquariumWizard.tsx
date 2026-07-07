@@ -11,7 +11,8 @@ import { CreateAquariumInput, Aquarium } from "../types/aquarium.types";
 import { createAquariumSchema } from "../validations/aquarium.schema";
 import { 
   TANK_TYPES, SUBSTRATE_TYPES, FILTER_TYPES, 
-  LIGHT_TYPES, CO2_TYPES, FERTILIZER_TYPES 
+  LIGHT_TYPES, CO2_TYPES, FERTILIZER_TYPES,
+  HARDSCAPE_TYPES // 💡 FIX: Import Hardscape List
 } from "../constants/aquarium-options";
 import { 
   CheckCircle2, ChevronLeft, ChevronRight, Save, 
@@ -107,6 +108,8 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
       co2Bps: lang === 'id' ? "Kecepatan Dosis CO2 (BPS / Bubble Per Second)" : "CO2 Dosage (BPS)",
       heater: lang === 'id' ? "Gunakan Alat Pengontrol Suhu (Heater/Pemanas Air)" : "Use Water Heater",
       substrate: lang === 'id' ? "Sistem Lapisan Substrat Dasar" : "Bottom Substrate",
+      hardscape: lang === 'id' ? "Elemen Hardscape (Batu/Kayu)" : "Hardscape Elements",
+      lidPresent: lang === 'id' ? "Dilengkapi Tutup Atas" : "Has Top Lid",
       wcPercent: lang === 'id' ? "Volume Air yang Diganti (%)" : "Water Change Volume (%)",
       wcInterval: lang === 'id' ? "Frekuensi Ganti Air (Hari Sekali)" : "Water Change Interval (Days)",
       fertType: lang === 'id' ? "Metode Pemupukan Flora" : "Fertilizer Method",
@@ -138,10 +141,11 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState("");
 
+  // 💡 FIX 1: Menambahkan net_water_volume_liters dan inisialisasi hardscape_type sebagai Array
   const [formData, setFormData] = useState<CreateAquariumInput>({
     name: "", tank_type: "Community", aquascape_style: "Bebas", setup_date: new Date().toISOString().split('T')[0], is_primary: false,
-    length_cm: 60, width_cm: 30, height_cm: 36, volume_liters: 55, 
-    substrate_type: "Sand", filter_type: "Hang on Back (HOB)", filter_flow_lph: null, 
+    length_cm: 60, width_cm: 30, height_cm: 36, volume_liters: 55, net_water_volume_liters: 55,
+    substrate_type: "Sand", hardscape_type: [], lid_present: false, filter_type: "Hang on Back (HOB)", filter_flow_lph: null, 
     light_type: "White LED", light_wattage: null, photoperiod_hours: 8,
     co2_type: "None", co2_bps: null, heater_enabled: false,
     water_change_percent: 30, water_change_interval_days: 7, fertilizer_type: "None", fertilizer_schedule: ""
@@ -159,7 +163,10 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
         width_cm: initialData.width_cm || 30,
         height_cm: initialData.height_cm || 36,
         volume_liters: initialData.volume_liters || 55,
+        net_water_volume_liters: initialData.net_water_volume_liters || initialData.volume_liters || 55, // Sinkronisasi edit
         substrate_type: (initialData.substrate_type as CreateAquariumInput["substrate_type"]) || "Sand",
+        hardscape_type: initialData.hardscape_type || [], // Sinkronisasi edit
+        lid_present: initialData.lid_present || false,    // Sinkronisasi edit
         filter_type: (initialData.filter_type as CreateAquariumInput["filter_type"]) || "Hang on Back (HOB)",
         filter_flow_lph: initialData.filter_flow_lph || null, 
         light_type: (initialData.light_type as CreateAquariumInput["light_type"]) || "White LED",
@@ -179,19 +186,25 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
     }
   }, [mode, initialData]);
 
+  // Perhitungan Volume Otomatis
   useEffect(() => {
     if (formData.length_cm > 0 && formData.width_cm > 0 && formData.height_cm > 0) {
       const volumeBruto = (formData.length_cm * formData.width_cm * formData.height_cm) / 1000;
       const volumeNetto = volumeBruto * 0.85; 
-      const finalVolume = Number(volumeNetto.toFixed(1));
+      const finalVolume = Number(volumeBruto.toFixed(1));
+      const finalNetVolume = Number(volumeNetto.toFixed(1));
 
-      // Hanya update state JIKA angka volume yang baru berbeda dengan yang sedang ada di form
-      if (formData.volume_liters !== finalVolume) {
-        setFormData(prev => ({ ...prev, volume_liters: finalVolume }));
+      if (formData.volume_liters !== finalVolume || formData.net_water_volume_liters !== finalNetVolume) {
+        setFormData(prev => ({ 
+          ...prev, 
+          volume_liters: finalVolume,
+          net_water_volume_liters: finalNetVolume 
+        }));
       }
     }
-  }, [formData.length_cm, formData.width_cm, formData.height_cm, formData.volume_liters]);
+  }, [formData.length_cm, formData.width_cm, formData.height_cm, formData.volume_liters, formData.net_water_volume_liters]);
   
+  // 💡 FIX 3: Event handler bersih dari 'any'
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     if (type === 'checkbox') {
@@ -201,6 +214,17 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
+  };
+
+  // 💡 FIX 2: Penanganan khusus untuk Hardscape Array (Checkbox Multi-Select)
+  const handleHardscapeChange = (hardscapeItem: string) => {
+    setFormData(prev => {
+      const currentArr = prev.hardscape_type || [];
+      if (currentArr.includes(hardscapeItem)) {
+        return { ...prev, hardscape_type: currentArr.filter(item => item !== hardscapeItem) };
+      }
+      return { ...prev, hardscape_type: [...currentArr, hardscapeItem] };
+    });
   };
 
   const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,7 +261,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
         }
         createAquariumSchema.pick({ name: true, setup_date: true, tank_type: true }).parse(formData);
       } else if (step === 2) {
-        createAquariumSchema.pick({ length_cm: true, width_cm: true, height_cm: true, volume_liters: true }).parse(formData);
+        createAquariumSchema.pick({ length_cm: true, width_cm: true, height_cm: true, volume_liters: true, net_water_volume_liters: true }).parse(formData);
       }
       setError("");
       setStep(s => Math.min(4, s + 1));
@@ -248,7 +272,7 @@ export default function AquariumWizard({ mode = "create", initialData }: Aquariu
     }
   };
 
-const handleSubmit = async () => {
+  const handleSubmit = async () => {
     try {
       createAquariumSchema.parse(formData);
       setLoading(true);
@@ -257,31 +281,19 @@ const handleSubmit = async () => {
       let finalImageUrl = mode === "edit" ? initialData?.image_url : null;
       const supabase = createClient();
       
-      // Ganti bagian di dalam handleSubmit, tepatnya pada blok `if (coverFile) { ... }`
       if (coverFile) {
         const { data: { user } } = await supabase.auth.getUser();
-        
-        // 1. Ekstraksi identitas (Email & Nama)
         const emailPart = user?.email?.split('@')[0] || "user";
         const fullName = user?.user_metadata?.full_name || "unknown";
         
-        // 2. Bersihkan karakter agar aman untuk file system
-        // 💡 PERBAIKAN: Hapus .substring(0, 15) di cleanEmail agar email tidak terpotong
         const cleanEmail = emailPart.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase(); 
-        
-        // Untuk nama lengkap (fullName), kita bisa biarkan dibatasi atau dinaikkan batasnya agar nama file tidak terlalu kepanjangan
         const cleanName = fullName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase().substring(0, 20); 
         const cleanTheme = (formData.aquascape_style || "bebas").replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
         
-        // 3. Tanggal (Format: YYYYMMDD)
         const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, ""); 
-        
-        // 4. Random ID untuk menjamin tidak ada file yang tertimpa
         const randomSuffix = Math.random().toString(36).substring(2, 8);
         const fileExt = coverFile.name.split('.').pop() || "jpg";
         
-        // Format Final: email_nama_tema_tanggal_random.jpg
-        // Hasil nanti menjadi: hendiprasetyo192_hendi_prasetyo_iwagumi_20260704_ppimv5.jpg
         const customFileName = `${cleanEmail}_${cleanName}_${cleanTheme}_${dateStr}_${randomSuffix}.${fileExt}`;
         const filePath = `covers/${customFileName}`; 
 
@@ -452,7 +464,7 @@ const handleSubmit = async () => {
               <div className="p-6 bg-slate-50 dark:bg-slate-950 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-center">
                 <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">{wizDict.labels.volume}</p>
                 <div className="text-4xl font-black text-teal-600 dark:text-teal-400">
-                  {formData.volume_liters} <span className="text-xl text-slate-400">Liter Air Netto</span>
+                  {formData.net_water_volume_liters} <span className="text-xl text-slate-400">Liter Air Netto</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-3 leading-relaxed max-w-xl mx-auto">{wizDict.hints.dimensions}</p>
               </div>
@@ -464,6 +476,33 @@ const handleSubmit = async () => {
                 </select>
                 <p className="text-xs text-slate-500 flex items-start gap-1 mt-1"><Info className="w-3.5 h-3.5 shrink-0" /> {wizDict.hints.substrate}</p>
               </div>
+
+              {/* 💡 FIX 2: Checkbox Multiselect untuk Array Hardscape */}
+              <div className="space-y-3 pt-2">
+                <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">{wizDict.labels.hardscape}</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                  {HARDSCAPE_TYPES.map((ht) => (
+                    <label key={ht} className="flex items-center space-x-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        value={ht} 
+                        checked={formData.hardscape_type?.includes(ht) || false} 
+                        onChange={() => handleHardscapeChange(ht)} 
+                        className="h-4 w-4 accent-teal-600 rounded shrink-0 border-slate-300 dark:border-slate-700" 
+                      />
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{ht}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <label className="flex items-center gap-3 cursor-pointer p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                  <input type="checkbox" name="lid_present" checked={formData.lid_present} onChange={handleChange} className="w-5 h-5 accent-teal-600 rounded shrink-0" />
+                  <span className="font-bold text-slate-700 dark:text-slate-300">{wizDict.labels.lidPresent}</span>
+                </label>
+              </div>
+
             </div>
           )}
 
