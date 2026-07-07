@@ -128,7 +128,8 @@ export default function AquariumDetail() {
           plants: plantData,
           fishes: fishData,
           maintenanceStatus: maintData,
-          activeTreatments: treatData // Meneruskan data penyakit ke mesin
+          activeTreatments: treatData, // Meneruskan data penyakit ke mesin
+          lang: lang // Pastikan ini ada!
         });
         
         setHealthResult(result);
@@ -144,7 +145,8 @@ export default function AquariumDetail() {
       if (["overview", "parameters", "flora", "maintenance", "treatment", "ai"].includes(hash)) setActiveTab(hash);
     }
     fetchAllData();
-  }, [aquariumId]);
+  // 💡 FIX 1: Tambahkan 'lang' di dalam kurung siku ini!
+  }, [aquariumId, lang]);
 
   const handleTabClick = (tabId: TabId) => {
     setActiveTab(tabId);

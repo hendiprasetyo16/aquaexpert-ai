@@ -28,20 +28,27 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const cachedDiagnosis = sessionStorage.getItem(`aquaexpert_diagnosis_v2_${aquariumId}`);
+    // 💡 FIX 2: Pisahkan ruang penyimpanan antara bahasa ID dan EN
+    const cachedDiagnosis = sessionStorage.getItem(`aquaexpert_diagnosis_v2_${aquariumId}_${lang}`);
     if (cachedDiagnosis) {
       try { setResult(JSON.parse(cachedDiagnosis)); } catch (err) {}
+    } else {
+      setResult(null); // Kosongkan layar jika beda bahasa agar AI mendiagnosa ulang
     }
-  }, [aquariumId]);
+  }, [aquariumId, lang]); // 💡 Tambahkan 'lang' di sini juga
 
   const handleRunDiagnosis = async () => {
     setLoading(true); setError("");
-    sessionStorage.removeItem(`aquaexpert_diagnosis_v2_${aquariumId}`);
+    // Hapus memori kedua bahasa
+    sessionStorage.removeItem(`aquaexpert_diagnosis_v2_${aquariumId}_id`);
+    sessionStorage.removeItem(`aquaexpert_diagnosis_v2_${aquariumId}_en`);
+    
     const res = await getHybridDeepDiagnosisAction(aquariumId, lang);
     
     if (res.success && res.localDiagnosis) {
       setResult(res);
-      sessionStorage.setItem(`aquaexpert_diagnosis_v2_${aquariumId}`, JSON.stringify(res));
+      // Simpan menggunakan kunci bahasa yang spesifik
+      sessionStorage.setItem(`aquaexpert_diagnosis_v2_${aquariumId}_${lang}`, JSON.stringify(res));
     } else {
       setResult(null);
       setError(res.error || "Gagal memproses diagnosis.");

@@ -48,7 +48,8 @@ export async function getDeepDiagnosisAction(aquariumId: string, lang: "id" | "e
       plants,
       fishes,
       maintenanceStatus,
-      activeTreatments // 💡 FIX: Disuntikkan agar sinkron dengan skor di UI Dashboard!
+      activeTreatments, // 💡 FIX: Disuntikkan agar sinkron dengan skor di UI Dashboard!
+      lang: lang // 💡 FIX 3: Pastikan baris ini benar-benar diketik!
     });
 
     const diagnosis = generateDeepDiagnosis({

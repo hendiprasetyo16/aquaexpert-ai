@@ -4,11 +4,12 @@
 import { generateDeepDiagnosis } from "../utils/deep-diagnosis";
 import { analyzeAquariumHealth } from "../utils/health-engine";
 import { getTankInventoryAction } from "./inventory.actions";
+import { getMaintenanceDashboardAction } from "./maintenance.actions"; // 💡 FIX 2: Import layanan Maintenance
 import { createClient } from "@/lib/supabase/server";
 import { verifyAquariumOwnership } from "../repositories/security.repository";
 import { askAquaExpert } from "@/features/ai/actions/ai.actions"; 
-import { getActiveTreatmentsAction } from "@/features/diseases/actions/start-treatment.actions"; // 💡 FIX: Ambil data wabah
-import { AIProviderResponse } from "@/features/ai/types/ai.types"; // 💡 FIX: Import tipe data anti-any
+import { getActiveTreatmentsAction } from "@/features/diseases/actions/start-treatment.actions"; 
+import { AIProviderResponse } from "@/features/ai/types/ai.types"; 
 
 export interface HybridDiagnosisResponse {
   success: boolean;
@@ -56,10 +57,11 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
       };
     }
 
-    // 💡 FIX: Menambahkan penarikan data penyakit secara berbarengan
-    const [inventory, treatRes] = await Promise.all([
+    // 💡 FIX 2: Menarik data inventory, penyakit, DAN PERAWATAN secara serentak agar skor sinkron!
+    const [inventory, treatRes, maintRes] = await Promise.all([
       getTankInventoryAction(aquariumId),
-      getActiveTreatmentsAction(aquariumId)
+      getActiveTreatmentsAction(aquariumId),
+      getMaintenanceDashboardAction(aquariumId)
     ]);
     
     if (!inventory.success) throw new Error(inventory.error || "Inventory sync failed.");
@@ -67,9 +69,19 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
     const fishes = inventory.fishes || [];
     const plants = inventory.plants || [];
     const activeTreatments = treatRes.success && treatRes.data ? treatRes.data : []; 
+    const maintenanceStatus = maintRes.success ? maintRes.tasksStatus : [];
 
-    // 1. Eksekusi Mesin Kalkulasi Lokal (Ditambah Variabel activeTreatments)
-    const healthResult = analyzeAquariumHealth({ aquarium, parameters: paramsList, plants, fishes, activeTreatments });
+    // 💡 FIX 1: Menyuntikkan lang dan maintenanceStatus ke dalam Mesin Kalkulasi
+    const healthResult = analyzeAquariumHealth({ 
+      aquarium, 
+      parameters: paramsList, 
+      plants, 
+      fishes, 
+      maintenanceStatus, 
+      activeTreatments, 
+      lang // Kunci utamanya ada di sini!
+    });
+    
     const localDiagnosis = generateDeepDiagnosis({ aquarium, health: healthResult, parameters: paramsList, fishes, plants, lang });
 
     let expertCommentary = lang === 'id' 
@@ -91,7 +103,6 @@ Explain the biological impact briefly.`;
       try {
         const aiResponse = await askAquaExpert([{ role: "user", content: diagnosisPrompt }]);
 
-        // 💡 FIX 1: Membunuh `any` dengan interface resmi `AIProviderResponse`
         const result = aiResponse as AIProviderResponse;
 
         if (result && !result.error && result.reply) {
