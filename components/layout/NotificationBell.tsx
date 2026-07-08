@@ -148,7 +148,8 @@ export default function NotificationBell({ role }: { role: string }) {
                             {act.title}
                           </span>
                           <span className="text-xs font-bold text-slate-400 dark:text-slate-500 whitespace-nowrap shrink-0 mt-0.5">
-                            {new Date(act.created_at).toLocaleTimeString(lang === 'id' ? 'id-ID' : 'en-US', {hour: '2-digit', minute:'2-digit'})}
+                            {/* 💡 FIX: Menggunakan toLocaleString untuk memunculkan Tanggal dan Jam sekaligus */}
+                            {new Date(act.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit' })}
                           </span>
                         </div>
                         
