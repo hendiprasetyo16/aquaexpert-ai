@@ -12,7 +12,7 @@ import { Aquarium } from "../types/aquarium.types";
 import { 
   ArrowLeft, Edit, Archive, Trash2, Container, AlertTriangle, 
   Droplets, RefreshCw, LayoutDashboard, Activity, Leaf, ShieldAlert,
-  Stethoscope, Fish, Loader2, HeartPulse 
+  Stethoscope, Fish, Loader2, HeartPulse, Maximize
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
@@ -28,7 +28,6 @@ import { AquariumSpecsPanel } from "./AquariumSpecsPanel";
 import { getParametersAction } from "../actions/parameter.actions";
 import { getTankInventoryAction } from "../actions/inventory.actions";
 import { getMaintenanceDashboardAction } from "../actions/maintenance.actions";
-// 💡 IMPORT BARU: Mengambil data penyakit/karantina aktif dari database
 import { getActiveTreatmentsAction } from "@/features/diseases/actions/start-treatment.actions";
 
 import type { AquariumParameterLog } from "../types/parameter.types";
@@ -104,7 +103,6 @@ export default function AquariumDetail() {
         if (!aqRes.success || !aqRes.data) throw new Error(aqRes.error || "Akuarium tidak ditemukan.");
         setAquarium(aqRes.data);
 
-        // 💡 PERBAIKAN: Tambahkan pengambilan data Penyakit Aktif (Active Treatments)
         const [paramRes, invRes, maintRes, treatRes] = await Promise.all([
           getParametersAction(aquariumId),
           getTankInventoryAction(aquariumId),
@@ -116,20 +114,19 @@ export default function AquariumDetail() {
         const plantData = invRes.success ? (invRes.plants as TankPlant[]) : [];
         const fishData = invRes.success ? (invRes.fishes as TankFish[]) : [];
         const maintData = maintRes.success ? maintRes.tasksStatus : [];
-        const treatData = treatRes.success ? treatRes.data : []; // Ekstrak data penyakit
+        const treatData = treatRes.success ? treatRes.data : [];
 
         setTotalFishes(fishData.reduce((acc, curr) => acc + curr.quantity, 0));
         setTotalPlants(plantData.reduce((acc, curr) => acc + curr.quantity, 0));
 
-        // 💡 PERBAIKAN: Masukkan data penyakit ke dalam kalkulator mesin kesehatan
         const result = analyzeAquariumHealth({
           aquarium: aqRes.data,
           parameters: paramData,
           plants: plantData,
           fishes: fishData,
           maintenanceStatus: maintData,
-          activeTreatments: treatData, // Meneruskan data penyakit ke mesin
-          lang: lang // Pastikan ini ada!
+          activeTreatments: treatData,
+          lang: lang 
         });
         
         setHealthResult(result);
@@ -145,7 +142,6 @@ export default function AquariumDetail() {
       if (["overview", "parameters", "flora", "maintenance", "treatment", "ai"].includes(hash)) setActiveTab(hash);
     }
     fetchAllData();
-  // 💡 FIX 1: Tambahkan 'lang' di dalam kurung siku ini!
   }, [aquariumId, lang]);
 
   const handleTabClick = (tabId: TabId) => {
@@ -265,16 +261,30 @@ export default function AquariumDetail() {
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white drop-shadow-xl tracking-tight break-words">
                 {aquarium.name}
               </h1>
-              <div className="flex flex-wrap items-center gap-y-2 gap-x-3 text-slate-200 font-medium">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-xl border border-white/20 backdrop-blur-md shadow-sm shrink-0">
-                  <Container className="w-4 h-4 text-teal-300 shrink-0" /> 
-                  <span className="text-xs sm:text-sm font-semibold">{tankType}</span>
+              
+              {/* 💡 FIX: Tampilan 2 Baris Sesuai Desain Bapak */}
+              <div className="flex flex-col gap-y-2 mt-1">
+                {/* Baris 1: Tipe Akuarium (Penuh) */}
+                <div className="flex flex-wrap items-center">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-xl border border-white/20 backdrop-blur-md shadow-sm shrink-0">
+                    <Container className="w-4 h-4 text-teal-300 shrink-0" /> 
+                    <span className="text-xs sm:text-sm font-semibold text-slate-200">{tankType}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-xl border border-white/20 backdrop-blur-md shadow-sm shrink-0">
-                  <Droplets className="w-4 h-4 text-blue-300 shrink-0" /> 
-                  <span className="text-xs sm:text-sm font-semibold">{aquarium.volume_liters} L</span>
+                
+                {/* Baris 2: Dimensi Berdampingan dengan Volume Air */}
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-xl border border-white/20 backdrop-blur-md shadow-sm shrink-0">
+                    <Maximize className="w-4 h-4 text-indigo-300 shrink-0" /> 
+                    <span className="text-xs sm:text-sm font-semibold text-slate-200">{aquarium.length_cm}x{aquarium.width_cm}x{aquarium.height_cm} cm</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-xl border border-white/20 backdrop-blur-md shadow-sm shrink-0">
+                    <Droplets className="w-4 h-4 text-blue-300 shrink-0" /> 
+                    <span className="text-xs sm:text-sm font-semibold text-slate-200">{aquarium.volume_liters} L</span>
+                  </div>
                 </div>
               </div>
+
             </div>
 
             <div className="flex flex-wrap items-center justify-start lg:justify-end gap-2.5 sm:gap-3 w-full lg:w-auto shrink-0 mt-2 lg:mt-0 pointer-events-auto">
@@ -320,6 +330,7 @@ export default function AquariumDetail() {
                     {totalFishes} <span className="text-xs font-semibold text-slate-500">{lang === 'id' ? "Ekor" : "pcs"}</span>
                   </p>
                 </div>
+                
                 <div className="bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
                   <div className="bg-emerald-50 dark:bg-emerald-900/30 p-2 sm:p-3 rounded-full text-emerald-600 dark:text-emerald-400 mb-2 shrink-0">
                     <Leaf className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -329,13 +340,18 @@ export default function AquariumDetail() {
                     {totalPlants} <span className="text-xs font-semibold text-slate-500">{lang === 'id' ? "Porsi" : "pts"}</span>
                   </p>
                 </div>
-                <div className="bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
+
+                <div className="bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden">
                   <div className="bg-cyan-50 dark:bg-cyan-900/30 p-2 sm:p-3 rounded-full text-cyan-600 dark:text-cyan-400 mb-2 shrink-0">
                     <Container className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-500 tracking-widest leading-tight mb-1">{lang === 'id' ? "Volume Air" : "Capacity"}</p>
+                  <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-500 tracking-widest leading-tight mb-1">{lang === 'id' ? "Kapasitas & Ukuran" : "Capacity & Size"}</p>
                   <p className="text-base sm:text-xl font-black text-slate-800 dark:text-slate-100 leading-none">{aquarium.volume_liters} L</p>
+                  <p className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 mt-1.5 leading-none">
+                    {aquarium.length_cm} <span className="text-[8px] mx-0.5">X</span> {aquarium.width_cm} <span className="text-[8px] mx-0.5">X</span> {aquarium.height_cm} cm
+                  </p>
                 </div>
+
                 <div className="bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center text-center">
                   <div className={`p-2 sm:p-3 rounded-full mb-2 shrink-0 ${bioloadColor}`}>
                     <Activity className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -346,7 +362,9 @@ export default function AquariumDetail() {
                   </p>
                 </div>
               </div>
+              
               {healthResult && <HealthDashboard healthResult={healthResult} lang={lang} />}
+              
               <div className="mt-2">
                 <AquariumSpecsPanel aquarium={aquarium} lang={lang} />
               </div>
