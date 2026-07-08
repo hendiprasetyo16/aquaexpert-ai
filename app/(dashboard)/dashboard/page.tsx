@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { 
   Loader2, Activity, Fish, Leaf, ArrowRight, 
   ShieldAlert, CheckCircle2, Clock, Container, 
-  Cpu, BarChart, HeartPulse, Globe, Bug, Database, Zap
+  Cpu, BarChart, HeartPulse, Globe, Bug, Database
 } from "lucide-react";
 
 import { analyzeAquariumHealth, ActiveTreatmentEngine } from "@/features/aquariums/utils/health-engine";
@@ -109,12 +109,9 @@ export default function DashboardPage() {
           aquariums.sort((a, b) => (a.is_primary === b.is_primary ? a.name.localeCompare(b.name) : a.is_primary ? -1 : 1));
           if (!aquariums.some(t => t.is_primary)) aquariums[0].is_primary = true;
 
-          // =========================================================================
-          // 💡 JURUS SAPUJAGAT: Menarik Data Penyakit Bersamaan dengan Tabel Lainnya
-          // =========================================================================
           const [
             { data: rawParams }, { data: rawFishes }, { data: rawPlants }, { data: rawMaint }, 
-            { data: rawTreatments }, // 💡 DATANYA DIAMBIL DI SINI
+            { data: rawTreatments }, 
             { data: paramLogsRes },
             { data: maintLogsRes },
             { data: taskLogsRes },
@@ -128,8 +125,6 @@ export default function DashboardPage() {
             supabase.from("aquarium_fishes").select("aquarium_id, quantity, fish_id, health_status, size_category, fish:fishes(*)").in("aquarium_id", tankIds),
             supabase.from("aquarium_plants").select("aquarium_id, quantity, plant_id, status, plant:plants(*)").in("aquarium_id", tankIds),
             supabase.from("maintenance_tasks").select("*").in("aquarium_id", tankIds),
-            
-            // 💡 FILTER PENYAKIT AKTIF
             supabase.from("treatment_sessions").select("id, aquarium_id, disease_id, medication_id, status, disease:diseases(name_id, name_en)").in("aquarium_id", tankIds).eq("status", "Active"),
             
             // Keperluan Log Aktivitas
@@ -146,11 +141,10 @@ export default function DashboardPage() {
           const groupedFishes = groupByAquarium(rawFishes as InventoryRow[]);
           const groupedPlants = groupByAquarium(rawPlants as InventoryRow[]);
           const groupedMaint = groupByAquarium(rawMaint as DbRow[]);
-          const groupedTreatments = groupByAquarium(rawTreatments as DbRow[]); // 💡 Data penyakit dipisah berdasarkan Akuarium
+          const groupedTreatments = groupByAquarium(rawTreatments as DbRow[]); 
 
           let totalAlerts = 0, totalFauna = 0, totalFlora = 0;
 
-          // 💡 DEFINISI WAKTU SINKRON UNTUK MAINTENANCE
           const now = new Date();
           const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -172,7 +166,6 @@ export default function DashboardPage() {
               nitrate: typeof param.nitrate === 'number' ? param.nitrate : null 
             } as AquariumParameterLog));
 
-            // 💡 MENYAMAKAN LOGIKA HITUNGAN TENGGAT WAKTU DENGAN HALAMAN DETAIL
             const mappedMaintenance: MaintenanceDashboardStatus[] = aqMaintenanceRaw.map((taskRaw) => {
               const task = taskRaw as unknown as MaintenanceTask;
               let isOverdue = false;
@@ -195,14 +188,13 @@ export default function DashboardPage() {
               return { task, isOverdue, daysRemaining, urgencyLevel, lastMaintenanceDaysAgo: null };
             });
 
-            // 💡 MENYUNTIKKAN DATA PENYAKIT & MAINTENANCE KE DALAM ENGINE SECARA BERSAMAAN
             const healthAnalysis = analyzeAquariumHealth({ 
               aquarium: aq as Aquarium, 
               parameters: sanitizedParams, 
               fishes: aqFishes as unknown as TankFish[], 
               plants: aqPlants as unknown as TankPlant[], 
               maintenanceStatus: mappedMaintenance,
-              activeTreatments: aqTreatments as unknown as ActiveTreatmentEngine[], // 🎯 SKOR KESEHATAN IKAN KINI AKAN JATUH JIKA ADA WABAH
+              activeTreatments: aqTreatments as unknown as ActiveTreatmentEngine[], 
               lang 
             });
 
@@ -215,7 +207,7 @@ export default function DashboardPage() {
               id: aq.id, 
               name: aq.name, 
               is_primary: aq.is_primary || false, 
-              health_score: healthAnalysis.scores.overall, // 🎯 SKOR INI SUDAH 100% SAMA PERSIS DENGAN HALAMAN DETAIL
+              health_score: healthAnalysis.scores.overall, 
               alerts: healthAnalysis.alerts || [], 
               faunaCount, 
               floraCount 
@@ -519,133 +511,111 @@ export default function DashboardPage() {
         </div>
 
         {/* =========================================
-            SEKSI 3: MODUL INTEGRASI
-        ========================================= */}
-        <div className="space-y-6 pt-4">
-          <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
-            <Zap className="w-5 h-5 text-amber-500" />
-            {lang === 'id' ? "Modul Terintegrasi" : "Integrated Modules"}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            
-            <div onClick={() => router.push("/dashboard/my-aquarium")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-sky-500/50 dark:hover:border-sky-500/50 hover:shadow-[0_0_30px_rgba(14,165,233,0.15)] dark:hover:shadow-[0_0_30px_rgba(14,165,233,0.2)]">
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-sky-500/10 dark:bg-sky-500/20 blur-3xl rounded-full group-hover:bg-sky-500/20 dark:group-hover:bg-sky-500/30 transition-colors duration-500"></div>
-              <div className="relative z-10">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 group-hover:scale-110 transition-transform">
-                  <Container className="w-6 h-6 drop-shadow-[0_0_8px_rgba(14,165,233,0.5)]" />
-                </div>
-                <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">My Aquarium</h4>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Kelola ekosistem, inventaris flora/fauna, dan parameter air." : "Manage ecosystem, flora/fauna inventory, and water parameters."}</p>
-                <div className="flex items-center text-xs font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">
-                  {lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-4 h-4" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-sm transition-all relative overflow-hidden flex flex-col">
-              <div className="absolute right-0 top-0 w-32 h-32 bg-purple-500/10 dark:bg-purple-500/20 blur-3xl rounded-full pointer-events-none"></div>
-              
-              <div className="relative z-10 mb-4">
-                <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-1">{lang === 'id' ? "Ensiklopedia Spesies" : "Species Encyclopedia"}</h4>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{lang === 'id' ? "Akses cepat ke seluruh database biota dan patogen." : "Quick access to all biota and pathogen databases."}</p>
-              </div>
-
-              <div className="relative z-10 grid grid-cols-2 gap-3 mt-auto">
-                <div onClick={() => router.push("/dashboard/fish-expert/engine")} className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50/70 dark:hover:bg-blue-950/40 border border-slate-100 dark:border-slate-700/50 hover:border-blue-400 dark:hover:border-blue-500 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] hover:shadow-[0_0_25px_rgba(59,130,246,0.45)]">
-                  <Fish className="w-6 h-6 text-slate-400 group-hover:text-blue-500 transition-colors drop-shadow-sm group-hover:drop-shadow-[0_0_12px_rgba(59,130,246,0.85)]" />
-                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{lang === 'id' ? "Data Ikan" : "Fishes"}</span>
-                </div>
-  
-                <div onClick={() => router.push("/dashboard/plant-expert/engine")} className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/40 border border-slate-100 dark:border-slate-700/50 hover:border-emerald-400 dark:hover:border-emerald-500 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] hover:shadow-[0_0_25px_rgba(16,185,129,0.45)]">
-                  <Leaf className="w-6 h-6 text-slate-400 group-hover:text-emerald-500 transition-colors drop-shadow-sm group-hover:drop-shadow-[0_0_12px_rgba(16,185,129,0.85)]" />
-                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{lang === 'id' ? "Tanaman Air" : "Plants"}</span>
-                </div>
-  
-                <div onClick={() => router.push("/dashboard/algae-expert")} className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-amber-50/70 dark:hover:bg-amber-950/40 border border-slate-100 dark:border-slate-700/50 hover:border-amber-400 dark:hover:border-amber-500 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] hover:shadow-[0_0_25px_rgba(245,158,11,0.45)]">
-                  <Bug className="w-6 h-6 text-slate-400 group-hover:text-amber-500 transition-colors drop-shadow-sm group-hover:drop-shadow-[0_0_12px_rgba(245,158,11,0.85)]" />
-                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">{lang === 'id' ? "Jenis Alga" : "Algae"}</span>
-                </div>
-  
-                <div onClick={() => router.push("/dashboard/diseases")} className="group cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-red-50/70 dark:hover:bg-red-950/40 border border-slate-100 dark:border-slate-700/50 hover:border-red-400 dark:hover:border-red-500 p-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] hover:shadow-[0_0_25px_rgba(239,68,68,0.45)]">
-                  <Database className="w-6 h-6 text-slate-400 group-hover:text-red-500 transition-colors drop-shadow-sm group-hover:drop-shadow-[0_0_12px_rgba(239,68,68,0.85)]" />
-                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">{lang === 'id' ? "Patogen & Penyakit" : "Diseases"}</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* =========================================
-            SEKSI 4: MODUL AI & RECENT ACTIVITIES
+            SEKSI 3 & 4 GABUNGAN: ENSIKLOPEDIA + AI + LOG
         ========================================= */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 pt-4">
           
-          <div className="lg:col-span-2 space-y-6">
-            <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <Cpu className="w-5 h-5 text-indigo-500" />
-              {lang === 'id' ? "Alat Diagnosa Khusus" : "Specialized Diagnostic Tools"}
-            </h3>
+          {/* 💡 KOLOM KIRI (Spesies & AI) - Membentang 2 Kolom */}
+          <div className="lg:col-span-2 space-y-8">
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <div onClick={() => router.push("/dashboard/disease-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-rose-500/50 dark:hover:border-rose-500/50 hover:shadow-[0_0_30px_rgba(225,29,72,0.15)] dark:hover:shadow-[0_0_30px_rgba(225,29,72,0.2)]">
-                <div className="absolute -top-10 -right-10 w-32 h-32 bg-rose-500/10 dark:bg-rose-500/20 blur-3xl rounded-full group-hover:bg-rose-500/20 dark:group-hover:bg-rose-500/30 transition-colors duration-500"></div>
-                <div className="relative z-10">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform">
-                    <HeartPulse className="w-6 h-6 drop-shadow-[0_0_8px_rgba(225,29,72,0.5)]" />
-                  </div>
-                  <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Disease Expert AI</h4>
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Diagnosis cerdas penyakit biota air menggunakan pemindaian komputer AI Vision." : "Smart diagnosis of aquatic diseases using AI Vision computer scanning."}</p>
-                  <div className="flex items-center text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-4 h-4" /></div>
+            {/* SUB-SEKSI: ENSIKLOPEDIA SPESIES */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <Database className="w-5 h-5 text-purple-500" />
+                {lang === 'id' ? "Ensiklopedia Spesies" : "Species Encyclopedia"}
+              </h3>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                <div onClick={() => router.push("/dashboard/fish-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_25px_rgba(59,130,246,0.15)] shadow-sm">
+                  <Fish className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                  <span className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-center">{lang === 'id' ? "Data Ikan" : "Fishes"}</span>
                 </div>
-              </div>
-
-              <div onClick={() => router.push("/dashboard/fish-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] dark:hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]">
-                <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 dark:bg-blue-500/20 blur-3xl rounded-full group-hover:bg-blue-500/20 dark:group-hover:bg-blue-500/30 transition-colors duration-500"></div>
-                <div className="relative z-10">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
-                    <Fish className="w-6 h-6 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                  </div>
-                  <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Fish Expert AI</h4>
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Konsultasi ahli terkait perawatan, kompatibilitas, dan nutrisi spesies ikan." : "Expert consultation regarding care, compatibility, and fish species nutrition."}</p>
-                  <div className="flex items-center text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-4 h-4" /></div>
+  
+                <div onClick={() => router.push("/dashboard/plant-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 border border-slate-200 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-emerald-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_25px_rgba(16,185,129,0.15)] shadow-sm">
+                  <Leaf className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                  <span className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors text-center">{lang === 'id' ? "Tanaman Air" : "Plants"}</span>
                 </div>
-              </div>
-
-              <div onClick={() => router.push("/dashboard/plant-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-emerald-500/50 dark:hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.15)] dark:hover:shadow-[0_0_30px_rgba(16,185,129,0.2)]">
-                <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 dark:bg-emerald-500/20 blur-3xl rounded-full group-hover:bg-emerald-500/20 dark:group-hover:bg-emerald-500/30 transition-colors duration-500"></div>
-                <div className="relative z-10">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
-                    <Leaf className="w-6 h-6 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  </div>
-                  <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Plant Expert AI</h4>
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Analisis defisiensi nutrisi dan panduan optimalisasi flora aquascape." : "Nutrient deficiency analysis and aquascape flora optimization guide."}</p>
-                  <div className="flex items-center text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-4 h-4" /></div>
+  
+                <div onClick={() => router.push("/dashboard/algae-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-amber-50/50 dark:hover:bg-amber-900/20 border border-slate-200 dark:border-slate-800 hover:border-amber-400 dark:hover:border-amber-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_25px_rgba(245,158,11,0.15)] shadow-sm">
+                  <Bug className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 group-hover:text-amber-500 transition-colors" />
+                  <span className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors text-center">{lang === 'id' ? "Jenis Alga" : "Algae"}</span>
                 </div>
-              </div>
-
-              <div onClick={() => router.push("/dashboard/analytics")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-indigo-500/50 dark:hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] sm:col-span-2 lg:col-span-1">
-                <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 blur-3xl rounded-full group-hover:bg-indigo-500/20 dark:group-hover:bg-indigo-500/30 transition-colors duration-500"></div>
-                <div className="relative z-10">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
-                    <BarChart className="w-6 h-6 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
-                  </div>
-                  <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{lang === 'id' ? "Analisis Klinis" : "Clinical Analytics"}</h4>
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Dasbor statistik dan pemantauan mendalam dari parameter biologis akuarium." : "Statistical dashboard and in-depth monitoring of aquarium biological parameters."}</p>
-                  <div className="flex items-center text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Analitik" : "Open Analytics"} <ArrowRight className="w-4 h-4" /></div>
+  
+                <div onClick={() => router.push("/dashboard/diseases")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-red-50/50 dark:hover:bg-red-900/20 border border-slate-200 dark:border-slate-800 hover:border-red-400 dark:hover:border-red-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_25px_rgba(239,68,68,0.15)] shadow-sm">
+                  <Database className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 group-hover:text-red-500 transition-colors" />
+                  <span className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors text-center">{lang === 'id' ? "Penyakit" : "Diseases"}</span>
                 </div>
               </div>
             </div>
+
+            {/* SUB-SEKSI: ALAT DIAGNOSA KHUSUS */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <Cpu className="w-5 h-5 text-indigo-500" />
+                {lang === 'id' ? "Alat Diagnosa Khusus" : "Specialized Diagnostic Tools"}
+              </h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div onClick={() => router.push("/dashboard/disease-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-rose-500/50 dark:hover:border-rose-500/50 hover:shadow-[0_0_30px_rgba(225,29,72,0.15)] dark:hover:shadow-[0_0_30px_rgba(225,29,72,0.2)]">
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-rose-500/10 dark:bg-rose-500/20 blur-3xl rounded-full group-hover:bg-rose-500/20 dark:group-hover:bg-rose-500/30 transition-colors duration-500"></div>
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform">
+                      <HeartPulse className="w-6 h-6 drop-shadow-[0_0_8px_rgba(225,29,72,0.5)]" />
+                    </div>
+                    <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Disease Expert AI</h4>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Diagnosis cerdas penyakit biota air menggunakan pemindaian komputer AI Vision." : "Smart diagnosis of aquatic diseases using AI Vision computer scanning."}</p>
+                    <div className="flex items-center text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-4 h-4" /></div>
+                  </div>
+                </div>
+
+                <div onClick={() => router.push("/dashboard/fish-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] dark:hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 dark:bg-blue-500/20 blur-3xl rounded-full group-hover:bg-blue-500/20 dark:group-hover:bg-blue-500/30 transition-colors duration-500"></div>
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                      <Fish className="w-6 h-6 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                    </div>
+                    <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Fish Expert AI</h4>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Konsultasi ahli terkait perawatan, kompatibilitas, dan nutrisi spesies ikan." : "Expert consultation regarding care, compatibility, and fish species nutrition."}</p>
+                    <div className="flex items-center text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-4 h-4" /></div>
+                  </div>
+                </div>
+
+                <div onClick={() => router.push("/dashboard/plant-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-emerald-500/50 dark:hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.15)] dark:hover:shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 dark:bg-emerald-500/20 blur-3xl rounded-full group-hover:bg-emerald-500/20 dark:group-hover:bg-emerald-500/30 transition-colors duration-500"></div>
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+                      <Leaf className="w-6 h-6 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                    </div>
+                    <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Plant Expert AI</h4>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Analisis defisiensi nutrisi dan panduan optimalisasi flora aquascape." : "Nutrient deficiency analysis and aquascape flora optimization guide."}</p>
+                    <div className="flex items-center text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-4 h-4" /></div>
+                  </div>
+                </div>
+
+                <div onClick={() => router.push("/dashboard/analytics")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-indigo-500/50 dark:hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 blur-3xl rounded-full group-hover:bg-indigo-500/20 dark:group-hover:bg-indigo-500/30 transition-colors duration-500"></div>
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                      <BarChart className="w-6 h-6 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                    </div>
+                    <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{lang === 'id' ? "Analisis Klinis" : "Clinical Analytics"}</h4>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Dasbor statistik dan pemantauan mendalam dari parameter biologis akuarium." : "Statistical dashboard and in-depth monitoring of aquarium biological parameters."}</p>
+                    <div className="flex items-center text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Analitik" : "Open Analytics"} <ArrowRight className="w-4 h-4" /></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
-          {/* KOLOM KANAN (Riwayat Aktivitas & Notifikasi Sistem) */}
-          <div className="space-y-6">
+          {/* 💡 KOLOM KANAN (Aktivitas Terkini) - Ditarik Naik Ke Atas */}
+          <div className="space-y-4 flex flex-col h-full">
             <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 px-1">
               <Clock className="w-5 h-5 text-slate-400" />
               {lang === 'id' ? "Aktivitas Terkini" : "Recent Activities"}
             </h3>
             
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm h-[calc(100%-3rem)] min-h-[400px] overflow-y-auto custom-scrollbar relative">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col flex-1 h-full min-h-[400px] overflow-hidden relative">
               {recentActivities.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-60">
                   <Activity className="w-8 h-8 text-slate-400 mb-2" />
@@ -658,33 +628,35 @@ export default function DashboardPage() {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-6 relative">
-                  <div className="absolute left-1.5 top-2 bottom-2 w-0.5 bg-slate-100 dark:bg-slate-800 z-0"></div>
-                  {recentActivities.map((log) => (
-                    <div key={log.id} className="flex gap-4 relative z-10 group">
-                      <div className="flex flex-col items-center pt-0.5 shrink-0">
-                        <div className={`w-3.5 h-3.5 rounded-full ring-4 ring-white dark:ring-slate-900 transition-transform group-hover:scale-125 ${
-                          log.type === 'parameter' ? 'bg-blue-500' :
-                          log.type === 'maintenance' ? 'bg-emerald-500' : 
-                          log.type === 'flora_fauna' ? 'bg-amber-500' :
-                          log.type === 'system' ? 'bg-violet-500' : 
-                          'bg-rose-500' 
-                        }`} />
+                <div className="overflow-y-auto custom-scrollbar flex-1 -mr-2 pr-2">
+                  <div className="space-y-6 relative">
+                    <div className="absolute left-1.5 top-2 bottom-2 w-0.5 bg-slate-100 dark:bg-slate-800 z-0"></div>
+                    {recentActivities.map((log) => (
+                      <div key={log.id} className="flex gap-4 relative z-10 group">
+                        <div className="flex flex-col items-center pt-0.5 shrink-0">
+                          <div className={`w-3.5 h-3.5 rounded-full ring-4 ring-white dark:ring-slate-900 transition-transform group-hover:scale-125 ${
+                            log.type === 'parameter' ? 'bg-blue-500' :
+                            log.type === 'maintenance' ? 'bg-emerald-500' : 
+                            log.type === 'flora_fauna' ? 'bg-amber-500' :
+                            log.type === 'system' ? 'bg-violet-500' : 
+                            'bg-rose-500' 
+                          }`} />
+                        </div>
+                        <div className="pb-1 w-full bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700/50 group-hover:border-slate-300 dark:group-hover:border-slate-600 transition-colors">
+                          <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                            <Clock className="w-3 h-3" />
+                            {log.date.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                          <p className={`text-sm font-bold leading-tight ${log.type === 'system' ? 'text-violet-600 dark:text-violet-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                            {lang === 'id' ? log.title_id : log.title_en}
+                          </p>
+                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
+                            {lang === 'id' ? log.desc_id : log.desc_en}
+                          </p>
+                        </div>
                       </div>
-                      <div className="pb-1 w-full bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700/50 group-hover:border-slate-300 dark:group-hover:border-slate-600 transition-colors">
-                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                          <Clock className="w-3 h-3" />
-                          {log.date.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                        <p className={`text-sm font-bold leading-tight ${log.type === 'system' ? 'text-violet-600 dark:text-violet-400' : 'text-slate-800 dark:text-slate-200'}`}>
-                          {lang === 'id' ? log.title_id : log.title_en}
-                        </p>
-                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
-                          {lang === 'id' ? log.desc_id : log.desc_en}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
