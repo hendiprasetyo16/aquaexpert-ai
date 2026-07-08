@@ -526,17 +526,17 @@ export default function DashboardPage() {
               </h3>
               
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                <div onClick={() => router.push("/dashboard/fish-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_25px_rgba(59,130,246,0.15)] shadow-sm">
+                <div onClick={() => router.push("/dashboard/fishes")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_25px_rgba(59,130,246,0.15)] shadow-sm">
                   <Fish className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 group-hover:text-blue-500 transition-colors" />
                   <span className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-center">{lang === 'id' ? "Data Ikan" : "Fishes"}</span>
                 </div>
   
-                <div onClick={() => router.push("/dashboard/plant-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 border border-slate-200 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-emerald-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_25px_rgba(16,185,129,0.15)] shadow-sm">
+                <div onClick={() => router.push("/dashboard/plants")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 border border-slate-200 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-emerald-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_25px_rgba(16,185,129,0.15)] shadow-sm">
                   <Leaf className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 group-hover:text-emerald-500 transition-colors" />
                   <span className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors text-center">{lang === 'id' ? "Tanaman Air" : "Plants"}</span>
                 </div>
   
-                <div onClick={() => router.push("/dashboard/algae-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-amber-50/50 dark:hover:bg-amber-900/20 border border-slate-200 dark:border-slate-800 hover:border-amber-400 dark:hover:border-amber-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_25px_rgba(245,158,11,0.15)] shadow-sm">
+                <div onClick={() => router.push("/dashboard/algae")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-amber-50/50 dark:hover:bg-amber-900/20 border border-slate-200 dark:border-slate-800 hover:border-amber-400 dark:hover:border-amber-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_25px_rgba(245,158,11,0.15)] shadow-sm">
                   <Bug className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 group-hover:text-amber-500 transition-colors" />
                   <span className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors text-center">{lang === 'id' ? "Jenis Alga" : "Algae"}</span>
                 </div>
