@@ -1,7 +1,7 @@
 // features/aquariums/components/AquariumSpecsPanel.tsx
 "use client";
 
-import { Box, Layers, Sun, Wind, FlaskConical, LayoutTemplate, Thermometer, Leaf } from "lucide-react";
+import { Box, Layers, Sun, Wind, FlaskConical, LayoutTemplate, Thermometer, Leaf, Maximize } from "lucide-react";
 import type { Aquarium } from "@/features/aquariums/types/aquarium.types";
 import {
   getAquascapeStyleDesc,
@@ -25,7 +25,6 @@ export function AquariumSpecsPanel({ aquarium, lang = "id" }: Props) {
         {lang === "id" ? "Spesifikasi & Perangkat" : "Specs & Equipments"}
       </h3>
 
-      {/* FIX: Ubah menjadi 4 Kolom di PC (xl:grid-cols-4), 3 Kolom di Laptop (lg), 2 di Tablet, 1 di HP */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-y-8 gap-x-8">
         
         {/* KOLOM 1: Gaya & Substrat */}
@@ -114,8 +113,24 @@ export function AquariumSpecsPanel({ aquarium, lang = "id" }: Props) {
           </div>
         </div>
 
-        {/* KOLOM 4: Heater Berdiri Sendiri di Kolom Terakhir */}
+        {/* 💡 FIX: KOLOM 4 - Dimensi & Heater */}
         <div className="space-y-6">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
+              <div className="p-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
+                <Maximize className="w-4 h-4" /> 
+              </div>
+              Dimensions (LxWxH)
+            </div>
+            <p className="text-sm font-black text-slate-800 dark:text-slate-200 ml-[2.25rem]">
+              {aquarium.length_cm} <span className="text-slate-400 text-xs">x</span> {aquarium.width_cm} <span className="text-slate-400 text-xs">x</span> {aquarium.height_cm} cm
+            </p>
+            {aquarium.net_water_volume_liters && (
+               <p className="text-xs font-semibold text-slate-500 mt-1 ml-[2.25rem]">
+                 Net Vol: {aquarium.net_water_volume_liters} L
+               </p>
+            )}
+          </div>
           <div>
             <div className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
               <div className="p-1.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-500 rounded-lg">
