@@ -195,7 +195,9 @@ export default function DashboardPage() {
               plants: aqPlants as unknown as TankPlant[], 
               maintenanceStatus: mappedMaintenance,
               activeTreatments: aqTreatments as unknown as ActiveTreatmentEngine[], 
-              lang 
+              // 💡 FIX 1: 'lang' TIDAK LAGI disuntikkan ke analyzeAquariumHealth DARI sini
+              // Mengapa? Karena Dashboard Utama hanya butuh 'scores.overall' dan 'alerts'. 
+              // Translation untuk Alerts Dashboard Utama akan diatur di UI.
             });
 
             const faunaCount = aqFishes.reduce((acc, f) => acc + (f.quantity || 0), 0);
@@ -282,7 +284,9 @@ export default function DashboardPage() {
     }
 
     if (!isLoading) fetchDashboardData();
-  }, [user?.id, isLoading, role, lang]);
+  // 💡 FIX 2: Hapus `lang` dari array ketergantungan agar tidak fetch ulang ke server saat ganti bahasa!
+  // Karena data `title_id` dan `title_en` SUDAH ditarik di memori!
+  }, [user?.id, isLoading, role]);
 
   if (isLoading || loadingPage) {
     return (
@@ -511,11 +515,11 @@ export default function DashboardPage() {
         </div>
 
         {/* =========================================
-            SEKSI 3 & 4 GABUNGAN: ENSIKLOPEDIA + AI + LOG
+            SEKSI 3 & 4 GABUNGAN: ENSIKLOPEDIA + DIAGNOSTIC TOOLS + LOG
         ========================================= */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 pt-4">
           
-          {/* 💡 KOLOM KIRI (Spesies & AI) - Membentang 2 Kolom */}
+          {/* 💡 KOLOM KIRI (Spesies & Diagnostic) - Membentang 2 Kolom */}
           <div className="lg:col-span-2 space-y-8">
             
             {/* SUB-SEKSI: ENSIKLOPEDIA SPESIES */}
@@ -548,7 +552,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-{/* SUB-SEKSI: ALAT DIAGNOSA KHUSUS */}
+            {/* SUB-SEKSI: ALAT DIAGNOSA KHUSUS */}
             <div className="space-y-4">
               <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Cpu className="w-5 h-5 text-indigo-500" />
@@ -557,6 +561,7 @@ export default function DashboardPage() {
               
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                 
+                {/* 1. DISEASE EXPERT */}
                 <div onClick={() => router.push("/dashboard/disease-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-rose-500/50 dark:hover:border-rose-500/50 hover:shadow-[0_0_30px_rgba(225,29,72,0.15)] dark:hover:shadow-[0_0_30px_rgba(225,29,72,0.2)]">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-rose-500/10 dark:bg-rose-500/20 blur-3xl rounded-full group-hover:bg-rose-500/20 dark:group-hover:bg-rose-500/30 transition-colors duration-500"></div>
                   <div className="relative z-10">
@@ -569,6 +574,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
+                {/* 2. FISH EXPERT */}
                 <div onClick={() => router.push("/dashboard/fish-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] dark:hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 dark:bg-blue-500/20 blur-3xl rounded-full group-hover:bg-blue-500/20 dark:group-hover:bg-blue-500/30 transition-colors duration-500"></div>
                   <div className="relative z-10">
@@ -581,6 +587,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
+                {/* 3. PLANT EXPERT */}
                 <div onClick={() => router.push("/dashboard/plant-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-emerald-500/50 dark:hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.15)] dark:hover:shadow-[0_0_30px_rgba(16,185,129,0.2)]">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 dark:bg-emerald-500/20 blur-3xl rounded-full group-hover:bg-emerald-500/20 dark:group-hover:bg-emerald-500/30 transition-colors duration-500"></div>
                   <div className="relative z-10">
@@ -593,6 +600,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
+                {/* 4. ALGAE EXPERT */}
                 <div onClick={() => router.push("/dashboard/algae-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-amber-500/50 dark:hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(245,158,11,0.15)] dark:hover:shadow-[0_0_30px_rgba(245,158,11,0.2)]">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 dark:bg-amber-500/20 blur-3xl rounded-full group-hover:bg-amber-500/20 dark:group-hover:bg-amber-500/30 transition-colors duration-500"></div>
                   <div className="relative z-10">
@@ -605,7 +613,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div onClick={() => router.push("/dashboard/analytics")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-indigo-500/50 dark:hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] sm:col-span-2 xl:col-span-1">
+                {/* 5. CLINICAL ANALYTICS */}
+                <div onClick={() => router.push("/dashboard/analytics")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-indigo-500/50 dark:hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.2)]">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 blur-3xl rounded-full group-hover:bg-indigo-500/20 dark:group-hover:bg-indigo-500/30 transition-colors duration-500"></div>
                   <div className="relative z-10">
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
@@ -619,10 +628,11 @@ export default function DashboardPage() {
 
               </div>
             </div>
+
           </div>
 
           {/* 💡 KOLOM KANAN (Aktivitas Terkini) - Ditarik Naik Ke Atas */}
-          <div className="space-y-4 flex flex-col h-full">
+          <div className="space-y-4 flex flex-col h-full mt-8 lg:mt-0">
             <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 px-1">
               <Clock className="w-5 h-5 text-slate-400" />
               {lang === 'id' ? "Aktivitas Terkini" : "Recent Activities"}
@@ -637,7 +647,7 @@ export default function DashboardPage() {
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-medium px-4">
                     {role === 'super_admin' || role === 'admin' 
                       ? (lang === 'id' ? "Log pekerjaan harian akuarium dan aktivitas notifikasi sistem akan muncul di sini." : "Daily aquarium logs and system notification activities will appear here.")
-                      : (lang === 'id' ? "Log pekerjaan harian, pencatatan air, dan hasil diagnosa AI Anda akan muncul di sini." : "Daily task logs, water recordings, and AI diagnoses will appear here.")}
+                      : (lang === 'id' ? "Log pekerjaan harian, pencatatan air, dan hasil diagnosa Anda akan muncul di sini." : "Daily task logs, water recordings, and diagnoses will appear here.")}
                   </p>
                 </div>
               ) : (
