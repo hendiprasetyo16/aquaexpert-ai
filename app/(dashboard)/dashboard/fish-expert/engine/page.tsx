@@ -33,12 +33,52 @@ interface SavedSession {
   currentPage?: number;
 }
 
-// INTERFACE KHUSUS AGAR TYPESCRIPT TIDAK BINGUNG DENGAN KEDALAMAN KAMUS LAINNYA
-type StringDict = Record<string, string>;
+// 💡 1. MENGHILANGKAN 'ANY': Interface yang sangat presisi untuk kamus Fish Expert
+interface FishEngineFormDict {
+  title?: string;
+  subtitle?: string;
+  formTitle?: string;
+  q1?: string; q1Opt1?: string; q1Opt2?: string; q1Opt3?: string;
+  q2?: string; q3?: string; q4?: string; q5?: string;
+  q5Opt1?: string; q5Opt2?: string; q5Opt3?: string;
+  needSchooling?: string;
+  btnStart?: string;
+  idleTitle?: string; idleDesc?: string;
+  failTitle?: string; failDesc?: string;
+  successTitle?: string; successDesc?: string;
+  matchCount?: string; bestMatch?: string;
+  confidence?: string; points?: string;
+  confExcellent?: string; confVeryGood?: string; confGood?: string; confModerate?: string;
+  
+  // Service Dictionary Keys (Digabung di sini untuk simplifikasi struktur)
+  reasonTankSizeOK?: string;
+  reasonTankSizeBad?: string;
+  reasonPHMatch?: string;
+  reasonPHMismatch?: string;
+  reasonTempMatch?: string;
+  reasonTempMismatch?: string;
+  reasonSchooling?: string;
+  reasonBeginnerFriendly?: string;
+  reasonExpertOnly?: string;
+  reasonCompatibility?: string;
+}
+
+interface FishListDict {
+  showing?: string;
+  to?: string;
+  of?: string;
+  data?: string;
+  page?: string;
+}
+
 interface RootDictionary {
-  fishExpertEngine?: StringDict;
-  fishList?: StringDict;
-  [key: string]: unknown; // Mengizinkan menu lain tanpa menyebabkan error
+  fishes?: {
+    fishExpertEngine?: FishEngineFormDict;
+    fishList?: FishListDict;
+  };
+  fishExpertEngine?: FishEngineFormDict;
+  fishList?: FishListDict;
+  [key: string]: unknown;
 }
 
 export default function FishExpertEnginePage() {
@@ -109,12 +149,11 @@ export default function FishExpertEnginePage() {
     setIsHydrated(true);
   }, []);
 
-  // DICTIONARY PARSING (MENGGUNAKAN UNKNOWN KE INTERFACE, 100% BEBAS ANY)
-  const rootDict = (dict as unknown as RootDictionary) || {};
-  const rawEngineDict = useMemo(() => rootDict.fishExpertEngine || {}, [rootDict]);
-  const listDict = useMemo(() => rootDict.fishList || {}, [rootDict]);
+  // 💡 2. TYPE-SAFE CASTING DARI ROOT DICTIONARY
+  const rootDict = dict as RootDictionary;
+  const rawEngineDict = useMemo(() => rootDict.fishes?.fishExpertEngine || rootDict.fishExpertEngine || {}, [rootDict]);
+  const listDict = useMemo(() => rootDict.fishes?.fishList || rootDict.fishList || {}, [rootDict]);
 
-  // FIX: MEMETAKAN PROPERTY SECARA IDENTIK SESUAI FishExpertDictionary DI SERVICE BAPAK
   const engineDict: FishExpertDictionary = useMemo(() => ({
     reasonTankSizeOK: rawEngineDict.reasonTankSizeOK,
     reasonTankSizeBad: rawEngineDict.reasonTankSizeBad,
@@ -173,7 +212,7 @@ export default function FishExpertEnginePage() {
     successDesc: rawEngineDict.successDesc || (lang === 'id' ? "Daftar ikan yang aman digabungkan dengan penghuni lama." : "List of safe fish to mix with your current inhabitants."),
     matchCount: rawEngineDict.matchCount || (lang === 'id' ? "Spesies Aman" : "Safe Species"),
     bestMatch: rawEngineDict.bestMatch || (lang === 'id' ? "Paling Direkomendasikan" : "Top Match"),
-    confidence: rawEngineDict.confidence || (lang === 'id' ? "Keamanan AI" : "AI Safety"),
+    confidence: rawEngineDict.confidence || (lang === 'id' ? "Laporan Kecocokan" : "Match Report"),
     points: rawEngineDict.points || (lang === 'id' ? "Poin" : "Points"),
     
     confExcellent: rawEngineDict.confExcellent || (lang === 'id' ? "Sangat Cocok" : "Excellent Match"),
