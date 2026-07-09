@@ -44,7 +44,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
   
   const [remainingSymptoms, setRemainingSymptoms] = useState<string[]>(session.initial_symptoms || []);
   
-  // 💡 STATE BARU UNTUK INFO OBAT
   const [medInfo, setMedInfo] = useState<MedicationInfo | null>(null);
   const [isLoadingMedInfo, setIsLoadingMedInfo] = useState(true);
 
@@ -52,7 +51,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
   const currentCount = remainingSymptoms.length;
   const projectedRecovery = Math.max(0, Math.min(100, Math.round(((initialCount - currentCount) / initialCount) * 100)));
 
-  // 💡 MENGAMBIL INFO DOSIS OBAT DARI DATABASE
   useEffect(() => {
     if (!isOpen || !session.medication_id) return;
     
@@ -166,7 +164,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
         if (res.analytics) toast(lang === 'id' ? res.analytics.aiRecommendationId : res.analytics.aiRecommendationEn, { icon: "🤖", duration: 6000 });
         
         await onSuccess(); 
-        onClose();         
+        onClose();        
       } else {
         toast.error(res.error || "Gagal menyimpan rekam medis.");
       }
@@ -233,8 +231,9 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
         </div>
       )}
 
-      <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-slate-900/80 dark:bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-        <div className="w-full max-w-2xl bg-white dark:bg-slate-950 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] md:max-h-[85vh] border border-slate-200 dark:border-slate-800 my-auto">
+      {/* 💡 FIX 1: Wrapper modal diubah menjadi items-center agar tidak terlempar ke atas */}
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 dark:bg-black/80 p-4 sm:p-6 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="w-full max-w-2xl bg-white dark:bg-slate-950 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[100%] sm:max-h-[90vh] border border-slate-200 dark:border-slate-800">
           
           <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50 dark:bg-slate-900 shrink-0">
             <div>
@@ -330,7 +329,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                     className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold dark:text-slate-100 focus:border-blue-500" 
                   />
                   
-                  {/* 💡 FITUR BARU: INFO DOSIS OBAT */}
                   {actionTaken === "Redosed" && !isLoadingMedInfo && medInfo && (
                     <div className="flex items-start gap-1.5 mt-1.5 p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50">
                       <Beaker className="w-3.5 h-3.5 shrink-0 text-indigo-500 mt-0.5" />

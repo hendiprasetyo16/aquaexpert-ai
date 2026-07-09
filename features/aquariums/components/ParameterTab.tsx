@@ -9,6 +9,8 @@ import { Plus, Trash2, Loader2, FlaskConical, Thermometer, Skull, Activity, Drop
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import ParameterCharts from "./ParameterCharts";
+import DoseCalculatorWidget from "./DoseCalculatorWidget"; // <-- IMPORT WIDGET KALKULATOR
+import { getAquariumByIdAction } from "../actions/aquarium.actions";
 
 interface ParameterTabProps {
   aquariumId: string;
@@ -26,6 +28,7 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
 
   const [mounted, setMounted] = useState(false);
   const [parameters, setParameters] = useState<AquariumParameterLog[]>([]);
+  const [tankVolume, setTankVolume] = useState<number>(0); // State untuk menyimpan Volume Akuarium
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -34,19 +37,27 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
   const [formData, setFormData] = useState({
     record_date: getLocalDatetime(),
     temperature: "", ph: "", ammonia: "", nitrite: "", nitrate: "", 
-    tds: "", gh: "", kh: "", test_method: "", notes: "" // <-- FIX: Tambahkan test_method
+    tds: "", gh: "", kh: "", test_method: "", notes: "" 
   });
 
   const loadData = async () => {
     setLoading(true);
-    const res = await getParametersAction(aquariumId);
-    if (res.success && res.data) setParameters(res.data);
+    // 💡 Ambil parameter & informasi akuarium secara pararel
+    const [resParams, resTank] = await Promise.all([
+      getParametersAction(aquariumId),
+      getAquariumByIdAction(aquariumId)
+    ]);
+    
+    if (resParams.success && resParams.data) setParameters(resParams.data);
+    if (resTank.success && resTank.data) setTankVolume(resTank.data.volume_liters);
+    
     setLoading(false);
   };
 
   useEffect(() => {
     setMounted(true); 
     loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aquariumId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,7 +76,7 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
       tds: formData.tds ? Number(formData.tds) : null,
       gh: formData.gh ? Number(formData.gh) : null,
       kh: formData.kh ? Number(formData.kh) : null,
-      test_method: formData.test_method || null, // <-- FIX: Kirim data test_method
+      test_method: formData.test_method || null, 
       notes: formData.notes || null,
     };
 
@@ -123,7 +134,7 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
             <FlaskConical className="h-5 w-5 text-teal-500" /> {lang === 'id' ? "Riwayat Parameter Air" : "Water Parameters Log"}
           </h3>
           <p className="text-sm text-slate-500 mt-1">
-            {lang === 'id' ? "Penting untuk mendeteksi ancaman dini dan referensi AI Diagnosis." : "Crucial for early threat detection and AI Diagnosis."}
+            {lang === 'id' ? "Penting untuk mendeteksi ancaman dini dan referensi Diagnosis Pakar." : "Crucial for early threat detection and Expert Diagnosis."}
           </p>
         </div>
         <Button onClick={() => setShowForm(!showForm)} className="bg-teal-600 hover:bg-teal-500 text-white w-full sm:w-auto">
@@ -132,72 +143,81 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
       </div>
 
       {showForm && (
-        <div className="bg-white dark:bg-slate-900 border border-teal-200 dark:border-teal-900/50 p-6 rounded-3xl shadow-xl animate-in slide-in-from-top-4 duration-300">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
-              
-              <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Waktu Pencatatan" : "Record Time"} *</label>
-                <input required type="datetime-local" value={formData.record_date} onChange={(e) => setFormData({...formData, record_date: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
-              </div>
-              
-              {/* FIX: Input Metode Uji (Alat Tes) */}
-              <div className="space-y-1.5 col-span-2 sm:col-span-3 lg:col-span-1">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Alat Uji (Opsional)" : "Test Method (Optional)"}</label>
-                <input type="text" placeholder={lang === 'id' ? "Contoh: API Master Kit / Salifert" : "e.g., API Master Kit"} value={formData.test_method} onChange={(e) => setFormData({...formData, test_method: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
-              </div>
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 animate-in slide-in-from-top-4 duration-300">
+          
+          {/* Kolom Form Pencatatan */}
+          <div className="xl:col-span-8 bg-white dark:bg-slate-900 border border-teal-200 dark:border-teal-900/50 p-6 rounded-3xl shadow-xl">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+                
+                <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Waktu Pencatatan" : "Record Time"} *</label>
+                  <input required type="datetime-local" value={formData.record_date} onChange={(e) => setFormData({...formData, record_date: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
+                </div>
+                
+                <div className="space-y-1.5 col-span-2 sm:col-span-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Alat Uji (Opsional)" : "Test Method (Optional)"}</label>
+                  <input type="text" placeholder={lang === 'id' ? "Contoh: API Master Kit / Salifert" : "e.g., API Master Kit"} value={formData.test_method} onChange={(e) => setFormData({...formData, test_method: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
+                </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest flex items-center gap-1"><Thermometer className="w-3 h-3"/> {lang === 'id' ? "Suhu" : "Temp"} (°C)</label>
-                <input type="number" step="0.1" placeholder="Ex: 26.5" value={formData.temperature} onChange={(e) => setFormData({...formData, temperature: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">pH</label>
-                <input type="number" step="0.1" placeholder="Ex: 6.8" value={formData.ph} onChange={(e) => setFormData({...formData, ph: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1"><Droplets className="w-3 h-3"/> TDS (ppm)</label>
-                <input type="number" placeholder="Ex: 120" value={formData.tds} onChange={(e) => setFormData({...formData, tds: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
-              </div>
-              
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1"><Skull className="w-3 h-3"/> Amonia (NH3)</label>
-                <input type="number" step="0.01" placeholder="Ex: 0" value={formData.ammonia} onChange={(e) => setFormData({...formData, ammonia: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Nitrit (NO2)</label>
-                <input type="number" step="0.01" placeholder="Ex: 0" value={formData.nitrite} onChange={(e) => setFormData({...formData, nitrite: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Nitrat (NO3)</label>
-                <input type="number" step="0.1" placeholder="Ex: 10" value={formData.nitrate} onChange={(e) => setFormData({...formData, nitrate: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3 col-span-2 sm:col-span-1">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">GH</label>
-                  <input type="number" step="0.1" placeholder="Ex: 4" value={formData.gh} onChange={(e) => setFormData({...formData, gh: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
+                  <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest flex items-center gap-1"><Thermometer className="w-3 h-3"/> {lang === 'id' ? "Suhu" : "Temp"} (°C)</label>
+                  <input type="number" step="0.1" placeholder="Ex: 26.5" value={formData.temperature} onChange={(e) => setFormData({...formData, temperature: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">KH</label>
-                  <input type="number" step="0.1" placeholder="Ex: 2" value={formData.kh} onChange={(e) => setFormData({...formData, kh: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">pH</label>
+                  <input type="number" step="0.1" placeholder="Ex: 6.8" value={formData.ph} onChange={(e) => setFormData({...formData, ph: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1"><Droplets className="w-3 h-3"/> TDS (ppm)</label>
+                  <input type="number" placeholder="Ex: 120" value={formData.tds} onChange={(e) => setFormData({...formData, tds: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1"><Skull className="w-3 h-3"/> Amonia (NH3)</label>
+                  <input type="number" step="0.01" placeholder="Ex: 0" value={formData.ammonia} onChange={(e) => setFormData({...formData, ammonia: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Nitrit (NO2)</label>
+                  <input type="number" step="0.01" placeholder="Ex: 0" value={formData.nitrite} onChange={(e) => setFormData({...formData, nitrite: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Nitrat (NO3)</label>
+                  <input type="number" step="0.1" placeholder="Ex: 10" value={formData.nitrate} onChange={(e) => setFormData({...formData, nitrate: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 col-span-2 sm:col-span-1">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">GH</label>
+                    <input type="number" step="0.1" placeholder="Ex: 4" value={formData.gh} onChange={(e) => setFormData({...formData, gh: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">KH</label>
+                    <input type="number" step="0.1" placeholder="Ex: 2" value={formData.kh} onChange={(e) => setFormData({...formData, kh: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-semibold outline-none focus:border-teal-500 transition-colors" />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Catatan Tambahan" : "Notes"}</label>
-              <input type="text" placeholder={lang === 'id' ? "Misal: Setelah ganti air 50%" : "E.g., After 50% water change"} value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-medium outline-none focus:border-teal-500 transition-colors" />
-            </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Catatan Tambahan" : "Notes"}</label>
+                <input type="text" placeholder={lang === 'id' ? "Misal: Setelah ganti air 50%" : "E.g., After 50% water change"} value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-medium outline-none focus:border-teal-500 transition-colors" />
+              </div>
 
-            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-teal-100 dark:border-teal-900/30">
-              <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="rounded-xl w-full sm:w-auto">{lang === 'id' ? "Batal" : "Cancel"}</Button>
-              <Button type="submit" disabled={submitting} className="bg-teal-600 hover:bg-teal-500 text-white rounded-xl w-full sm:w-auto font-bold shadow-lg shadow-teal-600/20">
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FlaskConical className="w-4 h-4 mr-2" />}
-                {lang === 'id' ? "Simpan Parameter" : "Save Log"}
-              </Button>
-            </div>
-          </form>
+              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-teal-100 dark:border-teal-900/30">
+                <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="rounded-xl w-full sm:w-auto">{lang === 'id' ? "Batal" : "Cancel"}</Button>
+                <Button type="submit" disabled={submitting} className="bg-teal-600 hover:bg-teal-500 text-white rounded-xl w-full sm:w-auto font-bold shadow-lg shadow-teal-600/20">
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FlaskConical className="w-4 h-4 mr-2" />}
+                  {lang === 'id' ? "Simpan Parameter" : "Save Log"}
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          {/* Kolom Kalkulator Dosis */}
+          <div className="xl:col-span-4">
+            <DoseCalculatorWidget aquariumVolumeLiters={tankVolume} />
+          </div>
+
         </div>
       )}
 
@@ -232,7 +252,6 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
                   </p>
                   <p className="text-xs font-medium text-slate-500 mt-0.5">{log.notes || (lang === 'id' ? "Pengecekan rutin" : "Routine check")}</p>
                   
-                  {/* FIX: Tampilkan Test Method jika ada */}
                   {log.test_method && (
                     <div className="flex items-center gap-1 mt-2 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase px-2 py-0.5 rounded-md w-fit">
                       <Tag className="w-3 h-3" /> {log.test_method}

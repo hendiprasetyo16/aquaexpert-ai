@@ -2,13 +2,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { HeartPulse, Plus, ShieldAlert, Activity, Fish, AlertCircle, Syringe, Loader2, CheckCircle2, XCircle, History, CalendarDays, Clock, Trash2, AlertTriangle } from "lucide-react";
+import { HeartPulse, Plus, ShieldAlert, Activity, AlertCircle, Syringe, Loader2, CheckCircle2, XCircle, History, CalendarDays, Clock, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/providers/LanguageProvider";
 import StartTreatmentModal from "./StartTreatmentModal";
 import DailyLogModal from "@/features/diseases/components/DailyLogModal";
+import DoseCalculatorWidget from "./DoseCalculatorWidget"; // <-- IMPORT WIDGET KALKULATOR
 import { getActiveTreatmentsAction, ActiveTreatmentDto } from "@/features/diseases/actions/start-treatment.actions";
 import { deleteTreatmentSessionAction } from "@/features/diseases/actions/log-treatment.actions";
+import { getAquariumByIdAction } from "../actions/aquarium.actions";
 import toast from "react-hot-toast";
 
 interface Props { aquariumId: string; }
@@ -32,6 +34,7 @@ export default function TreatmentTab({ aquariumId }: Props) {
   
   const [activePatients, setActivePatients] = useState<ActiveTreatmentDto[]>([]);
   const [historyPatients, setHistoryPatients] = useState<ActiveTreatmentDto[]>([]);
+  const [tankVolume, setTankVolume] = useState<number>(0); // State untuk Volume Tangki
   const [isLoading, setIsLoading] = useState(true);
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string, type: 'active' | 'history' } | null>(null);
@@ -39,10 +42,18 @@ export default function TreatmentTab({ aquariumId }: Props) {
 
   const fetchTreatments = async () => {
     setIsLoading(true);
-    const res = await getActiveTreatmentsAction(aquariumId);
-    if (res.success) {
-      setActivePatients((res.data || []).filter(d => d.status === "Active"));
-      setHistoryPatients((res.data || []).filter(d => d.status !== "Active"));
+    // 💡 Tarik Data Pengobatan & Data Akuarium (untuk volume) bersamaan
+    const [resTreatments, resTank] = await Promise.all([
+      getActiveTreatmentsAction(aquariumId),
+      getAquariumByIdAction(aquariumId)
+    ]);
+    
+    if (resTreatments.success) {
+      setActivePatients((resTreatments.data || []).filter(d => d.status === "Active"));
+      setHistoryPatients((resTreatments.data || []).filter(d => d.status !== "Active"));
+    }
+    if (resTank.success && resTank.data) {
+      setTankVolume(resTank.data.volume_liters);
     }
     setIsLoading(false);
   };
@@ -107,13 +118,26 @@ export default function TreatmentTab({ aquariumId }: Props) {
         </div>
       )}
 
-      {/* HEADER TAB */}
-      <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div>
-          <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2"><HeartPulse className="w-5 h-5 text-rose-500" /> {txt.title}</h3>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">{txt.subtitle}</p>
+      {/* HEADER TAB DENGAN KALKULATOR DOSIS */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 flex flex-col sm:flex-row justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div>
+            <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              <HeartPulse className="w-6 h-6 text-rose-500" /> {txt.title}
+            </h3>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2 max-w-md leading-relaxed">
+              {txt.subtitle}
+            </p>
+          </div>
+          <Button onClick={() => setIsStartModalOpen(true)} className="h-12 bg-rose-600 hover:bg-rose-500 text-white font-bold px-6 rounded-xl shadow-lg shadow-rose-500/20 shrink-0">
+            <Plus className="w-5 h-5 mr-2" /> {txt.btnAdd}
+          </Button>
         </div>
-        <Button onClick={() => setIsStartModalOpen(true)} className="h-11 bg-rose-600 hover:bg-rose-500 text-white font-bold px-5 rounded-xl shadow-md"><Plus className="w-4 h-4 mr-1.5" /> {txt.btnAdd}</Button>
+        
+        <div className="lg:col-span-1">
+           {/* 💡 WIDGET KALKULATOR DOSIS */}
+           <DoseCalculatorWidget aquariumVolumeLiters={tankVolume} />
+        </div>
       </div>
 
       {isLoading ? (
@@ -159,7 +183,6 @@ export default function TreatmentTab({ aquariumId }: Props) {
                          : session.latest_log.action_taken === "Redosed" ? (lang === 'id' ? "Dosis Ulang" : "Redosed") 
                          : session.latest_log.action_taken === "Water Change" ? (lang === 'id' ? "Ganti Air" : "Water Change") : session.latest_log.action_taken}
                         
-                        {/* 🔥 LOGIC REVERSE TERBARU ADA DI SINI 🔥 */}
                         <span className="font-normal italic text-slate-500 block mt-1 max-h-20 overflow-y-auto custom-scrollbar whitespace-pre-wrap space-y-1">
                           {session.latest_log.notes 
                             ? session.latest_log.notes

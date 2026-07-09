@@ -88,7 +88,6 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
             name_id: String(d.name_id || ""),
             name_en: String(d.name_en || ""),
             severity: Number(d.severity || 3),
-            // 💡 FIX: Menarik nilai karantina dari database
             quarantine_required: d.quarantine_required === true, 
           })) as DiseaseOption[];
 
@@ -97,7 +96,6 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
             name_id: String(m.name_id || m.name || ""), 
             name_en: String(m.name_en || m.name || ""), 
             dosage_unit: String(m.dosage_unit || ""),
-            // 💡 FIX: Menarik indikator keamanan obat dari database
             safe_for_plants: m.safe_for_plants === true,
             safe_for_inverts: m.safe_for_inverts === true,
           })) as MedOption[];
@@ -169,9 +167,11 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 dark:bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    // 💡 PERBAIKAN 1: Background Wrapper menggunakan `items-center` dan `justify-center` tanpa `overflow-y-auto`
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 dark:bg-black/80 backdrop-blur-sm p-4 sm:p-6 animate-in fade-in duration-200">
       
       {isLoadingOptions ? (
+        // 💡 PERBAIKAN 2: Dihapus class `my-auto` agar Flexbox tidak bingung
         <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl p-12 flex flex-col items-center justify-center min-h-[350px] relative overflow-hidden">
           <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4" />
           <p className="text-sm font-bold text-slate-500 dark:text-slate-400 animate-pulse">
@@ -179,9 +179,11 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
           </p>
         </div>
       ) : (
+        // 💡 PERBAIKAN 3: Kotak Modal dibatasi ketat `max-h-[90vh]` dan `flex-col`, dihapus class `my-auto`
         <div className="w-full max-w-2xl bg-white dark:bg-slate-950 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] md:max-h-[85vh] border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
           
-          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50 dark:bg-slate-900 shrink-0">
+          {/* HEADER (Selalu lengket di atas, tidak ter-scroll) */}
+          <div className="relative z-10 p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50 dark:bg-slate-900 shrink-0 shadow-sm">
             <div className="pr-4">
               <h2 className="text-lg sm:text-xl font-black text-slate-800 dark:text-white leading-tight">
                 {dict.formTitle || (lang === 'id' ? "Formulir Pendaftaran Pasien Baru" : "New Patient Registration Form")}
@@ -190,10 +192,11 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
                 {dict.formDesc || (lang === 'id' ? "Laporkan kasus infeksi baru di akuarium Anda. AI akan melacak perkembangan kesembuhan harian." : "Report a new infection case in your aquarium. AI will track daily recovery progress.")}
               </p>
             </div>
+            
             <button 
               type="button"
               onClick={handleClose} 
-              className="p-2 bg-slate-200 text-slate-500 hover:bg-rose-500 hover:text-white dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-rose-600 transition-all rounded-full shrink-0"
+              className="p-2 bg-slate-200 text-slate-500 hover:bg-red-600 hover:text-white hover:shadow-[0_0_15px_rgba(220,38,38,0.6)] dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-red-600 dark:hover:shadow-[0_0_15px_rgba(220,38,38,0.8)] dark:hover:text-white transition-all duration-300 rounded-full shrink-0"
             >
               <X className="w-5 h-5 font-bold" />
             </button>
@@ -207,12 +210,11 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
             const selectedMed = medications.find(m => m.id === medicationId);
             const isContagious = selectedDis?.quarantine_required;
             
-            // Logika: Beracun JIKA (tidak aman untuk tanaman) ATAU (tidak aman untuk udang)
             const isToxic = selectedMed && (!selectedMed.safe_for_plants || !selectedMed.safe_for_inverts);
             
             if (isContagious || isToxic) {
               return (
-                <div className="mx-6 mt-6 p-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900/50 flex gap-4 animate-in slide-in-from-bottom-2">
+                <div className="mx-6 mt-6 p-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900/50 flex gap-4 animate-in slide-in-from-bottom-2 shrink-0">
                   <AlertTriangle className="w-8 h-8 text-amber-500 shrink-0" />
                   <div>
                     <h4 className="font-black text-amber-800 dark:text-amber-400 uppercase tracking-tight text-sm mb-1">
@@ -231,6 +233,7 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
             return null;
           })()}
 
+          {/* BODY FORM (Ini area yang HANYA BISA DI-SCROLL, flex-1 dan overflow-y-auto) */}
           <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-6 bg-white dark:bg-slate-950">
             <form id="start-treatment-form" onSubmit={handleSubmit} className="space-y-6">
               
@@ -322,7 +325,8 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
             </form>
           </div>
 
-          <div className="p-5 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex gap-3 shrink-0">
+          {/* FOOTER (Selalu lengket di bawah, tidak ter-scroll) */}
+          <div className="relative z-10 p-5 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex gap-3 shrink-0">
             <Button 
               type="button" 
               variant="outline" 
