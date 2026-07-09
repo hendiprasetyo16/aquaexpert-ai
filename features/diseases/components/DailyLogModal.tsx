@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Save, Loader2, Syringe, Droplets, Eye, ArrowRightLeft, Info, Trash2, AlertTriangle, Activity, ArchiveX, Beaker } from "lucide-react";
+import { X, Save, Loader2, Syringe, Droplets, Eye, Info, Trash2, AlertTriangle, Activity, ArchiveX, Beaker } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import toast from "react-hot-toast";
@@ -58,7 +58,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
     const fetchMedInfo = async () => {
       setIsLoadingMedInfo(true);
       const supabase = createClient();
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('medications')
         .select('base_dosage_per_100l, dosage_unit')
         .eq('id', session.medication_id)
@@ -183,8 +183,9 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
 
   return (
     <>
+      {/* Peringatan Hapus */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-[99999] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[99999] bg-slate-900/90 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
             <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="w-8 h-8" />
@@ -207,8 +208,9 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
         </div>
       )}
 
+      {/* Peringatan Pindah Riwayat */}
       {showAbortConfirm && (
-        <div className="fixed inset-0 z-[99999] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[99999] bg-slate-900/90 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
             <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <ArchiveX className="w-8 h-8" />
@@ -231,12 +233,12 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
         </div>
       )}
 
-      {/* FIX: Wrapper modal dibatasi tinggi maksimalnya (90vh) */}
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 dark:bg-black/80 p-4 sm:p-6 backdrop-blur-sm animate-in fade-in duration-200">
-        <div className="w-full max-w-2xl bg-white dark:bg-slate-950 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] border border-slate-200 dark:border-slate-800">
+      {/* 💡 FIX: MODAL UTAMA - max-h-full dan flex-col menjamin isolasi scroll */}
+      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900/80 dark:bg-black/80 p-4 sm:p-6 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="w-full max-w-2xl bg-white dark:bg-slate-950 rounded-3xl shadow-2xl flex flex-col border border-slate-200 dark:border-slate-800 overflow-hidden max-h-full">
           
-          {/* HEADER (Selalu lengket di atas) */}
-          <div className="relative z-10 p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50 dark:bg-slate-900 shrink-0">
+          {/* HEADER (Terkunci) */}
+          <div className="shrink-0 p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50 dark:bg-slate-900">
             <div>
               <h2 className="text-lg sm:text-xl font-black text-slate-800 dark:text-white leading-tight">
                 {tDict.formTitle || (lang === 'id' ? "Buku Rekam Medis Harian" : "Daily Medical Logbook")}
@@ -297,7 +299,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                     {lang === 'id' ? "Tindakan Utama Hari Ini" : "Main Action Today"}
                   </label>
                   
-                  {/* FIX: Memastikan tombol 'Ganti Obat' muat di layar sempit */}
                   <Button 
                     type="button" 
                     onClick={() => setShowAbortConfirm(true)} 
@@ -399,8 +400,8 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
             </form>
           </div>
           
-          {/* FOOTER (Selalu lengket di bawah) */}
-          <div className="relative z-10 p-5 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex flex-wrap sm:flex-nowrap gap-3 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+          {/* FOOTER (Terkunci di Bawah) */}
+          <div className="shrink-0 p-5 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex flex-wrap sm:flex-nowrap gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
              <Button type="button" onClick={() => setShowDeleteConfirm(true)} variant="outline" disabled={isSubmitting || isDeleting} className="w-full sm:w-auto h-12 sm:h-14 rounded-xl font-bold uppercase tracking-wider border-red-200 dark:border-red-900/50 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 transition-colors">
                <Trash2 className="w-4 h-4 mr-2" /> {lang === 'id' ? "Salah Input" : "Mistake"}
              </Button>

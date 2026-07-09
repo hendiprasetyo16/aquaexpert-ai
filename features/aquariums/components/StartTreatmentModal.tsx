@@ -43,7 +43,6 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
   const [isLoadingOptions, setIsLoadingOptions] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  // Form States
   const [diseaseId, setDiseaseId] = useState<string>("");
   const [medicationId, setMedicationId] = useState<string>("");
   const [severityScore, setSeverityScore] = useState<number>(3);
@@ -106,7 +105,6 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
           toast.error(res.error || (lang === 'id' ? "Gagal memuat referensi medis." : "Failed to load medical references."));
         }
       } catch (err) {
-        console.error("CRITICAL EXCEPTION FETCHING DROPDOWNS:", err);
         toast.error(lang === 'id' ? "Gangguan koneksi internal." : "Internal connection disruption.");
       } finally {
         if (isMounted) setIsLoadingOptions(false);
@@ -159,30 +157,28 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
         toast.error(res.error || (lang === 'id' ? "Gagal menyimpan data rekam medis." : "Failed to save medical record."));
       }
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : (lang === 'id' ? "Terjadi kesalahan internal data" : "Internal database exception");
-      toast.error(errorMsg);
+      toast.error(lang === 'id' ? "Terjadi kesalahan internal data" : "Internal database exception");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    // FIX: Menggunakan justify-center, items-center dan p-4 agar tidak keluar layar
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 dark:bg-black/80 backdrop-blur-sm p-4 sm:p-6 animate-in fade-in duration-200">
+    // 💡 FIX: max-h-full dengan flex-col menjamin modal tidak akan keluar/memotong layar atas-bawah
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-900/80 dark:bg-black/80 backdrop-blur-sm p-4 sm:p-6 animate-in fade-in duration-200">
       
       {isLoadingOptions ? (
-        <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl p-12 flex flex-col items-center justify-center min-h-[350px] relative overflow-hidden">
+        <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl p-12 flex flex-col items-center justify-center min-h-[350px]">
           <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4" />
           <p className="text-sm font-bold text-slate-500 dark:text-slate-400 animate-pulse">
             {lang === 'id' ? "Sinkronisasi basis data medis..." : "Synchronizing medical database..."}
           </p>
         </div>
       ) : (
-        // FIX: max-h-[90vh] dipastikan agar modal tidak lebih tinggi dari layar
-        <div className="w-full max-w-2xl bg-white dark:bg-slate-950 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+        <div className="w-full max-w-2xl bg-white dark:bg-slate-950 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-full border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
           
-          {/* HEADER (Selalu lengket di atas) */}
-          <div className="relative z-10 p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50 dark:bg-slate-900 shrink-0 shadow-sm">
+          {/* HEADER (Terkunci) */}
+          <div className="shrink-0 p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50 dark:bg-slate-900">
             <div className="pr-4">
               <h2 className="text-lg sm:text-xl font-black text-slate-800 dark:text-white leading-tight">
                 {dict.formTitle || (lang === 'id' ? "Formulir Pendaftaran Pasien Baru" : "New Patient Registration Form")}
@@ -201,13 +197,12 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
             </button>
           </div>
 
-          {/* BODY FORM (Ini area yang HANYA BISA DI-SCROLL, flex-1 dan overflow-y-auto) */}
+          {/* BODY FORM (Area Scrollable Tengah) */}
           <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-6 bg-white dark:bg-slate-950">
             {diseaseId && medicationId && (() => {
               const selectedDis = diseases.find(d => d.id === diseaseId);
               const selectedMed = medications.find(m => m.id === medicationId);
               const isContagious = selectedDis?.quarantine_required;
-              
               const isToxic = selectedMed && (!selectedMed.safe_for_plants || !selectedMed.safe_for_inverts);
               
               if (isContagious || isToxic) {
@@ -321,8 +316,8 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
             </form>
           </div>
 
-          {/* FOOTER (Selalu lengket di bawah) */}
-          <div className="relative z-10 p-5 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex gap-3 shrink-0">
+          {/* FOOTER (Terkunci di Bawah) */}
+          <div className="shrink-0 p-5 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex gap-3">
             <Button 
               type="button" 
               variant="outline" 
@@ -352,5 +347,6 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
         </div>
       )}
     </div>
+    
   );
 }
