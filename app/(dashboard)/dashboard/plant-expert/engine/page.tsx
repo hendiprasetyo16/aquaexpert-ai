@@ -350,7 +350,7 @@ export default function PlantExpertEngineV4() {
                     <h3 className="text-2xl md:text-3xl font-bold text-emerald-600 dark:text-emerald-400">{expertDict.successTitle}</h3>
                     <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-2">{expertDict.successDesc}</p>
                   </div>
-<span className="mt-4 sm:mt-0 inline-flex items-center gap-2 bg-emerald-50 dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 text-sm md:text-base px-5 py-2 rounded-full border border-emerald-200 dark:border-emerald-700 font-bold whitespace-nowrap shadow-sm">
+<span className="mt-4 sm:mt-0 inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-sm md:text-base px-5 py-2 rounded-full border border-emerald-200 dark:border-emerald-500/50 font-bold whitespace-nowrap shadow-sm">
   <CheckCircle2 className="h-5 w-5" /> {results.length} {expertDict.matchCount}
 </span>
                 </div>
