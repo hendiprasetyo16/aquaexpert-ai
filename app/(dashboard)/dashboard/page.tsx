@@ -62,6 +62,61 @@ const groupByAquarium = <T extends DbRow>(data: T[] | null) => {
   }, {});
 };
 
+// 💡 AUTO TRANSLATOR UNTUK LOG SISTEM DARI DATABASE
+const translateSystemLog = (text: string) => {
+  if (!text) return text;
+  let en = text;
+
+  // Aquarium Actions
+  if (en.includes("membuat akuarium baru bernama")) return en.replace(/(.*?) telah membuat akuarium baru bernama "(.*?)"\.?/i, "$1 created a new aquarium named \"$2\".");
+  if (en.includes("memperbarui pengaturan akuarium")) return en.replace(/(.*?) memperbarui pengaturan akuarium "(.*?)"\.?/i, "$1 updated the settings for aquarium \"$2\".");
+  if (en.includes("telah menghapus akuarium")) return en.replace(/(.*?) telah menghapus akuarium "(.*?)" miliknya\.?/i, "$1 deleted their aquarium \"$2\".");
+  if (en.includes("menetapkan")) return en.replace(/(.*?) menetapkan "(.*?)" sebagai akuarium utama\.?/i, "$1 set \"$2\" as the primary aquarium.");
+  if (en.includes("mengubah status akuarium")) return en.replace(/(.*?) mengubah status akuarium "(.*?)"\.?/i, "$1 toggled the active status for aquarium \"$2\".");
+
+  // Inventory Actions
+  if (en.includes("menambahkan") && en.includes("ekor")) return en.replace(/(.*?) menambahkan (.*?) ekor "(.*?)" ke akuarium "(.*?)"\.?/i, "$1 added $2 qty of \"$3\" to tank \"$4\".");
+  if (en.includes("menambahkan") && en.includes("bibit")) return en.replace(/(.*?) menambahkan (.*?) bibit "(.*?)" ke akuarium "(.*?)"\.?/i, "$1 added $2 portions of \"$3\" to tank \"$4\".");
+  if (en.includes("memperbarui status")) return en.replace(/(.*?) memperbarui status "(.*?)" \((.*?)\) di "(.*?)"\.?/i, "$1 updated the status of \"$2\" ($3) in tank \"$4\".");
+  if (en.includes("menghapus")) return en.replace(/(.*?) menghapus "(.*?)" dari akuarium "(.*?)"\.?/i, "$1 removed \"$2\" from tank \"$3\".");
+
+  // Maintenance & Parameters
+  if (en.includes("menjadwalkan tugas")) return en.replace(/(.*?) menjadwalkan tugas "(.*?)" di akuarium "(.*?)"\.?/i, "$1 scheduled task \"$2\" in tank \"$3\".");
+  if (en.includes("mengubah jadwal tugas")) return en.replace(/(.*?) mengubah jadwal tugas "(.*?)" di akuarium "(.*?)"\.?/i, "$1 updated the schedule for task \"$2\" in tank \"$3\".");
+  if (en.includes("menghapus jadwal tugas")) return en.replace(/(.*?) menghapus jadwal tugas "(.*?)" dari akuarium "(.*?)"\.?/i, "$1 removed task schedule \"$2\" from tank \"$3\".");
+  if (en.includes("mencatat aktivitas")) return en.replace(/(.*?) mencatat aktivitas "(.*?)" di akuarium "(.*?)"\.?/i, "$1 logged a \"$2\" activity in tank \"$3\".");
+  if (en.includes("menghapus salah satu riwayat pekerjaan")) return en.replace(/(.*?) menghapus salah satu riwayat pekerjaan dari akuarium "(.*?)"\.?/i, "$1 deleted a maintenance log from tank \"$2\".");
+  if (en.includes("mencatat kualitas air baru")) return en.replace(/(.*?) mencatat kualitas air baru di akuarium "(.*?)"\.?/i, "$1 logged new water parameters in tank \"$2\".");
+  if (en.includes("menghapus riwayat parameter air")) return en.replace(/(.*?) menghapus riwayat parameter air \((.*?)\) dari akuarium "(.*?)"\.?/i, "$1 deleted water log ($2) from tank \"$3\".");
+
+  return en;
+};
+
+const translateSystemTitle = (title: string) => {
+  const map: Record<string, string> = {
+    "Akuarium Baru Dibuat": "New Aquarium Created",
+    "Akuarium Diperbarui": "Aquarium Updated",
+    "Akuarium Dihapus": "Aquarium Deleted",
+    "Status Utama Diubah": "Primary Status Changed",
+    "Penghapusan Paksa (Admin)": "Forced Deletion (Admin)",
+    "Akuarium Dinonaktifkan": "Aquarium Disabled",
+    "Akuarium Diaktifkan": "Aquarium Enabled",
+    "Tanaman Ditambahkan": "Flora Added",
+    "Fauna Ditambahkan": "Fauna Added",
+    "Status Fauna Diubah": "Fauna Status Updated",
+    "Fauna Dihapus": "Fauna Removed",
+    "Flora Dihapus": "Flora Removed",
+    "Jadwal Perawatan Dibuat": "Maintenance Scheduled",
+    "Jadwal Perawatan Diperbarui": "Maintenance Updated",
+    "Jadwal Perawatan Dihapus": "Maintenance Removed",
+    "Pekerjaan Diselesaikan": "Task Completed",
+    "Riwayat Perawatan Dihapus": "Maintenance History Removed",
+    "Parameter Air Dicatat": "Water Parameter Logged",
+    "Catatan Air Dihapus": "Water Log Removed"
+  };
+  return map[title] || title;
+};
+
 export default function DashboardPage() {
   const { user, profile, role, isLoading } = useAuth();
   const { dict, language } = useLanguage(); 
@@ -96,7 +151,6 @@ export default function DashboardPage() {
     async function fetchDashboardData() {
       if (!user?.id) return;
       const supabase = createClient();
-      //setLoadingPage(true);
 
       try {
         const logs: ActivityLog[] = [];
@@ -120,7 +174,6 @@ export default function DashboardPage() {
             { data: treatmentSessionsRes },
             { data: treatmentDailyLogsRes }
           ] = await Promise.all([
-            // Keperluan Kalkulasi Stats (Full Data)
             supabase.from("aquarium_parameters").select("*").in("aquarium_id", tankIds),
             supabase.from("aquarium_fishes").select("aquarium_id, quantity, fish_id, health_status, size_category, fish:fishes(*)").in("aquarium_id", tankIds),
             supabase.from("aquarium_plants").select("aquarium_id, quantity, plant_id, status, plant:plants(*)").in("aquarium_id", tankIds),
@@ -195,9 +248,7 @@ export default function DashboardPage() {
               plants: aqPlants as unknown as TankPlant[], 
               maintenanceStatus: mappedMaintenance,
               activeTreatments: aqTreatments as unknown as ActiveTreatmentEngine[], 
-              // 💡 FIX 1: 'lang' TIDAK LAGI disuntikkan ke analyzeAquariumHealth DARI sini
-              // Mengapa? Karena Dashboard Utama hanya butuh 'scores.overall' dan 'alerts'. 
-              // Translation untuk Alerts Dashboard Utama akan diatur di UI.
+              lang 
             });
 
             const faunaCount = aqFishes.reduce((acc, f) => acc + (f.quantity || 0), 0);
@@ -264,11 +315,24 @@ export default function DashboardPage() {
           });
         }
 
+        // 💡 MENGAMBIL DAN MENTERJEMAHKAN LOG SISTEM
         if (role === "super_admin" || role === "admin") {
           const { data: sysLogs } = await supabase.from("system_activities").select("*").order("created_at", { ascending: false }).limit(10);
           sysLogs?.forEach(sys => {
             if (role === "admin" && sys.category === "data_crud") return;
-            logs.push({ id: `sys-${sys.id}`, type: "system", title_id: `[Admin] ${sys.title}`, title_en: `[Admin] ${sys.title}`, desc_id: sys.message, desc_en: sys.message, date: new Date(sys.created_at as string) });
+            
+            const enTitle = translateSystemTitle(sys.title);
+            const enDesc = translateSystemLog(sys.message);
+
+            logs.push({ 
+              id: `sys-${sys.id}`, 
+              type: "system", 
+              title_id: `[Admin] ${sys.title}`, 
+              title_en: `[Admin] ${enTitle}`, 
+              desc_id: sys.message, 
+              desc_en: enDesc, 
+              date: new Date(sys.created_at as string) 
+            });
           });
         }
 
@@ -284,9 +348,7 @@ export default function DashboardPage() {
     }
 
     if (!isLoading) fetchDashboardData();
-  // 💡 FIX 2: Hapus `lang` dari array ketergantungan agar tidak fetch ulang ke server saat ganti bahasa!
-  // Karena data `title_id` dan `title_en` SUDAH ditarik di memori!
-  }, [user?.id, isLoading, role]);
+  }, [user?.id, isLoading, role]); // Tidak ada 'lang' disini agar bebas kedipan!
 
   if (isLoading || loadingPage) {
     return (
@@ -552,7 +614,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-{/* SUB-SEKSI: ALAT DIAGNOSA KHUSUS */}
+            {/* SUB-SEKSI: ALAT DIAGNOSA KHUSUS */}
             <div className="space-y-4">
               <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Cpu className="w-5 h-5 text-indigo-500" />
@@ -626,7 +688,7 @@ export default function DashboardPage() {
 
           </div>
 
-          {/* 💡 KOLOM KANAN (Aktivitas Terkini) - Ditarik Naik Ke Atas */}
+          {/* 💡 KOLOM KANAN (Aktivitas Terkini) */}
           <div className="space-y-4 flex flex-col h-full mt-8 lg:mt-0">
             <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 px-1">
               <Clock className="w-5 h-5 text-slate-400" />
