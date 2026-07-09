@@ -29,12 +29,12 @@ export default function MedicationLeaderboard({ data, dict, lang }: Props) {
       <div className="w-full bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-800 p-16 flex flex-col items-center justify-center text-center shadow-sm transition-colors">
         <Trophy className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
         <h3 className="text-xl font-black text-slate-800 dark:text-slate-200 mb-2">
-          {lang === 'id' ? "Belum Ada Data Rekam Medis" : "No Medical Records Yet"}
+          {dict.emptyTitle || (lang === 'id' ? "Belum Ada Data Rekam Medis" : "No Medical Records Yet")}
         </h3>
         <p className="text-sm font-medium text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-          {lang === 'id' 
+          {dict.emptyDesc || (lang === 'id' 
             ? "Statistik kemanjuran obat di sini akan otomatis terisi saat pengguna menyelesaikan proses pengobatan ikan di menu 'My Aquarium'." 
-            : "Medication efficacy statistics here will automatically populate when users complete fish treatments in the 'My Aquarium' menu."}
+            : "Medication efficacy statistics here will automatically populate when users complete fish treatments in the 'My Aquarium' menu.")}
         </p>
       </div>
     );
@@ -70,12 +70,12 @@ export default function MedicationLeaderboard({ data, dict, lang }: Props) {
           <table className="w-full text-sm text-left">
             <thead className="bg-slate-50 dark:bg-slate-950/80 text-slate-500 dark:text-slate-400 uppercase text-[10px] font-black tracking-widest border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="px-6 py-5 text-center w-20">{dict.colRank || (lang === 'id' ? "Peringkat" : "Rank")}</th>
-                <th className="px-6 py-5">{dict.colMedication || (lang === 'id' ? "Medikasi & Penyakit" : "Medication & Disease")}</th>
-                <th className="px-6 py-5 text-center">{dict.colScore || (lang === 'id' ? "Skor Klinis" : "Clinical Score")}</th>
-                <th className="px-6 py-5 text-center">{dict.colSuccess || (lang === 'id' ? "Tingkat Sembuh" : "Success Rate")}</th>
-                <th className="px-6 py-5 text-center">{dict.colRecovery || (lang === 'id' ? "Rata-rata Sembuh" : "Avg Recovery")}</th>
-                <th className="px-6 py-5 text-center">{dict.colCases || (lang === 'id' ? "Bukti Kasus" : "Evidence")}</th>
+                <th className="px-6 py-5 text-center w-20">{dict.colRank || "Rank"}</th>
+                <th className="px-6 py-5">{dict.colMedication || "Medication & Disease"}</th>
+                <th className="px-6 py-5 text-center">{dict.colScore || "Clinical Score"}</th>
+                <th className="px-6 py-5 text-center">{dict.colSuccess || "Success Rate"}</th>
+                <th className="px-6 py-5 text-center">{dict.colRecovery || "Avg Recovery"}</th>
+                <th className="px-6 py-5 text-center">{dict.colCases || "Evidence Cases"}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -107,7 +107,7 @@ export default function MedicationLeaderboard({ data, dict, lang }: Props) {
                             {lang === 'id' ? row.medication?.name_id : row.medication?.name_en}
                             <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{dict.forDisease || (lang === 'id' ? "Untuk:" : "For:")} <span className="font-semibold">{diseaseName}</span></p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{dict.forDisease || "For:"} <span className="font-semibold">{diseaseName}</span></p>
                         </div>
                       </div>
                     </td>
@@ -126,7 +126,7 @@ export default function MedicationLeaderboard({ data, dict, lang }: Props) {
                     </td>
 
                     <td className="px-6 py-4 text-center font-bold text-slate-600 dark:text-slate-300">
-                      {row.median_recovery_days} <span className="text-xs font-medium text-slate-400">{dict.days || (lang === 'id' ? "Hari" : "Days")}</span>
+                      {row.median_recovery_days} <span className="text-xs font-medium text-slate-400">{dict.days || "Days"}</span>
                     </td>
                     
                     <td className="px-6 py-4 text-center">
@@ -167,24 +167,24 @@ export default function MedicationLeaderboard({ data, dict, lang }: Props) {
                      <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 leading-tight">
                        {lang === 'id' ? row.medication?.name_id : row.medication?.name_en}
                      </h3>
-                     <p className="text-xs text-slate-500 mt-0.5">{dict.forDisease || (lang === 'id' ? "Untuk:" : "For:")} <span className="font-semibold">{diseaseName}</span></p>
+                     <p className="text-xs text-slate-500 mt-0.5">{dict.forDisease || "For:"} <span className="font-semibold">{diseaseName}</span></p>
                    </div>
                  </div>
                  
                  <div className="grid grid-cols-2 gap-3 mb-4">
                     <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-xl border border-indigo-100 dark:border-indigo-800/50 flex flex-col justify-center">
-                       <span className="text-[10px] font-black uppercase tracking-wider text-indigo-500 dark:text-indigo-400 mb-1">{dict.colScore || (lang === 'id' ? "Skor Klinis" : "Clinical Score")}</span>
+                       <span className="text-[10px] font-black uppercase tracking-wider text-indigo-500 dark:text-indigo-400 mb-1">{dict.colScore || "Clinical Score"}</span>
                        <span className="text-xl font-black text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5"><Activity className="w-4 h-4" />{row.clinical_score}</span>
                     </div>
                     <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl border border-emerald-100 dark:border-emerald-800/50 flex flex-col justify-center">
-                       <span className="text-[10px] font-black uppercase tracking-wider text-emerald-500 dark:text-emerald-400 mb-1">{dict.colSuccess || (lang === 'id' ? "Tingkat Sembuh" : "Success Rate")}</span>
+                       <span className="text-[10px] font-black uppercase tracking-wider text-emerald-500 dark:text-emerald-400 mb-1">{dict.colSuccess || "Success Rate"}</span>
                        <span className="text-xl font-black text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5"><ShieldCheck className="w-4 h-4" />{row.success_rate_pct}%</span>
                     </div>
                  </div>
 
                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 mt-auto">
-                    <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-slate-400" /> {row.median_recovery_days} {dict.days || (lang === 'id' ? "Hari" : "Days")}</div>
-                    <div className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-slate-400" /> {row.total_cases.toLocaleString()} {dict.colCases || (lang === 'id' ? "Kasus" : "Cases")}</div>
+                    <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-slate-400" /> {row.median_recovery_days} {dict.days || "Days"}</div>
+                    <div className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-slate-400" /> {row.total_cases.toLocaleString()} {dict.colCases || "Cases"}</div>
                  </div>
               </div>
             );

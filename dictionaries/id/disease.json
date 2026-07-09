@@ -84,6 +84,8 @@
     "title": "Clinical Intelligence",
     "subtitle": "Dashboard analitik berbasis bukti (Evidence-Based). Menampilkan tingkat kemanjuran obat, laju pemulihan, dan risiko kambuh berdasarkan rekam medis sistem pakar.",
     "emptyState": "Belum ada rekam medis yang cukup untuk menyusun statistik.",
+    "emptyTitle": "Belum Ada Data Rekam Medis",
+    "emptyDesc": "Statistik kemanjuran obat di sini akan otomatis terisi saat pengguna menyelesaikan proses pengobatan ikan di menu 'My Aquarium'.",
     "leaderboardTitle": "Peringkat Efikasi Obat (Top 20)",
     "colRank": "Peringkat",
     "colMedication": "Medikasi & Penyakit",

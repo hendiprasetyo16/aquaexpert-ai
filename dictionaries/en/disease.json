@@ -84,6 +84,8 @@
     "title": "Clinical Intelligence",
     "subtitle": "Evidence-Based analytics dashboard. Displays medication efficacy rates, recovery speeds, and relapse risks based on expert system medical records.",
     "emptyState": "Not enough medical records to generate statistics yet.",
+    "emptyTitle": "No Medical Records Yet",
+    "emptyDesc": "Medication efficacy statistics here will automatically populate when users complete fish treatments in the 'My Aquarium' menu.",
     "leaderboardTitle": "Medication Efficacy Leaderboard (Top 20)",
     "colRank": "Rank",
     "colMedication": "Medication & Disease",
