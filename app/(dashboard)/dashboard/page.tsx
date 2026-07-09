@@ -548,50 +548,68 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* SUB-SEKSI: ALAT DIAGNOSA KHUSUS */}
+{/* SUB-SEKSI: ALAT DIAGNOSA KHUSUS */}
             <div className="space-y-4">
               <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Cpu className="w-5 h-5 text-indigo-500" />
-                {lang === 'id' ? "Alat Diagnosa Khusus" : "Specialized Diagnostic Tools"}
+                {lang === 'id' ? "Sistem Pakar Diagnostik" : "Expert Diagnostic Systems"}
               </h3>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                
+                {/* 1. DISEASE EXPERT */}
                 <div onClick={() => router.push("/dashboard/disease-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-rose-500/50 dark:hover:border-rose-500/50 hover:shadow-[0_0_30px_rgba(225,29,72,0.15)] dark:hover:shadow-[0_0_30px_rgba(225,29,72,0.2)]">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-rose-500/10 dark:bg-rose-500/20 blur-3xl rounded-full group-hover:bg-rose-500/20 dark:group-hover:bg-rose-500/30 transition-colors duration-500"></div>
                   <div className="relative z-10">
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform">
                       <HeartPulse className="w-6 h-6 drop-shadow-[0_0_8px_rgba(225,29,72,0.5)]" />
                     </div>
-                    <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Disease Expert AI</h4>
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Diagnosis cerdas penyakit biota air menggunakan pemindaian komputer AI Vision." : "Smart diagnosis of aquatic diseases using AI Vision computer scanning."}</p>
-                    <div className="flex items-center text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-4 h-4" /></div>
+                    <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Disease Expert</h4>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-3">{lang === 'id' ? "Pemindaian klinis dan identifikasi patogen menggunakan pemindai visual terotomasi." : "Clinical scanning and pathogen identification using automated visual scanners."}</p>
+                    <div className="flex items-center text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Mulai Pemindaian" : "Start Scan"} <ArrowRight className="w-4 h-4" /></div>
                   </div>
                 </div>
 
+                {/* 2. FISH EXPERT */}
                 <div onClick={() => router.push("/dashboard/fish-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] dark:hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 dark:bg-blue-500/20 blur-3xl rounded-full group-hover:bg-blue-500/20 dark:group-hover:bg-blue-500/30 transition-colors duration-500"></div>
                   <div className="relative z-10">
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
                       <Fish className="w-6 h-6 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                     </div>
-                    <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Fish Expert AI</h4>
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Konsultasi ahli terkait perawatan, kompatibilitas, dan nutrisi spesies ikan." : "Expert consultation regarding care, compatibility, and fish species nutrition."}</p>
-                    <div className="flex items-center text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-4 h-4" /></div>
+                    <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Fish Expert</h4>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-3">{lang === 'id' ? "Sistem pakar terkait nutrisi harian, perhitungan bioload, dan sengketa teritorial ikan." : "Expert system for daily nutrition, bioload calculations, and territorial disputes."}</p>
+                    <div className="flex items-center text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Konsultasi Ahli" : "Expert Consult"} <ArrowRight className="w-4 h-4" /></div>
                   </div>
                 </div>
 
+                {/* 3. PLANT EXPERT */}
                 <div onClick={() => router.push("/dashboard/plant-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-emerald-500/50 dark:hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.15)] dark:hover:shadow-[0_0_30px_rgba(16,185,129,0.2)]">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 dark:bg-emerald-500/20 blur-3xl rounded-full group-hover:bg-emerald-500/20 dark:group-hover:bg-emerald-500/30 transition-colors duration-500"></div>
                   <div className="relative z-10">
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
                       <Leaf className="w-6 h-6 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                     </div>
-                    <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Plant Expert AI</h4>
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Analisis defisiensi nutrisi dan panduan optimalisasi flora aquascape." : "Nutrient deficiency analysis and aquascape flora optimization guide."}</p>
+                    <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Plant Expert</h4>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-3">{lang === 'id' ? "Analisis defisiensi nutrisi dan panduan optimalisasi flora aquascape." : "Nutrient deficiency analysis and aquascape flora optimization guide."}</p>
                     <div className="flex items-center text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Modul" : "Open Module"} <ArrowRight className="w-4 h-4" /></div>
                   </div>
                 </div>
 
+                {/* 4. ALGAE EXPERT */}
+                <div onClick={() => router.push("/dashboard/algae-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-amber-500/50 dark:hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(245,158,11,0.15)] dark:hover:shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 dark:bg-amber-500/20 blur-3xl rounded-full group-hover:bg-amber-500/20 dark:group-hover:bg-amber-500/30 transition-colors duration-500"></div>
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
+                      <Bug className="w-6 h-6 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                    </div>
+                    <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">Algae Expert</h4>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-3">{lang === 'id' ? "Sistem pendeteksi parameter penyebab ledakan alga dan protokol pembasmiannya." : "Parameter detection system for algae blooms and eradication protocols."}</p>
+                    <div className="flex items-center text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Analisis Alga" : "Analyze Algae"} <ArrowRight className="w-4 h-4" /></div>
+                  </div>
+                </div>
+
+                {/* 5. CLINICAL ANALYTICS */}
                 <div onClick={() => router.push("/dashboard/analytics")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-indigo-500/50 dark:hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.2)]">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 blur-3xl rounded-full group-hover:bg-indigo-500/20 dark:group-hover:bg-indigo-500/30 transition-colors duration-500"></div>
                   <div className="relative z-10">
@@ -599,10 +617,11 @@ export default function DashboardPage() {
                       <BarChart className="w-6 h-6 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
                     </div>
                     <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{lang === 'id' ? "Analisis Klinis" : "Clinical Analytics"}</h4>
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{lang === 'id' ? "Dasbor statistik dan pemantauan mendalam dari parameter biologis akuarium." : "Statistical dashboard and in-depth monitoring of aquarium biological parameters."}</p>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4 line-clamp-3">{lang === 'id' ? "Dasbor statistik dan pemantauan mendalam dari parameter biologis akuarium." : "Statistical dashboard and in-depth monitoring of aquarium biological parameters."}</p>
                     <div className="flex items-center text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider group-hover:gap-2 transition-all gap-1">{lang === 'id' ? "Buka Analitik" : "Open Analytics"} <ArrowRight className="w-4 h-4" /></div>
                   </div>
                 </div>
+
               </div>
             </div>
 
