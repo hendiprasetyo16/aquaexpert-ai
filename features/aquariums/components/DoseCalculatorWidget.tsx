@@ -23,8 +23,14 @@ export default function DoseCalculatorWidget({ aquariumVolumeLiters }: DoseCalcu
     
   const calculatedDoseStr = calcValue > 0 ? calcValue.toFixed(2) : "0.00";
 
-  // EFEK VISUAL: Hitung persentase isi cairan (Maksimal 100%)
-  const fillPercentage = Math.min(100, Math.max(0, (calcValue / 15) * 100));
+  // EFEK VISUAL: Hitung persentase isi cairan untuk SVG
+  // Angka maksimal height kotak cairan di dalam gelas adalah 12
+  // Jika ada input (calcValue > 0), set minimal height ke 2 agar selalu terlihat
+  const fillHeight = calcValue > 0 ? Math.min(12, Math.max(2, (calcValue / 15) * 12)) : 0;
+  
+  // Posisi 'Y' cairan. Semakin tinggi isi cairan, Y-nya semakin ke atas (angka lebih kecil)
+  // Gelas kita mulai (dasarnya) di Y=18.
+  const fillY = 18 - fillHeight;
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm mt-4">
@@ -75,11 +81,11 @@ export default function DoseCalculatorWidget({ aquariumVolumeLiters }: DoseCalcu
         </div>
       </div>
 
-      {/* HASIL KALKULASI: DIBAGI DUA KIRI-KANAN (Sesuai Ide Bapak) */}
-      <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 rounded-xl p-5 flex items-center justify-between gap-4">
+      {/* HASIL KALKULASI */}
+      <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 rounded-xl p-5 flex items-center justify-between gap-4 relative overflow-hidden">
         
         {/* BAGIAN KIRI: Teks & Angka */}
-        <div className="flex flex-col items-start flex-1 min-w-0">
+        <div className="flex flex-col items-start flex-1 min-w-0 z-20 relative">
           <p className="text-[11px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 leading-tight">
             {lang === 'id' ? "Dosis Tangki Anda" : "Your Tank Dosage"}
           </p>
@@ -95,18 +101,42 @@ export default function DoseCalculatorWidget({ aquariumVolumeLiters }: DoseCalcu
           </div>
         </div>
 
-        {/* BAGIAN KANAN: Ikon Gelas Kimia (Beaker) */}
-        <div className="relative w-16 h-16 shrink-0 flex items-end justify-center">
-          {/* Ikon Gelas SVG */}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full text-blue-300 dark:text-blue-800 z-20 relative">
-            <path d="M4.5 3h15M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3M6 14h12" />
+        {/* BAGIAN KANAN: Ikon Gelas SVG + Animasi Cairan Murni SVG */}
+        <div className="w-14 h-14 shrink-0 flex items-center justify-center z-20 relative mr-2">
+          <svg viewBox="0 0 24 24" className="w-full h-full">
+            {/* Garis Dasar Gelas (Background Outline) */}
+            <path 
+              d="M4.5 3h15M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3M6 14h12" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="1.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              className="text-blue-200 dark:text-blue-900"
+            />
+            
+            {/* Cairan Pengisi (Biru Pekat) - Diatur langsung tinggi dan posisinya via atribut SVG */}
+            <rect 
+              x="6.5" 
+              y={fillY} 
+              width="11" 
+              height={fillHeight} 
+              fill="currentColor" 
+              className="text-blue-500 dark:text-blue-500 transition-all duration-1000 ease-out"
+              rx="0.5" 
+            />
+            
+            {/* Garis Gelas Terluar (Foreground Outline - agar cairan terlihat di "dalam" gelas) */}
+            <path 
+              d="M4.5 3h15M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3M6 14h12" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              className="text-slate-800 dark:text-slate-300"
+            />
           </svg>
-          
-          {/* Efek Cairan Biru yang Naik-Turun */}
-          <div 
-            className="absolute bottom-[2px] w-[36px] bg-blue-500/80 rounded-b-sm transition-all duration-700 ease-out z-10"
-            style={{ height: `${(fillPercentage / 100) * 44}px` }} 
-          />
         </div>
         
       </div>
