@@ -19,14 +19,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* OVERLAY MOBILE */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity md:hidden"
+          className="fixed inset-0 z-[99998] bg-black/60 backdrop-blur-sm transition-opacity md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* SIDEBAR */}
       <Sidebar 
-        className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-[99999] transform transition-transform duration-300 ease-in-out md:static md:translate-x-0 ${
           isSidebarOpen ? "translate-x-0 shadow-2xl shadow-black" : "-translate-x-full"
         }`}
         onClose={() => setIsSidebarOpen(false)}
@@ -35,8 +35,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* MAIN CONTENT AREA */}
       <main className="flex w-full flex-1 flex-col h-screen overflow-hidden relative">
         
-        {/* HEADER */}
-        <header className="flex z-50 relative h-16 shrink-0 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 px-4 sm:px-6 backdrop-blur-md transition-colors">
+        {/* 💡 FIX: HEADER DIKUNCI DI Z-INDEX 99990 AGAR SELALU DI ATAS MODAL */}
+        <header className="flex z-[99990] relative h-16 shrink-0 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 px-4 sm:px-6 backdrop-blur-md transition-colors">
           
           {/* BAGIAN KIRI: Tombol Mobile */}
           <div className="flex items-center gap-3">
@@ -68,10 +68,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             
             {/* TOMBOL TOGGLE TEMA (Gelap/Terang) */}
             <ThemeToggle />
-            
+
             {/* TOMBOL NOTIFIKASI REAL-TIME */}
             <NotificationBell role={profile?.role || ""} />
-
           </div>
 
         </header>
