@@ -23,26 +23,57 @@ import type { Aquarium } from "@/features/aquariums/types/aquarium.types";
 import { Button } from "@/components/ui/button";
 
 const RESULTS_PER_PAGE = 3;
-const SESSION_KEY = "aquaexpert_disease_inference_v1"; // Kunci ingatan browser
+const SESSION_KEY = "aquaexpert_disease_inference_v1"; 
 
-// Interface untuk ingatan session
 interface SavedDiseaseSession {
   aquariumId: string;
   symptomIds: string[];
   results: DiseaseMatchResult[];
 }
 
+// 💡 1. MENGHILANGKAN 'ANY': Buat Interface yang ketat untuk Kamus Disease Expert
+interface DiseaseExpertDict {
+  title?: string;
+  subtitle?: string;
+  step1?: string;
+  resultTitle?: string;
+  processing?: string;
+  idleDesc?: string;
+  noAqTitle?: string;
+  noAqDesc?: string;
+  btnPrev?: string;
+  btnNext?: string;
+  page?: string;
+  loadingEngine?: string;
+  toastNoAq?: string;
+  toastNoMatch?: string;
+  toastSuccess?: string;
+  toastFailLoad?: string;
+}
+
+// Interface yang memetakan file "disease.json"
+interface RootDict {
+  disease?: {
+    diseaseExpertEngine?: DiseaseExpertDict;
+  };
+  // Fallback jika tidak dibungkus dalam 'disease'
+  diseaseExpertEngine?: DiseaseExpertDict;
+  [key: string]: unknown;
+}
+
 export default function DiseaseExpertPage() {
-  const { language } = useLanguage();
+  const { dict, language } = useLanguage();
   const lang = language as "id" | "en";
+  
+  // 💡 2. TYPE-SAFE CASTING: Membaca ke dict.disease.diseaseExpertEngine
+  const rootDict = dict as RootDict;
+  const expertDict: DiseaseExpertDict = rootDict.disease?.diseaseExpertEngine || rootDict.diseaseExpertEngine || {};
 
   const [aquariums, setAquariums] = useState<Aquarium[]>([]);
   const [selectedAquariumId, setSelectedAquariumId] = useState<string>("");
   const [availableSymptoms, setAvailableSymptoms] = useState<Symptom[]>([]);
   
-  // State untuk menyimpan ID gejala yang sudah di-submit agar SymptomPicker mengingatnya
   const [persistedSymptomIds, setPersistedSymptomIds] = useState<string[]>([]);
-  
   const [diagnosisResults, setDiagnosisResults] = useState<DiseaseMatchResult[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [isDiagnosing, setIsDiagnosing] = useState(false);
@@ -50,7 +81,6 @@ export default function DiseaseExpertPage() {
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // 1. LOAD DATA AWAL & RESTORE SESSION
   useEffect(() => {
     async function loadInitialData() {
       try {
@@ -67,10 +97,9 @@ export default function DiseaseExpertPage() {
         if (symRes.success && symRes.data) {
           setAvailableSymptoms(symRes.data);
         } else {
-          toast.error(lang === 'id' ? "Gagal memuat daftar gejala." : "Failed to load symptoms.");
+          toast.error(expertDict.toastFailLoad || (lang === 'id' ? "Gagal memuat daftar gejala." : "Failed to load symptoms."));
         }
 
-        // RESTORE SESSION: Ambil ingatan jika ada
         const savedSession = sessionStorage.getItem(SESSION_KEY);
         if (savedSession) {
           try {
@@ -85,19 +114,19 @@ export default function DiseaseExpertPage() {
 
       } catch (error: unknown) {
         console.error(error);
-        toast.error(lang === 'id' ? "Gagal memuat data." : "Failed to load data.");
+        toast.error(expertDict.toastFailLoad || (lang === 'id' ? "Gagal memuat data." : "Failed to load data."));
       } finally {
         setIsLoadingInitial(false);
         setIsHydrated(true);
       }
     }
     loadInitialData();
-  }, [lang]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); 
 
-  // 2. FUNGSI EKSEKUSI DIAGNOSA (DENGAN PENYIMPANAN SESI)
   const handleDiagnose = async (aquariumId: string, selectedSymptomIds: string[]) => {
     if (!aquariumId) {
-      toast.error(lang === 'id' ? "Pilih akuarium terlebih dahulu!" : "Please select an aquarium first!");
+      toast.error(expertDict.toastNoAq || (lang === 'id' ? "Pilih akuarium terlebih dahulu!" : "Please select an aquarium first!"));
       return;
     }
     
@@ -115,7 +144,6 @@ export default function DiseaseExpertPage() {
       setDiagnosisResults(response.matches);
       setPersistedSymptomIds(selectedSymptomIds);
 
-      // SIMPAN KE INGATAN BROWSER
       const sessionData: SavedDiseaseSession = {
         aquariumId: aquariumId,
         symptomIds: selectedSymptomIds,
@@ -124,9 +152,9 @@ export default function DiseaseExpertPage() {
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
       
       if (response.matches.length === 0) {
-        toast(lang === 'id' ? "Tidak ditemukan kecocokan patogen." : "No pathogen matches found.", { icon: "ℹ️" });
+        toast(expertDict.toastNoMatch || (lang === 'id' ? "Tidak ditemukan kecocokan patogen." : "No pathogen matches found."), { icon: "ℹ️" });
       } else {
-        toast.success(lang === 'id' ? "Diagnosa selesai!" : "Diagnosis complete!");
+        toast.success(expertDict.toastSuccess || (lang === 'id' ? "Diagnosa selesai!" : "Diagnosis complete!"));
       }
 
     } catch (error: unknown) {
@@ -148,7 +176,7 @@ export default function DiseaseExpertPage() {
       <div className="flex h-full min-h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-4 text-blue-600 dark:text-blue-500">
           <Activity className="w-10 h-10 animate-spin" />
-          <p className="font-bold animate-pulse">{lang === 'id' ? "Memuat AI Engine..." : "Loading AI Engine..."}</p>
+          <p className="font-bold animate-pulse">{expertDict.loadingEngine || (lang === 'id' ? "Memuat Sistem Pakar..." : "Loading Expert System...")}</p>
         </div>
       </div>
     );
@@ -165,12 +193,12 @@ export default function DiseaseExpertPage() {
           <div className="relative z-10">
             <h1 className="text-3xl md:text-4xl font-extrabold text-blue-700 dark:text-blue-400 flex items-center gap-3 drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]">
               <Stethoscope className="w-8 h-8 md:w-10 md:h-10" /> 
-              {lang === 'id' ? "Pakar Diagnosa Penyakit" : "Disease Diagnosis Expert"}
+              {expertDict.title || (lang === 'id' ? "Pakar Diagnosa Penyakit" : "Disease Diagnosis Expert")}
             </h1>
             <p className="mt-2 text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed text-sm md:text-base font-medium">
-              {lang === 'id' 
-                ? "Pilih gejala klinis yang dialami ikan Anda. Sistem pakar AI kami akan mencocokkan gejala dengan database patogen untuk memberikan rekomendasi medis yang aman." 
-                : "Select the clinical symptoms your fish are experiencing. Our expert system will match them against our pathogen database to provide safe medical recommendations."}
+              {expertDict.subtitle || (lang === 'id' 
+                ? "Pilih gejala klinis yang dialami ikan Anda. Sistem pakar kami akan mencocokkan gejala dengan database patogen untuk memberikan rekomendasi medis yang akurat dan aman." 
+                : "Select the clinical symptoms your fish are experiencing. Our expert system will match them against our pathogen database to provide accurate and safe medical recommendations.")}
             </p>
           </div>
         </div>
@@ -185,13 +213,13 @@ export default function DiseaseExpertPage() {
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm relative overflow-hidden transition-colors">
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-teal-400"></div>
                 <label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
-                  <Fish className="w-4 h-4 text-blue-500" /> {lang === 'id' ? "1. Pilih Akuarium Terdampak" : "1. Select Affected Aquarium"}
+                  <Fish className="w-4 h-4 text-blue-500" /> {expertDict.step1 || (lang === 'id' ? "1. Pilih Akuarium Terdampak" : "1. Select Affected Aquarium")}
                 </label>
                 <select 
                   value={selectedAquariumId} 
                   onChange={(e) => {
                     setSelectedAquariumId(e.target.value);
-                    setDiagnosisResults([]); // Reset hasil jika akuarium ganti
+                    setDiagnosisResults([]); 
                     setPersistedSymptomIds([]);
                     sessionStorage.removeItem(SESSION_KEY);
                   }}
@@ -203,15 +231,13 @@ export default function DiseaseExpertPage() {
                 </select>
               </div>
 
-              {/* PICKER GEJALA (Dikirimkan persistedSymptomIds agar tidak hilang) */}
+              {/* PICKER GEJALA */}
               <SymptomPicker 
                 aquariumId={selectedAquariumId}
                 availableSymptoms={availableSymptoms}
                 onSubmitDiagnosis={handleDiagnose}
                 isLoading={isDiagnosing}
                 lang={lang}
-                // Jika SymptomPicker butuh initial state, kita bisa modifikasi komponennya di masa depan
-                // Tapi saat ini, asalkan komponen tidak unmount, dia akan menjaga state internalnya sendiri.
               />
             </div>
 
@@ -220,19 +246,19 @@ export default function DiseaseExpertPage() {
               <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 lg:p-8 flex flex-col h-full shadow-inner transition-colors">
                 <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-4">
                   <ShieldPlus className="w-6 h-6 text-blue-600 dark:text-blue-500" /> 
-                  {lang === 'id' ? "Hasil Analisis Patologi" : "AI Pathology Analysis Results"}
+                  {expertDict.resultTitle || (lang === 'id' ? "Hasil Analisis Patologi" : "Pathology Analysis Results")}
                 </h3>
 
                 {isDiagnosing ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-slate-500 animate-pulse min-h-[400px]">
                     <Activity className="w-14 h-14 mb-4 text-blue-500 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
-                    <p className="font-bold tracking-wide">{lang === 'id' ? "Memproses komputasi patogen..." : "Processing pathogen computation..."}</p>
+                    <p className="font-bold tracking-wide">{expertDict.processing || (lang === 'id' ? "Memproses komputasi patogen..." : "Processing pathogen computation...")}</p>
                   </div>
                 ) : diagnosisResults.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900 min-h-[400px] p-6 opacity-70">
                     <Stethoscope className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
                     <p className="text-slate-500 dark:text-slate-400 font-bold max-w-sm">
-                      {lang === 'id' ? "Pilih gejala di samping lalu klik tombol Analisis untuk melihat hasil diagnosa." : "Select symptoms on the left and click the Analysis button to see results."}
+                      {expertDict.idleDesc || (lang === 'id' ? "Pilih gejala di samping lalu klik tombol Analisis untuk melihat hasil diagnosa." : "Select symptoms on the left and click the Analysis button to see results.")}
                     </p>
                   </div>
                 ) : (
@@ -262,10 +288,10 @@ export default function DiseaseExpertPage() {
                           disabled={currentPage === 1}
                           className="font-bold bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
                         >
-                          <ChevronLeft className="w-4 h-4 mr-1" /> {lang === 'id' ? "Sebelumnya" : "Prev"}
+                          <ChevronLeft className="w-4 h-4 mr-1" /> {expertDict.btnPrev || (lang === 'id' ? "Sebelumnya" : "Prev")}
                         </Button>
                         <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                          {lang === 'id' ? "Halaman" : "Page"} {currentPage} / {totalPages}
+                          {expertDict.page || (lang === 'id' ? "Halaman" : "Page")} {currentPage} / {totalPages}
                         </span>
                         <Button 
                           variant="outline" 
@@ -273,7 +299,7 @@ export default function DiseaseExpertPage() {
                           disabled={currentPage === totalPages}
                           className="font-bold bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
                         >
-                          {lang === 'id' ? "Lanjut" : "Next"} <ChevronRight className="w-4 h-4 ml-1" />
+                          {expertDict.btnNext || (lang === 'id' ? "Lanjut" : "Next")} <ChevronRight className="w-4 h-4 ml-1" />
                         </Button>
                       </div>
                     )}
@@ -287,10 +313,10 @@ export default function DiseaseExpertPage() {
           <div className="flex flex-col items-center justify-center p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 shadow-sm transition-colors">
              <AlertTriangle className="w-16 h-16 text-amber-500 mb-4 opacity-80 drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]" />
              <h3 className="text-xl font-black text-slate-800 dark:text-slate-200 mb-2">
-               {lang === 'id' ? "Akuarium Belum Tersedia" : "No Aquarium Available"}
+               {expertDict.noAqTitle || (lang === 'id' ? "Akuarium Belum Tersedia" : "No Aquarium Available")}
              </h3>
              <p className="font-medium text-slate-500 dark:text-slate-400 max-w-md">
-               {lang === 'id' ? "Anda harus membuat minimal satu akuarium di menu My Aquariums terlebih dahulu untuk menggunakan fitur ini." : "You must create at least one aquarium in the My Aquariums menu first to use this feature."}
+               {expertDict.noAqDesc || (lang === 'id' ? "Anda harus membuat minimal satu akuarium di menu My Aquariums terlebih dahulu untuk menggunakan fitur ini." : "You must create at least one aquarium in the My Aquariums menu first to use this feature.")}
              </p>
           </div>
         )}

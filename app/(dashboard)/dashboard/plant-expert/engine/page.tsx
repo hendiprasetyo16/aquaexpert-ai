@@ -44,6 +44,18 @@ interface ExpertEngineFormDict {
   confExcellent: string; confVeryGood: string; confGood: string; confModerate: string;
 }
 
+// 💡 1. MENGHILANGKAN 'ANY': Interface yang memetakan file "plants.json"
+interface RootDict {
+  plants?: {
+    plantExpertEngine?: ExpertEngineFormDict;
+    plantExpertService?: PlantExpertDictionary;
+  };
+  // Fallback jika tidak dibungkus dalam 'plants'
+  plantExpertEngine?: ExpertEngineFormDict;
+  plantExpertService?: PlantExpertDictionary;
+  [key: string]: unknown;
+}
+
 export default function PlantExpertEngineV4() {
   const { dict, language } = useLanguage(); 
   const lang = language as "id" | "en";
@@ -64,9 +76,10 @@ export default function PlantExpertEngineV4() {
 
   const [currentPage, setCurrentPage] = useState(1);
 
-  // TYPE-SAFE CASTING
-  const expertDict = (dict as any).plantExpertEngine as ExpertEngineFormDict;
-  const serviceDict = (dict as any).plantExpertService as PlantExpertDictionary;
+  // 💡 2. TYPE-SAFE CASTING: Membaca langsung ke dict.plants
+  const rootDict = dict as RootDict;
+  const expertDict = rootDict.plants?.plantExpertEngine || rootDict.plantExpertEngine;
+  const serviceDict = rootDict.plants?.plantExpertService || rootDict.plantExpertService;
 
   // LOAD KNOWLEDGE BASE
   useEffect(() => {
@@ -206,7 +219,8 @@ export default function PlantExpertEngineV4() {
   const pageNumbers = [];
   for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
-  if (!expertDict || !serviceDict) return null;
+  // 💡 SAFETY CHECK: Pastikan kamus sudah diload sebelum merender komponen
+  if (!expertDict || !serviceDict) return null; 
 
   return (
     <div className="w-full h-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10">
@@ -366,7 +380,7 @@ export default function PlantExpertEngineV4() {
                               <div className="flex flex-col items-start gap-3 pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
                                 <h4 className="text-lg font-black text-gray-900 dark:text-slate-100 leading-tight flex items-center gap-2">
                                   <Stethoscope className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
-                                  {lang === 'id' ? "Analisis Pakar Flora" : "Flora Expert Analysis"}
+                                  {expertDict.confidence}
                                 </h4>
                                 <div className={`inline-flex items-center self-start px-3 py-1.5 rounded-lg border ${getConfidenceColor(confidenceKey)} shadow-sm shrink-0`}>
                                   <Target className="w-4 h-4 mr-1.5" />

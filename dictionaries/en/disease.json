@@ -80,6 +80,24 @@
     "typeDiseaseName": "Type name to confirm:",
     "btnConfirmDelete": "DELETE NOW"
   },
+  "diseaseExpertEngine": {
+    "title": "Disease Diagnosis Expert",
+    "subtitle": "Select the clinical symptoms your fish are experiencing. Our expert system will match them against our pathogen database to provide accurate and safe medical recommendations.",
+    "step1": "1. Select Affected Aquarium",
+    "resultTitle": "Pathology Analysis Results",
+    "processing": "Processing pathogen computation...",
+    "idleDesc": "Select symptoms on the left panel and click the Analysis button to see results.",
+    "noAqTitle": "No Aquarium Available",
+    "noAqDesc": "You must create at least one aquarium in the My Aquariums menu first to use this feature.",
+    "btnPrev": "Prev",
+    "btnNext": "Next",
+    "page": "Page",
+    "loadingEngine": "Loading Expert System...",
+    "toastNoAq": "Please select an aquarium first!",
+    "toastNoMatch": "No pathogen matches found.",
+    "toastSuccess": "Diagnosis complete!",
+    "toastFailLoad": "Failed to load symptom data."
+  },
   "clinicalAnalytics": {
     "title": "Clinical Intelligence",
     "subtitle": "Evidence-Based analytics dashboard. Displays medication efficacy rates, recovery speeds, and relapse risks based on expert system medical records.",

@@ -80,6 +80,24 @@
     "typeDiseaseName": "Ketik nama untuk konfirmasi:",
     "btnConfirmDelete": "HAPUS SEKARANG"
   },
+  "diseaseExpertEngine": {
+    "title": "Pakar Diagnosa Penyakit",
+    "subtitle": "Pilih gejala klinis yang dialami ikan Anda. Sistem pakar kami akan mencocokkan gejala dengan database patogen untuk memberikan rekomendasi medis yang akurat dan aman.",
+    "step1": "1. Pilih Akuarium Terdampak",
+    "resultTitle": "Hasil Analisis Patologi",
+    "processing": "Memproses komputasi patogen...",
+    "idleDesc": "Pilih gejala di panel samping lalu klik tombol Analisis untuk melihat hasil diagnosa.",
+    "noAqTitle": "Akuarium Belum Tersedia",
+    "noAqDesc": "Anda harus membuat minimal satu akuarium di menu My Aquariums terlebih dahulu untuk menggunakan fitur ini.",
+    "btnPrev": "Sebelumnya",
+    "btnNext": "Lanjut",
+    "page": "Halaman",
+    "loadingEngine": "Memuat Sistem Pakar...",
+    "toastNoAq": "Pilih akuarium terlebih dahulu!",
+    "toastNoMatch": "Tidak ditemukan kecocokan patogen.",
+    "toastSuccess": "Diagnosa selesai!",
+    "toastFailLoad": "Gagal memuat data gejala."
+  },
   "clinicalAnalytics": {
     "title": "Clinical Intelligence",
     "subtitle": "Dashboard analitik berbasis bukti (Evidence-Based). Menampilkan tingkat kemanjuran obat, laju pemulihan, dan risiko kambuh berdasarkan rekam medis sistem pakar.",
