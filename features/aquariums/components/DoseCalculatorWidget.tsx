@@ -23,12 +23,12 @@ export default function DoseCalculatorWidget({ aquariumVolumeLiters }: DoseCalcu
     
   const calculatedDoseStr = calcValue > 0 ? calcValue.toFixed(2) : "0.00";
 
-  // 💡 EFEK VISUAL: Hitung persentase isi cairan (Maksimal 100%)
-  // Asumsi: Dosis 15ml ke atas dianggap 'penuh' secara visual agar animasinya terlihat
+  // EFEK VISUAL: Hitung persentase isi cairan (Maksimal 100%)
   const fillPercentage = Math.min(100, Math.max(0, (calcValue / 15) * 100));
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm mt-4">
+      
       {/* HEADER & HINT EDUKASI */}
       <div className="flex items-start gap-3 mb-5 pb-4 border-b border-slate-100 dark:border-slate-800">
         <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg shrink-0 mt-0.5">
@@ -36,73 +36,77 @@ export default function DoseCalculatorWidget({ aquariumVolumeLiters }: DoseCalcu
         </div>
         <div>
           <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 mb-1">
-            {lang === 'id' ? "Kalkulator Dosis (Kondisioner)" : "Dose Calculator (Conditioner)"}
+            {lang === 'id' ? "Kalkulator Dosis Presisi" : "Precision Dose Calculator"}
           </h4>
           <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
             {lang === 'id' 
-              ? "Gunakan kalkulator ini untuk menakar cairan secara presisi (contoh: Penurun pH, Pupuk Cair) agar terhindar dari overdosis."
-              : "Use this to precisely measure liquids (e.g., pH Buffers, Liquid Fertilizers) to avoid lethal overdosing."}
+              ? "Gunakan kalkulator ini untuk menakar cairan secara presisi (contoh: Obat, Pupuk Cair) agar terhindar dari overdosis."
+              : "Use this to precisely measure liquids (e.g., Medications, Liquid Fertilizers) to avoid lethal overdosing."}
           </p>
         </div>
       </div>
 
-      {/* INPUT FORM */}
-      <div className="grid grid-cols-2 gap-4 mb-4 relative z-20">
-        <div>
-          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block line-clamp-1">
-            {lang === 'id' ? "Dosis Kemasan (ml)" : "Package Dose (ml)"}
+      {/* INPUT FORM: Grid 2 Kolom */}
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 line-clamp-1">
+            {lang === 'id' ? "Dosis (ml/tetes)" : "Dose (ml/drops)"}
           </label>
           <input 
             type="number" 
             placeholder="Cth: 5"
             value={recommendedDose}
             onChange={(e) => setRecommendedDose(e.target.value ? Number(e.target.value) : "")}
-            className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-black outline-none focus:border-blue-500 transition-colors"
+            className="w-full h-11 px-3 sm:px-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-black outline-none focus:border-blue-500 transition-colors"
           />
         </div>
-        <div>
-          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block line-clamp-1">
-            {lang === 'id' ? "Per Volume Air (Liter)" : "Per Volume (Liters)"}
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 line-clamp-1">
+            {lang === 'id' ? "Per Air (Liter)" : "Per Water (Liters)"}
           </label>
           <input 
             type="number" 
             placeholder="Cth: 50"
             value={recommendedVolume}
             onChange={(e) => setRecommendedVolume(e.target.value ? Number(e.target.value) : "")}
-            className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-black outline-none focus:border-blue-500 transition-colors"
+            className="w-full h-11 px-3 sm:px-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm font-black outline-none focus:border-blue-500 transition-colors"
           />
         </div>
       </div>
 
-      {/* HASIL KALKULASI DENGAN ANIMASI CAIRAN BEAKER */}
-      <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 rounded-xl p-4 flex justify-between items-center gap-4 relative overflow-hidden h-[80px]">
+      {/* HASIL KALKULASI: DIBAGI DUA KIRI-KANAN (Sesuai Ide Bapak) */}
+      <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 rounded-xl p-5 flex items-center justify-between gap-4">
         
-        {/* 💡 EFEK VISUAL BEAKER (Gelas Kimia) */}
-        <div className="absolute right-0 bottom-0 w-24 h-24 opacity-20 pointer-events-none flex items-end justify-center">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-20 h-20 text-blue-500 z-10 relative">
+        {/* BAGIAN KIRI: Teks & Angka */}
+        <div className="flex flex-col items-start flex-1 min-w-0">
+          <p className="text-[11px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 leading-tight">
+            {lang === 'id' ? "Dosis Tangki Anda" : "Your Tank Dosage"}
+          </p>
+          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1 mb-2 line-clamp-1">
+            {lang === 'id' ? `(Sesuai volume ${aquariumVolumeLiters} Liter)` : `(For ${aquariumVolumeLiters} Liters)`}
+          </p>
+          
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <span className="text-4xl font-black text-blue-700 dark:text-blue-400 tracking-tighter">
+              {calculatedDoseStr}
+            </span>
+            <span className="text-xs sm:text-sm font-bold text-blue-600/70">ml/tetes</span>
+          </div>
+        </div>
+
+        {/* BAGIAN KANAN: Ikon Gelas Kimia (Beaker) */}
+        <div className="relative w-16 h-16 shrink-0 flex items-end justify-center">
+          {/* Ikon Gelas SVG */}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full text-blue-300 dark:text-blue-800 z-20 relative">
             <path d="M4.5 3h15M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3M6 14h12" />
           </svg>
-          {/* Lapisan Cairan yang terisi secara dinamis */}
+          
+          {/* Efek Cairan Biru yang Naik-Turun */}
           <div 
-            className="absolute bottom-[2px] w-[50px] bg-blue-500 rounded-b-md transition-all duration-700 ease-out z-0 opacity-50"
-            style={{ height: `${(fillPercentage / 100) * 72}px` }} 
+            className="absolute bottom-[2px] w-[36px] bg-blue-500/80 rounded-b-sm transition-all duration-700 ease-out z-10"
+            style={{ height: `${(fillPercentage / 100) * 44}px` }} 
           />
-        </div>
-        
-        <div className="relative z-20 flex-1 min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-0.5 leading-tight line-clamp-1">
-            {lang === 'id' ? "Dosis Tangki Anda:" : "Tank Dosage:"}
-          </p>
-          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 line-clamp-1">
-            {lang === 'id' ? `(Sesuai volume ${aquariumVolumeLiters}L)` : `(For ${aquariumVolumeLiters}L volume)`}
-          </p>
-        </div>
-        
-        <div className="relative z-20 text-right shrink-0 bg-white/50 dark:bg-slate-900/50 px-3 py-1.5 rounded-lg border border-blue-100 dark:border-blue-800/30 backdrop-blur-sm">
-          <span className="text-2xl font-black text-blue-700 dark:text-blue-400 tracking-tight">
-            {calculatedDoseStr}
-          </span>
-          <span className="text-xs font-bold text-blue-600/70 ml-1">ml/gr</span>
         </div>
         
       </div>
