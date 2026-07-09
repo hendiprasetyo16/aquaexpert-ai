@@ -24,13 +24,9 @@ export default function DoseCalculatorWidget({ aquariumVolumeLiters }: DoseCalcu
   const calculatedDoseStr = calcValue > 0 ? calcValue.toFixed(2) : "0.00";
 
   // EFEK VISUAL: Hitung persentase isi cairan untuk SVG
-  // Angka maksimal height kotak cairan di dalam gelas adalah 12
-  // Jika ada input (calcValue > 0), set minimal height ke 2 agar selalu terlihat
-  const fillHeight = calcValue > 0 ? Math.min(12, Math.max(2, (calcValue / 15) * 12)) : 0;
-  
-  // Posisi 'Y' cairan. Semakin tinggi isi cairan, Y-nya semakin ke atas (angka lebih kecil)
-  // Gelas kita mulai (dasarnya) di Y=18.
-  const fillY = 18 - fillHeight;
+  // Tinggi maksimal cairan di dalam gelas adalah 16. Dasar gelas ada di titik Y = 20.5
+  const fillHeight = calcValue > 0 ? Math.min(16, Math.max(2, (calcValue / 15) * 16)) : 0;
+  const fillY = 20.5 - fillHeight;
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm mt-4">
@@ -101,21 +97,11 @@ export default function DoseCalculatorWidget({ aquariumVolumeLiters }: DoseCalcu
           </div>
         </div>
 
-        {/* BAGIAN KANAN: Ikon Gelas SVG + Animasi Cairan Murni SVG */}
-        <div className="w-14 h-14 shrink-0 flex items-center justify-center z-20 relative mr-2">
+        {/* BAGIAN KANAN: Ikon Gelas SVG (Standar Lucide) + Animasi Cairan */}
+        <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 flex items-center justify-center z-20 relative mr-2">
           <svg viewBox="0 0 24 24" className="w-full h-full">
-            {/* Garis Dasar Gelas (Background Outline) */}
-            <path 
-              d="M4.5 3h15M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3M6 14h12" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="1.5" 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              className="text-blue-200 dark:text-blue-900"
-            />
             
-            {/* Cairan Pengisi (Biru Pekat) - Diatur langsung tinggi dan posisinya via atribut SVG */}
+            {/* Cairan Pengisi (Biru Pekat) - Di belakang garis ikon */}
             <rect 
               x="6.5" 
               y={fillY} 
@@ -126,12 +112,12 @@ export default function DoseCalculatorWidget({ aquariumVolumeLiters }: DoseCalcu
               rx="0.5" 
             />
             
-            {/* Garis Gelas Terluar (Foreground Outline - agar cairan terlihat di "dalam" gelas) */}
+            {/* Garis Gelas Terluar - Persis setara dengan standar Lucide React */}
             <path 
               d="M4.5 3h15M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3M6 14h12" 
               fill="none" 
               stroke="currentColor" 
-              strokeWidth="2" 
+              strokeWidth="1.5" 
               strokeLinecap="round" 
               strokeLinejoin="round" 
               className="text-slate-800 dark:text-slate-300"
