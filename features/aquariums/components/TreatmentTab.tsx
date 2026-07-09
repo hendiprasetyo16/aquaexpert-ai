@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { HeartPulse, Plus, ShieldAlert, Activity, AlertCircle, Syringe, Loader2, CheckCircle2, XCircle, History, CalendarDays, Clock, Trash2, AlertTriangle } from "lucide-react";
+import { HeartPulse, Plus, ShieldAlert, Activity, AlertCircle, Syringe, Loader2, CheckCircle2, XCircle, History, CalendarDays, Clock, Trash2, AlertTriangle, Fish } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/providers/LanguageProvider";
 import StartTreatmentModal from "./StartTreatmentModal";
@@ -42,22 +42,26 @@ export default function TreatmentTab({ aquariumId }: Props) {
 
   const fetchTreatments = async () => {
     setIsLoading(true);
-    const [resTreatments, resTank] = await Promise.all([
-      getActiveTreatmentsAction(aquariumId),
-      getAquariumByIdAction(aquariumId)
-    ]);
-    
+    const resTreatments = await getActiveTreatmentsAction(aquariumId);
     if (resTreatments.success) {
       setActivePatients((resTreatments.data || []).filter(d => d.status === "Active"));
       setHistoryPatients((resTreatments.data || []).filter(d => d.status !== "Active"));
     }
-    if (resTank.success && resTank.data) {
-      setTankVolume(resTank.data.volume_liters);
-    }
     setIsLoading(false);
   };
 
-  useEffect(() => { fetchTreatments(); }, [aquariumId]);
+  const fetchTankVolume = async () => {
+    const resTank = await getAquariumByIdAction(aquariumId);
+    if (resTank.success && resTank.data) {
+      setTankVolume(resTank.data.volume_liters);
+    }
+  };
+
+  useEffect(() => { 
+    fetchTreatments(); 
+    fetchTankVolume(); 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aquariumId]);
 
   const calculateDayNumber = (startDate: string) => {
     const start = new Date(startDate);
@@ -96,7 +100,6 @@ export default function TreatmentTab({ aquariumId }: Props) {
   return (
     <div className="animate-in fade-in duration-500">
       
-      {/* CUSTOM DELETE MODAL */}
       {deleteTarget && (
         <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
@@ -117,15 +120,9 @@ export default function TreatmentTab({ aquariumId }: Props) {
         </div>
       )}
 
-      {/* 💡 FIX: MENGGUNAKAN GRID UTAMA YANG MENCAKUP SEMUA KONTEN */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         
-        {/* ======================================================== */}
-        {/* KOLOM KIRI: Header + Daftar Pasien + Riwayat (lg:col-span-2) */}
-        {/* ======================================================== */}
         <div className="lg:col-span-2 flex flex-col gap-6">
-          
-          {/* HEADER */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm w-full">
             <div>
               <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -140,7 +137,6 @@ export default function TreatmentTab({ aquariumId }: Props) {
             </Button>
           </div>
 
-          {/* ACTIVE PATIENTS (Naik langsung di bawah Header) */}
           {isLoading ? (
             <div className="flex justify-center p-10"><Loader2 className="w-8 h-8 animate-spin text-rose-500" /></div>
           ) : activePatients.length === 0 ? (
@@ -156,11 +152,11 @@ export default function TreatmentTab({ aquariumId }: Props) {
                 const hasLoggedToday = session.latest_log?.day_number === dayNum;
 
                 return (
-                  <div key={session.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm flex flex-col relative group">
+                  <div key={session.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm flex flex-col relative group hover:border-rose-300 transition-colors">
                     
                     <button 
                       onClick={() => setDeleteTarget({id: session.id, type: 'active'})} 
-                      className="absolute top-4 right-4 p-2 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm md:shadow-none"
+                      className="absolute top-4 right-4 p-2 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm md:shadow-none hover:bg-red-100"
                     >
                       <Trash2 className="w-4 h-4"/>
                     </button>
@@ -183,17 +179,20 @@ export default function TreatmentTab({ aquariumId }: Props) {
                             {session.latest_log.action_taken === "Observed" ? (lang === 'id' ? "Hanya Observasi" : "Observed") 
                             : session.latest_log.action_taken === "Redosed" ? (lang === 'id' ? "Dosis Ulang" : "Redosed") 
                             : session.latest_log.action_taken === "Water Change" ? (lang === 'id' ? "Ganti Air" : "Water Change") : session.latest_log.action_taken}
-                            
-                            <span className="font-normal italic text-slate-500 block mt-1 max-h-20 overflow-y-auto custom-scrollbar whitespace-pre-wrap space-y-1">
-                              {session.latest_log.notes 
-                                ? session.latest_log.notes
-                                    .split('\n')
-                                    .filter(line => line.trim() !== '')
-                                    .reverse()
-                                    .join('\n')
-                                : ''}
-                            </span>
                           </p>
+                          
+                          {/* 🚀 FIX: LOGIKA REVERSE MENGGUNAKAN MAP AGAR DIPAKSA RENDER TERBALIK OLEH HTML */}
+                          <div className="font-normal italic text-slate-500 mt-1 max-h-24 overflow-y-auto custom-scrollbar">
+                            {session.latest_log.notes 
+                              ? session.latest_log.notes
+                                  .split('\n')
+                                  .filter(line => line.trim() !== '')
+                                  .reverse()
+                                  .map((line, idx) => (
+                                    <span key={idx} className="block mt-0.5">{line}</span>
+                                  ))
+                              : ''}
+                          </div>
                         </div>
                       )}
 
@@ -204,7 +203,7 @@ export default function TreatmentTab({ aquariumId }: Props) {
                     </div>
 
                     <div className="p-5 pt-0">
-                      <Button onClick={() => setSelectedSession(session)} className="w-full h-12 rounded-xl bg-slate-900 dark:bg-rose-600 hover:bg-slate-800 dark:hover:bg-rose-500 text-white font-black text-xs uppercase shadow-md">
+                      <Button onClick={() => setSelectedSession(session)} className="w-full h-12 rounded-xl bg-slate-900 dark:bg-rose-600 hover:bg-slate-800 dark:hover:bg-rose-500 text-white font-black text-xs uppercase shadow-md transition-colors">
                         <Activity className="w-4 h-4 mr-2" /> {hasLoggedToday ? (lang === 'id' ? "Edit Data Hari Ini" : "Edit Today's Data") : (lang === 'id' ? "Catat Medis Hari Ini" : "Log Today's Medical")}
                       </Button>
                     </div>
@@ -214,7 +213,6 @@ export default function TreatmentTab({ aquariumId }: Props) {
             </div>
           )}
 
-          {/* PAST TREATMENTS (HISTORY) */}
           {historyPatients.length > 0 && (
             <div className="pt-8 mt-2 border-t border-slate-200 dark:border-slate-800">
               <h4 className="text-sm font-black uppercase text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-4">
@@ -236,7 +234,6 @@ export default function TreatmentTab({ aquariumId }: Props) {
                       <div key={hist.id} className={`group bg-white dark:bg-slate-900 border rounded-2xl p-4 flex flex-col relative overflow-hidden transition-colors ${
                         isSuccess ? 'border-emerald-200 dark:border-emerald-900/50' : isFailed ? 'border-red-200 dark:border-red-900/50' : 'border-amber-200 dark:border-amber-900/50'
                       }`}>
-                          
                           <button 
                             onClick={() => setDeleteTarget({id: hist.id, type: 'history'})} 
                             className="absolute top-3 right-3 p-2 text-slate-400 hover:text-red-500 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 dark:bg-slate-900/80 rounded-full shadow-sm z-10"
@@ -284,9 +281,7 @@ export default function TreatmentTab({ aquariumId }: Props) {
 
         </div>
 
-        {/* ======================================================== */}
-        {/* KOLOM KANAN: Kalkulator Dosis (lg:col-span-1) */}
-        {/* ======================================================== */}
+        {/* KOLOM KANAN: Kalkulator Dosis */}
         <div className="lg:col-span-1 sticky top-6">
            <DoseCalculatorWidget aquariumVolumeLiters={tankVolume} />
         </div>
