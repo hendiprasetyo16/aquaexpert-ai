@@ -96,7 +96,7 @@ export default function DashboardPage() {
     async function fetchDashboardData() {
       if (!user?.id) return;
       const supabase = createClient();
-      setLoadingPage(true);
+      //setLoadingPage(true);
 
       try {
         const logs: ActivityLog[] = [];
