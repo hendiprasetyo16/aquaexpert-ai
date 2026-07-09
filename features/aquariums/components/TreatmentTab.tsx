@@ -118,24 +118,28 @@ export default function TreatmentTab({ aquariumId }: Props) {
         </div>
       )}
 
-      {/* HEADER TAB DENGAN KALKULATOR DOSIS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 flex flex-col sm:flex-row justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div>
-            <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <HeartPulse className="w-6 h-6 text-rose-500" /> {txt.title}
-            </h3>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2 max-w-md leading-relaxed">
-              {txt.subtitle}
-            </p>
+    {/* HEADER TAB DENGAN KALKULATOR DOSIS */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+        
+        {/* KOTAK KIRI (Rekam Medis) */}
+        <div className="lg:col-span-2 flex flex-col justify-center h-full bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+            <div>
+              <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <HeartPulse className="w-6 h-6 text-rose-500" /> {txt.title}
+              </h3>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2 max-w-md leading-relaxed">
+                {txt.subtitle}
+              </p>
+            </div>
+            <Button onClick={() => setIsStartModalOpen(true)} className="h-12 bg-rose-600 hover:bg-rose-500 text-white font-bold px-6 rounded-xl shadow-lg shadow-rose-500/20 shrink-0 w-full sm:w-auto">
+              <Plus className="w-5 h-5 mr-2" /> {txt.btnAdd}
+            </Button>
           </div>
-          <Button onClick={() => setIsStartModalOpen(true)} className="h-12 bg-rose-600 hover:bg-rose-500 text-white font-bold px-6 rounded-xl shadow-lg shadow-rose-500/20 shrink-0">
-            <Plus className="w-5 h-5 mr-2" /> {txt.btnAdd}
-          </Button>
         </div>
         
-        <div className="lg:col-span-1">
-           {/* 💡 WIDGET KALKULATOR DOSIS */}
+        {/* KOTAK KANAN (Kalkulator) */}
+        <div className="lg:col-span-1 h-full">
            <DoseCalculatorWidget aquariumVolumeLiters={tankVolume} />
         </div>
       </div>

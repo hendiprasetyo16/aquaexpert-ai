@@ -167,11 +167,10 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
   };
 
   return (
-    // 💡 PERBAIKAN 1: Background Wrapper menggunakan `items-center` dan `justify-center` tanpa `overflow-y-auto`
+    // FIX: Menggunakan justify-center, items-center dan p-4 agar tidak keluar layar
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 dark:bg-black/80 backdrop-blur-sm p-4 sm:p-6 animate-in fade-in duration-200">
       
       {isLoadingOptions ? (
-        // 💡 PERBAIKAN 2: Dihapus class `my-auto` agar Flexbox tidak bingung
         <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl p-12 flex flex-col items-center justify-center min-h-[350px] relative overflow-hidden">
           <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4" />
           <p className="text-sm font-bold text-slate-500 dark:text-slate-400 animate-pulse">
@@ -179,10 +178,10 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
           </p>
         </div>
       ) : (
-        // 💡 PERBAIKAN 3: Kotak Modal dibatasi ketat `max-h-[90vh]` dan `flex-col`, dihapus class `my-auto`
-        <div className="w-full max-w-2xl bg-white dark:bg-slate-950 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] md:max-h-[85vh] border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+        // FIX: max-h-[90vh] dipastikan agar modal tidak lebih tinggi dari layar
+        <div className="w-full max-w-2xl bg-white dark:bg-slate-950 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
           
-          {/* HEADER (Selalu lengket di atas, tidak ter-scroll) */}
+          {/* HEADER (Selalu lengket di atas) */}
           <div className="relative z-10 p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50 dark:bg-slate-900 shrink-0 shadow-sm">
             <div className="pr-4">
               <h2 className="text-lg sm:text-xl font-black text-slate-800 dark:text-white leading-tight">
@@ -202,39 +201,36 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
             </button>
           </div>
 
-          {/* ======================= */}
-          {/* 🤖 AI QUARANTINE ENGINE */}
-          {/* ======================= */}
-          {diseaseId && medicationId && (() => {
-            const selectedDis = diseases.find(d => d.id === diseaseId);
-            const selectedMed = medications.find(m => m.id === medicationId);
-            const isContagious = selectedDis?.quarantine_required;
-            
-            const isToxic = selectedMed && (!selectedMed.safe_for_plants || !selectedMed.safe_for_inverts);
-            
-            if (isContagious || isToxic) {
-              return (
-                <div className="mx-6 mt-6 p-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900/50 flex gap-4 animate-in slide-in-from-bottom-2 shrink-0">
-                  <AlertTriangle className="w-8 h-8 text-amber-500 shrink-0" />
-                  <div>
-                    <h4 className="font-black text-amber-800 dark:text-amber-400 uppercase tracking-tight text-sm mb-1">
-                      {lang === 'id' ? "⚠️ PERHATIAN: WAJIB PINDAH KE TANK KARANTINA" : "⚠️ WARNING: QUARANTINE TANK REQUIRED"}
-                    </h4>
-                    <p className="text-xs text-amber-700 dark:text-amber-500/80 font-medium">
-                      {isContagious 
-                        ? (lang === 'id' ? "Penyakit ini sangat menular. Pindahkan pasien ke Hospital Tank sebelum diobati." : "This disease is highly contagious. Move patient to a Hospital Tank.") 
-                        : (lang === 'id' ? "Obat ini beracun bagi tanaman atau udang/siput di akuarium utama Anda." : "This medication is toxic to plants or invertebrates in your main display tank.")
-                      }
-                    </p>
-                  </div>
-                </div>
-              );
-            }
-            return null;
-          })()}
-
           {/* BODY FORM (Ini area yang HANYA BISA DI-SCROLL, flex-1 dan overflow-y-auto) */}
           <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-6 bg-white dark:bg-slate-950">
+            {diseaseId && medicationId && (() => {
+              const selectedDis = diseases.find(d => d.id === diseaseId);
+              const selectedMed = medications.find(m => m.id === medicationId);
+              const isContagious = selectedDis?.quarantine_required;
+              
+              const isToxic = selectedMed && (!selectedMed.safe_for_plants || !selectedMed.safe_for_inverts);
+              
+              if (isContagious || isToxic) {
+                return (
+                  <div className="mb-6 p-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900/50 flex gap-4 animate-in slide-in-from-bottom-2 shrink-0">
+                    <AlertTriangle className="w-8 h-8 text-amber-500 shrink-0" />
+                    <div>
+                      <h4 className="font-black text-amber-800 dark:text-amber-400 uppercase tracking-tight text-sm mb-1">
+                        {lang === 'id' ? "⚠️ PERHATIAN: WAJIB PINDAH KE TANK KARANTINA" : "⚠️ WARNING: QUARANTINE TANK REQUIRED"}
+                      </h4>
+                      <p className="text-xs text-amber-700 dark:text-amber-500/80 font-medium">
+                        {isContagious 
+                          ? (lang === 'id' ? "Penyakit ini sangat menular. Pindahkan pasien ke Hospital Tank sebelum diobati." : "This disease is highly contagious. Move patient to a Hospital Tank.") 
+                          : (lang === 'id' ? "Obat ini beracun bagi tanaman atau udang/siput di akuarium utama Anda." : "This medication is toxic to plants or invertebrates in your main display tank.")
+                        }
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             <form id="start-treatment-form" onSubmit={handleSubmit} className="space-y-6">
               
               <div className="space-y-2">
@@ -325,7 +321,7 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
             </form>
           </div>
 
-          {/* FOOTER (Selalu lengket di bawah, tidak ter-scroll) */}
+          {/* FOOTER (Selalu lengket di bawah) */}
           <div className="relative z-10 p-5 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex gap-3 shrink-0">
             <Button 
               type="button" 

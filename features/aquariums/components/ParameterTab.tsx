@@ -142,11 +142,12 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
         </Button>
       </div>
 
+      {/* Container utama untuk Form dan Kalkulator */}
       {showForm && (
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 animate-in slide-in-from-top-4 duration-300">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch animate-in slide-in-from-top-4 duration-300">
           
-          {/* Kolom Form Pencatatan */}
-          <div className="xl:col-span-8 bg-white dark:bg-slate-900 border border-teal-200 dark:border-teal-900/50 p-6 rounded-3xl shadow-xl">
+          {/* Kolom Form Pencatatan (h-full agar tingginya maksimal) */}
+          <div className="xl:col-span-8 h-full bg-white dark:bg-slate-900 border border-teal-200 dark:border-teal-900/50 p-6 rounded-3xl shadow-xl">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
                 
@@ -213,8 +214,8 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
             </form>
           </div>
 
-          {/* Kolom Kalkulator Dosis */}
-          <div className="xl:col-span-4">
+          {/* Kolom Kalkulator Dosis (h-full agar sejajar) */}
+          <div className="xl:col-span-4 h-full">
             <DoseCalculatorWidget aquariumVolumeLiters={tankVolume} />
           </div>
 
