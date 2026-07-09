@@ -548,7 +548,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-{/* SUB-SEKSI: ALAT DIAGNOSA KHUSUS */}
+            {/* SUB-SEKSI: ALAT DIAGNOSA KHUSUS */}
             <div className="space-y-4">
               <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Cpu className="w-5 h-5 text-indigo-500" />
