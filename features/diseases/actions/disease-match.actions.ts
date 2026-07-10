@@ -60,11 +60,11 @@ export async function getDiseaseMatchAction(
     if (signatureError || !fullDiseaseSignatures) throw new Error(lang === 'id' ? "Gagal memetakan profil patologi." : "Failed to map pathology profiles.");
 
     // ==========================================
-    // 💡 THE GOLD STANDARD: MENGHITUNG GLOBAL IDF (Inverse Disease Frequency)
+    // 💡 THE GOLD STANDARD: GLOBAL IDF (Inverse Disease Frequency)
     // ==========================================
-    // 1. Ambil total populasi penyakit (N)
-    const { count: totalDiseases } = await supabase.from("diseases").select('*', { count: 'exact', head: true });
-    const N = totalDiseases || 20; // Fallback aman
+    // 1. Estimasi Populasi Penyakit (N)
+    // Hardcoded (atau di-cache) untuk mematikan beban database COUNT(*)
+    const N = 85; 
 
     // 2. Kumpulkan seluruh ID Gejala yang relevan (Kandidat + Pilihan User)
     const uniqueCandidateSymptomIds = Array.from(new Set(fullDiseaseSignatures.map(ds => ds.symptom_id)));
@@ -81,11 +81,12 @@ export async function getDiseaseMatchAction(
       dfMap.set(row.symptom_id, (dfMap.get(row.symptom_id) || 0) + 1);
     });
 
-    // 4. Kalkulasi IDF (Menggunakan Logaritma Basis 10 + Smoothing)
+    // 4. Kalkulasi IDF (Menggunakan Log Natural Scikit-Learn Smoothing)
+    // Meredam nilai gejala pasaran yang muncul di hampir semua penyakit
     const idfMap = new Map<string, number>();
     allRelevantSymptomIds.forEach(sId => {
       const df = dfMap.get(sId) || 1;
-      const idf = Math.log10(N / df) + 1; // Gejala spesifik (DF kecil) akan mendapat IDF > 1.5, gejala pasaran ~1.0
+      const idf = Math.log((N + 1) / (df + 1)) + 1; 
       idfMap.set(sId, idf);
     });
 
@@ -138,7 +139,7 @@ export async function getDiseaseMatchAction(
       if (!profileMap.has(dId)) {
         profileMap.set(dId, {
           disease: dData,
-          totalPossibleWeight: 0, // Akan diisi Bobot TF-IDF
+          totalPossibleWeight: 0,
           matchedWeight: 0,
           matchedSymptoms: [],
           totalHallmarksCount: 0,
@@ -148,9 +149,9 @@ export async function getDiseaseMatchAction(
       }
 
       const p = profileMap.get(dId)!;
-      const tf = ds.weight; // Term Frequency (Bobot Statis dari Database)
-      const idf = idfMap.get(ds.symptom_id) || 1; // Keunikan Global
-      const tfIdfWeight = tf * idf; // Kekuatan Mutlak Gejala
+      const tf = ds.weight; 
+      const idf = idfMap.get(ds.symptom_id) || 1; 
+      const tfIdfWeight = tf * idf; 
 
       p.totalPossibleWeight += tfIdfWeight;
       p.totalDiseaseSymptomIds.add(ds.symptom_id);
@@ -171,43 +172,38 @@ export async function getDiseaseMatchAction(
     const totalUserSelectedIDF = selectedSymptomIds.reduce((sum, sId) => sum + (idfMap.get(sId) || 1), 0);
 
     // ==========================================
-    // 💡 DIAGNOSIS ENGINE CALCULATION (VERSI FINAL 10/10)
+    // 🚀 DIAGNOSIS ENGINE CALCULATION (FINAL 10/10)
     // ==========================================
     profileMap.forEach((p, diseaseId) => {
       
       // 1. TF-IDF WEIGHTED RECALL
-      // Bukti fisik utama (Proporsi bobot tercapai)
       const recall = p.totalPossibleWeight > 0 ? (p.matchedWeight / p.totalPossibleWeight) : 0;
       
       // 2. IDF WEIGHTED PRECISION
-      // Menghukum klik brutal: Berapa porsi klik user yang BENAR berharga?
       const matchedUserIDF = p.matchedSymptoms.reduce((sum, sym) => sum + (idfMap.get(sym.id) || 1), 0);
       const precision = totalUserSelectedIDF > 0 ? (matchedUserIDF / totalUserSelectedIDF) : 0;
 
       // 3. COVERAGE
-      // Menghalangi Recall memonopoli jika variasi gejalanya kurang
       const coverage = p.totalHallmarksCount > 0 
         ? (p.matchedHallmarksCount / p.totalHallmarksCount)
         : (p.matchedSymptoms.length / p.totalDiseaseSymptomIds.size);
       
-      // 🚀 4. RUMUS HIBRIDA (65% Recall + 25% Precision + 10% Coverage)
-      // Dominasi Recall disempurnakan seperti di ranah medis nyata.
+      // 4. RUMUS HIBRIDA (65% Recall + 25% Precision + 10% Coverage)
       let baseConfidence = ((0.65 * recall) + (0.25 * precision) + (0.10 * coverage)) * 100;
       
-      // 🚀 5. HALLMARK MULTIPLIER PROPORSIONAL (Maksimal x 1.08)
-      // Multiplier kini diturunkan ke 0.08 agar kenaikannya jauh lebih natural dan tidak meledak tiba-tiba.
+      // 5. HALLMARK MULTIPLIER PROPORSIONAL
       const hallmarkRatio = p.totalHallmarksCount > 0 ? (p.matchedHallmarksCount / p.totalHallmarksCount) : 0;
       if (hallmarkRatio > 0) {
         baseConfidence *= (1 + (hallmarkRatio * 0.08)); 
       }
 
-      // 💡 6. QUADRATIC ALIEN PENALTY (Alien^2 * 2)
-      // 1 salah = -2 | 2 salah = -8 | 3 salah = -18 | 4 salah = -32
+      // 🚀 6. ADAPTIVE ALIEN PENALTY (Kuadratik x Faktor Presisi)
+      // Hukumannya diredam jika presisi user tinggi, tapi brutal jika presisi rendah.
       const alienSymptomCount = selectedSet.size - p.matchedSymptoms.length;
-      const negativePenalty = Math.pow(alienSymptomCount, 2) * 2; 
+      const adaptiveFactor = 1 - precision; 
+      const negativePenalty = Math.pow(alienSymptomCount, 2) * adaptiveFactor * 2; 
 
-      // 💡 7. SUSCEPTIBILITY BONUS (Dibatasi Maksimal 5 Poin)
-      // Faktor keturunan ras ikan tidak akan mendominasi fakta klinis!
+      // 7. SUSCEPTIBILITY BONUS (Dibatasi Maksimal 5 Poin)
       const susData = susceptibilityMap.get(diseaseId);
       const susceptibilityScore = susData ? susData.score : 0;
       
@@ -231,7 +227,7 @@ export async function getDiseaseMatchAction(
         }
       }
 
-      // 💡 8. FINAL CALCULATION
+      // 8. FINAL CALCULATION
       let finalConfidence = baseConfidence + susceptibilityBonus - negativePenalty;
       
       // Clamp nilai persentase secara mutlak (0 - 100)
@@ -247,7 +243,6 @@ export async function getDiseaseMatchAction(
       }
     });
 
-    // Mengurutkan dari hasil paling pasti hingga yang terlemah
     results.sort((a, b) => b.confidenceScore - a.confidenceScore);
     return { success: true, matches: results };
 
