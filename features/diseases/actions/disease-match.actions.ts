@@ -83,7 +83,6 @@ export async function getDiseaseMatchAction(
       }
     }
 
-    // 💡 PENAMBAHAN STATE UNTUK TRACKING HALLMARK & COVERAGE
     const profileMap = new Map<string, {
       disease: Disease;
       totalPossibleWeight: number;
@@ -136,18 +135,20 @@ export async function getDiseaseMatchAction(
       // 💡 2. PRECISION: Akurasi Tebakan Pengguna (0 - 1)
       const precision = selectedSet.size > 0 ? (p.matchedSymptoms.length / selectedSet.size) : 0;
 
-      // 💡 3. COVERAGE: Persentase Gejala Khas yang Muncul
-      // Jika penyakit tidak punya hallmark di DB, fallback ke rasio kemunculan gejala umum agar tidak dihukum 0%
+      // 💡 3. COVERAGE: Persentase Gejala Khas/Umum yang Muncul
       const coverage = p.totalHallmarksCount > 0 
         ? (p.matchedHallmarksCount / p.totalHallmarksCount)
         : (p.matchedSymptoms.length / p.totalDiseaseSymptomIds.size);
       
-      // 💡 4. RUMUS HIBRIDA VERSI 3 (55% Recall + 25% Precision + 20% Coverage)
-      let baseConfidence = ((0.55 * recall) + (0.25 * precision) + (0.20 * coverage)) * 100;
+      // 🚀 4. RUMUS HIBRIDA FINAL (60% Recall + 30% Precision + 10% Coverage)
+      // Distribusi ini jauh lebih stabil dan mencegah double-dipping pada coverage.
+      let baseConfidence = ((0.60 * recall) + (0.30 * precision) + (0.10 * coverage)) * 100;
       
-      // 💡 5. HALLMARK MULTIPLIER (x 1.1)
-      if (p.matchedHallmarksCount > 0) {
-        baseConfidence *= 1.1; 
+      // 🚀 5. HALLMARK MULTIPLIER PROPORSIONAL (Maksimal x 1.12)
+      // Pengganda kini linier dan proporsional sesuai jumlah hallmark yang berhasil ditemukan.
+      const hallmarkRatio = p.totalHallmarksCount > 0 ? (p.matchedHallmarksCount / p.totalHallmarksCount) : 0;
+      if (hallmarkRatio > 0) {
+        baseConfidence *= (1 + (hallmarkRatio * 0.12)); 
       }
 
       // 💡 6. ALIEN PENALTY (Kuadratik)
@@ -167,7 +168,6 @@ export async function getDiseaseMatchAction(
       let susceptibilityWarning = null;
 
       if (susceptibilityScore >= 4) {
-        // Ambil 50% dari skor rentan, kunci di batas maksimal 5 poin
         susceptibilityBonus = Math.min(5, susceptibilityScore * 0.5); 
         
         const baseWarning = lang === 'id' 
