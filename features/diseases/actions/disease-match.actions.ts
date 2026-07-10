@@ -1,4 +1,3 @@
-// features/diseases/actions/disease-match.actions.ts
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
@@ -124,17 +123,27 @@ export async function getDiseaseMatchAction(
     const selectedSet = new Set(selectedSymptomIds);
 
     profileMap.forEach((p, diseaseId) => {
-      const baseConfidence = (p.matchedWeight / p.totalPossibleWeight) * 100;
-      let alienSymptomCount = 0;
       
+      // 💡 1. RECALL: Akurasi Bobot Gejala yang Ditebak
+      const recall = p.totalPossibleWeight > 0 ? (p.matchedWeight / p.totalPossibleWeight) : 0;
+      
+      // 💡 2. PRECISION: Rasio Gejala Benar dibanding Total Gejala yang Ditebak (Menghukum Shotgun Approach)
+      const precision = selectedSet.size > 0 ? (p.matchedSymptoms.length / selectedSet.size) : 0;
+      
+      // 💡 3. MODIFIED F1-SCORE BASE CONFIDENCE (60% Recall, 40% Precision)
+      const baseConfidence = ((0.6 * recall) + (0.4 * precision)) * 100;
+      
+      // 💡 4. PENALTY KUADRATIK UNTUK GEJALA ASING (Alien^2 * 2)
+      let alienSymptomCount = 0;
       selectedSet.forEach(sId => {
         if (!p.totalDiseaseSymptomIds.has(sId)) {
           alienSymptomCount++;
         }
       });
+      const negativePenalty = Math.pow(alienSymptomCount, 2) * 2; // 1->2, 2->8, 3->18, 4->32
 
-      const negativePenalty = alienSymptomCount * 4;
-      const hallmarkBonus = p.hasMatchedHallmark ? 20 : 0;
+      // 💡 5. HALLMARK BONUS (Diturunkan menjadi +15)
+      const hallmarkBonus = p.hasMatchedHallmark ? 15 : 0;
       
       const susData = susceptibilityMap.get(diseaseId);
       const susceptibilityScore = susData ? susData.score : 0;
@@ -143,7 +152,8 @@ export async function getDiseaseMatchAction(
       let susceptibilityWarning = null;
 
       if (susceptibilityScore >= 4) {
-        susceptibilityBonus = susceptibilityScore * 2.5; 
+        // 💡 6. SUSCEPTIBILITY BONUS (Diturunkan pengalinya menjadi x 1.5)
+        susceptibilityBonus = susceptibilityScore * 1.5; 
         
         const baseWarning = lang === 'id' 
           ? "Peringatan Kritis: Terdapat spesies di tangki Anda yang memiliki kerentanan genetik tinggi terhadap patogen ini."
@@ -159,6 +169,7 @@ export async function getDiseaseMatchAction(
         }
       }
 
+      // Kalkulasi Akhir
       let finalConfidence = baseConfidence + hallmarkBonus + susceptibilityBonus - negativePenalty;
       finalConfidence = Math.max(0, Math.min(100, Math.round(finalConfidence)));
 
