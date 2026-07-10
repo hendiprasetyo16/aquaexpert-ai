@@ -46,7 +46,7 @@ interface AnalyzeProps {
   fishes: TankFish[];
   maintenanceStatus?: MaintenanceDashboardStatus[];
   activeTreatments?: ActiveTreatmentEngine[]; 
-  lang?: "id" | "en"; // 💡 FITUR BARU: Parameter Dwibahasa Tertanam
+  lang?: "id" | "en"; 
 }
 
 function clampScore(score: number): number {
@@ -89,11 +89,10 @@ function getEcosystemSnapshot(
   plants: TankPlant[], 
   fishes: TankFish[], 
   maintenanceStatus: MaintenanceDashboardStatus[],
-  activeTreatments: ActiveTreatmentEngine[], // 💡 FIX: Tipe Data Strict, bebas 'any'
+  activeTreatments: ActiveTreatmentEngine[], 
   anchorDate: Date,
-  lang: "id" | "en" // 💡 Inject Bahasa
+  lang: "id" | "en" 
 ) {
-  // 💡 HELPER INTERNAL: Sistem Penerjemah Super Cepat
   const t = (idText: string, enText: string) => lang === 'en' ? enText : idText;
 
   const alerts: string[] = [];
@@ -530,22 +529,33 @@ function getEcosystemSnapshot(
   } else {
     overallScore = (waterScore * 0.35) + (fishHealthScore * 0.30) + (maintenanceScore * 0.15) + (bioloadScore * 0.20);
   }
-  
-  const ecosystemCollapsed = waterScore <= 40 || fishHealthScore <= 40 || bioloadScore <= 40 || maintenanceScore <= 40;
+
+  // 💡 HUKUM MINIMUM LIEBIG (LIMITING FACTOR)
+  const lowestScore = Math.min(
+    waterScore, 
+    fishHealthScore, 
+    bioloadScore, 
+    maintenanceScore, 
+    plantScore !== null ? plantScore : 100
+  );
+
+  const ecosystemCollapsed = lowestScore <= 40;
   const finalBonuses = ecosystemCollapsed ? [] : bonuses;
 
   if (!ecosystemCollapsed && ecosystemBonus > 0 && overallScore >= 80) {
     overallScore += ecosystemBonus; 
   }
+
   overallScore = clampScore(overallScore);
 
-  if (waterScore <= 40) overallScore = Math.min(overallScore, waterScore);
-  if (bioloadScore <= 40) overallScore = Math.min(overallScore, bioloadScore);
-  if (fishHealthScore <= 40) overallScore = Math.min(overallScore, fishHealthScore);
-  
-  if (maintenanceScore <= 40) {
-    overallScore = Math.min(overallScore, maintenanceScore + 15);
-    alerts.push(t("⚠️ Kritis: Penelantaran jadwal perawatan merusak stabilitas ekosistem secara drastis.", "⚠️ Critical: Neglecting maintenance schedules drastically destroys ecosystem stability."));
+  // 💡 TARIK PAKSA SKOR MENGIKUTI FAKTOR TERBURUK
+  if (lowestScore < 60) {
+    // Jika Kritis (<60), skor total ditarik paksa menjadi sangat buruk (sama dengan nilai terendah)
+    overallScore = Math.min(overallScore, lowestScore);
+    alerts.push(t("⚠️ Peringatan Sistemik: Faktor pembatas utama sedang merusak stabilitas seluruh ekosistem.", "⚠️ Systemic Warning: A major limiting factor is destroying the entire ecosystem's stability."));
+  } else if (lowestScore < 75) {
+    // Jika Waspada (<75), skor total maksimal hanya ditahan 10 poin di atas nilai terburuk
+    overallScore = Math.min(overallScore, lowestScore + 10);
   }
   
   overallScore = clampScore(overallScore);
@@ -566,7 +576,6 @@ function getEcosystemSnapshot(
 export function analyzeAquariumHealth({ aquarium, parameters, plants, fishes, maintenanceStatus = [], activeTreatments = [], lang = "id" }: AnalyzeProps): HealthAnalysisResult {
   const sortedParams = [...parameters].sort((a, b) => new Date(b.record_date).getTime() - new Date(a.record_date).getTime());
   
-  // 💡 Meneruskan Injeksi Bahasa ke Mesin Snapshot
   const currentSnapshot = getEcosystemSnapshot(aquarium, sortedParams, plants, fishes, maintenanceStatus, activeTreatments, new Date(), lang);
 
   let healthTrend: HealthTrend = "stable";
