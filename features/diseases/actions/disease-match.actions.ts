@@ -1,3 +1,4 @@
+// features/diseases/actions/disease-match.actions.ts
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
@@ -82,12 +83,14 @@ export async function getDiseaseMatchAction(
       }
     }
 
+    // 💡 PENAMBAHAN STATE UNTUK TRACKING HALLMARK & COVERAGE
     const profileMap = new Map<string, {
       disease: Disease;
       totalPossibleWeight: number;
       matchedWeight: number;
       matchedSymptoms: Symptom[];
-      hasMatchedHallmark: boolean;
+      totalHallmarksCount: number;
+      matchedHallmarksCount: number;
       totalDiseaseSymptomIds: Set<string>;
     }>();
 
@@ -103,7 +106,8 @@ export async function getDiseaseMatchAction(
           totalPossibleWeight: 0,
           matchedWeight: 0,
           matchedSymptoms: [],
-          hasMatchedHallmark: false,
+          totalHallmarksCount: 0,
+          matchedHallmarksCount: 0,
           totalDiseaseSymptomIds: new Set()
         });
       }
@@ -111,11 +115,13 @@ export async function getDiseaseMatchAction(
       const p = profileMap.get(dId)!;
       p.totalPossibleWeight += ds.weight;
       p.totalDiseaseSymptomIds.add(ds.symptom_id);
+      
+      if (ds.is_hallmark) p.totalHallmarksCount++;
 
       if (isSelected) {
         p.matchedWeight += ds.weight;
         p.matchedSymptoms.push(sData);
-        if (ds.is_hallmark) p.hasMatchedHallmark = true;
+        if (ds.is_hallmark) p.matchedHallmarksCount++;
       }
     });
 
@@ -124,27 +130,36 @@ export async function getDiseaseMatchAction(
 
     profileMap.forEach((p, diseaseId) => {
       
-      // 💡 1. RECALL: Akurasi Bobot Gejala yang Ditebak
+      // 💡 1. RECALL: Akurasi Bobot Gejala (0 - 1)
       const recall = p.totalPossibleWeight > 0 ? (p.matchedWeight / p.totalPossibleWeight) : 0;
       
-      // 💡 2. PRECISION: Rasio Gejala Benar dibanding Total Gejala yang Ditebak (Menghukum Shotgun Approach)
+      // 💡 2. PRECISION: Akurasi Tebakan Pengguna (0 - 1)
       const precision = selectedSet.size > 0 ? (p.matchedSymptoms.length / selectedSet.size) : 0;
+
+      // 💡 3. COVERAGE: Persentase Gejala Khas yang Muncul
+      // Jika penyakit tidak punya hallmark di DB, fallback ke rasio kemunculan gejala umum agar tidak dihukum 0%
+      const coverage = p.totalHallmarksCount > 0 
+        ? (p.matchedHallmarksCount / p.totalHallmarksCount)
+        : (p.matchedSymptoms.length / p.totalDiseaseSymptomIds.size);
       
-      // 💡 3. MODIFIED F1-SCORE BASE CONFIDENCE (60% Recall, 40% Precision)
-      const baseConfidence = ((0.6 * recall) + (0.4 * precision)) * 100;
+      // 💡 4. RUMUS HIBRIDA VERSI 3 (55% Recall + 25% Precision + 20% Coverage)
+      let baseConfidence = ((0.55 * recall) + (0.25 * precision) + (0.20 * coverage)) * 100;
       
-      // 💡 4. PENALTY KUADRATIK UNTUK GEJALA ASING (Alien^2 * 2)
+      // 💡 5. HALLMARK MULTIPLIER (x 1.1)
+      if (p.matchedHallmarksCount > 0) {
+        baseConfidence *= 1.1; 
+      }
+
+      // 💡 6. ALIEN PENALTY (Kuadratik)
       let alienSymptomCount = 0;
       selectedSet.forEach(sId => {
         if (!p.totalDiseaseSymptomIds.has(sId)) {
           alienSymptomCount++;
         }
       });
-      const negativePenalty = Math.pow(alienSymptomCount, 2) * 2; // 1->2, 2->8, 3->18, 4->32
+      const negativePenalty = Math.pow(alienSymptomCount, 2) * 2; 
 
-      // 💡 5. HALLMARK BONUS (Diturunkan menjadi +15)
-      const hallmarkBonus = p.hasMatchedHallmark ? 15 : 0;
-      
+      // 💡 7. SUSCEPTIBILITY BONUS (Dibatasi Maksimal 5 Poin)
       const susData = susceptibilityMap.get(diseaseId);
       const susceptibilityScore = susData ? susData.score : 0;
       
@@ -152,12 +167,12 @@ export async function getDiseaseMatchAction(
       let susceptibilityWarning = null;
 
       if (susceptibilityScore >= 4) {
-        // 💡 6. SUSCEPTIBILITY BONUS (Diturunkan pengalinya menjadi x 1.5)
-        susceptibilityBonus = susceptibilityScore * 1.5; 
+        // Ambil 50% dari skor rentan, kunci di batas maksimal 5 poin
+        susceptibilityBonus = Math.min(5, susceptibilityScore * 0.5); 
         
         const baseWarning = lang === 'id' 
-          ? "Peringatan Kritis: Terdapat spesies di tangki Anda yang memiliki kerentanan genetik tinggi terhadap patogen ini."
-          : "Critical Warning: Your tank contains species highly susceptible to this specific pathogen.";
+          ? "Peringatan Kritis: Spesies di tangki Anda memiliki kerentanan genetik terhadap patogen ini."
+          : "Critical Warning: Species in your tank have a genetic susceptibility to this pathogen.";
           
         const dbNote = lang === 'id' ? susData?.note_id : susData?.note_en;
         const expertLabel = lang === 'id' ? "Catatan Pakar" : "Expert Note";
@@ -169,8 +184,10 @@ export async function getDiseaseMatchAction(
         }
       }
 
-      // Kalkulasi Akhir
-      let finalConfidence = baseConfidence + hallmarkBonus + susceptibilityBonus - negativePenalty;
+      // 💡 8. FINAL CALCULATION
+      let finalConfidence = baseConfidence + susceptibilityBonus - negativePenalty;
+      
+      // Clamp nilai agar selalu berada di antara 0 - 100
       finalConfidence = Math.max(0, Math.min(100, Math.round(finalConfidence)));
 
       if (finalConfidence >= 10) {
