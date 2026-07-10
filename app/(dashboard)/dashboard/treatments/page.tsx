@@ -45,7 +45,6 @@ export default function TreatmentWardPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 💡 FIX 1: PENYAMAAAN LOGIKA WAKTU (00:00) SEPERTI DI BACKEND
   const calculateDayNumber = (startDate: string) => {
     const start = new Date(startDate);
     const today = new Date();
@@ -80,11 +79,24 @@ export default function TreatmentWardPage() {
     setDeleteTarget(null);
   };
 
+  // 💡 FIX: Murni memecah teks tanpa me-reverse karena Backend sudah otomatis menaruh yang terbaru di atas.
+  const parseNotes = (rawNotes: string | null) => {
+    if (!rawNotes) return null;
+    const lines = rawNotes.split(/\\n|\r?\n|<br\s*\/?>/i)
+                          .map(line => line.trim())
+                          .filter(line => line !== '');
+    
+    return lines.map((line, idx) => (
+        <span key={idx} className="block text-[11px] font-medium leading-relaxed border-b border-slate-200/60 dark:border-slate-800/60 pb-1.5 mb-1.5 last:border-0 last:pb-0 last:mb-0">
+            {line}
+        </span>
+    ));
+  };
+
   return (
     <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors bg-slate-50 dark:bg-slate-950">
       <div className="max-w-[1400px] mx-auto space-y-8 pb-10">
         
-        {/* CUSTOM DELETE MODAL */}
         {deleteTarget && (
           <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
@@ -116,7 +128,6 @@ export default function TreatmentWardPage() {
           </div>
         )}
 
-        {/* HEADER */}
         <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-rose-500/10 blur-[50px] rounded-full pointer-events-none"></div>
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -134,7 +145,6 @@ export default function TreatmentWardPage() {
           </div>
         </div>
 
-        {/* 💡 BAGIAN 1: PASIEN AKTIF */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center p-20 text-slate-500">
             <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4"/>
@@ -158,10 +168,7 @@ export default function TreatmentWardPage() {
               return (
                 <div key={session.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col relative group">
                   
-                  <button 
-                    onClick={() => setDeleteTarget({id: session.id, type: 'active', aquariumId: session.aquarium_id})} 
-                    className="absolute top-4 right-4 p-2 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm md:shadow-none"
-                  >
+                  <button onClick={() => setDeleteTarget({id: session.id, type: 'active', aquariumId: session.aquarium_id})} className="absolute top-4 right-4 p-2 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm md:shadow-none">
                     <Trash2 className="w-4 h-4"/>
                   </button>
 
@@ -189,22 +196,16 @@ export default function TreatmentWardPage() {
                     {hasLoggedToday && session.latest_log && (
                       <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 p-3 rounded-xl">
                         <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mb-1"><CheckCircle2 className="w-3 h-3"/> {lang === 'id' ? "SUDAH DIUPDATE HARI INI" : "UPDATED TODAY"}</p>
-                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                           {session.latest_log.action_taken === "Observed" ? (lang === 'id' ? "Hanya Observasi" : "Observed") 
                            : session.latest_log.action_taken === "Redosed" ? (lang === 'id' ? "Dosis Ulang" : "Redosed") 
                            : session.latest_log.action_taken === "Water Change" ? (lang === 'id' ? "Ganti Air" : "Water Change") : session.latest_log.action_taken}
                           
-                          {/* 🔥 LOGIC REVERSE TERBARU ADA DI SINI 🔥 */}
-                          <span className="font-normal italic text-slate-500 block mt-1 max-h-20 overflow-y-auto custom-scrollbar whitespace-pre-wrap space-y-1">
-                            {session.latest_log.notes 
-                              ? session.latest_log.notes
-                                  .split('\n')
-                                  .filter(line => line.trim() !== '')
-                                  .reverse()
-                                  .join('\n')
-                              : ''}
-                          </span>
-                        </p>
+                          {/* 🚀 HASIL RENDER TANPA REVERSE */}
+                          <div className="font-normal italic text-slate-500 mt-2 max-h-24 overflow-y-auto custom-scrollbar flex flex-col">
+                            {parseNotes(session.latest_log.notes)}
+                          </div>
+                        </div>
                       </div>
                     )}
 
@@ -220,10 +221,7 @@ export default function TreatmentWardPage() {
                   </div>
 
                   <div className="p-5 pt-0">
-                    <Button 
-                      onClick={() => setSelectedSession(session)}
-                      className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-rose-600 dark:hover:bg-rose-500 text-white font-black uppercase tracking-widest text-xs transition-colors shadow-md"
-                    >
+                    <Button onClick={() => setSelectedSession(session)} className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-rose-600 dark:hover:bg-rose-500 text-white font-black uppercase tracking-widest text-xs transition-colors shadow-md">
                       <Activity className="w-4 h-4 mr-2"/> 
                       {hasLoggedToday ? (lang === 'id' ? "Edit Data Hari Ini" : "Edit Today's Data") : (lang === 'id' ? "Catat Medis Hari Ini" : "Log Today's Medical")}
                     </Button>
@@ -234,7 +232,6 @@ export default function TreatmentWardPage() {
           </div>
         )}
 
-        {/* 💡 BAGIAN 2: RIWAYAT PENGOBATAN (HISTORY) */}
         {!isLoading && historyPatients.length > 0 && (
           <div className="pt-10 border-t border-slate-200 dark:border-slate-800">
             <h4 className="text-sm font-black uppercase text-slate-500 dark:text-slate-400 flex items-center gap-2 mb-6">
@@ -252,7 +249,7 @@ export default function TreatmentWardPage() {
                      : "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800";
 
                  return (
-                   <div key={hist.id} className={`bg-white dark:bg-slate-900 border rounded-2xl p-4 flex flex-col relative overflow-hidden transition-colors group ${
+                   <div key={hist.id} className={`group bg-white dark:bg-slate-900 border rounded-2xl p-4 flex flex-col relative overflow-hidden transition-colors ${
                      isSuccess ? 'border-emerald-200 dark:border-emerald-900/50' : isFailed ? 'border-red-200 dark:border-red-900/50' : 'border-amber-200 dark:border-amber-900/50'
                    }`}>
                       
