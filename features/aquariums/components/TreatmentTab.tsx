@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { HeartPulse, Plus, ShieldAlert, Activity, AlertCircle, Syringe, Loader2, CheckCircle2, XCircle, History, CalendarDays, Clock, Trash2, Fish, AlertTriangle } from "lucide-react";
+import { HeartPulse, Plus, ShieldAlert, Activity, AlertCircle, Syringe, Loader2, CheckCircle2, XCircle, History, CalendarDays, Clock, Trash2, AlertTriangle, Fish } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/providers/LanguageProvider";
 import StartTreatmentModal from "./StartTreatmentModal";
@@ -37,10 +37,11 @@ export default function TreatmentTab({ aquariumId }: Props) {
   const [tankVolume, setTankVolume] = useState<number>(0); 
   const [isLoading, setIsLoading] = useState(true);
 
-  // 💡 FIX: Tipe data disesuaikan, tidak perlu aquariumId di sini karena sudah ada di Props
+  // 💡 FIX 1: Tipe data deleteTarget tidak membutuhkan aquariumId
   const [deleteTarget, setDeleteTarget] = useState<{ id: string, type: 'active' | 'history' } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // 💡 FIX 2: Pemisahan Fetching agar halaman langsung muncul secara Instan (Tidak Lola)
   const fetchTreatments = async () => {
     setIsLoading(true);
     const resTreatments = await getActiveTreatmentsAction(aquariumId);
@@ -60,7 +61,7 @@ export default function TreatmentTab({ aquariumId }: Props) {
 
   useEffect(() => { 
     fetchTreatments(); 
-    fetchTankVolume();
+    fetchTankVolume(); // Berjalan paralel di background
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aquariumId]);
 
@@ -87,6 +88,7 @@ export default function TreatmentTab({ aquariumId }: Props) {
   const executeDelete = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
+    // Kita gunakan aquariumId dari Props komponen, bukan dari deleteTarget
     const res = await deleteTreatmentSessionAction(deleteTarget.id, aquariumId);
     if (res.success) {
       toast.success(lang === 'id' ? "Data berhasil dihapus." : "Data successfully deleted.");
@@ -98,15 +100,15 @@ export default function TreatmentTab({ aquariumId }: Props) {
     setDeleteTarget(null);
   };
 
-  // 💡 FUNGSI PEMBALIK URUTAN ABSOLUT: Dijamin baris terbaru naik ke atas
-  const parseAndReverseNotes = (rawNotes: string | null) => {
+  // 💡 FIX 3: Fungsi Memecah Teks Tanpa Dibalik (Karena Backend Sudah Mengurutkan)
+  const parseNotes = (rawNotes: string | null) => {
     if (!rawNotes) return null;
     const lines = rawNotes.split(/\\n|\r?\n|<br\s*\/?>/i)
                           .map(line => line.trim())
                           .filter(line => line !== '');
     
-    return lines.reverse().map((line, idx) => (
-        <span key={idx} className="block text-[11px] leading-relaxed border-b border-slate-200 dark:border-slate-800/60 pb-1 mb-1 last:border-0 last:pb-0 last:mb-0">
+    return lines.map((line, idx) => (
+        <span key={idx} className="block text-[11px] font-medium leading-relaxed border-b border-slate-200/60 dark:border-slate-800/60 pb-1.5 mb-1.5 last:border-0 last:pb-0 last:mb-0">
             {line}
         </span>
     ));
@@ -168,9 +170,9 @@ export default function TreatmentTab({ aquariumId }: Props) {
                 const hasLoggedToday = session.latest_log?.day_number === dayNum;
 
                 return (
-                  <div key={session.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm flex flex-col group hover:border-rose-300 transition-colors">
+                  <div key={session.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm flex flex-col relative group hover:border-rose-300 transition-colors">
                     
-                    {/* 💡 FIX: Perbaikan tombol hapus di sini, tanpa aquariumId */}
+                    {/* 💡 FIX: Tombol hapus sekarang aman dari Error TypeScript */}
                     <button 
                       onClick={() => setDeleteTarget({id: session.id, type: 'active'})} 
                       className="absolute top-4 right-4 p-2 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm md:shadow-none hover:bg-red-100"
@@ -197,9 +199,9 @@ export default function TreatmentTab({ aquariumId }: Props) {
                             : session.latest_log.action_taken === "Redosed" ? (lang === 'id' ? "Dosis Ulang" : "Redosed") 
                             : session.latest_log.action_taken === "Water Change" ? (lang === 'id' ? "Ganti Air" : "Water Change") : session.latest_log.action_taken}
                             
-                            {/* PANGGIL FUNGSI PEMBALIK DI SINI */}
-                            <div className="font-normal italic text-slate-500 mt-1.5 max-h-24 overflow-y-auto custom-scrollbar flex flex-col">
-                              {parseAndReverseNotes(session.latest_log.notes)}
+                            {/* 🚀 HASIL RENDER TANPA REVERSE (Otomatis Terbaru di Atas) */}
+                            <div className="font-normal italic text-slate-500 mt-2 max-h-24 overflow-y-auto custom-scrollbar flex flex-col">
+                              {parseNotes(session.latest_log.notes)}
                             </div>
                           </div>
                         </div>
@@ -212,7 +214,7 @@ export default function TreatmentTab({ aquariumId }: Props) {
                     </div>
 
                     <div className="p-5 pt-0">
-                      <Button onClick={() => setSelectedSession(session)} className="w-full h-12 rounded-xl bg-slate-900 dark:bg-rose-600 hover:bg-slate-800 dark:hover:bg-rose-500 text-white font-black text-xs uppercase shadow-md transition-colors">
+                      <Button onClick={() => setSelectedSession(session)} className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-rose-600 dark:hover:bg-rose-500 text-white font-black text-xs uppercase shadow-md transition-colors">
                         <Activity className="w-4 h-4 mr-2" /> {hasLoggedToday ? (lang === 'id' ? "Edit Data Hari Ini" : "Edit Today's Data") : (lang === 'id' ? "Catat Medis Hari Ini" : "Log Today's Medical")}
                       </Button>
                     </div>
@@ -237,7 +239,7 @@ export default function TreatmentTab({ aquariumId }: Props) {
                     return (
                       <div key={hist.id} className={`bg-white dark:bg-slate-900 border rounded-2xl p-4 flex flex-col relative overflow-hidden transition-colors group ${isSuccess ? 'border-emerald-200 dark:border-emerald-900/50' : isFailed ? 'border-red-200 dark:border-red-900/50' : 'border-amber-200 dark:border-amber-900/50'}`}>
                           
-                          {/* 💡 FIX: Perbaikan tombol hapus di sini, tanpa aquariumId */}
+                          {/* 💡 FIX: Tombol hapus aman tanpa aquariumId */}
                           <button onClick={() => setDeleteTarget({id: hist.id, type: 'history'})} className="absolute top-3 right-3 p-2 text-slate-400 hover:text-red-500 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 dark:bg-slate-900/80 rounded-full shadow-sm z-10"><Trash2 className="w-4 h-4"/></button>
                           
                           <div>
