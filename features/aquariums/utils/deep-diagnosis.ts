@@ -1,5 +1,6 @@
 // features/aquariums/utils/deep-diagnosis.ts
 import type { HealthAnalysisResult } from "./health-engine";
+import { evaluateCompatibility } from "./health-engine"; // 🚀 MENGIMPOR LOGIKA DARI MESIN UTAMA (PRINSIP DRY)
 import type { Aquarium } from "../types/aquarium.types";
 import type { AquariumParameterLog } from "../types/parameter.types";
 import type { TankFish, TankPlant } from "../types/inventory.types";
@@ -47,13 +48,11 @@ interface Props {
   pathologyVulnerabilities?: DiseaseVulnerability[]; 
 }
 
-// HELPER: Pengambil nama aman dwibahasa (Mencegah teks kosong jika belum diterjemahkan di DB)
 const getSafeName = (idName?: string | null, enName?: string | null, lang: "id" | "en" = "id") => {
   if (lang === 'id') return idName || enName || "Unknown";
   return enName || idName || "Unknown";
 };
 
-// HELPER: Penerjemah Posisi Tanaman Aquascape
 const translatePlacement = (place: string | null | undefined, lang: "id" | "en") => {
   const p = place || "Midground";
   if (lang === 'en') return p;
@@ -94,54 +93,25 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
   const highFlowDemands: string[] = []; 
 
   if (groupedFishes.size > 0) {
-    const uniqueFishes = Array.from(groupedFishes.values());
-
-    for (let i = 0; i < uniqueFishes.length; i++) {
-      for (let j = i + 1; j < uniqueFishes.length; j++) {
-        const fishA = uniqueFishes[i].fishInfo;
-        const fishB = uniqueFishes[j].fishInfo;
-        const nameA = getSafeName(fishA.name_id, fishA.name_en, lang);
-        const nameB = getSafeName(fishB.name_id, fishB.name_en, lang);
+    const uniqueFishesArray = Array.from(groupedFishes.values()).map(d => d.fishInfo);
+    
+    // 🚀 MENGGUNAKAN SHARED HELPER (DRY: 40 baris kode yang redundan berhasil dipangkas!)
+    const conflictReports = evaluateCompatibility(uniqueFishesArray);
+    
+    conflictReports.forEach(rep => {
+      if (rep.conflictSeverity >= 10) { // Hanya catat peringatan keras/ekstrem
+        const nameA = getSafeName(rep.fishA.name_id, rep.fishA.name_en, lang);
+        const nameB = getSafeName(rep.fishB.name_id, rep.fishB.name_en, lang);
+        const reasonStr = lang === 'id' ? rep.reasonId : rep.reasonEn;
         
-        let dynamicScore = 10;
-        let reason = "";
-
-        if (fishA.compatibility_score && fishB.name_en && fishA.compatibility_score[fishB.name_en] !== undefined) {
-          dynamicScore = fishA.compatibility_score[fishB.name_en];
-          reason = lang === 'id' ? `Tercatat dalam matriks hubungan spesies.` : `Direct species matrix confirmed.`;
-        } else if (fishB.compatibility_score && fishA.name_en && fishB.compatibility_score[fishA.name_en] !== undefined) {
-          dynamicScore = fishB.compatibility_score[fishA.name_en];
-          reason = lang === 'id' ? `Tercatat dalam matriks hubungan spesies.` : `Direct species matrix confirmed.`;
-        } else {
-          const tagsA = fishA.compatibility_tags?.map(t => t.toLowerCase()) || [];
-          const tagsB = fishB.compatibility_tags?.map(t => t.toLowerCase()) || [];
-
-          const aPredator = tagsA.includes("predator") || fishA.predatory;
-          const bPredator = tagsB.includes("predator") || fishB.predatory;
-          const aCommunity = tagsA.includes("community");
-          const bCommunity = tagsB.includes("community");
-          const aAggressive = tagsA.includes("aggressive") || (fishA.temperament_score != null && fishA.temperament_score >= 4);
-          const bAggressive = tagsB.includes("aggressive") || (fishB.temperament_score != null && fishB.temperament_score >= 4);
-          const aPeaceful = tagsA.includes("peaceful") || (fishA.temperament_score != null && fishA.temperament_score <= 2);
-          const bPeaceful = tagsB.includes("peaceful") || (fishB.temperament_score != null && fishB.temperament_score <= 2);
-
-          if ((aPredator && (bCommunity || bPeaceful)) || (bPredator && (aCommunity || aPeaceful))) {
-            dynamicScore -= 8; reason = lang === 'id' ? "Predator dicampur dengan ikan komunitas kecil." : "Predator mixed with small community fish.";
-          } else if ((aAggressive && bPeaceful) || (bAggressive && aPeaceful)) {
-            dynamicScore -= 6; reason = lang === 'id' ? "Spesies agresif menekan mental spesies ringkih." : "Aggressive species suppressing vulnerable profiles.";
-          }
-        }
-
-        if (dynamicScore <= 3) {
-          rootCauses.push({
-            title: lang === 'id' ? "Konflik Hubungan Spesies Parah" : "Severe Species Relationship Conflict", severity: "high",
-            description: lang === 'id' 
-              ? `${nameA} dan ${nameB} berisiko tinggi bentrok fisik (Skor ${dynamicScore}/10). Alasan: ${reason}` 
-              : `${nameA} and ${nameB} conflict warning (Score ${dynamicScore}/10). Reason: ${reason}`
-          });
-        }
+        rootCauses.push({
+          title: lang === 'id' ? "Konflik Hubungan Spesies Parah" : "Severe Species Relationship Conflict", severity: "high",
+          description: lang === 'id' 
+            ? `${nameA} dan ${nameB} bentrok secara insting/teritori. Alasan: ${reasonStr}` 
+            : `${nameA} and ${nameB} instinct/territorial clash. Reason: ${reasonStr}`
+        });
       }
-    }
+    });
 
     const biotopes = new Set<string>();
     groupedFishes.forEach(data => { if (data.fishInfo.native_biotope) biotopes.add(data.fishInfo.native_biotope); });
@@ -151,8 +121,8 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
         rootCauses.push({
           title: lang === 'id' ? "Tabrakan Ekosistem Biotope Ekstrem" : "Fatal Biotope Ecosystem Clash", severity: "high",
           description: lang === 'id' 
-            ? "Pencampuran fauna Rift Lake Afrika (Keras/Basa) dengan Amazonia (Lunak/Asam) memicu hancurnya organ osmoregulasi ikan." 
-            : "Mixing African Rift species with Amazonian species causes fatal internal osmoregulation collapse."
+            ? "Pencampuran fauna Rift Lake (Keras/Basa) dengan Amazonia (Lunak/Asam) memicu hancurnya organ ikan." 
+            : "Mixing African Rift species with Amazonian species causes fatal organ collapse."
         });
       }
     }
@@ -170,22 +140,22 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
             rootCauses.push({
               title: lang === 'id' ? `Kerentanan Kritis: ${diseaseName}` : `Critical Vulnerability: ${diseaseName}`, severity: "high",
               description: lang === 'id'
-                ? `Akumulasi Nitrat (${latest.nitrate} ppm) mengaktifkan kerentanan spesifik ras ${fishName} terhadap infeksi ${diseaseName}.`
-                : `Nitrate buildup (${latest.nitrate} ppm) catalyzes ${fishName}'s acute species-specific vulnerability to ${diseaseName}.`
+                ? `Akumulasi Nitrat (${latest.nitrate} ppm) mengaktifkan kerentanan genetik ${fishName} terhadap ${diseaseName}.`
+                : `Nitrate buildup (${latest.nitrate} ppm) catalyzes ${fishName}'s acute genetic vulnerability to ${diseaseName}.`
             });
             nextActions.push({ 
-              instruction: lang === 'id' ? `Lakukan water change berkala untuk menekan nitrat di bawah 15 ppm demi keselamatan ${fishName}.` : `Perform water changes to drop nitrate below 15 ppm for ${fishName}.`,
+              instruction: lang === 'id' ? `Kuras air untuk membuang racun nitrat demi keselamatan kawanan ${fishName}.` : `Perform water changes to drop nitrate for ${fishName}.`,
               priority: "high"
             });
           }
-          // KODE BARU YANG BENAR:
+          
           if (latest.temperature != null && f.ideal_temp_min != null && latest.temperature < f.ideal_temp_min) {
              highRiskDiseaseTriggered = true;
              rootCauses.push({
               title: lang === 'id' ? `Risiko Hipotermia & Penyakit: ${diseaseName}` : `Hypothermia & Disease Risk: ${diseaseName}`, severity: "high",
               description: lang === 'id'
-                ? `Suhu jatuh di bawah toleransi minimal (${latest.temperature}°C). Depresi imun memicu risiko tinggi ${diseaseName} pada kawanan ${fishName}.`
-                : `Temperature fell below minimum threshold (${latest.temperature}°C). Immune depression triggers high risk of ${diseaseName} for ${fishName}.`
+                ? `Suhu anjlok (${latest.temperature}°C). Depresi imun memicu risiko tinggi ${diseaseName} pada kawanan ${fishName}.`
+                : `Temperature plummeted (${latest.temperature}°C). Immune depression triggers high risk of ${diseaseName} for ${fishName}.`
             });
           }
         });
@@ -198,10 +168,10 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
 
       if (fInfo.min_group_size != null && fInfo.min_group_size > 1 && data.totalQty < fInfo.min_group_size) {
         rootCauses.push({
-          title: lang === 'id' ? "Stres Sosial (Schooling Size Invalid)" : "Social Schooling Isolation Stress", severity: "medium",
+          title: lang === 'id' ? "Stres Sosial Isolasi" : "Social Schooling Isolation Stress", severity: "medium",
           description: lang === 'id'
-            ? `Jumlah ikan ${fishName} (${data.totalQty} ekor) kurang dari batas kawanan minimal (${fInfo.min_group_size} ekor). Mempercepat kepunahan koloni.`
-            : `Colony size for ${fishName} (${data.totalQty}) is below natural schooling thresholds (${fInfo.min_group_size}). Drastically induces stress.`
+            ? `Jumlah ikan ${fishName} (${data.totalQty} ekor) kurang dari batas kawanan rasnya. Mempercepat depresi koloni.`
+            : `Colony size for ${fishName} (${data.totalQty}) is below natural thresholds. Drastically induces stress.`
         });
       }
 
@@ -216,21 +186,21 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
 
     if (jumpers.length > 0) {
       rootCauses.push({
-        title: lang === 'id' ? "Ancaman Fatal Melompat Keluar" : "Critical Open-Top Jump Hazard", severity: "high",
-        description: lang === 'id' ? `Akuarium tanpa tutup atas berisiko tinggi mematikan spesies pelompat: ${jumpers.join(", ")}.` : `Tank top lacks physical boundaries for high-risk jumping species: ${jumpers.join(", ")}.`
+        title: lang === 'id' ? "Ancaman Melompat Keluar" : "Critical Open-Top Jump Hazard", severity: "high",
+        description: lang === 'id' ? `Akuarium tanpa tutup berisiko tinggi mematikan spesies pelompat: ${jumpers.join(", ")}.` : `Tank lacks boundaries for jumping species: ${jumpers.join(", ")}.`
       });
       nextActions.push({
-        instruction: lang === 'id' ? "Pasang penutup tangki rapat atau turunkan level air minimal 5 cm dari bibir kaca." : "Install a mesh or glass lid immediately, or drop water level 5 cm down.",
+        instruction: lang === 'id' ? "Pasang penutup tangki rapat atau turunkan level air minimal 5 cm dari bibir atas." : "Install a mesh lid immediately, or drop water level 5 cm down.",
         priority: "critical"
       });
     }
 
     if (highFlowDemands.length > 0) {
       rootCauses.push({
-        title: lang === 'id' ? "Defisit Suplai Arus & Oksigen" : "Oxygen & Flow Deficit Alert", severity: "high",
+        title: lang === 'id' ? "Defisit Arus Oksigen" : "Oxygen & Flow Deficit Alert", severity: "high",
         description: lang === 'id'
-          ? `Laju perputaran filter saat ini tidak mencukupi kebutuhan pasokan metabolisme aktif untuk: ${highFlowDemands.join(", ")}.`
-          : `Current filter turnover is suboptimal to support high-flow demand species: ${highFlowDemands.join(", ")}.`
+          ? `Laju perputaran filter saat ini mencekik kebutuhan metabolisme untuk: ${highFlowDemands.join(", ")}.`
+          : `Current filter turnover chokes metabolism for: ${highFlowDemands.join(", ")}.`
       });
     }
 
@@ -239,7 +209,7 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
         const fishName = getSafeName(data.fishInfo.name_id, data.fishInfo.name_en, lang);
         if ((data.fishInfo.shrimp_predation_risk ?? 0) >= 8) {
           nextActions.push({
-             instruction: lang === 'id' ? `Pindahkan udang hias ke tank terisolasi sebelum menjadi mangsa fauna ${fishName}.` : `Relocate ornamental shrimp before they get predated by ${fishName}.`,
+             instruction: lang === 'id' ? `Pindahkan udang ke tank isolasi sebelum ditelan oleh ${fishName}.` : `Relocate ornamental shrimp before they get hunted by ${fishName}.`,
              priority: "high"
           });
         }
@@ -268,20 +238,20 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
 
     if (unsuitablePlants.length > 0) {
       rootCauses.push({
-        title: lang === 'id' ? "Anomali Komposisi Kompetisi Flora" : "Layout Design Anomaly", severity: "low",
-        description: lang === 'id' ? `Peletakan tanaman ${unsuitablePlants.join(", ")} menyalahi pakem baku aliran kontes ${aquarium.aquascape_style}.` : `The usage of ${unsuitablePlants.join(", ")} conflicts with classical layouts of ${aquarium.aquascape_style} style.`
+        title: lang === 'id' ? "Anomali Komposisi Flora" : "Layout Design Anomaly", severity: "low",
+        description: lang === 'id' ? `Peletakan ${unsuitablePlants.join(", ")} menyalahi aturan aliran kontes ${aquarium.aquascape_style}.` : `Usage of ${unsuitablePlants.join(", ")} conflicts with classical ${aquarium.aquascape_style} style.`
       });
     }
 
     if (overgrownPlants.length > 0) {
       rootCauses.push({
-        title: lang === 'id' ? "Flora Melebihi Batas Ketinggian" : "Flora Outgrew Vertical Bounds", severity: "medium",
+        title: lang === 'id' ? "Flora Melebihi Ketinggian Air" : "Flora Outgrew Vertical Bounds", severity: "medium",
         description: lang === 'id'
-          ? `Tanaman bertangkai ${overgrownPlants.join(", ")} telah tumbuh menembus ketinggian permukaan air kaca tangki.`
+          ? `Tangkai tanaman ${overgrownPlants.join(", ")} telah tumbuh menembus ketinggian permukaan air kaca tangki.`
           : `Stem plants like ${overgrownPlants.join(", ")} outgrew the vertical water surface line.`,
       });
       nextActions.push({
-         instruction: lang === 'id' ? `Lakukan pemangkasan (*trimming*) berkala pada bagian atas tanaman ${overgrownPlants.join(", ")}.` : `Perform routine top trimming for overgrown stems: ${overgrownPlants.join(", ")}.`,
+         instruction: lang === 'id' ? `Lakukan pemangkasan (*trimming*) pucuk untuk ${overgrownPlants.join(", ")}.` : `Perform routine top trimming for overgrown stems: ${overgrownPlants.join(", ")}.`,
          priority: "medium"
       });
     }
@@ -350,7 +320,7 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
 
   if (nextActions.length === 0) {
     nextActions.push({ 
-      instruction: lang === 'id' ? "Pertahankan sirkulasi filter harian dan awasi perilaku ikan." : "Maintain baseline flow dynamics and observe behavioural mutations.", 
+      instruction: lang === 'id' ? "Pertahankan sirkulasi filter harian dan awasi perilaku abnormal fauna." : "Maintain baseline flow dynamics and observe behavioural mutations.", 
       priority: "low" 
     });
   }
@@ -382,8 +352,8 @@ export function generateDeepDiagnosis({ aquarium, health, parameters, fishes, pl
   let summary = "";
   if (riskLevel === "LOW") summary = lang === 'id' ? "Kondisi simulasi ekologi stabil. Parameter biologi beroperasi di titik kenyamanan tertinggi." : "Ecosystem simulation stable. All biological entities operating within ideal comfort loops.";
   else if (riskLevel === "MEDIUM") summary = lang === 'id' ? "Sistem seimbang, namun terdeteksi pembatasan ruang gerak atau stres sosial populasi." : "Balanced system, but social stress limits or population restrictions detected.";
-  else if (riskLevel === "HIGH") summary = lang === 'id' ? "Peringatan Malfungsi Sistem: Faktor destruktif mengancam keselamatan populasi." : "System Alert: Highly destructive elements threatening current survival loops.";
-  else summary = lang === 'id' ? "KEGAGALAN EKOSISTEM TOTAL: Terdeteksi ancaman patogen aktif atau keracunan parameter air parah!" : "TOTAL ECOSYSTEM FAILURE: Active high-vulnerability pathogens or chemical spikes detected!";
+  else if (riskLevel === "HIGH") summary = lang === 'id' ? "Peringatan Sistem: Faktor destruktif mengancam keselamatan biologi tangki." : "System Alert: Highly destructive elements threatening current survival loops.";
+  else summary = lang === 'id' ? "KEGAGALAN EKOSISTEM TOTAL: Terdeteksi ancaman kematian fauna atau keracunan senyawa kimia!" : "TOTAL ECOSYSTEM FAILURE: Fatal entity threat or acute chemical spikes detected!";
 
   return { summary, riskLevel, rootCauses: finalRootCauses, recommendations, nextActions: finalActions, generatedAt: new Date().toISOString(), explainabilityBreakdown, plantRecommendations };
 }

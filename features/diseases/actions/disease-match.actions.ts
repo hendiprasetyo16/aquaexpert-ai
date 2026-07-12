@@ -4,12 +4,19 @@
 import { createClient } from "@/lib/supabase/server";
 import { verifyAquariumOwnership } from "@/features/aquariums/repositories/security.repository";
 import type { Disease, Symptom, DiseaseMatchResult } from "../types/disease.types";
+import { runDiagnosisEngine } from "@/features/ai/services/diagnosis-engine";
+import { WaterInferenceService } from "@/features/ai/services/WaterInferenceService";
+import type { DiseaseInput, DiagnosisModifier, RuleType } from "@/features/ai/types/diagnosis.types";
+
+let cachedTotalDiseases: number | null = null;
+let lastCacheTime = 0;
+const CACHE_TTL = 1000 * 60 * 60; 
 
 export async function getDiseaseMatchAction(
   aquariumId: string, 
   selectedSymptomIds: string[], 
   lang: 'id' | 'en' = 'en'
-): Promise<{ success: boolean; matches?: DiseaseMatchResult[]; error?: string }> {
+): Promise<{ success: boolean; matches?: DiseaseMatchResult[]; inferredRootCauses?: string[]; error?: string }> {
   try {
     const supabase = await createClient();
     
@@ -21,237 +28,141 @@ export async function getDiseaseMatchAction(
        await verifyAquariumOwnership(supabase, aquariumId, user.id);
     }
 
-    if (!selectedSymptomIds || selectedSymptomIds.length === 0) {
-      return { success: true, matches: [] };
-    }
+    if (!selectedSymptomIds || selectedSymptomIds.length === 0) return { success: true, matches: [] };
 
-    const { data: inventoryFishes, error: invError } = await supabase
-      .from("aquarium_fishes")
-      .select("fish_id")
-      .eq("aquarium_id", aquariumId);
-
-    if (invError) throw new Error(lang === 'id' ? "Gagal mengambil data inventaris ikan." : "Failed to fetch fish inventory data.");
+    const { data: inventoryFishes } = await supabase.from("aquarium_fishes").select("fish_id").eq("aquarium_id", aquariumId);
     const tankFishIds = Array.from(new Set(inventoryFishes?.map(f => f.fish_id) || []));
 
     const { data: initialCandidates, error: candError } = await supabase
-      .from("disease_symptoms")
+      .from("disease_symptom_rules")
       .select("disease_id")
-      .in("symptom_id", selectedSymptomIds);
+      .in("symptom_id", selectedSymptomIds)
+      .neq("rule_type", "EXCLUDED");
 
-    if (candError || !initialCandidates) throw new Error(lang === 'id' ? "Gagal mengidentifikasi kandidat penyakit." : "Failed to identify disease candidates.");
+    if (candError || !initialCandidates) throw new Error(lang === 'id' ? "Gagal mengidentifikasi kandidat." : "Failed to identify candidates.");
     
     const candidateDiseaseIds = Array.from(new Set(initialCandidates.map(c => c.disease_id)));
-    if (candidateDiseaseIds.length === 0) {
-      return { success: true, matches: [] };
-    }
+    if (candidateDiseaseIds.length === 0) return { success: true, matches: [] };
 
-    const { data: fullDiseaseSignatures, error: signatureError } = await supabase
-      .from("disease_symptoms")
+    const { data: fullDiseaseRules, error: rulesError } = await supabase
+      .from("disease_symptom_rules")
       .select(`
         disease_id,
         symptom_id,
         weight,
-        is_hallmark,
+        rule_type,
         symptoms (*),
         diseases (*)
       `)
       .in("disease_id", candidateDiseaseIds);
 
-    if (signatureError || !fullDiseaseSignatures) throw new Error(lang === 'id' ? "Gagal memetakan profil patologi." : "Failed to map pathology profiles.");
+    if (rulesError || !fullDiseaseRules) throw new Error(lang === 'id' ? "Gagal memetakan aturan patologi." : "Failed to map pathology rules.");
 
-    // ==========================================
-    // 💡 THE GOLD STANDARD: GLOBAL IDF (Inverse Disease Frequency)
-    // ==========================================
-    // 1. Estimasi Populasi Penyakit (N)
-    // Hardcoded (atau di-cache) untuk mematikan beban database COUNT(*)
-    const N = 85; 
+    const uniqueRuleSymptomIds = Array.from(new Set(fullDiseaseRules.map(ds => ds.symptom_id)));
+    const allRelevantSymptomIds = Array.from(new Set([...uniqueRuleSymptomIds, ...selectedSymptomIds]));
 
-    // 2. Kumpulkan seluruh ID Gejala yang relevan (Kandidat + Pilihan User)
-    const uniqueCandidateSymptomIds = Array.from(new Set(fullDiseaseSignatures.map(ds => ds.symptom_id)));
-    const allRelevantSymptomIds = Array.from(new Set([...uniqueCandidateSymptomIds, ...selectedSymptomIds]));
-
-    // 3. Hitung DF (Disease Frequency): Gejala ini muncul di berapa penyakit?
     const { data: symptomOccurrences } = await supabase
-      .from("disease_symptoms")
+      .from("disease_symptom_rules")
       .select("symptom_id")
       .in("symptom_id", allRelevantSymptomIds);
 
-    const dfMap = new Map<string, number>();
-    symptomOccurrences?.forEach(row => {
-      dfMap.set(row.symptom_id, (dfMap.get(row.symptom_id) || 0) + 1);
-    });
+    const dfRecord: Record<string, number> = {};
+    symptomOccurrences?.forEach(row => { dfRecord[row.symptom_id] = (dfRecord[row.symptom_id] || 0) + 1; });
 
-    // 4. Kalkulasi IDF (Menggunakan Log Natural Scikit-Learn Smoothing)
-    // Meredam nilai gejala pasaran yang muncul di hampir semua penyakit
-    const idfMap = new Map<string, number>();
-    allRelevantSymptomIds.forEach(sId => {
-      const df = dfMap.get(sId) || 1;
-      const idf = Math.log((N + 1) / (df + 1)) + 1; 
-      idfMap.set(sId, idf);
-    });
-
-    // ==========================================
-    // 💡 SUSCEPTIBILITY MAPPING
-    // ==========================================
-    const susceptibilityMap = new Map<string, { score: number; note_id: string | null; note_en: string | null }>(); 
-    
+    const modifiers: DiagnosisModifier[] = [];
     if (tankFishIds.length > 0) {
-      const { data: fishRelations } = await supabase
-        .from("fish_disease_relations")
-        .select("disease_id, susceptibility_score, notes_id, notes_en")
-        .in("fish_id", tankFishIds);
-
+      const { data: fishRelations } = await supabase.from("fish_disease_relations").select("disease_id, susceptibility_score, notes_id, notes_en").in("fish_id", tankFishIds);
       if (fishRelations) {
         fishRelations.forEach(rel => {
-          const currentData = susceptibilityMap.get(rel.disease_id);
-          const currentMaxScore = currentData ? currentData.score : 0;
-          
-          if (rel.susceptibility_score > currentMaxScore) {
-            susceptibilityMap.set(rel.disease_id, {
-              score: rel.susceptibility_score,
-              note_id: rel.notes_id,
-              note_en: rel.notes_en
-            });
-          }
+          modifiers.push({ diseaseId: rel.disease_id, type: 'SPECIES_GENETICS', score: rel.susceptibility_score, warningCode: lang === 'id' ? rel.notes_id : rel.notes_en });
         });
       }
     }
 
-    // ==========================================
-    // 💡 PROFILE MAPPING (TF-IDF WEIGHTING)
-    // ==========================================
-    const profileMap = new Map<string, {
-      disease: Disease;
-      totalPossibleWeight: number;
-      matchedWeight: number;
-      matchedSymptoms: Symptom[];
-      totalHallmarksCount: number;
-      matchedHallmarksCount: number;
-      totalDiseaseSymptomIds: Set<string>;
-    }>();
-
-    fullDiseaseSignatures.forEach(ds => {
-      const dId = ds.disease_id;
-      const dData = ds.diseases as unknown as Disease;
-      const sData = ds.symptoms as unknown as Symptom;
-      const isSelected = selectedSymptomIds.includes(ds.symptom_id);
-
-      if (!profileMap.has(dId)) {
-        profileMap.set(dId, {
-          disease: dData,
-          totalPossibleWeight: 0,
-          matchedWeight: 0,
-          matchedSymptoms: [],
-          totalHallmarksCount: 0,
-          matchedHallmarksCount: 0,
-          totalDiseaseSymptomIds: new Set()
+    const { data: latestParams } = await supabase.from("aquarium_parameters").select("temperature, ammonia, nitrite, ph").eq("aquarium_id", aquariumId).order("record_date", { ascending: false }).limit(1).single();
+    if (latestParams) {
+      let waterScore = 0; let tempScore = 0; const waterWarnings: string[] = []; const tempWarnings: string[] = [];
+      const ammonia = Number(latestParams.ammonia ?? 0); const nitrite = Number(latestParams.nitrite ?? 0);
+      if (ammonia >= 0.5 || nitrite >= 0.5) { waterScore = 5; waterWarnings.push(lang === 'id' ? `Ammonia/Nitrit beracun (${ammonia}/${nitrite} ppm)` : `Toxic Ammonia/Nitrite (${ammonia}/${nitrite} ppm)`); } 
+      else if (ammonia > 0 || nitrite > 0) { waterScore = 3; waterWarnings.push(lang === 'id' ? "Ada jejak Ammonia/Nitrit" : "Traces of Ammonia/Nitrite"); }
+      const temp = Number(latestParams.temperature ?? 26);
+      if (latestParams.temperature !== null) {
+        if (temp < 24) { tempScore = 4; tempWarnings.push(lang === 'id' ? `Suhu terlalu dingin (${temp}°C)` : `Water too cold (${temp}°C)`); } 
+        else if (temp > 30) { tempScore = 4; tempWarnings.push(lang === 'id' ? `Suhu terlalu panas (${temp}°C)` : `Water too hot (${temp}°C)`); }
+      }
+      if (waterScore > 0 || tempScore > 0) {
+        candidateDiseaseIds.forEach(dId => {
+          if (waterScore > 0) modifiers.push({ diseaseId: dId, type: 'WATER_QUALITY', score: waterScore, warningCode: waterWarnings.join(', ') });
+          if (tempScore > 0) modifiers.push({ diseaseId: dId, type: 'TEMPERATURE', score: tempScore, warningCode: tempWarnings.join(', ') });
         });
       }
+    }
 
-      const p = profileMap.get(dId)!;
-      const tf = ds.weight; 
-      const idf = idfMap.get(ds.symptom_id) || 1; 
-      const tfIdfWeight = tf * idf; 
+    const diseaseInputMap = new Map<string, DiseaseInput>();
+    const originalDiseaseObjects = new Map<string, Disease>(); 
+    const originalSymptomObjects = new Map<string, Symptom>(); 
 
-      p.totalPossibleWeight += tfIdfWeight;
-      p.totalDiseaseSymptomIds.add(ds.symptom_id);
+    fullDiseaseRules.forEach(row => {
+      const dId = row.disease_id;
+      const sId = row.symptom_id;
       
-      if (ds.is_hallmark) p.totalHallmarksCount++;
-
-      if (isSelected) {
-        p.matchedWeight += tfIdfWeight;
-        p.matchedSymptoms.push(sData);
-        if (ds.is_hallmark) p.matchedHallmarksCount++;
-      }
-    });
-
-    const results: DiseaseMatchResult[] = [];
-    const selectedSet = new Set(selectedSymptomIds);
-    
-    // Total Kekuatan Gejala (IDF) yang dipilih pengguna
-    const totalUserSelectedIDF = selectedSymptomIds.reduce((sum, sId) => sum + (idfMap.get(sId) || 1), 0);
-
-    // ==========================================
-    // 🚀 DIAGNOSIS ENGINE CALCULATION (FINAL 10/10)
-    // ==========================================
-    profileMap.forEach((p, diseaseId) => {
-      
-      // 1. TF-IDF WEIGHTED RECALL
-      const recall = p.totalPossibleWeight > 0 ? (p.matchedWeight / p.totalPossibleWeight) : 0;
-      
-      // 2. IDF WEIGHTED PRECISION
-      const matchedUserIDF = p.matchedSymptoms.reduce((sum, sym) => sum + (idfMap.get(sym.id) || 1), 0);
-      const precision = totalUserSelectedIDF > 0 ? (matchedUserIDF / totalUserSelectedIDF) : 0;
-
-      // 3. COVERAGE
-      const coverage = p.totalHallmarksCount > 0 
-        ? (p.matchedHallmarksCount / p.totalHallmarksCount)
-        : (p.matchedSymptoms.length / p.totalDiseaseSymptomIds.size);
-      
-      // 4. RUMUS HIBRIDA (65% Recall + 25% Precision + 10% Coverage)
-      let baseConfidence = ((0.65 * recall) + (0.25 * precision) + (0.10 * coverage)) * 100;
-      
-      // 5. HALLMARK MULTIPLIER PROPORSIONAL
-      const hallmarkRatio = p.totalHallmarksCount > 0 ? (p.matchedHallmarksCount / p.totalHallmarksCount) : 0;
-      if (hallmarkRatio > 0) {
-        baseConfidence *= (1 + (hallmarkRatio * 0.08)); 
-      }
-
-      // 🚀 6. ADAPTIVE ALIEN PENALTY (Kuadratik x Faktor Presisi)
-      // Hukumannya diredam jika presisi user tinggi, tapi brutal jika presisi rendah.
-      const alienSymptomCount = selectedSet.size - p.matchedSymptoms.length;
-      const adaptiveFactor = 1 - precision; 
-      const negativePenalty = Math.pow(alienSymptomCount, 2) * adaptiveFactor * 2; 
-
-      // 7. SUSCEPTIBILITY BONUS (Dibatasi Maksimal 5 Poin)
-      const susData = susceptibilityMap.get(diseaseId);
-      const susceptibilityScore = susData ? susData.score : 0;
-      
-      let susceptibilityBonus = 0;
-      let susceptibilityWarning = null;
-
-      if (susceptibilityScore >= 4) {
-        susceptibilityBonus = Math.min(5, susceptibilityScore * 0.5); 
-        
-        const baseWarning = lang === 'id' 
-          ? "Peringatan Kritis: Spesies di tangki Anda memiliki kerentanan genetik terhadap patogen ini."
-          : "Critical Warning: Species in your tank have a genetic susceptibility to this pathogen.";
-          
-        const dbNote = lang === 'id' ? susData?.note_id : susData?.note_en;
-        const expertLabel = lang === 'id' ? "Catatan Pakar" : "Expert Note";
-        
-        if (dbNote) {
-          susceptibilityWarning = `${baseWarning} [${expertLabel}: ${dbNote}]`;
-        } else {
-          susceptibilityWarning = baseWarning;
-        }
-      }
-
-      // 8. FINAL CALCULATION
-      let finalConfidence = baseConfidence + susceptibilityBonus - negativePenalty;
-      
-      // Clamp nilai persentase secara mutlak (0 - 100)
-      finalConfidence = Math.max(0, Math.min(100, Math.round(finalConfidence)));
-
-      if (finalConfidence >= 10) {
-        results.push({
-          disease: p.disease,
-          confidenceScore: finalConfidence,
-          matchedSymptoms: p.matchedSymptoms,
-          susceptibilityWarning
+      if (!diseaseInputMap.has(dId)) {
+        const rawDisease = row.diseases as unknown as Disease; 
+        diseaseInputMap.set(dId, {
+          id: dId, name: lang === 'id' ? rawDisease.name_id : rawDisease.name_en, prevalence_prior: rawDisease.prevalence_prior || 0,
+          rules: [] 
         });
+        originalDiseaseObjects.set(dId, rawDisease);
       }
+
+      if (!originalSymptomObjects.has(sId)) {
+        const rawSymptom = row.symptoms as unknown as Symptom;
+        originalSymptomObjects.set(sId, rawSymptom);
+      }
+
+      const symData = originalSymptomObjects.get(sId)!;
+      diseaseInputMap.get(dId)!.rules.push({
+        id: sId,
+        weight: row.weight,
+        rule_type: row.rule_type as RuleType,
+        name_id: symData.name_id, 
+        name_en: symData.name_en
+      });
     });
 
-    results.sort((a, b) => b.confidenceScore - a.confidenceScore);
-    return { success: true, matches: results };
+    if (!cachedTotalDiseases || Date.now() - lastCacheTime > CACHE_TTL) {
+      const { count } = await supabase.from("diseases").select("*", { count: 'exact', head: true });
+      cachedTotalDiseases = count ?? 85;
+      lastCacheTime = Date.now();
+    }
+
+    const rawSelectedSymptoms = selectedSymptomIds.map(id => originalSymptomObjects.get(id)).filter(Boolean) as Symptom[];
+    const inferredWaterIssues = WaterInferenceService.infer(rawSelectedSymptoms);
+
+    const diagnosisEngineResults = runDiagnosisEngine(
+      selectedSymptomIds, Array.from(diseaseInputMap.values()), modifiers,
+      { totalDiseasesCount: cachedTotalDiseases, allSymptomOccurrences: dfRecord }
+    );
+
+    const finalMatches: DiseaseMatchResult[] = diagnosisEngineResults.map(res => {
+      const rawDisease = originalDiseaseObjects.get(res.diseaseId)!;
+      const rawMatchedSymptoms = res.matchedSymptoms.map(rule => originalSymptomObjects.get(rule.id)!);
+
+      return {
+        disease: rawDisease,
+        confidenceScore: res.confidenceScore,
+        matchedSymptoms: rawMatchedSymptoms,
+        susceptibilityWarning: res.modifierWarnings.length > 0 ? res.modifierWarnings.join(" | ") : null,
+        differentialDiagnosis: res.differentialDiagnosis, 
+        aiMetrics: res.metrics,
+        explanations: res.explanations,
+        status: res.status // 💡 Mapping status V7 terjamin ke UI
+      } as DiseaseMatchResult; 
+    });
+
+    return { success: true, matches: finalMatches, inferredRootCauses: inferredWaterIssues };
 
   } catch (error: unknown) {
-    return { 
-      success: false, 
-      error: error instanceof Error 
-        ? error.message 
-        : (lang === 'id' ? "Terjadi kegagalan fungsi internal pada Sistem Pakar." : "Internal failure occurred in the Expert System.")
-    };
+    return { success: false, error: error instanceof Error ? error.message : "Internal failure occurred." };
   }
 }

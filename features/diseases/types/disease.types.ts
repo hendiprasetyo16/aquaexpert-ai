@@ -1,4 +1,12 @@
 // features/diseases/types/disease.types.ts
+
+import type { 
+  DiagnosisMetrics, 
+  DiagnosisExplanation, 
+  DifferentialDiagnosisAlert,
+  DiagnosisStatus 
+} from "@/features/ai/types/diagnosis.types";
+
 export type DiseaseCategory = "Parasitic" | "Bacterial" | "Fungal" | "Viral" | "Environmental" | "Nutritional" | "Protozoan" | "Genetic" | string;
 export type BodyRegion = "General" | "Fins" | "Eyes" | "Gills" | "Belly" | "Skin/Scales" | "Mouth";
 export type SeverityLevel = "low" | "medium" | "high" | "critical";
@@ -8,9 +16,9 @@ export interface Disease {
   slug?: string | null;
   name_id: string;
   name_en: string;
-  scientific_name?: string | null;     // <-- KEMBALI
-  description_id?: string | null;      // <-- KEMBALI
-  description_en?: string | null;      // <-- KEMBALI
+  scientific_name?: string | null;
+  description_id?: string | null;
+  description_en?: string | null;
   symptoms_id?: string | null;
   symptoms_en?: string | null;
   treatments_id?: string | null;
@@ -46,6 +54,7 @@ export interface Disease {
   symptom_tags?: string[] | null;
   water_trigger_tags?: string[] | null; 
   relapse_window_days?: number | null;
+  prevalence_prior?: number | null;
 }
 
 export interface Symptom {
@@ -58,37 +67,15 @@ export interface Symptom {
   created_at?: string;
 }
 
-export interface DiseaseSymptom {
-  disease_id: string;
-  symptom_id: string;
-  weight: number; 
-  is_hallmark?: boolean; 
-}
-
-export interface FishDiseaseRelation {
-  fish_id: string;
-  disease_id: string;
-  susceptibility_score: number; 
-}
-
-export interface DiseaseMatchRequest {
-  aquariumId: string;
-  selectedSymptomIds: string[];
-  source?: "manual" | "vision" | "sensor";
-  environmentalContext?: {
-    ammonia?: number;
-    nitrite?: number;
-    nitrate?: number;
-    ph?: number;
-    temperature?: number;
-  };
-}
-
 export interface DiseaseMatchResult {
   disease: Disease;
   confidenceScore: number; 
-  matchedSymptoms: Symptom[];
+  matchedSymptoms: any[]; // Toleransi untuk SymptomRuleInput agar UI tidak komplain
   hasHallmarkMatch?: boolean; 
   environmentalTrigger?: string | null; 
   susceptibilityWarning?: string | null; 
+  differentialDiagnosis?: DifferentialDiagnosisAlert; 
+  aiMetrics?: DiagnosisMetrics; 
+  explanations?: DiagnosisExplanation[];
+  status?: DiagnosisStatus; // 💡 The Source of Truth
 }

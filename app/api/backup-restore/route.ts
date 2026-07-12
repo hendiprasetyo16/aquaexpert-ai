@@ -21,7 +21,8 @@ const TABLES_TO_BACKUP = [
 
   // --- 2. LEVEL 1 DEPENDENCIES (Relasi Langsung) ---
   'disease_medications',
-  'disease_symptoms',
+  // 'disease_symptoms',
+  'disease_symptom_rules',
   'fish_disease_relations',
   'medication_environment_rules',
   'medication_fauna_safety',
