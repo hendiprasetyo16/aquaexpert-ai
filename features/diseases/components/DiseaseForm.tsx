@@ -7,15 +7,16 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, ArrowLeft, Save, Info, ImagePlus, AlertTriangle, Archive, Trash2, ShieldAlert, HeartPulse, Stethoscope, Activity } from "lucide-react";
+import { Loader2, ArrowLeft, Save, Info, ImagePlus, AlertTriangle, Archive, Trash2, ShieldAlert, HeartPulse, Stethoscope, Activity, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
-import type { Disease, DiseaseCategory } from "../types/disease.types";
+import type { Disease, DiseaseCategory, Symptom } from "../types/disease.types";
 import { createDiseaseAction, updateDiseaseAction, toggleDiseaseArchiveAction, hardDeleteDiseaseAction } from "../actions/disease.actions";
 import { uploadDiseaseImage } from "../repositories/disease.repository";
+import { getSymptomsAction } from "@/features/diseases/actions/symptom.actions";
+import { createClient } from "@/lib/supabase/client";
 
-// FUNGSI KOMPRESI GAMBAR
 const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<File> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -27,26 +28,14 @@ const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<File
         const canvas = document.createElement("canvas");
         let width = img.width;
         let height = img.height;
-
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
+        if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+        canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext("2d");
-        
         if (!ctx) { reject(new Error("Failed to get canvas context")); return; }
         ctx.drawImage(img, 0, 0, width, height);
-
         canvas.toBlob((blob) => {
-            if (blob) {
-              const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
-                type: "image/jpeg", lastModified: Date.now(),
-              });
-              resolve(compressedFile);
-            } else { reject(new Error("Canvas to Blob failed")); }
+            if (blob) resolve(new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), { type: "image/jpeg", lastModified: Date.now() }));
+            else reject(new Error("Canvas to Blob failed"));
           }, "image/jpeg", quality);
       };
       img.onerror = (err) => reject(err);
@@ -60,6 +49,15 @@ interface Props {
   mode: "create" | "edit";
 }
 
+// 💡 Interface untuk Form Aturan Gejala V7
+interface FormRule {
+  symptom_id: string;
+  rule_type: 'HALLMARK' | 'MANDATORY' | 'SUPPORTING' | 'EXCLUDED';
+  weight: number;
+  reason_id: string;
+  reason_en: string;
+}
+
 export function DiseaseForm({ initialData, mode }: Props) {
   const router = useRouter();
   const { dict, language } = useLanguage();
@@ -68,71 +66,99 @@ export function DiseaseForm({ initialData, mode }: Props) {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingAction, setLoadingAction] = useState(false);
-  
   const [mounted, setMounted] = useState(false);
+
+  // 💡 State untuk Rule Builder V7
+  const [availableSymptoms, setAvailableSymptoms] = useState<Symptom[]>([]);
+  const [rules, setRules] = useState<FormRule[]>([]);
+
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    // Fetch data gejala dan data rules lama jika dalam mode edit
+    async function loadInitialData() {
+      try {
+        const symRes = await getSymptomsAction();
+        if (symRes.success && symRes.data) {
+          setAvailableSymptoms(symRes.data);
+        }
+
+        if (mode === "edit" && initialData?.id) {
+          const supabase = createClient();
+          const { data: existingRules } = await supabase
+            .from("disease_symptom_rules")
+            .select("*")
+            .eq("disease_id", initialData.id);
+            
+          if (existingRules) {
+            setRules(existingRules.map(r => ({
+              symptom_id: r.symptom_id,
+              rule_type: r.rule_type as any,
+              weight: r.weight,
+              reason_id: r.reason_id || "",
+              reason_en: r.reason_en || ""
+            })));
+          }
+        }
+      } catch (e) {
+        console.error("Gagal memuat data pendukung", e);
+      }
+    }
+    loadInitialData();
+  }, [mode, initialData]);
 
   const rootDict = (dict as Record<string, unknown>) || {};
   const diseaseScope = (rootDict.disease as Record<string, unknown>) || {};
-  
   const formDict = (diseaseScope.diseaseForm || rootDict.diseaseForm || {}) as Record<string, string>;
   const arcDict = (diseaseScope.diseaseArchiveList || rootDict.diseaseArchiveList || {}) as Record<string, string>;
 
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string>(initialData?.image_url || "");
-
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const [formData, setFormData] = useState<Partial<Disease>>({
-    name_id: initialData?.name_id || "",
-    name_en: initialData?.name_en || "",
-    scientific_name: initialData?.scientific_name || "",
-    disease_category: initialData?.disease_category || "Bacterial",
-    severity: initialData?.severity || 3,
-    urgency_level: initialData?.urgency_level || "Medium",
-    difficulty: initialData?.difficulty || "Medium",
-    description_id: initialData?.description_id || "",
-    description_en: initialData?.description_en || "",
-    symptoms_id: initialData?.symptoms_id || "",
-    symptoms_en: initialData?.symptoms_en || "",
-    treatments_id: initialData?.treatments_id || "",
-    treatments_en: initialData?.treatments_en || "",
-    prevention_id: initialData?.prevention_id || "",
-    prevention_en: initialData?.prevention_en || "",
-    expert_notes_id: initialData?.expert_notes_id || "",
-    expert_notes_en: initialData?.expert_notes_en || "",
-    mortality_risk: initialData?.mortality_risk || 3,
-    contagious: initialData?.contagious || false,
-    quarantine_required: initialData?.quarantine_required || false,
-    treatment_duration_days: initialData?.treatment_duration_days || 7,
-    recovery_probability: initialData?.recovery_probability || 70,
+    name_id: initialData?.name_id || "", name_en: initialData?.name_en || "",
+    scientific_name: initialData?.scientific_name || "", disease_category: initialData?.disease_category || "Bacterial",
+    severity: initialData?.severity || 3, urgency_level: initialData?.urgency_level || "Medium", difficulty: initialData?.difficulty || "Medium",
+    description_id: initialData?.description_id || "", description_en: initialData?.description_en || "",
+    symptoms_id: initialData?.symptoms_id || "", symptoms_en: initialData?.symptoms_en || "",
+    treatments_id: initialData?.treatments_id || "", treatments_en: initialData?.treatments_en || "",
+    prevention_id: initialData?.prevention_id || "", prevention_en: initialData?.prevention_en || "",
+    expert_notes_id: initialData?.expert_notes_id || "", expert_notes_en: initialData?.expert_notes_en || "",
+    mortality_risk: initialData?.mortality_risk || 3, contagious: initialData?.contagious || false,
+    quarantine_required: initialData?.quarantine_required || false, treatment_duration_days: initialData?.treatment_duration_days || 7,
+    recovery_probability: initialData?.recovery_probability || 70, prevalence_prior: initialData?.prevalence_prior || 0.05
   });
 
   const handleChange = (field: keyof Disease, value: string | number | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // 💡 Handler untuk Rule Builder
+  const handleAddRule = () => {
+    setRules([...rules, { symptom_id: "", rule_type: "SUPPORTING", weight: 3, reason_id: "", reason_en: "" }]);
+  };
+  const handleUpdateRule = (index: number, field: keyof FormRule, value: string | number) => {
+    const newRules = [...rules];
+    newRules[index] = { ...newRules[index], [field]: value };
+    setRules(newRules);
+  };
+  const handleRemoveRule = (index: number) => {
+    setRules(rules.filter((_, i) => i !== index));
+  };
+
   const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-      
-      if (!validTypes.includes(file.type)) {
-        toast.error(lang === 'id' ? "Format harus JPG, PNG atau WEBP." : "Format must be JPG, PNG or WEBP.");
-        return;
-      }
-
+      if (!validTypes.includes(file.type)) { toast.error(lang === 'id' ? "Format harus JPG, PNG atau WEBP." : "Format must be JPG, PNG or WEBP."); return; }
       try {
         const compressedFile = await compressImage(file);
         setCoverFile(compressedFile);
         setCoverPreview(URL.createObjectURL(compressedFile));
-      } catch (err) {
-        toast.error(lang === 'id' ? "Gagal mengompresi gambar." : "Failed to compress image.");
-      }
+      } catch (err) { toast.error(lang === 'id' ? "Gagal mengompresi gambar." : "Failed to compress image."); }
     }
   };
 
@@ -141,77 +167,51 @@ export function DiseaseForm({ initialData, mode }: Props) {
     setIsSubmitting(true);
 
     try {
+      // Validasi Rule
+      const invalidRules = rules.some(r => !r.symptom_id);
+      if (invalidRules) {
+        toast.error(lang === 'id' ? "Harap pilih gejala untuk setiap aturan yang ditambahkan." : "Please select a symptom for each rule added.");
+        setIsSubmitting(false);
+        return;
+      }
+
       let finalImageUrl = initialData?.image_url || null;
-      
-      // 1. Buat SLUG standar untuk database (sesuai skema)
       const finalNameEn = formData.name_en?.trim() || formData.name_id?.trim() || "diseases";
-      const diseaseSlug = mode === "edit" && initialData?.slug 
-        ? initialData.slug 
-        : finalNameEn.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const diseaseSlug = mode === "edit" && initialData?.slug ? initialData.slug : finalNameEn.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
       
       if (coverFile) {
         toast.loading(lang === 'id' ? "Mengompresi & mengunggah gambar..." : "Compressing & uploading image...", { id: "upload" });
-        
-        // 1. Buat slug secara dinamis (on-the-fly) dari inputan nama penyakit
-        const dynamicSlug = (formData.name_id || "disease")
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-') // Ganti karakter non-alfanumerik dengan strip (-)
-          .replace(/(^-|-$)+/g, '');   // Hapus strip di awal atau akhir
-
-        // 2. Buat string tanggal yang mudah dibaca (Format: YYYYMMDD)
-        const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, ""); // Contoh output: 20260704
-        const uniqueId = Math.random().toString(36).substring(2, 8); // ID acak 6 karakter tambahan agar tidak bentrok
+        const dynamicSlug = (formData.name_id || "disease").toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, ""); 
+        const uniqueId = Math.random().toString(36).substring(2, 8); 
         const ext = coverFile.name.split('.').pop() || 'jpg';
-        
-        // 3. Format penamaan gambar: slug-cover-tanggal-random.ext
-        // Contoh Hasil: bintik-putih-cover-20260704-a8f9b2.jpg
         const newFileName = `${dynamicSlug}-cover-${dateStr}-${uniqueId}.${ext}`;
-        
-        // 4. Rename file dan Upload
         const renamedFile = new File([coverFile], newFileName, { type: coverFile.type });
         const uploadedUrl = await uploadDiseaseImage(renamedFile, initialData?.image_url);
         
-        if (uploadedUrl) {
-          finalImageUrl = uploadedUrl;
-          toast.success(lang === 'id' ? "Gambar berhasil diunggah!" : "Image uploaded!", { id: "upload" });
-        } else {
-          toast.error(lang === 'id' ? "Gagal mengunggah gambar." : "Failed to upload image.", { id: "upload" });
-        }
+        if (uploadedUrl) { finalImageUrl = uploadedUrl; toast.success(lang === 'id' ? "Gambar berhasil diunggah!" : "Image uploaded!", { id: "upload" }); } 
+        else { toast.error(lang === 'id' ? "Gagal mengunggah gambar." : "Failed to upload image.", { id: "upload" }); }
       }
 
       const payload: Partial<Disease> = {
-        name_id: formData.name_id?.trim() || "Penyakit",
-        name_en: finalNameEn,
-        slug: diseaseSlug, // Masukkan slug ke payload database
-        scientific_name: formData.scientific_name?.trim() || null,
-        description_id: formData.description_id?.trim() || null,
-        description_en: formData.description_en?.trim() || null,
-        disease_category: formData.disease_category,
-        severity: Number(formData.severity) || 3,
-        difficulty: formData.difficulty,
-        urgency_level: formData.urgency_level,
-        symptoms_id: formData.symptoms_id?.trim() || null,
-        symptoms_en: formData.symptoms_en?.trim() || null,
-        treatments_id: formData.treatments_id?.trim() || null,
-        treatments_en: formData.treatments_en?.trim() || null,
-        prevention_id: formData.prevention_id?.trim() || null,
-        prevention_en: formData.prevention_en?.trim() || null,
-        expert_notes_id: formData.expert_notes_id?.trim() || null,
-        expert_notes_en: formData.expert_notes_en?.trim() || null,
-        mortality_risk: Number(formData.mortality_risk) || 3,
-        contagious: Boolean(formData.contagious),
-        quarantine_required: Boolean(formData.quarantine_required),
-        treatment_duration_days: Number(formData.treatment_duration_days) || null,
-        recovery_probability: Number(formData.recovery_probability) || null,
-        image_url: finalImageUrl,
+        name_id: formData.name_id?.trim() || "Penyakit", name_en: finalNameEn, slug: diseaseSlug,
+        scientific_name: formData.scientific_name?.trim() || null, description_id: formData.description_id?.trim() || null, description_en: formData.description_en?.trim() || null,
+        disease_category: formData.disease_category, severity: Number(formData.severity) || 3, difficulty: formData.difficulty, urgency_level: formData.urgency_level,
+        symptoms_id: formData.symptoms_id?.trim() || null, symptoms_en: formData.symptoms_en?.trim() || null,
+        treatments_id: formData.treatments_id?.trim() || null, treatments_en: formData.treatments_en?.trim() || null,
+        prevention_id: formData.prevention_id?.trim() || null, prevention_en: formData.prevention_en?.trim() || null,
+        expert_notes_id: formData.expert_notes_id?.trim() || null, expert_notes_en: formData.expert_notes_en?.trim() || null,
+        mortality_risk: Number(formData.mortality_risk) || 3, contagious: Boolean(formData.contagious), quarantine_required: Boolean(formData.quarantine_required),
+        treatment_duration_days: Number(formData.treatment_duration_days) || null, recovery_probability: Number(formData.recovery_probability) || null,
+        prevalence_prior: Number(formData.prevalence_prior) || 0.05, image_url: finalImageUrl,
       };
 
       let res;
       if (mode === "create") {
-        res = await createDiseaseAction(payload);
+        res = await createDiseaseAction(payload, rules);
       } else {
         if (!initialData?.id) throw new Error("ID tidak ditemukan.");
-        res = await updateDiseaseAction(initialData.id, payload);
+        res = await updateDiseaseAction(initialData.id, payload, rules);
       }
 
       if (res.success) {
@@ -221,14 +221,10 @@ export function DiseaseForm({ initialData, mode }: Props) {
       } else {
         toast.error(res.error || (lang === 'id' ? "Gagal menyimpan data." : "Failed to save data."));
       }
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Terjadi kesalahan.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Terjadi kesalahan."); } finally { setIsSubmitting(false); }
   };
 
-  const executeArchive = async () => {
+  const executeArchive = async () => { /* ... (Tetap sama) ... */
     if (!initialData) return;
     try {
       setLoadingAction(true);
@@ -237,22 +233,14 @@ export function DiseaseForm({ initialData, mode }: Props) {
       toast.success(lang === "id" ? "Status diarsipkan." : "Status updated.");
       router.push("/dashboard/diseases");
       router.refresh();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Error");
-    } finally {
-      setLoadingAction(false);
-      setIsArchiveModalOpen(false);
-    }
+    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Error"); } finally { setLoadingAction(false); setIsArchiveModalOpen(false); }
   };
 
-  const executeHardDelete = async (e: React.FormEvent) => {
+  const executeHardDelete = async (e: React.FormEvent) => { /* ... (Tetap sama) ... */
     e.preventDefault();
     if (!initialData) return;
     const currentName = lang === "en" && initialData.name_en ? initialData.name_en : initialData.name_id;
-    if (deleteConfirmText !== currentName) {
-      toast.error(lang === "id" ? "Nama tidak cocok." : "Name mismatch.");
-      return;
-    }
+    if (deleteConfirmText !== currentName) { toast.error(lang === "id" ? "Nama tidak cocok." : "Name mismatch."); return; }
     try {
       setLoadingAction(true);
       const res = await hardDeleteDiseaseAction(initialData.id);
@@ -260,12 +248,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
       toast.success(lang === "id" ? "Dihapus permanen." : "Permanently deleted.");
       router.push("/dashboard/diseases");
       router.refresh();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Error");
-    } finally {
-      setLoadingAction(false);
-      setIsDeleteModalOpen(false);
-    }
+    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Error"); } finally { setLoadingAction(false); setIsDeleteModalOpen(false); }
   };
 
   return (
@@ -287,35 +270,18 @@ export function DiseaseForm({ initialData, mode }: Props) {
               </label>
               
               <div className="relative w-full aspect-video md:aspect-[4/3] overflow-hidden rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 transition-all group bg-white dark:bg-slate-900 flex flex-col items-center justify-center">
-                <input 
-                  id="cover-image" 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleCoverChange} 
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" 
-                />
-
+                <input id="cover-image" type="file" accept="image/*" onChange={handleCoverChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
                 {coverPreview ? (
                   <>
-                    <Image 
-                      src={coverPreview} 
-                      alt="Cover Preview" 
-                      fill 
-                      className="object-cover z-0" 
-                      unoptimized 
-                    />
+                    <Image src={coverPreview} alt="Cover Preview" fill className="object-cover z-0" unoptimized />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10 pointer-events-none">
-                      <span className="text-white text-sm font-bold">
-                        {formDict.changeCover || (lang === 'id' ? "Ganti Foto" : "Change Photo")}
-                      </span>
+                      <span className="text-white text-sm font-bold">{formDict.changeCover || (lang === 'id' ? "Ganti Foto" : "Change Photo")}</span>
                     </div>
                   </>
                 ) : (
                   <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 group-hover:text-blue-500 z-10 p-6 transition-colors pointer-events-none">
                     <ImagePlus className="h-10 w-10 mb-2" />
-                    <span className="text-sm font-bold text-center">
-                      {formDict.uploadCover || (lang === 'id' ? "Klik Untuk Upload Foto" : "Click to Upload Photo")}
-                    </span>
+                    <span className="text-sm font-bold text-center">{formDict.uploadCover || (lang === 'id' ? "Klik Untuk Upload Foto" : "Click to Upload Photo")}</span>
                     <p className="text-xs mt-1 text-slate-400 dark:text-slate-600">PNG, JPG, WEBP</p>
                   </div>
                 )}
@@ -340,13 +306,11 @@ export function DiseaseForm({ initialData, mode }: Props) {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{(formDict.nameEn || "Nama Penyakit (EN)").replace(' *', '')}</label>
                 <input type="text" placeholder="E.g., White Spot" value={formData.name_en || ""} onChange={(e) => handleChange("name_en", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
-                <p className="text-[10px] text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3 h-3 shrink-0"/> {lang === 'id' ? "Dibiarkan kosong pun akan otomatis mengikuti nama (ID)." : "Leave empty to automatically copy the (ID) name."}</p>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Nama Ilmiah (Latin)" : "Scientific Name"}</label>
                 <input type="text" placeholder="Cth: Ichthyophthirius" value={formData.scientific_name || ""} onChange={(e) => handleChange("scientific_name", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold italic text-slate-800 dark:text-slate-100 transition-colors" />
-                <p className="text-[10px] text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3 h-3 shrink-0"/> {lang === 'id' ? "Nama biologis dari bakteri/parasit penyebab penyakit (opsional)." : "Biological name of the pathogen (optional)."}</p>
               </div>
             </div>
 
@@ -354,88 +318,107 @@ export function DiseaseForm({ initialData, mode }: Props) {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.category || "Kategori"}</label>
                 <select value={formData.disease_category || ""} onChange={(e) => handleChange("disease_category", e.target.value as DiseaseCategory)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors">
-                  <option value="Parasitic">Parasitic (Parasit)</option>
-                  <option value="Bacterial">Bacterial (Bakteri)</option>
-                  <option value="Fungal">Fungal (Jamur)</option>
-                  <option value="Viral">Viral (Virus)</option>
-                  <option value="Environmental">Environmental (Lingkungan)</option>
-                  <option value="Nutritional">Nutritional (Nutrisi)</option>
-                  <option value="Protozoan">Protozoan (Protozoa)</option>
-                  <option value="Genetic">Genetic (Genetik)</option>
+                  <option value="Parasitic">Parasitic (Parasit)</option><option value="Bacterial">Bacterial (Bakteri)</option><option value="Fungal">Fungal (Jamur)</option>
+                  <option value="Viral">Viral (Virus)</option><option value="Environmental">Environmental (Lingkungan)</option><option value="Nutritional">Nutritional (Nutrisi)</option>
+                  <option value="Protozoan">Protozoan (Protozoa)</option><option value="Genetic">Genetic (Genetik)</option>
                 </select>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5">
-                  <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Klasifikasi patogen." : "Pathogen classification."}
-                </p>
               </div>
               
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.severity || "Tingkat Keparahan"}</label>
                 <input type="number" min="1" max="5" value={formData.severity || 3} onChange={(e) => handleChange("severity", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5">
-                  <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "1 (Ringan) s/d 5 (Fatal)." : "1 (Mild) to 5 (Lethal)."}
-                </p>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.urgency || "Tingkat Urgensi"}</label>
                 <select value={formData.urgency_level || ""} onChange={(e) => handleChange("urgency_level", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors">
-                  <option value="Low">Low (Bisa ditunda)</option>
-                  <option value="Medium">Medium (Segera tangani)</option>
-                  <option value="High">High (Berbahaya)</option>
-                  <option value="Critical">Critical (Darurat / Karantina)</option>
-                  <option value="Emergency">Emergency (Kritis / Fatal)</option>
+                  <option value="Low">Low (Bisa ditunda)</option><option value="Medium">Medium (Segera tangani)</option><option value="High">High (Berbahaya)</option>
+                  <option value="Critical">Critical (Darurat / Karantina)</option><option value="Emergency">Emergency (Kritis / Fatal)</option>
                 </select>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5">
-                  <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Tingkat darurat saat terdeteksi." : "Emergency level upon detection."}
-                </p>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.difficulty || "Tingkat Kesulitan"}</label>
                 <select value={formData.difficulty || ""} onChange={(e) => handleChange("difficulty", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors">
-                  <option value="Easy">Easy (Mudah)</option>
-                  <option value="Medium">Medium (Sedang)</option>
-                  <option value="Hard">Hard (Sulit)</option>
-                  <option value="Expert">Expert (Sangat Sulit)</option>
+                  <option value="Easy">Easy (Mudah)</option><option value="Medium">Medium (Sedang)</option><option value="Hard">Hard (Sulit)</option><option value="Expert">Expert (Sangat Sulit)</option>
                 </select>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5">
-                  <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Kesulitan dalam pengobatan." : "Treatment difficulty."}
-                </p>
               </div>
             </div>
-          </div>
-
-          {/* 3. DESKRIPSI & GEJALA */}
-          <div className="space-y-4 pt-2">
-            <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-blue-600 dark:text-blue-500" />
-              {formDict.clinicalSigns || (lang === 'id' ? "Gejala Klinis & Deskripsi" : "Clinical Signs & Description")}
-            </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 rounded-2xl border-2 border-slate-200 dark:border-slate-800 transition-colors">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Deskripsi Patologi (ID)" : "Pathology Description (ID)"}</label>
-                <textarea rows={3} placeholder="Penjelasan singkat tentang penyakit ini..." value={formData.description_id || ""} onChange={(e) => handleChange("description_id", e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5"><Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Gambaran naratif tentang penyakit." : "Narrative overview of the disease."}</p>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'en' ? "Deskripsi Patologi (EN)" : "Pathology Description (EN)"}</label>
-                <textarea rows={3} placeholder="Brief explanation of the disease..." value={formData.description_en || ""} onChange={(e) => handleChange("description_en", e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.symptomsId || (lang === 'id' ? "Gejala Fisik (ID)" : "Symptoms (ID)")}</label>
-                <textarea rows={4} placeholder="- Ada bintik putih di sirip&#10;- Ikan sering menggesekkan badan" value={formData.symptoms_id || ""} onChange={(e) => handleChange("symptoms_id", e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5"><Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Ciri-ciri fisik yang terlihat pada tubuh ikan." : "Visible physical traits on the fish body."}</p>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.symptomsEn || (lang === 'id' ? "Gejala Fisik (EN)" : "Symptoms (EN)")}</label>
-                <textarea rows={4} placeholder="- White spots on fins&#10;- Fish flashing against objects" value={formData.symptoms_en || ""} onChange={(e) => handleChange("symptoms_en", e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Prevalensi Bayesian (Prior)" : "Prior Prevalence (Bayesian)"}</label>
+                <input type="number" step="0.01" min="0" max="1" value={formData.prevalence_prior || 0.05} onChange={(e) => handleChange("prevalence_prior", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
+                <p className="text-[10px] text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3 h-3 shrink-0"/> {lang === 'id' ? "Probabilitas dasar penyakit ini muncul (0.00 - 1.00)." : "Base probability of this disease occurring (0.00 - 1.00)."}</p>
               </div>
             </div>
           </div>
 
-          {/* 4. PROTOKOL PENGOBATAN */}
+          {/* 💡 3. THE RULE BUILDER ENGINE (V7) */}
+          <div className="space-y-4 pt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-blue-200 dark:border-blue-900/40 pb-2">
+              <h3 className="text-lg font-black text-blue-800 dark:text-blue-400 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-blue-600 dark:text-blue-500" />
+                {lang === 'id' ? "Diagnosis Rule Engine (V7)" : "Diagnosis Rule Engine (V7)"}
+              </h3>
+              <Button type="button" onClick={handleAddRule} variant="outline" className="h-9 px-3 rounded-lg border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 font-bold text-xs">
+                <Plus className="w-4 h-4 mr-1" /> {lang === 'id' ? "Tambah Gejala/Aturan" : "Add Symptom/Rule"}
+              </Button>
+            </div>
+            
+            <div className="space-y-3">
+              {rules.length === 0 ? (
+                <div className="p-8 text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl text-slate-400 font-medium">
+                  {lang === 'id' ? "Belum ada aturan gejala yang ditambahkan." : "No symptom rules added yet."}
+                </div>
+              ) : (
+                rules.map((rule, index) => (
+                  <div key={index} className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl p-4 relative group">
+                    <button type="button" onClick={() => handleRemoveRule(index)} className="absolute top-3 right-3 text-slate-400 hover:text-red-500 transition-colors p-1 bg-slate-100 dark:bg-slate-800 rounded-md">
+                      <X className="w-4 h-4" />
+                    </button>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 pr-8">
+                      <div className="md:col-span-4 space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Pilih Gejala" : "Select Symptom"}</label>
+                        <select required value={rule.symptom_id} onChange={(e) => handleUpdateRule(index, "symptom_id", e.target.value)} className="w-full h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-bold text-slate-700 dark:text-slate-200 text-sm">
+                          <option value="">-- Pilih --</option>
+                          {availableSymptoms.map(sym => (
+                            <option key={sym.id} value={sym.id}>{lang === 'id' ? sym.name_id : sym.name_en}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="md:col-span-4 space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Tipe Aturan" : "Rule Type"}</label>
+                        <select value={rule.rule_type} onChange={(e) => handleUpdateRule(index, "rule_type", e.target.value)} className={`w-full h-10 px-3 rounded-lg border focus:border-blue-500 outline-none font-bold text-sm ${rule.rule_type === 'EXCLUDED' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800' : rule.rule_type === 'HALLMARK' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}>
+                          <option value="SUPPORTING">Supporting (Gejala Pendukung)</option>
+                          <option value="MANDATORY">Mandatory (Wajib Ada)</option>
+                          <option value="HALLMARK">Hallmark (Gejala Khas/Mutlak)</option>
+                          <option value="EXCLUDED">Excluded (Gejala Penolak/Pantangan)</option>
+                        </select>
+                      </div>
+                      <div className="md:col-span-4 space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Bobot (Weight)" : "Weight"}</label>
+                        <input type="number" min="1" max="10" value={rule.weight} onChange={(e) => handleUpdateRule(index, "weight", Number(e.target.value))} className="w-full h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-bold text-slate-700 dark:text-slate-200 text-sm" />
+                      </div>
+                      
+                      {/* Reason Fields (XAI) */}
+                      <div className="md:col-span-6 space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Alasan Medis XAI (ID)" : "Medical Reason XAI (ID)"}</label>
+                        <input type="text" placeholder="Ikan gatal karena..." value={rule.reason_id} onChange={(e) => handleUpdateRule(index, "reason_id", e.target.value)} className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none font-medium text-slate-600 dark:text-slate-300 text-xs italic" />
+                      </div>
+                      <div className="md:col-span-6 space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Alasan Medis XAI (EN)" : "Medical Reason XAI (EN)"}</label>
+                        <input type="text" placeholder="Fish is itchy because..." value={rule.reason_en} onChange={(e) => handleUpdateRule(index, "reason_en", e.target.value)} className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none font-medium text-slate-600 dark:text-slate-300 text-xs italic" />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* 4. PROTOKOL PENGOBATAN & METRIK */}
           <div className="space-y-4 pt-2">
             <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-2">
               <ShieldAlert className="w-5 h-5 text-blue-600 dark:text-blue-500" />
@@ -446,138 +429,42 @@ export function DiseaseForm({ initialData, mode }: Props) {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.treatmentsId || (lang === 'id' ? "Langkah Pengobatan (ID)" : "Treatment Steps (ID)")}</label>
                 <textarea rows={4} placeholder="1. Pindahkan ikan ke tank karantina." value={formData.treatments_id || ""} onChange={(e) => handleChange("treatments_id", e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5"><Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Langkah pengobatan yang dianjurkan (Gunakan poin nomor)." : "Recommended steps (Use numbering)."}</p>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.treatmentsEn || (lang === 'id' ? "Langkah Pengobatan (EN)" : "Treatment Steps (EN)")}</label>
                 <textarea rows={4} placeholder="1. Move fish to quarantine tank." value={formData.treatments_en || ""} onChange={(e) => handleChange("treatments_en", e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
               </div>
             </div>
-          </div>
-
-          {/* 5. METRIK LANJUTAN & PENCEGAHAN */}
-          <div className="space-y-4 pt-2">
-            <h3 className="text-lg font-black text-rose-800 dark:text-rose-400 border-b border-rose-200 dark:border-rose-900/40 pb-2 flex items-center gap-2">
-              <HeartPulse className="w-5 h-5 text-rose-600 dark:text-rose-500" />
-              {formDict.advancedMetrics || (lang === 'id' ? "Metrik Klinis & Pencegahan" : "Clinical Metrics")}
-            </h3>
             
-            <div className="bg-rose-50/50 dark:bg-slate-950 p-4 sm:p-6 rounded-2xl border-2 border-rose-200 dark:border-slate-800 space-y-6 transition-colors">
+            <div className="bg-rose-50/50 dark:bg-slate-950 p-4 sm:p-6 rounded-2xl border-2 border-rose-200 dark:border-slate-800 space-y-6 transition-colors mt-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-1.5">
-                  <label className="text-rose-900 dark:text-rose-400 font-bold text-xs uppercase tracking-widest">
-                    {formDict.mortalityRisk || (lang === 'id' ? "Mortalitas (1-5)" : "Mortality Risk (1-5)")}
-                  </label>
+                  <label className="text-rose-900 dark:text-rose-400 font-bold text-xs uppercase tracking-widest">{formDict.mortalityRisk || (lang === 'id' ? "Mortalitas (1-5)" : "Mortality Risk (1-5)")}</label>
                   <input type="number" min="1" max="5" value={formData.mortality_risk || 3} onChange={(e) => handleChange("mortality_risk", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-rose-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
-                  <p className="text-[11px] text-rose-800/70 dark:text-rose-300/70 leading-snug flex items-start gap-1.5 mt-1.5">
-                    <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Skala 1 (Rendah) hingga 5 (Sangat Mematikan)." : "Scale 1 (Low) to 5 (Extremely Lethal)."}
-                  </p>
                 </div>
-
                 <div className="space-y-1.5">
-                  <label className="text-rose-900 dark:text-rose-400 font-bold text-xs uppercase tracking-widest">
-                    {formDict.durationDays || (lang === 'id' ? "Durasi Sembuh (Hari)" : "Recovery Duration (Days)")}
-                  </label>
+                  <label className="text-rose-900 dark:text-rose-400 font-bold text-xs uppercase tracking-widest">{formDict.durationDays || (lang === 'id' ? "Durasi Sembuh (Hari)" : "Recovery Duration (Days)")}</label>
                   <input type="number" min="1" value={formData.treatment_duration_days || 7} onChange={(e) => handleChange("treatment_duration_days", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-rose-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
-                  <p className="text-[11px] text-rose-800/70 dark:text-rose-300/70 leading-snug flex items-start gap-1.5 mt-1.5">
-                    <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Estimasi waktu pengobatan hingga ikan sembuh." : "Estimated treatment time for full recovery."}
-                  </p>
                 </div>
-
                 <div className="space-y-1.5">
-                  <label className="text-rose-900 dark:text-rose-400 font-bold text-xs uppercase tracking-widest">
-                    {formDict.recoveryProb || (lang === 'id' ? "Peluang Hidup (%)" : "Survival Rate (%)")}
-                  </label>
+                  <label className="text-rose-900 dark:text-rose-400 font-bold text-xs uppercase tracking-widest">{formDict.recoveryProb || (lang === 'id' ? "Peluang Hidup (%)" : "Survival Rate (%)")}</label>
                   <input type="number" min="1" max="100" value={formData.recovery_probability || 70} onChange={(e) => handleChange("recovery_probability", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-rose-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
-                  <p className="text-[11px] text-rose-800/70 dark:text-rose-300/70 leading-snug flex items-start gap-1.5 mt-1.5">
-                    <Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Persentase harapan hidup jika diberi penanganan." : "Survival rate percentage if given proper treatment."}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-4 pt-2">
-                <label className="flex items-center gap-2 cursor-pointer border-2 border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl transition-colors">
-                  <input type="checkbox" checked={formData.contagious || false} onChange={(e) => handleChange("contagious", e.target.checked)} className="h-4 w-4 rounded accent-rose-600 border-slate-300 dark:border-slate-700" />
-                  <span className="text-xs font-bold text-rose-700 dark:text-rose-400">{formDict.contagious || (lang === 'id' ? "Sangat Menular?" : "Highly Contagious?")}</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer border-2 border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl transition-colors">
-                  <input type="checkbox" checked={formData.quarantine_required || false} onChange={(e) => handleChange("quarantine_required", e.target.checked)} className="h-4 w-4 rounded accent-amber-500 border-slate-300 dark:border-slate-700" />
-                  <span className="text-xs font-bold text-amber-700 dark:text-amber-500">{formDict.quarantineReq || (lang === 'id' ? "Wajib Karantina?" : "Mandatory Quarantine?")}</span>
-                </label>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-rose-900 dark:text-rose-400 uppercase tracking-widest">{formDict.preventionId || (lang === 'id' ? "Cara Pencegahan (ID)" : "Prevention (ID)")}</label>
-                  <textarea rows={3} placeholder="Jaga kualitas air tetap stabil..." value={formData.prevention_id || ""} onChange={(e) => handleChange("prevention_id", e.target.value)} className="w-full p-3 rounded-xl border-2 border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-rose-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
-                  <p className="text-[11px] text-rose-800/70 dark:text-rose-300/70 leading-snug flex items-start gap-1.5 mt-1">
-                    <Info className="w-3.5 h-3.5 shrink-0" />
-                    {lang === 'id' ? "Langkah-langkah untuk mencegah penyakit ini kembali." : "Steps to prevent this disease from recurring."}
-                  </p>
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-rose-900 dark:text-rose-400 uppercase tracking-widest">{formDict.preventionEn || (lang === 'en' ? "Cara Pencegahan (EN)" : "Prevention (EN)")}</label>
-                  <textarea rows={3} placeholder="Keep water parameters stable..." value={formData.prevention_en || ""} onChange={(e) => handleChange("prevention_en", e.target.value)} className="w-full p-3 rounded-xl border-2 border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-rose-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-amber-700 dark:text-amber-500 uppercase tracking-widest">{formDict.expertNotesId || (lang === 'id' ? "Catatan Pakar (ID)" : "Expert Notes (ID)")}</label>
-                  <textarea 
-                    rows={2} 
-                    placeholder="Perhatian: Gunakan sarung tangan saat menangani ikan." 
-                    value={formData.expert_notes_id || ""} 
-                    onChange={(e) => handleChange("expert_notes_id", e.target.value)} 
-                    className="w-full p-3 rounded-xl border-2 border-amber-200 dark:border-slate-700 bg-amber-50/50 dark:bg-slate-900 focus:border-amber-500 dark:focus:border-amber-400 outline-none font-medium custom-scrollbar text-amber-900 dark:text-slate-100 placeholder:text-amber-700/50 dark:placeholder:text-slate-500 transition-colors" 
-                  />
-                  <p className="text-[11px] text-amber-800/70 dark:text-amber-300/70 leading-snug flex items-start gap-1.5 mt-1">
-                    <Info className="w-3.5 h-3.5 shrink-0" />
-                    {lang === 'id' ? "Saran atau peringatan khusus dari ahli akuatik (opsional)." : "Special advice or warning from aquatic experts (optional)."}
-                  </p>
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-amber-700 dark:text-amber-500 uppercase tracking-widest">{formDict.expertNotesEn || (lang === 'en' ? "Catatan Pakar (EN)" : "Expert Notes (EN)")}</label>
-                  <textarea 
-                    rows={2} 
-                    placeholder="Warning: Wear gloves when handling fish." 
-                    value={formData.expert_notes_en || ""} 
-                    onChange={(e) => handleChange("expert_notes_en", e.target.value)} 
-                    className="w-full p-3 rounded-xl border-2 border-amber-200 dark:border-slate-700 bg-amber-50/50 dark:bg-slate-900 focus:border-amber-500 dark:focus:border-amber-400 outline-none font-medium custom-scrollbar text-amber-900 dark:text-slate-100 placeholder:text-amber-700/50 dark:placeholder:text-slate-500 transition-colors" 
-                  />
                 </div>
               </div>
             </div>
           </div>
 
+          {/* ACTION BUTTONS */}
           <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-4 pt-6 border-t border-slate-200 dark:border-slate-800 mt-8">
             <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
-            
             {mode === "edit" && initialData && (
               <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsArchiveModalOpen(true)}
-                  disabled={loadingAction || isSubmitting}
-                  className="h-11 px-4 rounded-xl font-bold text-xs uppercase tracking-widest border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-slate-900 hover:bg-amber-100 dark:hover:bg-slate-800 text-amber-700 dark:text-amber-400 flex items-center gap-2 transition-all"
-                >
-                  <Archive className="w-4 h-4" />
-                  {initialData.is_active === false 
-                    ? (arcDict.unarchive || (lang === 'id' ? "Pulihkan" : "Restore")) 
-                    : (arcDict.archive || (lang === 'id' ? "Arsipkan" : "Archive"))}
+                <Button type="button" variant="outline" onClick={() => setIsArchiveModalOpen(true)} disabled={loadingAction || isSubmitting} className="h-11 px-4 rounded-xl font-bold text-xs uppercase tracking-widest border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-slate-900 hover:bg-amber-100 dark:hover:bg-slate-800 text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                  <Archive className="w-4 h-4" /> {initialData.is_active === false ? (arcDict.unarchive || (lang === 'id' ? "Pulihkan" : "Restore")) : (arcDict.archive || (lang === 'id' ? "Arsipkan" : "Archive"))}
                 </Button>
-
                 {role === "super_admin" && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsDeleteModalOpen(true)}
-                    disabled={loadingAction || isSubmitting}
-                    className="h-11 px-4 rounded-xl font-bold text-xs uppercase tracking-widest border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-slate-900 hover:bg-red-100 dark:hover:bg-slate-800 text-red-600 dark:text-red-400 flex items-center gap-2 transition-all"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    {arcDict.deletePermanent || (lang === 'id' ? "Hapus Permanen" : "Delete Permanently")}
+                  <Button type="button" variant="outline" onClick={() => setIsDeleteModalOpen(true)} disabled={loadingAction || isSubmitting} className="h-11 px-4 rounded-xl font-bold text-xs uppercase tracking-widest border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-slate-900 hover:bg-red-100 dark:hover:bg-slate-800 text-red-600 dark:text-red-400 flex items-center gap-2">
+                    <Trash2 className="w-4 h-4" /> {arcDict.deletePermanent || (lang === 'id' ? "Hapus Permanen" : "Delete Permanently")}
                   </Button>
                 )}
               </div>
@@ -590,11 +477,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
               </Button>
               <Button type="submit" disabled={isSubmitting || loadingAction} className="h-12 px-8 rounded-xl font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all">
                 {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-4 h-4" />}
-                {isSubmitting 
-                  ? (formDict.processing || (lang === 'id' ? "MEMPROSES..." : "PROCESSING...")) 
-                  : (mode === "create" 
-                      ? (formDict.btnSave || (lang === 'id' ? "SIMPAN" : "SAVE")) 
-                      : (formDict.btnUpdate || (lang === 'id' ? "PERBAHARUI" : "UPDATE")))}
+                {isSubmitting ? (formDict.processing || (lang === 'id' ? "MEMPROSES..." : "PROCESSING...")) : (mode === "create" ? (formDict.btnSave || (lang === 'id' ? "SIMPAN" : "SAVE")) : (formDict.btnUpdate || (lang === 'id' ? "PERBAHARUI" : "UPDATE")))}
               </Button>
             </div>
           </div>
@@ -602,90 +485,47 @@ export function DiseaseForm({ initialData, mode }: Props) {
         </form>
       </div>
 
-      {/* MODAL ARCHIVE */}
+      {/* MODAL ARCHIVE & DELETE (TETAP SAMA) */}
+      {/* ... Archive Modal ... */}
       {mounted && isArchiveModalOpen && initialData && createPortal(
-        <div 
-          className="flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200 ease-out"
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999 }}
-        >
+        <div className="flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200 ease-out" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999 }}>
           <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-amber-500 animate-in zoom-in-95 slide-in-from-bottom-2 duration-200">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-4">
-              {arcDict.modalArchiveTitle || (lang === 'id' ? "Arsipkan Data?" : "Archive Data?")}
-            </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
-              {arcDict.modalArchiveDesc || (lang === 'id' ? "Data ini akan disembunyikan dari AI." : "This data will be hidden from the AI.")}
-            </p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-4">{arcDict.modalArchiveTitle || (lang === 'id' ? "Arsipkan Data?" : "Archive Data?")}</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">{arcDict.modalArchiveDesc || (lang === 'id' ? "Data ini akan disembunyikan dari AI." : "This data will be hidden from the AI.")}</p>
             <div className="flex flex-col gap-3">
-              <Button 
-                type="button" 
-                onClick={executeArchive} 
-                disabled={loadingAction} 
-                className="w-full h-12 rounded-xl font-black uppercase tracking-widest bg-amber-600 hover:bg-amber-500 text-white shadow-lg transition-all"
-              >
+              <Button type="button" onClick={executeArchive} disabled={loadingAction} className="w-full h-12 rounded-xl font-black uppercase tracking-widest bg-amber-600 hover:bg-amber-500 text-white shadow-lg transition-all">
                 {loadingAction ? <Loader2 className="w-5 h-5 animate-spin" /> : (lang === 'id' ? "KONFIRMASI" : "CONFIRM")}
               </Button>
-              <Button 
-                type="button" 
-                variant="ghost" 
-                onClick={() => setIsArchiveModalOpen(false)} 
-                disabled={loadingAction} 
-                className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-              >
+              <Button type="button" variant="ghost" onClick={() => setIsArchiveModalOpen(false)} disabled={loadingAction} className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
                 {arcDict.cancel || (lang === 'id' ? "Batal" : "Cancel")}
               </Button>
             </div>
           </div>
-        </div>,
-        document.body
+        </div>, document.body
       )}
 
-      {/* MODAL DELETE */}
+      {/* ... Delete Modal ... */}
       {mounted && isDeleteModalOpen && initialData && createPortal(
-        <div 
-          className="flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200 ease-out"
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999 }}
-        >
+        <div className="flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200 ease-out" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999 }}>
           <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-8 shadow-2xl border-t-8 border-red-600 animate-in zoom-in-95 slide-in-from-bottom-2 duration-200">
-            <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-slate-800 text-red-600 flex items-center justify-center rounded-full mb-4">
-              <AlertTriangle className="w-8 h-8" />
-            </div>
-            <h3 className="text-2xl font-black text-center text-red-600 mb-2">
-              {arcDict.modalDeleteTitle || (lang === 'id' ? "Hapus Permanen" : "Permanent Delete")}
-            </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-6 font-medium leading-relaxed">
-              {lang === 'id' ? "Data patogen akan dihapus permanen." : "Pathogen data will be permanently deleted."}
-            </p>
+            <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-slate-800 text-red-600 flex items-center justify-center rounded-full mb-4"><AlertTriangle className="w-8 h-8" /></div>
+            <h3 className="text-2xl font-black text-center text-red-600 mb-2">{arcDict.modalDeleteTitle || (lang === 'id' ? "Hapus Permanen" : "Permanent Delete")}</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-6 font-medium leading-relaxed">{lang === 'id' ? "Data patogen akan dihapus permanen." : "Pathogen data will be permanently deleted."}</p>
             <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 mb-6">
-              <label className="text-[10px] font-black uppercase text-red-500 tracking-widest block mb-2 text-center">
-                {lang === 'id' ? "Ketik nama untuk konfirmasi:" : "Type name to confirm:"}
-              </label>
-              <div className="text-center font-bold text-slate-800 dark:text-slate-200 mb-2 select-all bg-white dark:bg-slate-900 py-1 border border-slate-200 dark:border-slate-700 rounded">
-                {lang === 'en' && initialData.name_en ? initialData.name_en : initialData.name_id}
-              </div>
+              <label className="text-[10px] font-black uppercase text-red-500 tracking-widest block mb-2 text-center">{lang === 'id' ? "Ketik nama untuk konfirmasi:" : "Type name to confirm:"}</label>
+              <div className="text-center font-bold text-slate-800 dark:text-slate-200 mb-2 select-all bg-white dark:bg-slate-900 py-1 border border-slate-200 dark:border-slate-700 rounded">{lang === 'en' && initialData.name_en ? initialData.name_en : initialData.name_id}</div>
               <input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} className="h-11 w-full text-center font-bold bg-white dark:bg-slate-900 border-2 border-red-200 dark:border-red-900/50 focus:border-red-500 outline-none rounded-md transition-colors" />
             </div>
             <div className="flex flex-col gap-3">
-              <Button 
-                type="button" 
-                onClick={executeHardDelete} 
-                disabled={loadingAction || deleteConfirmText !== (lang === 'en' && initialData.name_en ? initialData.name_en : initialData.name_id)} 
-                className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-500 font-black uppercase tracking-widest text-white shadow-lg transition-all"
-              >
+              <Button type="button" onClick={executeHardDelete} disabled={loadingAction || deleteConfirmText !== (lang === 'en' && initialData.name_en ? initialData.name_en : initialData.name_id)} className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-500 font-black uppercase tracking-widest text-white shadow-lg transition-all">
                 {loadingAction ? <Loader2 className="w-5 h-5 animate-spin" /> : (lang === 'id' ? "HAPUS SEKARANG" : "DELETE NOW")}
               </Button>
-              <Button 
-                type="button" 
-                variant="ghost" 
-                onClick={() => { setIsDeleteModalOpen(false); setDeleteConfirmText(""); }} 
-                disabled={loadingAction} 
-                className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-              >
+              <Button type="button" variant="ghost" onClick={() => { setIsDeleteModalOpen(false); setDeleteConfirmText(""); }} disabled={loadingAction} className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
                 {arcDict.cancel || (lang === 'id' ? "Batal" : "Cancel")}
               </Button>
             </div>
           </div>
-        </div>,
-        document.body
+        </div>, document.body
       )}
     </div>
   );

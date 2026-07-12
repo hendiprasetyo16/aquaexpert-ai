@@ -5,36 +5,24 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Disease } from "../types/disease.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; // 💡 IMPORT NOTIFIKASI
+import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; 
 
-// ========================================================
-// FUNGSI KEAMANAN: HAK AKSES BERTINGKAT (RBAC)
-// ========================================================
 async function verifyAdminAccess(supabase: SupabaseClient, requireSuperAdmin: boolean = false) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Sesi berakhir. Silakan login kembali.");
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, full_name')
-    .eq('id', user.id)
-    .single();
+  const { data: profile } = await supabase.from('profiles').select('role, full_name').eq('id', user.id).single();
 
-  // Jika aksi sangat fatal (Hard Delete), wajib super_admin
   if (requireSuperAdmin && profile?.role !== 'super_admin') {
     throw new Error("Akses Ditolak: Fitur ini khusus untuk Super Admin.");
   }
-  
-  // Jika aksi standar admin (Tambah/Edit/Arsip), izinkan admin & super_admin
   if (!requireSuperAdmin && profile?.role !== 'super_admin' && profile?.role !== 'admin') {
     throw new Error("Akses Ditolak: Minimal akses Admin diperlukan.");
   }
 
-  // Mengembalikan user sekaligus namanya untuk keperluan Notifikasi
   return { ...user, fullName: profile?.full_name || "Admin" };
 }
 
-// 1. AMBIL SEMUA DATA
 export async function getAdminDiseasesAction(): Promise<{ success: boolean; data?: Disease[]; error?: string }> {
   try {
     const supabase = await createClient();
@@ -46,20 +34,33 @@ export async function getAdminDiseasesAction(): Promise<{ success: boolean; data
   }
 }
 
-// 2. TAMBAH PENYAKIT (CREATE)
-export async function createDiseaseAction(payload: Partial<Disease>) {
+// 💡 UPDATE: Menerima payload 'rules' untuk dimasukkan ke tabel disease_symptom_rules
+export async function createDiseaseAction(payload: Partial<Disease>, rules: any[] = []) {
   try {
     const supabase = await createClient();
     const user = await verifyAdminAccess(supabase, false); 
 
-    const { error } = await supabase.from("diseases").insert({
+    const { data: newDisease, error } = await supabase.from("diseases").insert({
       ...payload,
       created_by: user.id
-    });
+    }).select('id').single();
 
     if (error) throw new Error(error.message);
 
-    // 💡 KIRIM NOTIFIKASI
+    // 💡 Eksekusi Insert Aturan Gejala (Rule Engine V7)
+    if (newDisease && rules.length > 0) {
+      const rulesPayload = rules.map(r => ({
+        disease_id: newDisease.id,
+        symptom_id: r.symptom_id,
+        rule_type: r.rule_type,
+        weight: r.weight,
+        reason_id: r.reason_id || null,
+        reason_en: r.reason_en || null
+      }));
+      const { error: ruleError } = await supabase.from("disease_symptom_rules").insert(rulesPayload);
+      if (ruleError) console.error("Gagal menyimpan aturan gejala:", ruleError.message);
+    }
+
     await pushNotificationAction(
       "Penyakit Baru Ditambahkan",
       `Menambahkan data penyakit: ${payload.name_id || payload.name_en}.`,
@@ -74,8 +75,8 @@ export async function createDiseaseAction(payload: Partial<Disease>) {
   }
 }
 
-// 3. EDIT PENYAKIT (UPDATE)
-export async function updateDiseaseAction(id: string, payload: Partial<Disease>) {
+// 💡 UPDATE: Menerima payload 'rules' dan memperbarui relasi V7
+export async function updateDiseaseAction(id: string, payload: Partial<Disease>, rules: any[] = []) {
   try {
     const supabase = await createClient();
     const user = await verifyAdminAccess(supabase, false); 
@@ -88,7 +89,21 @@ export async function updateDiseaseAction(id: string, payload: Partial<Disease>)
 
     if (error) throw new Error(error.message);
 
-    // 💡 KIRIM NOTIFIKASI
+    // 💡 Eksekusi Update Aturan Gejala (Hapus yang lama, masukkan yang baru)
+    await supabase.from("disease_symptom_rules").delete().eq("disease_id", id);
+    if (rules.length > 0) {
+      const rulesPayload = rules.map(r => ({
+        disease_id: id,
+        symptom_id: r.symptom_id,
+        rule_type: r.rule_type,
+        weight: r.weight,
+        reason_id: r.reason_id || null,
+        reason_en: r.reason_en || null
+      }));
+      const { error: ruleError } = await supabase.from("disease_symptom_rules").insert(rulesPayload);
+      if (ruleError) console.error("Gagal mengupdate aturan gejala:", ruleError.message);
+    }
+
     await pushNotificationAction(
       "Data Penyakit Diperbarui",
       `Memperbarui data penyakit: ${payload.name_id || payload.name_en || 'ID '+id}.`,
@@ -103,7 +118,6 @@ export async function updateDiseaseAction(id: string, payload: Partial<Disease>)
   }
 }
 
-// 4. ARSIPKAN / AKTIFKAN PENYAKIT (TOGGLE ARCHIVE)
 export async function toggleDiseaseArchiveAction(id: string, currentStatus: boolean) {
   try {
     const supabase = await createClient();
@@ -116,7 +130,6 @@ export async function toggleDiseaseArchiveAction(id: string, currentStatus: bool
 
     if (error) throw new Error(error.message);
 
-    // 💡 KIRIM NOTIFIKASI
     await pushNotificationAction(
       currentStatus ? "Penyakit Diarsipkan" : "Penyakit Diaktifkan",
       `Mengubah status penyakit: ${disease?.name_id || 'ID '+id}.`,
@@ -131,7 +144,6 @@ export async function toggleDiseaseArchiveAction(id: string, currentStatus: bool
   }
 }
 
-// 5. HAPUS PERMANEN (HARD DELETE)
 export async function hardDeleteDiseaseAction(id: string) {
   try {
     const supabase = await createClient();
@@ -163,7 +175,6 @@ export async function hardDeleteDiseaseAction(id: string) {
       for (const url of disease.gallery_urls) await deleteStorageImage(url);
     }
 
-    // 💡 KIRIM NOTIFIKASI
     await pushNotificationAction(
       "Data Penyakit Dihapus",
       `Menghapus permanen penyakit: ${diseaseName} beserta gambarnya.`,
