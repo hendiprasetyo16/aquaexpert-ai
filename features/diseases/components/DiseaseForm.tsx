@@ -373,12 +373,12 @@ export function DiseaseForm({ initialData, mode }: Props) {
                 </div>
               ) : (
                 rules.map((rule, index) => (
-                  <div key={index} className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl p-4 relative group">
+                  <div key={index} className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl p-4 relative group transition-colors">
                     <button type="button" onClick={() => handleRemoveRule(index)} className="absolute top-3 right-3 text-slate-400 hover:text-red-500 transition-colors p-1 bg-slate-100 dark:bg-slate-800 rounded-md">
                       <X className="w-4 h-4" />
                     </button>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 pr-8">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-5 pr-8">
                       <div className="md:col-span-4 space-y-1">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Pilih Gejala" : "Select Symptom"}</label>
                         <select required value={rule.symptom_id} onChange={(e) => handleUpdateRule(index, "symptom_id", e.target.value)} className="w-full h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-bold text-slate-700 dark:text-slate-200 text-sm">
@@ -388,28 +388,48 @@ export function DiseaseForm({ initialData, mode }: Props) {
                           ))}
                         </select>
                       </div>
+
                       <div className="md:col-span-4 space-y-1">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Tipe Aturan" : "Rule Type"}</label>
-                        <select value={rule.rule_type} onChange={(e) => handleUpdateRule(index, "rule_type", e.target.value)} className={`w-full h-10 px-3 rounded-lg border focus:border-blue-500 outline-none font-bold text-sm ${rule.rule_type === 'EXCLUDED' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800' : rule.rule_type === 'HALLMARK' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}>
-                          <option value="SUPPORTING">Supporting (Gejala Pendukung)</option>
+                        <select value={rule.rule_type} onChange={(e) => handleUpdateRule(index, "rule_type", e.target.value)} className={`w-full h-10 px-3 rounded-lg border focus:border-blue-500 outline-none font-bold text-sm transition-colors ${rule.rule_type === 'EXCLUDED' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800' : rule.rule_type === 'HALLMARK' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200'}`}>
+                          <option value="SUPPORTING">Supporting (Pendukung)</option>
                           <option value="MANDATORY">Mandatory (Wajib Ada)</option>
-                          <option value="HALLMARK">Hallmark (Gejala Khas/Mutlak)</option>
-                          <option value="EXCLUDED">Excluded (Gejala Penolak/Pantangan)</option>
+                          <option value="HALLMARK">Hallmark (Gejala Mutlak)</option>
+                          <option value="EXCLUDED">Excluded (Pantangan)</option>
                         </select>
+                        {/* 💡 HINT UNTUK TIPE ATURAN */}
+                        <p className="text-[9px] text-slate-400 dark:text-slate-500 flex items-start gap-1 mt-1.5 leading-tight">
+                          <Info className="w-3 h-3 shrink-0" />
+                          {lang === 'id' 
+                            ? "Wajib: Penyakit butuh gejala ini. Mutlak: Gejala ini memastikan penyakit. Pantangan: Menggugurkan tebakan AI." 
+                            : "Mandatory: Disease needs this. Hallmark: Confirms the disease. Excluded: Rules out the AI guess."}
+                        </p>
                       </div>
+
                       <div className="md:col-span-4 space-y-1">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Bobot (Weight)" : "Weight"}</label>
                         <input type="number" min="1" max="10" value={rule.weight} onChange={(e) => handleUpdateRule(index, "weight", Number(e.target.value))} className="w-full h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-bold text-slate-700 dark:text-slate-200 text-sm" />
+                        {/* 💡 HINT UNTUK BOBOT */}
+                        <p className="text-[9px] text-slate-400 dark:text-slate-500 flex items-start gap-1 mt-1.5 leading-tight">
+                          <Info className="w-3 h-3 shrink-0" />
+                          {lang === 'id' ? "Skala 1 (Sangat Lemah) hingga 10 (Sangat Kuat)." : "Scale 1 (Very Weak) to 10 (Very Strong)."}
+                        </p>
                       </div>
                       
                       {/* Reason Fields (XAI) */}
-                      <div className="md:col-span-6 space-y-1">
+                      <div className="md:col-span-6 space-y-1 mt-2">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Alasan Medis XAI (ID)" : "Medical Reason XAI (ID)"}</label>
-                        <input type="text" placeholder="Ikan gatal karena..." value={rule.reason_id} onChange={(e) => handleUpdateRule(index, "reason_id", e.target.value)} className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none font-medium text-slate-600 dark:text-slate-300 text-xs italic" />
+                        <input type="text" placeholder="Ikan gatal karena infeksi parasit di kulit..." value={rule.reason_id} onChange={(e) => handleUpdateRule(index, "reason_id", e.target.value)} className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none font-medium text-slate-600 dark:text-slate-300 text-xs italic placeholder:text-slate-400" />
+                        {/* 💡 HINT UNTUK ALASAN XAI */}
+                        <p className="text-[9px] text-slate-400 dark:text-slate-500 flex items-start gap-1 mt-1 leading-tight">
+                          <Info className="w-3 h-3 shrink-0" />
+                          {lang === 'id' ? "Kalimat ini akan dibaca oleh user jika penyakit terdeteksi." : "This sentence will be read by the user if detected."}
+                        </p>
                       </div>
-                      <div className="md:col-span-6 space-y-1">
+
+                      <div className="md:col-span-6 space-y-1 mt-2">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Alasan Medis XAI (EN)" : "Medical Reason XAI (EN)"}</label>
-                        <input type="text" placeholder="Fish is itchy because..." value={rule.reason_en} onChange={(e) => handleUpdateRule(index, "reason_en", e.target.value)} className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none font-medium text-slate-600 dark:text-slate-300 text-xs italic" />
+                        <input type="text" placeholder="Fish is itchy due to skin parasite infection..." value={rule.reason_en} onChange={(e) => handleUpdateRule(index, "reason_en", e.target.value)} className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none font-medium text-slate-600 dark:text-slate-300 text-xs italic placeholder:text-slate-400" />
                       </div>
                     </div>
                   </div>
