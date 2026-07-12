@@ -6,10 +6,10 @@ import { HeartPulse, Plus, ShieldAlert, Activity, AlertCircle, Syringe, Loader2,
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/providers/LanguageProvider";
 import StartTreatmentModal from "./StartTreatmentModal";
-import DailyLogModal from "@/features/diseases/components/DailyLogModal";
+import DailyLogModal from "@/features/treatments/components/DailyLogModal";
 import DoseCalculatorWidget from "./DoseCalculatorWidget"; 
-import { getActiveTreatmentsAction, ActiveTreatmentDto } from "@/features/diseases/actions/start-treatment.actions";
-import { deleteTreatmentSessionAction } from "@/features/diseases/actions/log-treatment.actions";
+import { getActiveTreatmentsAction, ActiveTreatmentDto } from "@/features/treatments/actions/start-treatment.actions";
+import { deleteTreatmentSessionAction } from "@/features/treatments/actions/log-treatment.actions";
 import { getAquariumByIdAction } from "../actions/aquarium.actions";
 import toast from "react-hot-toast";
 

@@ -1,14 +1,14 @@
-// features/aquariums/actions/gemini-expert.actions.ts
+// features/aquariums/services/gemini-expert.actions.ts
 "use server";
 
 import { generateDeepDiagnosis } from "../utils/deep-diagnosis";
 import { analyzeAquariumHealth } from "../utils/health-engine";
-import { getTankInventoryAction } from "./inventory.actions";
-import { getMaintenanceDashboardAction } from "./maintenance.actions"; // 💡 FIX 2: Import layanan Maintenance
+import { getTankInventoryAction } from "../actions/inventory.actions";
+import { getMaintenanceDashboardAction } from "../actions/maintenance.actions"; // 💡 FIX 2: Import layanan Maintenance
 import { createClient } from "@/lib/supabase/server";
 import { verifyAquariumOwnership } from "../repositories/security.repository";
 import { askAquaExpert } from "@/features/ai/actions/ai.actions"; 
-import { getActiveTreatmentsAction } from "@/features/diseases/actions/start-treatment.actions"; 
+import { getActiveTreatmentsAction } from "@/features/treatments/actions/start-treatment.actions"; 
 import { AIProviderResponse } from "@/features/ai/types/ai.types"; 
 
 export interface HybridDiagnosisResponse {

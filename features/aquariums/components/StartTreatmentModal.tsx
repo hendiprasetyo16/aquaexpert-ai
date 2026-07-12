@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { X, Save, Loader2, Stethoscope, Syringe, AlertTriangle, FileText, ChevronDown, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
-import { getTreatmentDropdownOptionsAction, startNewTreatmentSessionAction } from "@/features/diseases/actions/start-treatment.actions";
+import { getTreatmentDropdownOptionsAction, startNewTreatmentSessionAction } from "@/features/treatments/actions/start-treatment.actions";
 
 interface Props {
   aquariumId: string;

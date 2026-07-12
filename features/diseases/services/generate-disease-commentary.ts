@@ -1,4 +1,4 @@
-// features/diseases/actions/generate-disease-commentary.ts
+// features/diseases/services/generate-disease-commentary.ts
 "use server";
 
 import crypto from "crypto";

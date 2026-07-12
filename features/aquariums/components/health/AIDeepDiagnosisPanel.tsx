@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getHybridDeepDiagnosisAction, HybridDiagnosisResponse } from "../../actions/gemini-expert.actions";
+import { getHybridDeepDiagnosisAction, HybridDiagnosisResponse } from "../../services/gemini-expert.actions";
 import { RiskLevel } from "../../utils/deep-diagnosis";
 import { 
   ShieldAlert, Sparkles, AlertTriangle, Activity, AlertOctagon, 

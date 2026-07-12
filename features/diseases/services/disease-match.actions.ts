@@ -1,4 +1,4 @@
-// features/diseases/actions/disease-match.actions.ts
+// features/diseases/services/disease-match.actions.ts
 "use server";
 
 import { createClient } from "@/lib/supabase/server";

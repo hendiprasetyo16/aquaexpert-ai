@@ -28,7 +28,7 @@ import { AquariumSpecsPanel } from "./AquariumSpecsPanel";
 import { getParametersAction } from "../actions/parameter.actions";
 import { getTankInventoryAction } from "../actions/inventory.actions";
 import { getMaintenanceDashboardAction } from "../actions/maintenance.actions";
-import { getActiveTreatmentsAction } from "@/features/diseases/actions/start-treatment.actions";
+import { getActiveTreatmentsAction } from "@/features/treatments/actions/start-treatment.actions";
 
 import type { AquariumParameterLog } from "../types/parameter.types";
 import type { TankFish, TankPlant } from "../types/inventory.types";

@@ -1,4 +1,4 @@
-// features/diseases/types/treatment.types.ts
+// features/treatments/types/treatment.types.ts
 export type TreatmentStatus = "Active" | "Completed" | "Failed" | "Aborted";
 export type ActionTaken = "Observed" | "Water Change" | "Redosed" | "Medication Changed";
 

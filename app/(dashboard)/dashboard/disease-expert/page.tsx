@@ -12,7 +12,7 @@ import { SymptomPicker } from "@/features/diseases/components/SymptomPicker";
 import { DiseaseResultCard } from "@/features/diseases/components/DiseaseResultCard";
 import { DiseaseDetailModal } from "@/features/diseases/components/DiseaseDetailModal";
 
-import { getDiseaseMatchAction } from "@/features/diseases/actions/disease-match.actions";
+import { getDiseaseMatchAction } from "@/features/diseases/services/disease-match.actions";
 import { getUserAquariumsAction } from "@/features/aquariums/actions/aquarium.actions";
 import { getSymptomsAction } from "@/features/diseases/actions/symptom.actions";
 

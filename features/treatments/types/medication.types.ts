@@ -1,4 +1,4 @@
-// features/diseases/types/medication.types.ts
+// features/treatments/types/medication.types.ts
 
 export type WaterParameterKey = "ph" | "temperature" | "ammonia" | "nitrite" | "nitrate";
 

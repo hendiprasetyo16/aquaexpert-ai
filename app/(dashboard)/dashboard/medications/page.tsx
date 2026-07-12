@@ -4,13 +4,13 @@
 import { useState, useEffect, ChangeEvent } from "react";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { Pill, FlaskConical, Beaker, Leaf, Bug, AlertTriangle, ShieldCheck, Clock, Activity, Loader2, Search, Edit, Trash2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive } from "lucide-react";
-import { getMedicationsDatabaseAction, getUserRoleAction, deleteMedicationAction, createMedicationAction, updateMedicationAction, toggleMedicationArchiveAction, MedicationDto } from "@/features/diseases/actions/medication.actions";
+import { getMedicationsDatabaseAction, getUserRoleAction, deleteMedicationAction, createMedicationAction, updateMedicationAction, toggleMedicationArchiveAction, MedicationDto } from "@/features/treatments/actions/medication.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
-import { MedicationForm } from "@/features/diseases/components/MedicationForm";
-import MedicationArchiveList from "@/features/diseases/components/MedicationArchiveList";
+import { MedicationForm } from "@/features/treatments/components/MedicationForm";
+import MedicationArchiveList from "@/features/treatments/components/MedicationArchiveList";
 
 const ITEMS_PER_PAGE = 6;
 

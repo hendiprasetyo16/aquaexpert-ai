@@ -1,4 +1,4 @@
-// features/diseases/components/MedicationForm.tsx
+// features/treatments/components/MedicationForm.tsx
 "use client";
 
 import { useState, useEffect } from "react";

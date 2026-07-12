@@ -1,11 +1,11 @@
-// features/aquariums/actions/deep-diagnosis.actions.ts
+// features/aquariums/services/deep-diagnosis.actions.ts
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getParametersAction } from "./parameter.actions";
-import { getTankInventoryAction } from "./inventory.actions";
-import { getMaintenanceDashboardAction } from "./maintenance.actions";
-import { getActiveTreatmentsAction } from "@/features/diseases/actions/start-treatment.actions"; // 💡 FIX: Import layanan penyakit
+import { getParametersAction } from "../actions/parameter.actions";
+import { getTankInventoryAction } from "../actions/inventory.actions";
+import { getMaintenanceDashboardAction } from "../actions/maintenance.actions";
+import { getActiveTreatmentsAction } from "@/features/treatments/actions/start-treatment.actions"; // 💡 FIX: Import layanan penyakit
 import { analyzeAquariumHealth } from "../utils/health-engine";
 import { generateDeepDiagnosis } from "../utils/deep-diagnosis";
 import { AquariumParameterLog } from "../types/parameter.types";

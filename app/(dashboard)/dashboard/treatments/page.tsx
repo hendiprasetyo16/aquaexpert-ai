@@ -5,11 +5,11 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { Activity, Fish, AlertCircle, HeartPulse, Loader2, Syringe, CheckCircle2, XCircle, History, CalendarDays, Clock, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getActiveTreatmentsAction, ActiveTreatmentDto } from "@/features/diseases/actions/start-treatment.actions"; 
-import { deleteTreatmentSessionAction } from "@/features/diseases/actions/log-treatment.actions";
+import { getActiveTreatmentsAction, ActiveTreatmentDto } from "@/features/treatments/actions/start-treatment.actions"; 
+import { deleteTreatmentSessionAction } from "@/features/treatments/actions/log-treatment.actions";
 import toast from "react-hot-toast";
 
-import DailyLogModal from "@/features/diseases/components/DailyLogModal"; 
+import DailyLogModal from "@/features/treatments/components/DailyLogModal"; 
 
 export default function TreatmentWardPage() {
   const { dict, language } = useLanguage();

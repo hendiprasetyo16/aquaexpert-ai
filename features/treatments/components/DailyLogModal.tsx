@@ -1,4 +1,4 @@
-// features/diseases/components/DailyLogModal.tsx
+// features/treatments/components/DailyLogModal.tsx
 "use client";
 
 import { useState, useEffect } from "react";

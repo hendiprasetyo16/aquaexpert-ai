@@ -1,4 +1,4 @@
-// features/diseases/actions/log-treatment.actions.ts
+// features/treatments/actions/log-treatment.actions.ts
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
