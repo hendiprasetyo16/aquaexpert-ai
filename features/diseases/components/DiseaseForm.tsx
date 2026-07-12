@@ -49,7 +49,6 @@ interface Props {
   mode: "create" | "edit";
 }
 
-// 💡 Interface untuk Form Aturan Gejala V7
 interface FormRule {
   symptom_id: string;
   rule_type: 'HALLMARK' | 'MANDATORY' | 'SUPPORTING' | 'EXCLUDED';
@@ -68,14 +67,11 @@ export function DiseaseForm({ initialData, mode }: Props) {
   const [loadingAction, setLoadingAction] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // 💡 State untuk Rule Builder V7
   const [availableSymptoms, setAvailableSymptoms] = useState<Symptom[]>([]);
   const [rules, setRules] = useState<FormRule[]>([]);
 
   useEffect(() => {
     setMounted(true);
-    
-    // Fetch data gejala dan data rules lama jika dalam mode edit
     async function loadInitialData() {
       try {
         const symRes = await getSymptomsAction();
@@ -136,7 +132,6 @@ export function DiseaseForm({ initialData, mode }: Props) {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // 💡 Handler untuk Rule Builder
   const handleAddRule = () => {
     setRules([...rules, { symptom_id: "", rule_type: "SUPPORTING", weight: 3, reason_id: "", reason_en: "" }]);
   };
@@ -167,7 +162,6 @@ export function DiseaseForm({ initialData, mode }: Props) {
     setIsSubmitting(true);
 
     try {
-      // Validasi Rule
       const invalidRules = rules.some(r => !r.symptom_id);
       if (invalidRules) {
         toast.error(lang === 'id' ? "Harap pilih gejala untuk setiap aturan yang ditambahkan." : "Please select a symptom for each rule added.");
@@ -224,7 +218,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Terjadi kesalahan."); } finally { setIsSubmitting(false); }
   };
 
-  const executeArchive = async () => { /* ... (Tetap sama) ... */
+  const executeArchive = async () => {
     if (!initialData) return;
     try {
       setLoadingAction(true);
@@ -236,7 +230,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Error"); } finally { setLoadingAction(false); setIsArchiveModalOpen(false); }
   };
 
-  const executeHardDelete = async (e: React.FormEvent) => { /* ... (Tetap sama) ... */
+  const executeHardDelete = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!initialData) return;
     const currentName = lang === "en" && initialData.name_en ? initialData.name_en : initialData.name_id;
@@ -251,6 +245,14 @@ export function DiseaseForm({ initialData, mode }: Props) {
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Error"); } finally { setLoadingAction(false); setIsDeleteModalOpen(false); }
   };
 
+  // 💡 HELPER UNTUK STYLE HINT AGAR SERAGAM
+  const Hint = ({ text }: { text: string }) => (
+    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug flex items-start gap-1.5 mt-1.5">
+      <Info className="w-3.5 h-3.5 shrink-0 text-blue-500" />
+      {text}
+    </p>
+  );
+
   return (
     <div className="w-full transition-colors duration-300">
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-sm space-y-8 animate-in fade-in duration-500 relative transition-colors">
@@ -264,12 +266,13 @@ export function DiseaseForm({ initialData, mode }: Props) {
               {formDict.visualSection || (lang === 'id' ? "Visual / Foto Patogen" : "Pathogen Visual / Photo")}
             </h3>
             
-            <div className="w-full md:w-1/2 mt-2">
+            {/* 💡 DIPERKECIL: max-w-sm dan aspect-video */}
+            <div className="w-full max-w-sm mt-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">
-                {formDict.coverLabel || (lang === 'id' ? "Foto Patogen (Akan Otomatis Dikompres)" : "Pathogen Photo (Auto-compressed)")}
+                {formDict.coverLabel || (lang === 'id' ? "Foto Patogen (Otomatis Dikompres)" : "Pathogen Photo (Auto-compressed)")}
               </label>
               
-              <div className="relative w-full aspect-video md:aspect-[4/3] overflow-hidden rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 transition-all group bg-white dark:bg-slate-900 flex flex-col items-center justify-center">
+              <div className="relative w-full aspect-video overflow-hidden rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 transition-all group bg-white dark:bg-slate-900 flex flex-col items-center justify-center">
                 <input id="cover-image" type="file" accept="image/*" onChange={handleCoverChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
                 {coverPreview ? (
                   <>
@@ -286,6 +289,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
                   </div>
                 )}
               </div>
+              <Hint text={lang === 'id' ? "Ukuran gambar akan otomatis dikecilkan untuk menghemat server." : "Image will be automatically resized to save storage."} />
             </div>
           </div>
 
@@ -300,17 +304,19 @@ export function DiseaseForm({ initialData, mode }: Props) {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.nameId || "Nama Penyakit (ID) *"}</label>
                 <input required type="text" placeholder="Contoh: Bintik Putih" value={formData.name_id || ""} onChange={(e) => handleChange("name_id", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
-                <p className="text-[10px] text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3 h-3 shrink-0"/> {lang === 'id' ? "Nama umum penyakit yang dikenal oleh orang Indonesia." : "Common Indonesian name for this disease."}</p>
+                <Hint text={lang === 'id' ? "Nama umum penyakit dalam bahasa Indonesia." : "Common Indonesian name for this disease."} />
               </div>
               
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{(formDict.nameEn || "Nama Penyakit (EN)").replace(' *', '')}</label>
                 <input type="text" placeholder="E.g., White Spot" value={formData.name_en || ""} onChange={(e) => handleChange("name_en", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
+                <Hint text={lang === 'id' ? "Nama dalam bahasa Inggris (Boleh dikosongkan)." : "English name (Optional)."} />
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Nama Ilmiah (Latin)" : "Scientific Name"}</label>
                 <input type="text" placeholder="Cth: Ichthyophthirius" value={formData.scientific_name || ""} onChange={(e) => handleChange("scientific_name", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold italic text-slate-800 dark:text-slate-100 transition-colors" />
+                <Hint text={lang === 'id' ? "Nama biologis bakteri/parasit (Cth: Aeromonas)." : "Biological name of the pathogen (E.g., Aeromonas)."} />
               </div>
             </div>
 
@@ -322,11 +328,13 @@ export function DiseaseForm({ initialData, mode }: Props) {
                   <option value="Viral">Viral (Virus)</option><option value="Environmental">Environmental (Lingkungan)</option><option value="Nutritional">Nutritional (Nutrisi)</option>
                   <option value="Protozoan">Protozoan (Protozoa)</option><option value="Genetic">Genetic (Genetik)</option>
                 </select>
+                <Hint text={lang === 'id' ? "Pilih klasifikasi jenis patogen." : "Select the pathogen classification type."} />
               </div>
               
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.severity || "Tingkat Keparahan"}</label>
                 <input type="number" min="1" max="5" value={formData.severity || 3} onChange={(e) => handleChange("severity", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
+                <Hint text={lang === 'id' ? "Angka 1 (Ringan) hingga 5 (Sangat Fatal)." : "Number 1 (Mild) to 5 (Lethal)."} />
               </div>
 
               <div className="space-y-1.5">
@@ -335,6 +343,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
                   <option value="Low">Low (Bisa ditunda)</option><option value="Medium">Medium (Segera tangani)</option><option value="High">High (Berbahaya)</option>
                   <option value="Critical">Critical (Darurat / Karantina)</option><option value="Emergency">Emergency (Kritis / Fatal)</option>
                 </select>
+                <Hint text={lang === 'id' ? "Level tindakan saat penyakit terdeteksi." : "Action level required when detected."} />
               </div>
 
               <div className="space-y-1.5">
@@ -342,6 +351,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
                 <select value={formData.difficulty || ""} onChange={(e) => handleChange("difficulty", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors">
                   <option value="Easy">Easy (Mudah)</option><option value="Medium">Medium (Sedang)</option><option value="Hard">Hard (Sulit)</option><option value="Expert">Expert (Sangat Sulit)</option>
                 </select>
+                <Hint text={lang === 'id' ? "Seberapa sulit penyakit ini disembuhkan." : "How difficult is it to cure."} />
               </div>
             </div>
             
@@ -349,12 +359,12 @@ export function DiseaseForm({ initialData, mode }: Props) {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Prevalensi Bayesian (Prior)" : "Prior Prevalence (Bayesian)"}</label>
                 <input type="number" step="0.01" min="0" max="1" value={formData.prevalence_prior || 0.05} onChange={(e) => handleChange("prevalence_prior", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
-                <p className="text-[10px] text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3 h-3 shrink-0"/> {lang === 'id' ? "Probabilitas dasar penyakit ini muncul (0.00 - 1.00)." : "Base probability of this disease occurring (0.00 - 1.00)."}</p>
+                <Hint text={lang === 'id' ? "Probabilitas dasar penyakit ini muncul (0.00 - 1.00)." : "Base probability of this disease occurring (0.00 - 1.00)."} />
               </div>
             </div>
           </div>
 
-          {/* 💡 3. THE RULE BUILDER ENGINE (V7) */}
+          {/* 3. RULE BUILDER ENGINE (V7) */}
           <div className="space-y-4 pt-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-blue-200 dark:border-blue-900/40 pb-2">
               <h3 className="text-lg font-black text-blue-800 dark:text-blue-400 flex items-center gap-2">
@@ -387,6 +397,7 @@ export function DiseaseForm({ initialData, mode }: Props) {
                             <option key={sym.id} value={sym.id}>{lang === 'id' ? sym.name_id : sym.name_en}</option>
                           ))}
                         </select>
+                        <Hint text={lang === 'id' ? "Pilih gejala klinis dari database." : "Select clinical symptom from database."} />
                       </div>
 
                       <div className="md:col-span-4 space-y-1">
@@ -397,39 +408,27 @@ export function DiseaseForm({ initialData, mode }: Props) {
                           <option value="HALLMARK">Hallmark (Gejala Mutlak)</option>
                           <option value="EXCLUDED">Excluded (Pantangan)</option>
                         </select>
-                        {/* 💡 HINT UNTUK TIPE ATURAN */}
-                        <p className="text-[9px] text-slate-400 dark:text-slate-500 flex items-start gap-1 mt-1.5 leading-tight">
-                          <Info className="w-3 h-3 shrink-0" />
-                          {lang === 'id' 
-                            ? "Wajib: Penyakit butuh gejala ini. Mutlak: Gejala ini memastikan penyakit. Pantangan: Menggugurkan tebakan AI." 
-                            : "Mandatory: Disease needs this. Hallmark: Confirms the disease. Excluded: Rules out the AI guess."}
-                        </p>
+                        <Hint text={lang === 'id' 
+                            ? "Wajib: Penyakit butuh gejala ini. Mutlak: Memastikan penyakit. Pantangan: Menggugurkan tebakan AI." 
+                            : "Mandatory: Disease needs this. Hallmark: Confirms disease. Excluded: Rules out AI guess."} />
                       </div>
 
                       <div className="md:col-span-4 space-y-1">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Bobot (Weight)" : "Weight"}</label>
                         <input type="number" min="1" max="10" value={rule.weight} onChange={(e) => handleUpdateRule(index, "weight", Number(e.target.value))} className="w-full h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-blue-500 outline-none font-bold text-slate-700 dark:text-slate-200 text-sm" />
-                        {/* 💡 HINT UNTUK BOBOT */}
-                        <p className="text-[9px] text-slate-400 dark:text-slate-500 flex items-start gap-1 mt-1.5 leading-tight">
-                          <Info className="w-3 h-3 shrink-0" />
-                          {lang === 'id' ? "Skala 1 (Sangat Lemah) hingga 10 (Sangat Kuat)." : "Scale 1 (Very Weak) to 10 (Very Strong)."}
-                        </p>
+                        <Hint text={lang === 'id' ? "Skala 1 (Sangat Lemah) hingga 10 (Sangat Kuat)." : "Scale 1 (Very Weak) to 10 (Very Strong)."} />
                       </div>
                       
-                      {/* Reason Fields (XAI) */}
                       <div className="md:col-span-6 space-y-1 mt-2">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Alasan Medis XAI (ID)" : "Medical Reason XAI (ID)"}</label>
                         <input type="text" placeholder="Ikan gatal karena infeksi parasit di kulit..." value={rule.reason_id} onChange={(e) => handleUpdateRule(index, "reason_id", e.target.value)} className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none font-medium text-slate-600 dark:text-slate-300 text-xs italic placeholder:text-slate-400" />
-                        {/* 💡 HINT UNTUK ALASAN XAI */}
-                        <p className="text-[9px] text-slate-400 dark:text-slate-500 flex items-start gap-1 mt-1 leading-tight">
-                          <Info className="w-3 h-3 shrink-0" />
-                          {lang === 'id' ? "Kalimat ini akan dibaca oleh user jika penyakit terdeteksi." : "This sentence will be read by the user if detected."}
-                        </p>
+                        <Hint text={lang === 'id' ? "Kalimat ini akan dibaca oleh user jika penyakit terdeteksi." : "This sentence will be read by the user if detected."} />
                       </div>
 
                       <div className="md:col-span-6 space-y-1 mt-2">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Alasan Medis XAI (EN)" : "Medical Reason XAI (EN)"}</label>
                         <input type="text" placeholder="Fish is itchy due to skin parasite infection..." value={rule.reason_en} onChange={(e) => handleUpdateRule(index, "reason_en", e.target.value)} className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none font-medium text-slate-600 dark:text-slate-300 text-xs italic placeholder:text-slate-400" />
+                        <Hint text={lang === 'id' ? "Terjemahan bahasa Inggris untuk alasan medis." : "English translation for the medical reason."} />
                       </div>
                     </div>
                   </div>
@@ -438,7 +437,39 @@ export function DiseaseForm({ initialData, mode }: Props) {
             </div>
           </div>
 
-          {/* 4. PROTOKOL PENGOBATAN & METRIK */}
+          {/* 4. DESKRIPSI & GEJALA */}
+          <div className="space-y-4 pt-2">
+            <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-2">
+              <Activity className="w-5 h-5 text-blue-600 dark:text-blue-500" />
+              {formDict.clinicalSigns || (lang === 'id' ? "Gejala Klinis & Deskripsi" : "Clinical Signs & Description")}
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 rounded-2xl border-2 border-slate-200 dark:border-slate-800 transition-colors">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Deskripsi Patologi (ID)" : "Pathology Description (ID)"}</label>
+                <textarea rows={3} placeholder="Penjelasan singkat tentang penyakit ini..." value={formData.description_id || ""} onChange={(e) => handleChange("description_id", e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                <Hint text={lang === 'id' ? "Gambaran naratif tentang penyakit ini secara umum." : "Narrative overview of the disease in general."} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'en' ? "Deskripsi Patologi (EN)" : "Pathology Description (EN)"}</label>
+                <textarea rows={3} placeholder="Brief explanation of the disease..." value={formData.description_en || ""} onChange={(e) => handleChange("description_en", e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                <Hint text={lang === 'id' ? "Terjemahan bahasa Inggris untuk deskripsi patologi." : "English translation for the pathology description."} />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.symptomsId || (lang === 'id' ? "Gejala Fisik (ID)" : "Symptoms (ID)")}</label>
+                <textarea rows={4} placeholder="- Ada bintik putih di sirip&#10;- Ikan sering menggesekkan badan" value={formData.symptoms_id || ""} onChange={(e) => handleChange("symptoms_id", e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                <Hint text={lang === 'id' ? "Ketik ciri-ciri fisik yang terlihat pada tubuh ikan (gunakan poin/strip)." : "Type visible physical traits on the fish body (use bullet points/dashes)."} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.symptomsEn || (lang === 'id' ? "Gejala Fisik (EN)" : "Symptoms (EN)")}</label>
+                <textarea rows={4} placeholder="- White spots on fins&#10;- Fish flashing against objects" value={formData.symptoms_en || ""} onChange={(e) => handleChange("symptoms_en", e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                <Hint text={lang === 'id' ? "Terjemahan bahasa Inggris untuk daftar gejala fisik." : "English translation for the list of physical symptoms."} />
+              </div>
+            </div>
+          </div>
+
+          {/* 5. PROTOKOL PENGOBATAN */}
           <div className="space-y-4 pt-2">
             <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-2">
               <ShieldAlert className="w-5 h-5 text-blue-600 dark:text-blue-500" />
@@ -449,26 +480,95 @@ export function DiseaseForm({ initialData, mode }: Props) {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.treatmentsId || (lang === 'id' ? "Langkah Pengobatan (ID)" : "Treatment Steps (ID)")}</label>
                 <textarea rows={4} placeholder="1. Pindahkan ikan ke tank karantina." value={formData.treatments_id || ""} onChange={(e) => handleChange("treatments_id", e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                <Hint text={lang === 'id' ? "Panduan tertulis penanganan penyakit. Dianjurkan menggunakan format penomoran (1, 2, 3)." : "Written treatment guide. Numbered format (1, 2, 3) is recommended."} />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{formDict.treatmentsEn || (lang === 'id' ? "Langkah Pengobatan (EN)" : "Treatment Steps (EN)")}</label>
                 <textarea rows={4} placeholder="1. Move fish to quarantine tank." value={formData.treatments_en || ""} onChange={(e) => handleChange("treatments_en", e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                <Hint text={lang === 'id' ? "Terjemahan bahasa Inggris untuk langkah pengobatan." : "English translation for the treatment steps."} />
               </div>
             </div>
+          </div>
+
+          {/* 6. METRIK LANJUTAN & PENCEGAHAN */}
+          <div className="space-y-4 pt-2">
+            <h3 className="text-lg font-black text-rose-800 dark:text-rose-400 border-b border-rose-200 dark:border-rose-900/40 pb-2 flex items-center gap-2">
+              <HeartPulse className="w-5 h-5 text-rose-600 dark:text-rose-500" />
+              {formDict.advancedMetrics || (lang === 'id' ? "Metrik Klinis & Pencegahan" : "Clinical Metrics")}
+            </h3>
             
-            <div className="bg-rose-50/50 dark:bg-slate-950 p-4 sm:p-6 rounded-2xl border-2 border-rose-200 dark:border-slate-800 space-y-6 transition-colors mt-4">
+            <div className="bg-rose-50/50 dark:bg-slate-950 p-4 sm:p-6 rounded-2xl border-2 border-rose-200 dark:border-slate-800 space-y-6 transition-colors">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-1.5">
                   <label className="text-rose-900 dark:text-rose-400 font-bold text-xs uppercase tracking-widest">{formDict.mortalityRisk || (lang === 'id' ? "Mortalitas (1-5)" : "Mortality Risk (1-5)")}</label>
                   <input type="number" min="1" max="5" value={formData.mortality_risk || 3} onChange={(e) => handleChange("mortality_risk", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-rose-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
+                  <Hint text={lang === 'id' ? "Risiko kematian jika tidak diobati (1: Rendah, 5: Mematikan)." : "Risk of death if untreated (1: Low, 5: Lethal)."} />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-rose-900 dark:text-rose-400 font-bold text-xs uppercase tracking-widest">{formDict.durationDays || (lang === 'id' ? "Durasi Sembuh (Hari)" : "Recovery Duration (Days)")}</label>
                   <input type="number" min="1" value={formData.treatment_duration_days || 7} onChange={(e) => handleChange("treatment_duration_days", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-rose-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
+                  <Hint text={lang === 'id' ? "Estimasi waktu (dalam hari) hingga ikan sembuh total." : "Estimated time (in days) until the fish is fully recovered."} />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-rose-900 dark:text-rose-400 font-bold text-xs uppercase tracking-widest">{formDict.recoveryProb || (lang === 'id' ? "Peluang Hidup (%)" : "Survival Rate (%)")}</label>
                   <input type="number" min="1" max="100" value={formData.recovery_probability || 70} onChange={(e) => handleChange("recovery_probability", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-rose-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
+                  <Hint text={lang === 'id' ? "Persentase angka harapan hidup jika diberi penanganan yang benar." : "Survival rate percentage if given the correct treatment."} />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-4 pt-2 border-t border-rose-200/60 dark:border-slate-800/60 mt-4">
+                <div className="w-full sm:w-auto">
+                  <label className="flex items-center gap-2 cursor-pointer border-2 border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl transition-colors">
+                    <input type="checkbox" checked={formData.contagious || false} onChange={(e) => handleChange("contagious", e.target.checked)} className="h-4 w-4 rounded accent-rose-600 border-slate-300 dark:border-slate-700" />
+                    <span className="text-xs font-bold text-rose-700 dark:text-rose-400">{formDict.contagious || (lang === 'id' ? "Sangat Menular?" : "Highly Contagious?")}</span>
+                  </label>
+                  <Hint text={lang === 'id' ? "Centang jika penyakit ini sangat mudah menular ke ikan lain di tank yang sama." : "Check if this disease spreads easily to other fish."} />
+                </div>
+                
+                <div className="w-full sm:w-auto">
+                  <label className="flex items-center gap-2 cursor-pointer border-2 border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl transition-colors">
+                    <input type="checkbox" checked={formData.quarantine_required || false} onChange={(e) => handleChange("quarantine_required", e.target.checked)} className="h-4 w-4 rounded accent-amber-500 border-slate-300 dark:border-slate-700" />
+                    <span className="text-xs font-bold text-amber-700 dark:text-amber-500">{formDict.quarantineReq || (lang === 'id' ? "Wajib Karantina?" : "Mandatory Quarantine?")}</span>
+                  </label>
+                  <Hint text={lang === 'id' ? "Centang jika ikan yang sakit WAJIB dipisah ke tank karantina." : "Check if sick fish MUST be moved to a quarantine tank."} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-rose-900 dark:text-rose-400 uppercase tracking-widest">{formDict.preventionId || (lang === 'id' ? "Cara Pencegahan (ID)" : "Prevention (ID)")}</label>
+                  <textarea rows={3} placeholder="Jaga kualitas air tetap stabil..." value={formData.prevention_id || ""} onChange={(e) => handleChange("prevention_id", e.target.value)} className="w-full p-3 rounded-xl border-2 border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-rose-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                  <Hint text={lang === 'id' ? "Langkah-langkah untuk mencegah penyakit ini kembali menjangkiti akuarium." : "Steps to prevent this disease from recurring in the tank."} />
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-rose-900 dark:text-rose-400 uppercase tracking-widest">{formDict.preventionEn || (lang === 'en' ? "Cara Pencegahan (EN)" : "Prevention (EN)")}</label>
+                  <textarea rows={3} placeholder="Keep water parameters stable..." value={formData.prevention_en || ""} onChange={(e) => handleChange("prevention_en", e.target.value)} className="w-full p-3 rounded-xl border-2 border-rose-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-rose-500 outline-none font-medium custom-scrollbar text-slate-800 dark:text-slate-100 transition-colors" />
+                  <Hint text={lang === 'id' ? "Terjemahan bahasa Inggris untuk cara pencegahan." : "English translation for prevention steps."} />
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-amber-700 dark:text-amber-500 uppercase tracking-widest">{formDict.expertNotesId || (lang === 'id' ? "Catatan Pakar (ID)" : "Expert Notes (ID)")}</label>
+                  <textarea 
+                    rows={2} 
+                    placeholder="Perhatian: Gunakan sarung tangan saat menangani ikan." 
+                    value={formData.expert_notes_id || ""} 
+                    onChange={(e) => handleChange("expert_notes_id", e.target.value)} 
+                    className="w-full p-3 rounded-xl border-2 border-amber-200 dark:border-slate-700 bg-amber-50/50 dark:bg-slate-900 focus:border-amber-500 dark:focus:border-amber-400 outline-none font-medium custom-scrollbar text-amber-900 dark:text-slate-100 placeholder:text-amber-700/50 dark:placeholder:text-slate-500 transition-colors" 
+                  />
+                  <Hint text={lang === 'id' ? "Saran atau peringatan khusus dari ahli akuatik (Opsional)." : "Special advice or warning from aquatic experts (Optional)."} />
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-amber-700 dark:text-amber-500 uppercase tracking-widest">{formDict.expertNotesEn || (lang === 'en' ? "Catatan Pakar (EN)" : "Expert Notes (EN)")}</label>
+                  <textarea 
+                    rows={2} 
+                    placeholder="Warning: Wear gloves when handling fish." 
+                    value={formData.expert_notes_en || ""} 
+                    onChange={(e) => handleChange("expert_notes_en", e.target.value)} 
+                    className="w-full p-3 rounded-xl border-2 border-amber-200 dark:border-slate-700 bg-amber-50/50 dark:bg-slate-900 focus:border-amber-500 dark:focus:border-amber-400 outline-none font-medium custom-scrollbar text-amber-900 dark:text-slate-100 placeholder:text-amber-700/50 dark:placeholder:text-slate-500 transition-colors" 
+                  />
+                  <Hint text={lang === 'id' ? "Terjemahan bahasa Inggris untuk catatan pakar." : "English translation for expert notes."} />
                 </div>
               </div>
             </div>
