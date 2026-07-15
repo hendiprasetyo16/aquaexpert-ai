@@ -12,7 +12,8 @@ import {
   Cpu,
   BarChart,     // <-- Icon untuk Analytics
   HeartPulse,    // <-- Icon untuk Treatment Ward
-  Pill // <-- IMPORT ICON INI UNTUK DATABASE OBAT
+  Pill, // <-- IMPORT ICON INI UNTUK DATABASE OBAT
+  Network // <-- Tambahkan ini!
 } from "lucide-react";
 
 const AI_COLORS = {
@@ -44,6 +45,14 @@ export const MENU_BY_ROLE = {
     
     // --- MENU BARU: DATABASE OBAT ---
     { title: "Medication Database", href: "/dashboard/medications", icon: Pill, color: "text-sky-500 dark:text-sky-400" },
+
+    // Tambahkan di dalam array super_admin (dan admin jika diizinkan)
+    { 
+      title: "Treatment Protocols", 
+      href: "/dashboard/protocols", 
+      icon: Network, // Jangan lupa import 'Network' dari lucide-react
+      color: "text-indigo-500 dark:text-indigo-400" 
+    },
 
     // --- MENU BARU ANALISIS KLINIS (ANALYTICS) ---
     { title: "Clinical Analytics", href: "/dashboard/analytics", icon: BarChart, color: "text-indigo-500 dark:text-indigo-400" },

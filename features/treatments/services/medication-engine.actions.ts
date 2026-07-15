@@ -1,6 +1,8 @@
 // features/treatments/services/medication-engine.actions.ts
 "use server";
 
+import { unstable_noStore } from "next/cache";
+
 import { createClient } from "@/lib/supabase/server";
 import { verifyAquariumOwnership } from "@/features/aquariums/repositories/security.repository";
 import { getTankInventoryAction } from "@/features/aquariums/actions/inventory.actions";
@@ -128,6 +130,8 @@ export async function getMedicationRecommendationAction({
   diseaseId,
   lang = "id"
 }: Payload): Promise<MedicationEngineResponse> {
+  unstable_noStore(); // 👈 2. LETAKKAN INI TEPAT DI AWAL FUNGSI (Memaksa sistem selalu ambil resep terbaru)
+  
   try {
     const supabase = await createClient();
 
