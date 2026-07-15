@@ -4,7 +4,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { verifyAquariumOwnership } from "@/features/aquariums/repositories/security.repository";
-import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; // 💡 IMPORT NOTIFIKASI
+import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; 
 
 interface StartTreatmentPayload {
   aquariumId: string;
@@ -35,7 +35,7 @@ export interface ActiveTreatmentDto {
   latest_log: { action_taken: string; notes: string; day_number: number } | null;
 }
 
-// 💡 HELPER: Mengambil nama pengguna & nama akuarium untuk Notifikasi
+// HELPER: Mengambil nama pengguna & nama akuarium untuk Notifikasi
 async function getUserAndAquariumName(supabase: any, userId: string, aquariumId: string) {
   const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', userId).single();
   const { data: aq } = await supabase.from("my_aquariums").select("name").eq("id", aquariumId).single();
@@ -49,15 +49,30 @@ export async function getTreatmentDropdownOptionsAction() {
   try {
     const supabase = await createClient();
     
+    // 1. Ambil Penyakit
     const { data: diseases } = await supabase.from("diseases")
       .select("id, name_id, name_en, severity, quarantine_required") 
       .eq("is_active", true).order("name_id", { ascending: true });
 
+    // ====================================================================
+    // 💡 PERBAIKAN: Menambahkan BOBOT MEDIS untuk pengurutan Dropdown
+    // ====================================================================
     const { data: medications } = await supabase.from("medications")
-      .select("id, name_id, name_en, dosage_unit, safe_for_plants, safe_for_inverts") 
-      .order("name_id", { ascending: true });
+      .select("id, name_id, name_en, dosage_unit, safe_for_plants, safe_for_inverts, success_rate_baseline_pct, clinical_score_baseline") 
+      .order("success_rate_baseline_pct", { ascending: false }) // Prioritas Bobot 1: Tingkat Kesembuhan Tertinggi di atas
+      .order("clinical_score_baseline", { ascending: false })   // Prioritas Bobot 2: Jika rate sama, ambil Skor Klinis tertinggi
+      .order("name_id", { ascending: true });                   // Prioritas 3: Baru abjad sebagai penengah terakhir
 
-    return { success: true, diseases: diseases || [], medications: medications || [] };
+    // 💡 TAMBAHAN: Mengambil relasi Utama/Cadangan untuk Frontend
+    const { data: relations } = await supabase.from("disease_medications")
+      .select("disease_id, medication_id, priority");
+
+    return { 
+      success: true, 
+      diseases: diseases || [], 
+      medications: medications || [],
+      relations: relations || [] // Dikirim agar Frontend bisa menempatkan Utama di atas Cadangan
+    };
   } catch (error: unknown) {
     return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan internal" };
   }
@@ -83,16 +98,14 @@ export async function startNewTreatmentSessionAction(payload: StartTreatmentPayl
 
     if (error) throw new Error(error.message);
 
-    // =====================================================================
-    // 💡 FITUR BARU: NOTIFIKASI MEMULAI PENGOBATAN
-    // =====================================================================
+    // FITUR NOTIFIKASI
     const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, payload.aquariumId);
     const { data: disease } = await supabase.from("diseases").select("name_id").eq("id", payload.diseaseId).single();
     
     await pushNotificationAction(
       "Sesi Pengobatan Dimulai",
       `${userName} memulai sesi pengobatan untuk indikasi "${disease?.name_id || 'Penyakit'}" di akuarium "${aqName}".`,
-      "alert", // Muncul sebagai Peringatan Merah
+      "alert", 
       userName
     );
 
