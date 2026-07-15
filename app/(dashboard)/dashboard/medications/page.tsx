@@ -3,7 +3,7 @@
 
 import { useState, useEffect, ChangeEvent } from "react";
 import { useLanguage } from "@/providers/LanguageProvider";
-import { Pill, FlaskConical, Beaker, Leaf, Bug, AlertTriangle, ShieldCheck, Clock, Activity, Loader2, Search, Edit, Trash2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive } from "lucide-react";
+import { Pill, FlaskConical, Beaker, Leaf, Bug, AlertTriangle, ShieldCheck, Clock, Activity, Loader2, Search, Edit, Trash2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Archive, Hourglass } from "lucide-react"; // 👈 Ditambah Hourglass
 import { getMedicationsDatabaseAction, getUserRoleAction, deleteMedicationAction, createMedicationAction, updateMedicationAction, toggleMedicationArchiveAction, MedicationDto } from "@/features/treatments/actions/medication.actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -276,10 +276,7 @@ export default function MedicationDatabasePage() {
                       key={med.id} 
                       className="relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-[0_0_20px_rgba(14,165,233,0.15)] dark:hover:shadow-[0_0_20px_rgba(14,165,233,0.1)] transition-all duration-300 hover:border-sky-300 dark:hover:border-sky-500/40 dark:hover:bg-slate-800/50 flex flex-col group"
                     >
-                      {/* HEADER KARTU: TOMBOL & NOMOR URUT SEBARIS, JUDUL DI BAWAHNYA */}
                       <div className="p-5 md:p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-transparent flex flex-col relative z-10 transition-colors">
-                        
-                        {/* Baris 1: Tombol Aksi (Kiri) dan Nomor (Kanan) */}
                         <div className="flex justify-between items-start w-full mb-3 min-h-[32px]">
                           <div className="flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                             {isAdmin && (
@@ -316,51 +313,46 @@ export default function MedicationDatabasePage() {
                             )}
                           </div>
                           
-                          {/* BADGE NUMBER BERGAYA MODERN (GLASSMORPHISM) */}
                           <div
-                            className="
-                              shrink-0 ml-2
-                              px-3 py-1.5
-                              rounded-xl
-                              font-black text-xs
-
-                              bg-sky-100
-                              border border-sky-200
-                              text-sky-700
-
-                              dark:bg-sky-900/40
-                              dark:border-sky-700
-                              dark:text-sky-300
-
-                              shadow-sm
-                              backdrop-blur
-                            ">
+                            className="shrink-0 ml-2 px-3 py-1.5 rounded-xl font-black text-xs bg-sky-100 border border-sky-200 text-sky-700 dark:bg-sky-900/40 dark:border-sky-700 dark:text-sky-300 shadow-sm backdrop-blur"
+                          >
                             #{String(startIndex + index + 1).padStart(2, "0")}
                           </div>
                         </div>
 
-                        {/* Baris 2: Judul Obat */}
                         <div className="w-full"> 
                           <h3 className="text-lg md:text-xl font-black text-slate-800 dark:text-slate-100 mb-2 leading-tight break-words">{lang === 'id' ? med.name_id : med.name_en}</h3>
                           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400 rounded-lg text-xs font-black uppercase tracking-widest border border-sky-200 dark:border-sky-800/50 w-fit max-w-full transition-colors">
                             <Beaker className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{med.active_ingredient}</span>
                           </div>
                         </div>
-
                       </div>
 
                       <div className="p-6 flex-1 space-y-5">
                         <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed min-h-[40px] break-words whitespace-normal">{lang === 'id' ? med.description_id : med.description_en}</p>
+                        
+                        {/* 🌟 KOTAK INFO DIUBAH MENJADI 3 KOLOM UNTUK MENAMPILKAN JEDA ULANG 🌟 */}
                         <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-950/80 p-4 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors">
-                          <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{lang === 'id' ? 'Dosis Standar' : 'Standard Dosage'}</p>
-                            <p className="text-lg font-black text-sky-600 dark:text-sky-400">{med.base_dosage_per_100l} <span className="text-xs font-bold text-sky-700 dark:text-sky-500">{med.dosage_unit} / 100L</span></p>
+                          <div className="text-left border-r border-slate-200 dark:border-slate-800 pr-3 mr-1">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{lang === 'id' ? 'Dosis' : 'Dosage'}</p>
+                            <p className="text-sm font-black text-sky-600 dark:text-sky-400">{med.base_dosage_per_100l}</p>
+                            <p className="text-[9px] font-bold text-sky-700 dark:text-sky-500 leading-none">{med.dosage_unit}/100L</p>
                           </div>
-                          <div className="text-right">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{lang === 'id' ? 'Durasi' : 'Duration'}</p>
-                            <p className="text-lg font-black text-slate-700 dark:text-slate-200">{med.treatment_duration_days} <span className="text-xs font-bold text-slate-500">{lang === 'id' ? 'Hari' : 'Days'}</span></p>
+                          
+                          <div className="text-center border-r border-slate-200 dark:border-slate-800 px-3">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5 flex items-center justify-center gap-1"><Clock className="w-3 h-3"/> {lang === 'id' ? 'Durasi' : 'Time'}</p>
+                            <p className="text-lg font-black text-slate-700 dark:text-slate-200">{med.treatment_duration_days} <span className="text-[10px] font-bold text-slate-500">{lang === 'id' ? 'Hari' : 'Days'}</span></p>
+                          </div>
+
+                          <div className="text-right pl-3">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5 flex items-center justify-end gap-1"><Hourglass className="w-3 h-3"/> {lang === 'id' ? 'Jeda' : 'Reuse'}</p>
+                            {/* Menampilkan reuse_interval_days jika ada, jika null/undefined tampilkan 'N/A' */}
+                            <p className="text-lg font-black text-amber-600 dark:text-amber-500">
+                              {med.reuse_interval_days ?? 7} <span className="text-[10px] font-bold text-slate-500">{lang === 'id' ? 'Hari' : 'Days'}</span>
+                            </p>
                           </div>
                         </div>
+
                         <div className="grid grid-cols-2 gap-3 pt-2">
                           <div className={`p-3 rounded-xl border flex flex-col items-center justify-center text-center gap-2 transition-all ${med.safe_for_plants ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/50 dark:text-emerald-400' : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/50 dark:text-rose-400'}`}>
                             {med.safe_for_plants ? <Leaf className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}

@@ -15,6 +15,7 @@ export interface MedicationDto {
   base_dosage_per_100l: number;
   dosage_unit: string;
   treatment_duration_days: number;
+  reuse_interval_days?: number | null;
   clinical_score_baseline: number;
   success_rate_baseline_pct: number;
   avg_recovery_days_baseline: number;

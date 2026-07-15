@@ -7,12 +7,13 @@ export interface DbMedication {
   id: string;                               // uuid not null
   name_id: string | null;                   // character varying(255) null
   name_en: string;                          // character varying(255) not null
-  active_ingredient: string;               // character varying(255) not null
+  active_ingredient: string;                // character varying(255) not null
   description_id: string;                   // text not null
   description_en: string;                   // text not null
   base_dosage_per_100l: number;             // numeric not null
   dosage_unit: string;                      // character varying(50) not null
   treatment_duration_days: number;          // integer not null
+  reuse_interval_days?: number;             // 👈 TAMBAHKAN BARIS INI
   created_at?: string | null;               // timestamp with time zone null
   clinical_score_baseline: number | null;   // numeric null
   success_rate_baseline_pct: number | null; // numeric null

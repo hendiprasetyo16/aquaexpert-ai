@@ -19,7 +19,8 @@ import {
   Activity, 
   ShieldCheck, 
   Leaf, 
-  Shell
+  Shell,
+  Hourglass // 👈 Tambahkan ikon ini
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
@@ -27,14 +28,13 @@ import toast from "react-hot-toast";
 import type { MedicationDto } from "../actions/medication.actions";
 import { deleteMedicationAction } from "../actions/medication.actions"; 
 
-// 💡 PERBAIKAN: Menambahkan onSuccess dan onCancel ke dalam interface Props
 interface Props {
   initialData?: MedicationDto | null;
   mode: "create" | "edit";
   onSaveAction?: (payload: Partial<MedicationDto>) => Promise<{ success: boolean; error?: string }>;
   onUpdateAction?: (id: string, payload: Partial<MedicationDto>) => Promise<{ success: boolean; error?: string }>;
-  onSuccess?: () => void; // Callback saat berhasil simpan/edit
-  onCancel?: () => void;  // Callback saat menekan tombol batal
+  onSuccess?: () => void; 
+  onCancel?: () => void;  
 }
 
 export function MedicationForm({ initialData, mode, onSaveAction, onUpdateAction, onSuccess, onCancel }: Props) {
@@ -69,6 +69,7 @@ export function MedicationForm({ initialData, mode, onSaveAction, onUpdateAction
     base_dosage_per_100l: initialData?.base_dosage_per_100l || 0,
     dosage_unit: initialData?.dosage_unit || "ml",
     treatment_duration_days: initialData?.treatment_duration_days || 7,
+    reuse_interval_days: initialData?.reuse_interval_days || 7, // 👈 TAMBAHKAN INISIALISASI INI
     clinical_score_baseline: initialData?.clinical_score_baseline || 3,
     success_rate_baseline_pct: initialData?.success_rate_baseline_pct || 70,
     avg_recovery_days_baseline: initialData?.avg_recovery_days_baseline || 7,
@@ -96,6 +97,7 @@ export function MedicationForm({ initialData, mode, onSaveAction, onUpdateAction
         base_dosage_per_100l: Number(formData.base_dosage_per_100l) || 0,
         dosage_unit: formData.dosage_unit?.trim() || "ml",
         treatment_duration_days: Number(formData.treatment_duration_days) || 0,
+        reuse_interval_days: Number(formData.reuse_interval_days) || 7, // 👈 PASTIKAN INI TERKIRIM
         clinical_score_baseline: Number(formData.clinical_score_baseline) || 3,
         success_rate_baseline_pct: Number(formData.success_rate_baseline_pct) || 0,
         avg_recovery_days_baseline: Number(formData.avg_recovery_days_baseline) || 0,
@@ -122,7 +124,6 @@ export function MedicationForm({ initialData, mode, onSaveAction, onUpdateAction
       if (res.success) {
         toast.success(lang === 'id' ? "Data obat berhasil disimpan!" : "Medication data saved successfully!");
         
-        // 💡 PERBAIKAN: Jika ada callback onSuccess (mode modal), jalankan modal. Jika tidak, redirect halaman.
         if (onSuccess) {
           onSuccess();
         } else {
@@ -156,7 +157,6 @@ export function MedicationForm({ initialData, mode, onSaveAction, onUpdateAction
       
       toast.success(lang === "id" ? "Obat dihapus permanen." : "Medication permanently deleted.");
       
-      // 💡 PERBAIKAN: Handle untuk delete permanen sukses jika dalam mode modal
       if (onSuccess) {
         onSuccess();
       } else {
@@ -231,23 +231,27 @@ export function MedicationForm({ initialData, mode, onSaveAction, onUpdateAction
               {formDict.dosageSection || (lang === 'id' ? "Protokol Takaran & Dosis" : "Dosage & Protocol")}
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 rounded-2xl border-2 border-slate-200 dark:border-slate-800 transition-colors">
+            {/* 🌟 KOTAK INI DIUBAH MENJADI 4 KOLOM AGAR MUAT 🌟 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 rounded-2xl border-2 border-slate-200 dark:border-slate-800 transition-colors">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Dosis Dasar (Per 100L Air)" : "Base Dosage (Per 100L)"}</label>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Dosis (Per 100L Air)" : "Base Dosage (100L)"}</label>
                 <input type="number" min="0" step="any" value={formData.base_dosage_per_100l || 0} onChange={(e) => handleChange("base_dosage_per_100l", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Jumlah takaran obat standar." : "Standard baseline volume."}</p>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Satuan Dosis" : "Dosage Unit"}</label>
-                <input type="text" placeholder="Cth: ml, gr, tetes, sendok" value={formData.dosage_unit || ""} onChange={(e) => handleChange("dosage_unit", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Satuan ukur takaran." : "Measurement unit used."}</p>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Satuan Dosis" : "Dosage Unit"}</label>
+                <input type="text" placeholder="Cth: ml, gr, tetes" value={formData.dosage_unit || ""} onChange={(e) => handleChange("dosage_unit", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{lang === 'id' ? "Durasi Pengobatan (Hari)" : "Treatment Duration (Days)"}</label>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><Info className="w-3.5 h-3.5" />{lang === 'id' ? "Durasi (Hari)" : "Duration (Days)"}</label>
                 <input type="number" min="1" value={formData.treatment_duration_days || 7} onChange={(e) => handleChange("treatment_duration_days", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-blue-500 outline-none font-bold text-slate-800 dark:text-slate-100 transition-colors" />
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-start gap-1"><Info className="w-3.5 h-3.5 shrink-0" /> {lang === 'id' ? "Rata-rata siklus pengobatan." : "Average application days loop."}</p>
+              </div>
+
+              {/* 🌟 INI INPUT BARU UNTUK WAKTU JEDA 🌟 */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest flex items-center gap-1"><Hourglass className="w-3.5 h-3.5" />{lang === 'id' ? "Jeda Ulang (Hari)" : "Reuse Interval"}</label>
+                <input type="number" min="1" value={formData.reuse_interval_days || 7} onChange={(e) => handleChange("reuse_interval_days", Number(e.target.value))} className="w-full h-11 px-3 rounded-xl border-2 border-amber-200 dark:border-amber-900/50 bg-white dark:bg-slate-900 focus:border-amber-500 outline-none font-bold text-amber-700 dark:text-amber-400 transition-colors" title={lang === 'id' ? "Waktu tunggu sebelum obat ini aman diberikan kembali." : "Waiting period before this medication can be safely redosed."} />
               </div>
             </div>
           </div>
@@ -323,7 +327,6 @@ export function MedicationForm({ initialData, mode, onSaveAction, onUpdateAction
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row w-full sm:w-auto gap-3">
-              {/* 💡 PERBAIKAN: Jika ada onCancel gunakan callback modal, jika tidak gunakan router.push halaman */}
               <Button 
                 type="button" 
                 variant="outline" 
