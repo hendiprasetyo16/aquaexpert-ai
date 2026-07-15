@@ -120,3 +120,123 @@ export async function updateProtocolAction(
     return { success: false, error: err.message };
   }
 }
+
+// Tambahkan fungsi ini di PALING BAWAH file: protocol.actions.ts
+// KODE INI MENGGUNAKAN ARSITEKTUR MULTI-API (GEMINI -> GROQ) 
+
+export async function generateAIProtocolAction(
+  diseaseNameEn: string, 
+  availableMeds: { id: string, name_en: string, active_ingredient: string }[]
+) {
+  try {
+    const GROQ_KEY = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.replace(/['"]/g, '').trim() : null;
+    const GEMINI_KEY = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.replace(/['"]/g, '').trim() : null;
+
+    if (!GROQ_KEY && !GEMINI_KEY) {
+      return { success: false, error: "API Key kosong di sistem." };
+    }
+
+    // Susun prompt untuk AI
+    const medsListString = availableMeds.map(m => `- ID: ${m.id} | Name: ${m.name_en} | Ingredient: ${m.active_ingredient}`).join("\n");
+    
+    const systemPrompt = `You are an expert veterinary aquatic doctor.
+Your task is to prescribe the most effective medications for a fish disease.
+Disease: "${diseaseNameEn}"
+
+Here is the ONLY available medication inventory (DO NOT invent new IDs):
+${medsListString}
+
+Respond ONLY with a valid RAW JSON object matching this schema without any markdown formatting, backticks, or the word 'json':
+{
+  "primary_ids": ["id_1", "id_2"],
+  "alternative_ids": ["id_3"]
+}
+Choose 1 or 2 most effective meds as primary, and 1 or 2 as alternatives.`;
+
+    let aiResponseText = "";
+
+    // ====================================================================
+    // 1. GEMINI API (Prioritas UTAMA)
+    // ====================================================================
+    if (GEMINI_KEY) {
+      try {
+        const geminiContents = [
+          { role: "user", parts: [{ text: systemPrompt }] }
+        ];
+
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
+
+        const geminiRes = await fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            contents: geminiContents,
+            generationConfig: { temperature: 0.1 } // Suhu rendah agar JSON konsisten
+          }),
+          cache: "no-store" 
+        });
+
+        if (geminiRes.ok) {
+          const data = await geminiRes.json();
+          if (data.candidates && data.candidates.length > 0) {
+            aiResponseText = data.candidates[0].content.parts[0].text;
+          }
+        } else {
+          console.warn(`Gemini API Protocol sibuk (Status: ${geminiRes.status}), beralih ke Groq...`);
+        }
+      } catch (e) {
+        console.warn("Koneksi Gemini API Protocol gagal, melompat ke Groq...", e);
+      }
+    }
+
+    // ====================================================================
+    // 2. GROQ API (Fallback/Cadangan)
+    // ====================================================================
+    if (!aiResponseText && GROQ_KEY) {
+      try {
+        const groqMessages = [
+          { role: "system", content: "You are a helpful JSON-only API. Only output valid JSON without any markdown tags." },
+          { role: "user", content: systemPrompt }
+        ];
+
+        const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${GROQ_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: groqMessages,
+            temperature: 0.1,
+          }),
+          cache: "no-store" 
+        });
+
+        if (groqRes.ok) {
+          const data = await groqRes.json();
+          aiResponseText = data.choices[0].message.content;
+        } else {
+          throw new Error(`Groq API Error: ${groqRes.status}`);
+        }
+      } catch (e) {
+        console.warn("Groq gagal menyambung...", e);
+        if (!GEMINI_KEY) throw e; 
+      }
+    }
+
+    if (!aiResponseText) {
+       return { success: false, error: "Semua server AI (Gemini & Groq) sedang sibuk. Coba lagi." };
+    }
+
+    // Membersihkan respon dari format markdown jika AI membandel
+    const cleanJsonString = aiResponseText.replace(/```json/g, "").replace(/```/g, "").trim();
+    const parsedData = JSON.parse(cleanJsonString);
+
+    return { success: true, data: parsedData };
+
+  } catch (error: any) {
+    console.error("AI Protocol Error:", error);
+    return { success: false, error: "Gagal mendapatkan/memparsing JSON rekomendasi dari AI API." };
+  }
+}

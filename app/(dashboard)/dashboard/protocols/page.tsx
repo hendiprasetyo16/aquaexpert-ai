@@ -5,36 +5,19 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { 
   getProtocolMasterDataAction, 
-  updateProtocolAction, 
+  updateProtocolAction,
+  generateAIProtocolAction, // 👈 Panggil Server Action AI Baru
   ProtocolDiseaseDto, 
   ProtocolMedicationDto, 
   DiseaseMedicationDto 
 } from "@/features/treatments/actions/protocol.actions";
 
 import { 
-  Network, Stethoscope, Pill, Save, Loader2, Search, CheckCircle2, 
-  AlertTriangle, FlaskConical, Beaker, Eraser, Info, Sparkles
+  Network, Stethoscope, Save, Loader2, Search, CheckCircle2, 
+  Eraser, Sparkles, Bot
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
-
-// ============================================================================
-// 🧠 OTAK PAKAR VETERINER (PRE-LOADED EXPERT KNOWLEDGE)
-// Disesuaikan 100% dengan nama_en dari Database Bapak
-// ============================================================================
-const AI_EXPERT_DICTIONARY: Record<string, { primary: string[], alt: string[] }> = {
-  "White Spot Disease (Ich)": { primary: ["Malachite Green"], alt: ["Methylene Blue", "Aquarium Salt"] },
-  "Fin Rot": { primary: ["Kanaplex", "Erythromycin"], alt: ["API Melafix"] },
-  "Columnaris": { primary: ["Kanaplex"], alt: ["Erythromycin"] },
-  "Dropsy": { primary: ["Kanaplex"], alt: ["Epsom Salt"] },
-  "Swim Bladder Disorder": { primary: ["Epsom Salt"], alt: [] },
-  "Ammonia Poisoning": { primary: ["Seachem Prime"], alt: [] },
-  "Nitrite Poisoning": { primary: ["Methylene Blue"], alt: ["Seachem Prime"] },
-  "Hole In Head Disease": { primary: ["Flubendazole"], alt: [] },
-  "Velvet Disease": { primary: ["Copper Sulfate"], alt: ["Malachite Green"] },
-  "Anchor Worm": { primary: ["Praziquantel"], alt: [] },
-  "Popeye": { primary: ["Kanaplex", "Epsom Salt"], alt: ["Erythromycin"] }
-};
 
 export default function MedicalProtocolsPage() {
   const { language } = useLanguage();
@@ -46,6 +29,7 @@ export default function MedicalProtocolsPage() {
   
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState<boolean>(false); // 👈 State loading AI
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedDiseaseId, setSelectedDiseaseId] = useState<string | null>(null);
 
@@ -103,37 +87,44 @@ export default function MedicalProtocolsPage() {
   const handleClearAll = () => { setPrimaryMeds(new Set()); setAlternativeMeds(new Set()); };
 
   // ============================================================================
-  // FUNGSI CANGGIH: GENERATE OBAT OTOMATIS BERDASARKAN AI
+  // 🧠 FUNGSI CANGGIH: GENERATE OBAT OTOMATIS BERDASARKAN API AI
   // ============================================================================
-  const handleApplyAIRecommendation = () => {
+  const handleApplyAIRecommendation = async () => {
     const selectedDiseaseInfo = diseases.find(d => d.id === selectedDiseaseId);
     if (!selectedDiseaseInfo) return;
 
-    // Bersihkan centangan admin yang salah
-    handleClearAll();
+    setIsGeneratingAI(true);
+    handleClearAll(); // Bersihkan pilihan manual admin terlebih dahulu
 
-    const diseaseNameEn = selectedDiseaseInfo.name_en;
-    const expertRule = AI_EXPERT_DICTIONARY[diseaseNameEn];
+    try {
+      // Siapkan daftar obat yang ada di database Bapak untuk di-prompt ke AI
+      const availableMedsList = medications.map(m => ({ 
+        id: m.id, 
+        name_en: m.name_en, 
+        active_ingredient: m.active_ingredient 
+      }));
 
-    if (expertRule) {
-      const newPrimary = new Set<string>();
-      const newAlt = new Set<string>();
-      
-      expertRule.primary.forEach(medNameEn => {
-        const med = medications.find(m => m.name_en === medNameEn);
-        if (med) newPrimary.add(med.id);
-      });
-      
-      expertRule.alt.forEach(medNameEn => {
-        const med = medications.find(m => m.name_en === medNameEn);
-        if (med) newAlt.add(med.id);
-      });
-      
-      setPrimaryMeds(newPrimary);
-      setAlternativeMeds(newAlt);
-      toast.success(lang === 'id' ? "Rekomendasi Pakar diterapkan! Silakan klik Simpan." : "Expert recommendation applied! Please click Save.");
-    } else {
-      toast.error(lang === 'id' ? "Belum ada standar pakar untuk penyakit ini." : "No expert standard for this disease yet.");
+      // Memanggil Server Action AI
+      const res = await generateAIProtocolAction(selectedDiseaseInfo.name_en, availableMedsList);
+
+      if (res.success && res.data) {
+        const newPrimary = new Set<string>();
+        const newAlt = new Set<string>();
+        
+        // AI mengembalikan array berisi ID obat yang cocok
+        res.data.primary_ids.forEach((id: string) => newPrimary.add(id));
+        res.data.alternative_ids.forEach((id: string) => newAlt.add(id));
+        
+        setPrimaryMeds(newPrimary);
+        setAlternativeMeds(newAlt);
+        toast.success(lang === 'id' ? "AI berhasil menjodohkan! Silakan periksa & Simpan." : "AI mapped successfully! Please review & Save.");
+      } else {
+        toast.error(res.error || (lang === 'id' ? "AI gagal memproses." : "AI failed to process."));
+      }
+    } catch (error) {
+      toast.error(lang === 'id' ? "Terjadi kesalahan koneksi AI." : "AI connection error.");
+    } finally {
+      setIsGeneratingAI(false);
     }
   };
 
@@ -172,7 +163,7 @@ export default function MedicalProtocolsPage() {
                 {lang === 'id' ? "Modul Protokol Medis AI" : "AI Medical Protocol Module"}
               </h1>
               <p className="mt-2 text-slate-600 dark:text-slate-400 max-w-2xl text-sm font-medium leading-relaxed">
-                {lang === 'id' ? "Pusat pengaturan resep AI. Gunakan tombol 'Terapkan Standar Pakar' agar admin tidak salah dalam memilih obat." : "Central control for connecting Diseases and Medications. Data here becomes the core reference for AI prescriptions."}
+                {lang === 'id' ? "Pusat pengaturan resep AI. Gunakan tombol 'Terapkan Standar AI' agar AI API secara otomatis memilihkan obat Utama dan Cadangan dari database." : "Central control for connecting Diseases and Medications. Data here becomes the core reference for AI prescriptions."}
               </p>
             </div>
           </div>
@@ -186,7 +177,7 @@ export default function MedicalProtocolsPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
-            {/* PANEL KIRI */}
+            {/* PANEL KIRI - DAFTAR PENYAKIT */}
             <div className="lg:col-span-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col max-h-[80vh]">
               <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center gap-2">
                 <Stethoscope className="w-5 h-5 text-rose-500" />
@@ -217,7 +208,7 @@ export default function MedicalProtocolsPage() {
               </div>
             </div>
 
-            {/* PANEL KANAN */}
+            {/* PANEL KANAN - DAFTAR OBAT */}
             <div className="lg:col-span-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col min-h-[500px]">
               {!selectedDiseaseId ? (
                 <div className="flex flex-col items-center justify-center flex-1 p-10 text-center opacity-60">
@@ -233,22 +224,29 @@ export default function MedicalProtocolsPage() {
                           {lang === 'id' ? selectedDiseaseInfo?.name_id : selectedDiseaseInfo?.name_en}
                         </h2>
                         <div className="flex gap-4 mt-2">
-                          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">{primaryMeds.size} Utama</span>
-                          <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md">{alternativeMeds.size} Cadangan</span>
+                          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800">{primaryMeds.size} Utama</span>
+                          <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">{alternativeMeds.size} Cadangan</span>
                         </div>
                       </div>
 
                       <div className="flex flex-wrap gap-2">
-                        {/* TOMBOL AI BARU */}
-                        <Button onClick={handleApplyAIRecommendation} className="h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-lg shadow-emerald-500/20 text-xs sm:text-sm">
-                          <Sparkles className="w-4 h-4 mr-2" /> {lang === 'id' ? "Terapkan Standar AI" : "Apply AI Standard"}
+                        {/* TOMBOL MINTA BANTUAN AI API */}
+                        <Button 
+                          onClick={handleApplyAIRecommendation} 
+                          disabled={isGeneratingAI}
+                          className="h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-lg shadow-emerald-500/20 text-xs sm:text-sm transition-all"
+                        >
+                          {isGeneratingAI ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bot className="w-4 h-4 mr-2" />} 
+                          {isGeneratingAI ? (lang === 'id' ? "AI Berpikir..." : "AI Thinking...") : (lang === 'id' ? "Terapkan Standar AI API" : "Apply AI API Standard")}
                         </Button>
-                        <Button variant="outline" onClick={handleClearAll} className="h-11 rounded-xl font-bold text-red-500 border-red-200">
+                        
+                        <Button variant="outline" onClick={handleClearAll} className="h-11 rounded-xl font-bold text-red-500 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30">
                           <Eraser className="w-4 h-4" />
                         </Button>
-                        <Button onClick={handleSaveProtocol} disabled={isSaving} className="h-11 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black px-6">
-                          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} 
-                          <span className="hidden sm:inline">{lang === 'id' ? "Simpan" : "Save"}</span>
+                        
+                        <Button onClick={handleSaveProtocol} disabled={isSaving || isGeneratingAI} className="h-11 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black px-6 shadow-md shadow-indigo-500/20">
+                          {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />} 
+                          <span className="hidden sm:inline">{lang === 'id' ? "Simpan Protokol" : "Save Protocol"}</span>
                         </Button>
                       </div>
                     </div>
@@ -269,16 +267,16 @@ export default function MedicalProtocolsPage() {
                         const isSelected = isPrimary || isAlternative;
 
                         return (
-                          <div key={med.id} className={`p-4 rounded-2xl border-2 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isSelected ? 'border-indigo-200 bg-indigo-50/30' : 'border-slate-100 bg-white'}`}>
+                          <div key={med.id} className={`p-4 rounded-2xl border-2 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isSelected ? 'border-indigo-200 bg-indigo-50/30 dark:border-indigo-800 dark:bg-indigo-900/20' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900'}`}>
                             <div className="flex-1">
-                              <h4 className="font-bold text-slate-800 text-sm">{lang === 'id' ? med.name_id : med.name_en}</h4>
+                              <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm">{lang === 'id' ? med.name_id : med.name_en}</h4>
                               <p className="text-[10px] font-black uppercase text-slate-500 mt-1">{med.active_ingredient}</p>
                             </div>
-                            <div className="flex gap-2 shrink-0 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
-                              <button onClick={() => toggleMedication(med.id, "Primary")} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${isPrimary ? 'bg-emerald-500 text-white' : 'text-slate-500 hover:bg-slate-200'}`}>
+                            <div className="flex gap-2 shrink-0 bg-slate-50 dark:bg-slate-950 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                              <button onClick={() => toggleMedication(med.id, "Primary")} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${isPrimary ? 'bg-emerald-500 text-white' : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'}`}>
                                 Utama
                               </button>
-                              <button onClick={() => toggleMedication(med.id, "Alternative")} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${isAlternative ? 'bg-amber-500 text-white' : 'text-slate-500 hover:bg-slate-200'}`}>
+                              <button onClick={() => toggleMedication(med.id, "Alternative")} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${isAlternative ? 'bg-amber-500 text-white' : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'}`}>
                                 Cadangan
                               </button>
                             </div>
