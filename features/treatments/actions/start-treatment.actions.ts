@@ -49,29 +49,39 @@ export async function getTreatmentDropdownOptionsAction() {
   try {
     const supabase = await createClient();
     
-    // 1. Ambil Penyakit
+    // 1. Ambil Penyakit (Urut Abjad)
     const { data: diseases } = await supabase.from("diseases")
       .select("id, name_id, name_en, severity, quarantine_required") 
       .eq("is_active", true).order("name_id", { ascending: true });
 
-    // ====================================================================
-    // 💡 PERBAIKAN: Menambahkan BOBOT MEDIS untuk pengurutan Dropdown
-    // ====================================================================
+    // 2. Ambil Obat (Kembalikan ke Urut Abjad agar rapi)
     const { data: medications } = await supabase.from("medications")
-      .select("id, name_id, name_en, dosage_unit, safe_for_plants, safe_for_inverts, success_rate_baseline_pct, clinical_score_baseline") 
-      .order("success_rate_baseline_pct", { ascending: false }) // Prioritas Bobot 1: Tingkat Kesembuhan Tertinggi di atas
-      .order("clinical_score_baseline", { ascending: false })   // Prioritas Bobot 2: Jika rate sama, ambil Skor Klinis tertinggi
-      .order("name_id", { ascending: true });                   // Prioritas 3: Baru abjad sebagai penengah terakhir
+      .select("id, name_id, name_en, dosage_unit, safe_for_plants, safe_for_inverts") 
+      .order("name_id", { ascending: true });
 
-    // 💡 TAMBAHAN: Mengambil relasi Utama/Cadangan untuk Frontend
+    // 3. Ambil Relasi (Ini Kunci Rahasianya!)
     const { data: relations } = await supabase.from("disease_medications")
       .select("disease_id, medication_id, priority");
+
+    // ====================================================================
+    // 💡 PERBAIKAN: Memaksa Obat "Primary" selalu berada di urutan atas
+    // ====================================================================
+    const sortedRelations = (relations || []).sort((a, b) => {
+      // Jika A Utama dan B Cadangan, A naik ke atas
+      if (a.priority === "Primary" && b.priority === "Alternative") return -1;
+      
+      // Jika A Cadangan dan B Utama, A turun ke bawah
+      if (a.priority === "Alternative" && b.priority === "Primary") return 1;
+      
+      // Jika statusnya sama (Sama-sama Utama / Sama-sama Cadangan), urutannya tetap
+      return 0;
+    });
 
     return { 
       success: true, 
       diseases: diseases || [], 
       medications: medications || [],
-      relations: relations || [] // Dikirim agar Frontend bisa menempatkan Utama di atas Cadangan
+      relations: sortedRelations // Kita kirim data relasi yang sudah diurutkan secara paksa
     };
   } catch (error: unknown) {
     return { success: false, error: error instanceof Error ? error.message : "Terjadi kesalahan internal" };
