@@ -127,6 +127,9 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
       toast.success(lang === 'id' ? "Berhasil ditambahkan!" : "Successfully added!");
       resetForm();
       loadInventory();
+      // 💡 Beritahu Induk untuk menghitung ulang!
+      window.dispatchEvent(new Event("aquarium_data_changed"));
+
     } else {
       toast.error(res?.error || (lang === 'id' ? "Gagal menambahkan data." : "Failed to add data."));
     }
@@ -146,6 +149,8 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
       toast.success(lang === 'id' ? "Status diperbarui!" : "Status updated!");
       resetForm();
       loadInventory();
+      // 💡 Beritahu Induk untuk menghitung ulang!
+      window.dispatchEvent(new Event("aquarium_data_changed"));
     } else {
       toast.error(res?.error || (lang === 'id' ? "Gagal memperbarui data." : "Failed to update data."));
     }
@@ -160,6 +165,8 @@ export default function InventoryTab({ aquariumId }: InventoryTabProps) {
     if (res.success) {
       toast.success(lang === 'id' ? "Berhasil dihapus." : "Successfully removed.");
       loadInventory();
+      // 💡 Beritahu Induk untuk menghitung ulang!
+      window.dispatchEvent(new Event("aquarium_data_changed"));
     } else { toast.error(lang === 'id' ? "Gagal menghapus." : "Failed to remove."); }
     setIsDeleting(false); setDeleteTarget(null);
   };

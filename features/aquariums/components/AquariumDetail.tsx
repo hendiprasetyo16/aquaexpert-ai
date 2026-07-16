@@ -141,8 +141,25 @@ export default function AquariumDetail() {
       const hash = window.location.hash.replace("#", "") as TabId;
       if (["overview", "parameters", "flora", "maintenance", "treatment", "ai"].includes(hash)) setActiveTab(hash);
     }
+    // Panggil saat pertama kali halaman dibuka
     fetchAllData();
-  }, [aquariumId, lang]);
+    
+    // ==============================================================
+    // 💡 FIX: SISTEM INTERKOM (Mendengarkan teriakan dari Tab)
+    // ==============================================================
+    const handleDataChanged = () => {
+      console.log("Data berubah di dalam Tab! Menghitung ulang Ekosistem...");
+      fetchAllData();
+    };
+
+    window.addEventListener("aquarium_data_changed", handleDataChanged);
+
+    // Bersihkan listener saat komponen ditutup agar tidak bocor (memory leak)
+    return () => {
+      window.removeEventListener("aquarium_data_changed", handleDataChanged);
+    };
+
+  }, [aquariumId, lang]); // Pastikan array dependency-nya seperti ini
 
   const handleTabClick = (tabId: TabId) => {
     setActiveTab(tabId);

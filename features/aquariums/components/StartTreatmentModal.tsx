@@ -142,6 +142,8 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
         onSuccess();
         router.refresh(); 
         handleClose();
+        // 💡 Beritahu Induk untuk menghitung ulang!
+      window.dispatchEvent(new Event("aquarium_data_changed"));
       } else {
         toast.error(res.error || "Gagal menyimpan rekam medis.");
       }

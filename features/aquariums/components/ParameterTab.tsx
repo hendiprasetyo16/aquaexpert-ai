@@ -86,6 +86,8 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
       setShowForm(false);
       setFormData({ record_date: getLocalDatetime(), temperature: "", ph: "", ammonia: "", nitrite: "", nitrate: "", tds: "", gh: "", kh: "", test_method: "", notes: "" });
       loadData();
+      // 💡 Beritahu Induk untuk menghitung ulang!
+      window.dispatchEvent(new Event("aquarium_data_changed"));
     } else {
       toast.error(res.error || "Gagal menyimpan.");
     }
@@ -102,6 +104,8 @@ export default function ParameterTab({ aquariumId }: ParameterTabProps) {
       toast.success(lang === 'id' ? "Catatan berhasil dihapus." : "Log deleted successfully.");
       setDeleteLogId(null);
       loadData();
+      // 💡 Beritahu Induk untuk menghitung ulang!
+      window.dispatchEvent(new Event("aquarium_data_changed"));
     } else { toast.error(lang === 'id' ? "Gagal menghapus." : "Failed to delete."); }
     setSubmitting(false);
   };

@@ -93,6 +93,8 @@ export default function TreatmentTab({ aquariumId }: Props) {
     if (res.success) {
       toast.success(lang === 'id' ? "Data berhasil dihapus." : "Data successfully deleted.");
       fetchTreatments();
+      // 💡 Beritahu Induk untuk menghitung ulang!
+      window.dispatchEvent(new Event("aquarium_data_changed"));
     } else {
       toast.error(lang === 'id' ? "Gagal menghapus data." : "Failed to delete data.");
     }

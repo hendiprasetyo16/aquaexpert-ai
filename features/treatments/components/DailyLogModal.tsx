@@ -96,6 +96,8 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
         toast.success(lang === 'id' ? "Sesi salah input berhasil dihapus!" : "Session deleted!");
         await onSuccess();
         onClose();
+        // 💡 Beritahu Induk untuk menghitung ulang!
+      window.dispatchEvent(new Event("aquarium_data_changed"));
       } else { toast.error(res.error || "Gagal menghapus sesi."); }
     } finally { setIsDeleting(false); setShowDeleteConfirm(false); }
   };
@@ -109,7 +111,9 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
       });
       if (res.success) {
         toast.success(lang === 'id' ? "Dipindahkan ke Riwayat!" : "Moved to History!");
-        await onSuccess(); onClose();        
+        await onSuccess(); onClose();
+        // 💡 Beritahu Induk untuk menghitung ulang!
+      window.dispatchEvent(new Event("aquarium_data_changed"));        
       } else { toast.error(res.error || "Gagal membatalkan sesi."); }
     } finally { setIsAborting(false); setShowAbortConfirm(false); }
   };
@@ -125,7 +129,9 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
       });
       if (res.success) {
         toast.success(lang === 'id' ? "Rekam medis tersimpan!" : "Medical log saved!");
-        await onSuccess(); onClose();        
+        await onSuccess(); onClose(); 
+        // 💡 Beritahu Induk untuk menghitung ulang!
+      window.dispatchEvent(new Event("aquarium_data_changed"));       
       } else { toast.error(res.error || "Gagal menyimpan rekam medis."); }
     } finally { setIsSubmitting(false); }
   };

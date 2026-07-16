@@ -74,6 +74,8 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
       setShowTaskModal(false);
       setTaskForm({ type: "water_change", title: "", interval: 7 }); 
       loadData();
+      // 💡 Beritahu Induk untuk menghitung ulang!
+      window.dispatchEvent(new Event("aquarium_data_changed"));
     } else {
       toast.error(res.error || "Gagal membuat tugas.");
     }
@@ -104,6 +106,8 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
       setShowLogModal(false);
       setLogForm({ taskId: "", type: "water_change", value: "", unit: "", notes: "" }); 
       loadData();
+      // 💡 Beritahu Induk untuk menghitung ulang!
+      window.dispatchEvent(new Event("aquarium_data_changed"));
     } else {
       toast.error(res.error || "Gagal mencatat log.");
     }
@@ -119,6 +123,8 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
       if (res.success) {
         toast.success(lang === 'id' ? "Jadwal berhasil dihapus." : "Task deleted.");
         loadData();
+        // 💡 Beritahu Induk untuk menghitung ulang!
+        window.dispatchEvent(new Event("aquarium_data_changed"));
       } else toast.error(lang === 'id' ? "Gagal menghapus jadwal." : "Failed to delete task.");
     } 
     else if (deleteTarget.type === 'log') {
@@ -126,6 +132,8 @@ export default function MaintenanceTab({ aquariumId }: MaintenanceTabProps) {
       if (res.success) {
         toast.success(lang === 'id' ? "Riwayat berhasil dihapus." : "Log deleted.");
         loadData();
+        // 💡 Beritahu Induk untuk menghitung ulang!
+        window.dispatchEvent(new Event("aquarium_data_changed"));
       } else toast.error(lang === 'id' ? "Gagal menghapus riwayat." : "Failed to delete log.");
     }
 
