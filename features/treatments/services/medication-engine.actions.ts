@@ -36,7 +36,6 @@ type ExtendedMedication = DbMedication & { reuse_interval_days?: number };
 type ExtendedDiseaseMedication = Omit<DbDiseaseMedication, "medication"> & { medication: ExtendedMedication };
 type ExtendedEnvironmentRule = DbEnvironmentRule & { max_threshold?: number | null };
 
-// 💡 DIUBAH: Menyesuaikan DTO Supabase dengan kolom tabel terbaru
 interface SupabaseDiseaseMedicationDto {
   priority: "Primary" | "Alternative";
   medication: {
@@ -58,7 +57,6 @@ interface SupabaseDiseaseMedicationDto {
   } | null;
 }
 
-// 💡 DIUBAH: Mengikuti penamaan name_id & name_en baru
 interface SupabaseTreatmentRowDto {
   id: string;
   medication_id: string;
@@ -130,7 +128,7 @@ export async function getMedicationRecommendationAction({
   diseaseId,
   lang = "id"
 }: Payload): Promise<MedicationEngineResponse> {
-  unstable_noStore(); // 👈 2. LETAKKAN INI TEPAT DI AWAL FUNGSI (Memaksa sistem selalu ambil resep terbaru)
+  unstable_noStore(); 
   
   try {
     const supabase = await createClient();
@@ -159,6 +157,19 @@ export async function getMedicationRecommendationAction({
     // 3. Tarik Inventaris dan Riwayat Parameter Air
     const inventory = await getTankInventoryAction(aquariumId);
     const activeFishesInTank = inventory.success && inventory.fishes ? parseInventoryFishes(inventory.fishes) : [];
+    
+    // ====================================================================
+    // 💡 SENSOR PINTAR: Deteksi Tanaman dan Invertebrata
+    // ====================================================================
+    const activePlantsInTank = inventory.success && inventory.plants ? inventory.plants : [];
+    const hasPlants = activePlantsInTank.length > 0;
+
+    const hasInverts = activeFishesInTank.some(tankFish => {
+      const nameId = tankFish.fish?.name_id?.toLowerCase() || "";
+      const nameEn = tankFish.fish?.name_en?.toLowerCase() || "";
+      return nameId.includes('udang') || nameId.includes('keong') || nameId.includes('siput') || 
+             nameEn.includes('shrimp') || nameEn.includes('snail') || nameEn.includes('crab');
+    });
 
     const { data: latestParamsRaw } = await supabase
       .from("aquarium_parameters")
@@ -171,7 +182,7 @@ export async function getMedicationRecommendationAction({
       
     const latestParams = latestParamsRaw as TypedWaterParameters | null;
 
-    // 4. 💡 DIUBAH: Query ditarik lengkap sesuai kolom baru agar kompilator tidak komplain
+    // 4. Tarik Relasi Obat Patogen
     const { data: rawDiseaseMeds, error: errMeds } = await supabase
       .from("disease_medications")
       .select(`
@@ -200,7 +211,6 @@ export async function getMedicationRecommendationAction({
     
     const diseaseMedicationDtos = rawDiseaseMeds as unknown as SupabaseDiseaseMedicationDto[];
     
-    // 💡 DIUBAH: Pemetaan field baru dari DTO ke interface lokal ExtendedDiseaseMedication
     const diseaseMedications: ExtendedDiseaseMedication[] = diseaseMedicationDtos
       .filter((dto): dto is SupabaseDiseaseMedicationDto & { medication: NonNullable<SupabaseDiseaseMedicationDto["medication"]> } => dto.medication !== null)
       .map(dto => ({
@@ -239,7 +249,6 @@ export async function getMedicationRecommendationAction({
     const dynamicDaysAgo = new Date();
     dynamicDaysAgo.setDate(dynamicDaysAgo.getDate() - maxLookbackDays);
 
-    // 💡 DIUBAH: Mengambil name_id dan name_en alih-alih name tunggal
     const { data: recentTreatmentsRaw } = await supabase
       .from("aquarium_treatments")
       .select("id, medication_id, started_at, status, medication:medications(name_id, name_en)")
@@ -307,7 +316,6 @@ export async function getMedicationRecommendationAction({
     // 8. DATA PROCESSING LAYER
     for (const record of diseaseMedications) {
       const med = record.medication; 
-      // 💡 DIUBAH: Tentukan nama obat berdasarkan preferensi bahasa agar pengganti 'med.name' dinamis
       const localizedMedName = lang === "id" ? (med.name_id || med.name_en) : med.name_en;
 
       const calculatedDosage = parseFloat(((netVolume / 100) * med.base_dosage_per_100l).toFixed(2));
@@ -315,7 +323,34 @@ export async function getMedicationRecommendationAction({
       const currentMedAlerts: SafetyAlert[] = [];
       let isSafeToUse = true;
 
-      // A. Cross-Reference Keselamatan Fauna O(1)
+      // ====================================================================
+      // 💡 A.1. SENSOR PINTAR: Eksekusi Pengecekan Udang & Tanaman
+      // ====================================================================
+      if (hasInverts && med.safe_for_inverts === false) {
+        isSafeToUse = false;
+        currentMedAlerts.push({
+          type: "FAUNA",
+          target: "Invertebrata (Udang/Keong)",
+          isSafe: false,
+          reason: lang === 'id' 
+            ? "Sangat beracun dan mematikan bagi Invertebrata (Udang/Keong) di ekosistem Anda!" 
+            : "Highly toxic and lethal to Invertebrates (Shrimp/Snails) in your ecosystem!"
+        });
+      }
+
+      if (hasPlants && med.safe_for_plants === false) {
+        isSafeToUse = false;
+        currentMedAlerts.push({
+          type: "ENVIRONMENT",
+          target: "Flora / Tanaman",
+          isSafe: false,
+          reason: lang === 'id' 
+            ? "Obat ini keras dan dapat mematikan tanaman hidup di akuarium Anda!" 
+            : "This medication is harsh and can kill live plants in your aquarium!"
+        });
+      }
+
+      // A.2. Cross-Reference Keselamatan Fauna Spesifik
       const medFaunaRules = faunaRulesMap.get(med.id) || [];
       for (const tankFish of activeFishesInTank) {
         const fishGroupId = tankFish.fish?.fauna_group; 
@@ -336,7 +371,7 @@ export async function getMedicationRecommendationAction({
         }
       }
 
-      // B. Cross-Reference Aturan Parameter Air O(1)
+      // B. Cross-Reference Aturan Parameter Air 
       const medEnvRules = envRulesMap.get(med.id) || [];
       if (latestParams) {
         for (const envRule of medEnvRules) {
@@ -378,7 +413,7 @@ export async function getMedicationRecommendationAction({
           const remainingDays = Math.ceil((reuseIntervalMs - msSinceTreatment) / (1000 * 60 * 60 * 24));
           currentMedAlerts.push({
             type: "HISTORY",
-            target: `History: ${localizedMedName}`, // 💡 DIUBAH
+            target: `History: ${localizedMedName}`, 
             isSafe: false,
             reason: lang === 'id' 
               ? `Obat ini baru saja digunakan. Berikan jeda ${remainingDays} hari lagi atau lakukan Water Change minimal 50% sebelum re-dosis.`
@@ -396,15 +431,15 @@ export async function getMedicationRecommendationAction({
             target: `Interaction: ${treatment.medication.name}`,
             isSafe: false,
             reason: lang === 'id' 
-              ? `Berbahaya mencampur ${localizedMedName} dengan ${treatment.medication.name} yang baru saja digunakan. ${interaction.note_id}` // 💡 DIUBAH
-              : `Dangerous to mix ${localizedMedName} with recently used ${treatment.medication.name}. ${interaction.note_en}` // 💡 DIUBAH
+              ? `Berbahaya mencampur ${localizedMedName} dengan ${treatment.medication.name} yang baru saja digunakan. ${interaction.note_id}` 
+              : `Dangerous to mix ${localizedMedName} with recently used ${treatment.medication.name}. ${interaction.note_en}` 
           });
         }
       }
 
       compiledRecommendations.push({
         medicationId: med.id,
-        name: localizedMedName, // 💡 DIUBAH
+        name: localizedMedName,
         activeIngredient: med.active_ingredient,
         priority: record.priority,
         description: lang === 'id' ? med.description_id : med.description_en,
