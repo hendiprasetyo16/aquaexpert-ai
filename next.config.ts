@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // 💡 TAMBAHKAN BLOK INI UNTUK MELONGGARKAN BATAS UPLOAD BASE64
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '5mb', 
+    },
+  },
 };
 
 export default nextConfig;

@@ -1,9 +1,11 @@
-// features/diseases/components/SymptomPicker.tsx
+// features/disease-expert/components/SymptomPicker.tsx
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { Check, Activity, Search, AlertCircle, Info } from "lucide-react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { Check, Activity, Search, AlertCircle, Info, Camera, ScanLine, Loader2 } from "lucide-react";
+import toast from "react-hot-toast";
 import type { Symptom, BodyRegion } from "@/features/diseases/types/disease.types";
+import { analyzeFishImageAction } from "@/features/diseases/actions/analyze-vision.actions"; // Sesuaikan jika path-nya berbeda
 
 interface Props {
   aquariumId: string;
@@ -11,7 +13,7 @@ interface Props {
   onSubmitDiagnosis: (aquariumId: string, selectedSymptomIds: string[]) => void;
   isLoading?: boolean;
   lang?: "id" | "en";
-  initialSelectedIds?: string[]; // FIX: Menerima ingatan dari session
+  initialSelectedIds?: string[];
 }
 
 const REGION_TABS: { id: BodyRegion; labelId: string; labelEn: string }[] = [
@@ -41,11 +43,11 @@ function calculateQualityMetrics(count: number, lang: "id"|"en") {
 
 export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis, isLoading, lang = "id", initialSelectedIds = [] }: Props) {
   const [activeRegion, setActiveRegion] = useState<BodyRegion>("General");
-  
-  // FIX: Inisialisasi state dengan nilai dari session (ingatan)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(initialSelectedIds));
+  
+  const [isScanning, setIsScanning] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync state jika ingatan berubah dari luar
   useEffect(() => {
     if (initialSelectedIds.length > 0) {
       setSelectedIds(new Set(initialSelectedIds));
@@ -84,18 +86,133 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
     }
   }, [selectedIds, onSubmitDiagnosis, aquariumId]);
 
+  // 💡 FUNGSI KOMPRESI (Baru Ditambahkan)
+  const compressImageToBase64 = (file: File, maxWidth = 800, quality = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new window.Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { reject(new Error("Gagal memproses gambar")); return; }
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
+  // 💡 LOGIKA UPLOAD (Sudah Menggunakan Kompresi)
+  const handleImageCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error(lang === 'id' ? "Ukuran foto maksimal 10MB." : "Max photo size is 10MB.");
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    setIsScanning(true);
+    const toastId = toast.loading(lang === 'id' ? "Mata AI sedang menganalisis foto..." : "AI Vision is scanning the photo...");
+
+    try {
+      // 1. Kompres gambar sebelum dikirim ke Server (Menghindari error 1MB)
+      const compressedBase64 = await compressImageToBase64(file);
+      
+      const mappedSymptoms = availableSymptoms.map(s => ({
+         id: s.id,
+         name_id: s.name_id,
+         name_en: s.name_en
+      }));
+
+      // 2. Panggil AI
+      const res = await analyzeFishImageAction(compressedBase64, mappedSymptoms);
+      
+      if (res.success && res.symptomIds) {
+        if (res.symptomIds.length > 0) {
+          setSelectedIds(prev => new Set([...prev, ...res.symptomIds!]));
+          toast.success(
+            lang === 'id' 
+              ? `Pemindaian Selesai! AI mendeteksi ${res.symptomIds.length} gejala baru.` 
+              : `Scan Complete! AI detected ${res.symptomIds.length} new symptoms.`,
+            { id: toastId, duration: 4000 }
+          );
+        } else {
+          toast.success(
+            lang === 'id'
+              ? "Bagus! AI tidak menemukan tanda-tanda penyakit fisik yang terlihat di foto."
+              : "Great! AI found no visible physical symptoms in the photo.",
+            { id: toastId, icon: "✨" }
+          );
+        }
+      } else {
+        throw new Error(res.error || "Gagal menganalisis.");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Gagal memindai gambar.", { id: toastId });
+    } finally {
+      setIsScanning(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const quality = calculateQualityMetrics(selectedIds.size, lang);
 
   return (
     <div className="w-full bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col md:flex-row relative transition-colors">
-      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-teal-400"></div>
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-teal-400 z-10"></div>
+      
+      {/* 💡 EFEK SCANNER OVERLAY SAAT MEMPROSES FOTO */}
+      {isScanning && (
+        <div className="absolute inset-0 z-50 bg-blue-900/10 dark:bg-blue-900/20 backdrop-blur-[2px] flex items-center justify-center rounded-3xl overflow-hidden">
+          <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(59,130,246,0.2)_50%,transparent_100%)] h-32 animate-[scan_2s_ease-in-out_infinite]" style={{ backgroundSize: '100% 800%' }}></div>
+          <div className="bg-white/90 dark:bg-slate-900/90 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-blue-200 dark:border-blue-800 relative z-10">
+            <ScanLine className="w-8 h-8 text-blue-600 animate-pulse" />
+            <div>
+              <p className="font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest text-sm">
+                {lang === 'id' ? "Memindai Ikan..." : "Scanning Fish..."}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                {lang === 'id' ? "Gemini 2.5 Vision sedang bekerja" : "Gemini 2.5 Vision is working"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 💡 INPUT FILE TERSEMBUNYI UNTUK KAMERA/GALERI */}
+      <input 
+        type="file" 
+        accept="image/*" 
+        capture="environment" 
+        ref={fileInputRef}
+        onChange={handleImageCapture}
+        className="hidden"
+      />
 
       {/* KIRI: Navigasi Anatomis */}
-      <div className="w-full md:w-1/3 bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 p-4 md:p-5 transition-colors">
+      <div className="w-full md:w-1/3 bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 p-4 md:p-5 transition-colors flex flex-col">
         <h3 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">
           {lang === 'id' ? "2. Pilih Area Terdampak" : "2. Select Body Region"}
         </h3>
-        <ul className="space-y-1.5">
+        <ul className="space-y-1.5 flex-1">
           {REGION_TABS.map((tab) => {
             const regionCount = selectedCountsByRegion[tab.id.toLowerCase()] || 0;
             const isActive = activeRegion === tab.id;
@@ -121,17 +238,35 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
             );
           })}
         </ul>
+
+        {/* 💡 TOMBOL KAMERA (MOBILE FRIENDLY - DITAMPILKAN DI KIRI/BAWAH MENU) */}
+        <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+           <button 
+             onClick={() => fileInputRef.current?.click()}
+             disabled={isScanning}
+             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
+           >
+             {isScanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+             {lang === 'id' ? "Auto-Scan via Kamera" : "Auto-Scan via Camera"}
+           </button>
+           <p className="text-[9px] text-center text-slate-400 mt-2 font-medium">
+             {lang === 'id' ? "*AI mendeteksi gejala otomatis dari foto" : "*AI auto-detects symptoms from photo"}
+           </p>
+        </div>
       </div>
 
       {/* KANAN: Daftar Gejala Interaktif */}
-      <div className="w-full md:w-2/3 p-5 md:p-6 flex flex-col h-[550px] bg-white dark:bg-slate-900 transition-colors">
-        <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+      <div className="w-full md:w-2/3 p-5 md:p-6 flex flex-col h-[600px] md:h-[550px] bg-white dark:bg-slate-900 transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-slate-100 dark:border-slate-800 pb-4">
           <h2 className="text-lg font-black text-slate-800 dark:text-slate-100">
             {lang === 'id' ? REGION_TABS.find(t => t.id === activeRegion)?.labelId : REGION_TABS.find(t => t.id === activeRegion)?.labelEn}
           </h2>
-          <span className="text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-3 py-1 rounded-full">
-            {selectedIds.size} {lang === 'id' ? "Gejala Terpilih" : "Selected"}
-          </span>
+          
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="text-[10px] font-black uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full tracking-widest border border-slate-200 dark:border-slate-700">
+              {selectedIds.size} {lang === 'id' ? "TERPILIH" : "SELECTED"}
+            </span>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
@@ -199,7 +334,7 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
               )}
             </div>
             <button
-              disabled={selectedIds.size === 0 || isLoading}
+              disabled={selectedIds.size === 0 || isLoading || isScanning}
               onClick={handleProcess}
               className={`w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 ${
                 selectedIds.size === 0 
