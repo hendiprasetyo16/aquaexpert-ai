@@ -39,6 +39,10 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
   const [actionTaken, setActionTaken] = useState<ActionTaken>(
     (session.latest_log?.action_taken as ActionTaken) || "Observed"
   );
+  
+  // 💡 State baru untuk melacak persentase ganti air (default 50%)
+  const [waterChangePct, setWaterChangePct] = useState<number | "">(50); 
+  
   const [medicationDose, setMedicationDose] = useState<number | "">("");
   const [newFishLostCount, setNewFishLostCount] = useState<number | "">(0);
   const [notes, setNotes] = useState(session.latest_log?.notes || "");
@@ -52,6 +56,13 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
   const currentCount = remainingSymptoms.length;
   const projectedRecovery = Math.max(0, Math.min(100, Math.round(((initialCount - currentCount) / initialCount) * 100)));
 
+  // 💡 Kalkulasi dinamis yang dihitung otomatis saat komponen dirender
+  const calculatedBaseDose = (tankVolume > 0 && medInfo) ? (tankVolume / 100) * medInfo.base_dosage_per_100l : 0;
+  const currentWaterChangePct = Number(waterChangePct) || 0;
+  const finalRecommendedDose = actionTaken === "Water Change" 
+    ? calculatedBaseDose * (currentWaterChangePct / 100) 
+    : calculatedBaseDose;
+
   useEffect(() => {
     setMounted(true);
     if (!isOpen || !session.medication_id) return;
@@ -62,7 +73,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
       const supabase = createClient();
       
       try {
-        // 💡 PERBAIKAN: Kita ambil data langsung dari tabel 'my_aquariums' sesuai struktur database Bapak
         const [medRes, tankRes] = await Promise.all([
           supabase.from('medications').select('base_dosage_per_100l, dosage_unit').eq('id', session.medication_id).single(),
           supabase.from('my_aquariums').select('*').eq('id', session.aquarium_id).single()
@@ -72,13 +82,11 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
           if (medRes.data) setMedInfo(medRes.data as MedicationInfo);
           
           if (tankRes.data) {
-            // 💡 Cek net_water_volume_liters (volume bersih) terlebih dahulu, jika kosong baru pakai volume_liters kotor
             const vol = tankRes.data.net_water_volume_liters || tankRes.data.volume_liters || 0;
             
             if (vol > 0) {
               setTankVolume(vol);
             } 
-            // Jika kedua kolom volume kebetulan kosong, hitung pakai dimensi P x L x T / 1000
             else if (tankRes.data.length_cm && tankRes.data.width_cm && tankRes.data.height_cm) {
               setTankVolume((tankRes.data.length_cm * tankRes.data.width_cm * tankRes.data.height_cm) / 1000);
             }
@@ -277,32 +285,81 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                   ))}
                 </div>
 
-                {/* --- KALKULATOR DOSIS OTOMATIS --- */}
+                {/* --- KALKULATOR DOSIS OTOMATIS & WATER CHANGE --- */}
                 {!isLoadingMedInfo && medInfo && (actionTaken === "Redosed" || actionTaken === "Water Change") && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 p-4 rounded-xl flex gap-3 text-blue-800 dark:text-blue-300 mt-3 animate-in slide-in-from-top-2 fade-in duration-300">
                     <Beaker className="w-5 h-5 shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" />
                     
-                    <div className="text-xs space-y-1.5 w-full">
+                    <div className="text-xs space-y-3 w-full">
                       <p className="font-bold text-sm">
                         {lang === 'id' ? "Kalkulator Dosis Otomatis" : "Auto Dosage Calculator"}
                       </p>
+
+                      {/* 💡 FITUR BARU: Pemilih Persentase Khusus Ganti Air */}
+                      {actionTaken === "Water Change" && (
+                        <div className="space-y-1.5 bg-blue-100/50 dark:bg-blue-900/40 p-3 rounded-lg border border-blue-200/50 dark:border-blue-700/50">
+                          <label className="text-[11px] font-black text-blue-900 dark:text-blue-100 uppercase tracking-widest">
+                            {lang === 'id' ? "Berapa % air yang diganti?" : "How much water changed?"}
+                          </label>
+                          <div className="flex gap-2 items-center flex-wrap">
+                            {[20, 30, 50].map(pct => (
+                              <button
+                                key={pct}
+                                type="button"
+                                onClick={() => setWaterChangePct(pct)}
+                                className={`px-3 py-1.5 text-[11px] font-bold rounded-lg border transition-colors ${
+                                  waterChangePct === pct 
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
+                                  : 'bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 hover:bg-blue-50'
+                                }`}
+                              >
+                                {pct}%
+                              </button>
+                            ))}
+                            <div className="relative flex-1 min-w-[80px] max-w-[100px]">
+                              <Input
+                                type="number"
+                                min={0}
+                                max={100}
+                                value={waterChangePct}
+                                onChange={(e) => setWaterChangePct(e.target.value ? Number(e.target.value) : "")}
+                                className="h-8 text-[11px] font-bold rounded-lg pr-6 bg-white dark:bg-slate-800 border-blue-200 dark:border-blue-700 text-blue-900 dark:text-blue-100"
+                                placeholder={lang === 'id' ? "Custom" : "Other"}
+                              />
+                              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-blue-400">%</span>
+                            </div>
+                          </div>
+                          <p className="text-[10px] font-medium text-blue-700/80 dark:text-blue-300/80 pt-1 leading-relaxed">
+                            {lang === 'id' 
+                              ? "Cukup masukkan obat untuk air baru yang masuk saja, agar ikan tidak keracunan." 
+                              : "Only dose for the volume of new water added to prevent overdose."}
+                          </p>
+                        </div>
+                      )}
                       
-                      <div className="flex flex-col gap-1.5 mt-2 bg-white/60 dark:bg-slate-900/50 p-3 rounded-lg border border-blue-100 dark:border-blue-800/30">
+                      <div className="flex flex-col gap-1.5 bg-white/60 dark:bg-slate-900/50 p-3 rounded-lg border border-blue-100 dark:border-blue-800/30">
                         <div className="flex justify-between items-center">
-                          <span className="font-medium text-slate-500 dark:text-slate-400">{lang === 'id' ? 'Volume Akuarium' : 'Tank Volume'}</span>
-                          <span className="font-bold text-slate-700 dark:text-slate-200">{tankVolume > 0 ? `${tankVolume} Liter` : '???'}</span>
+                          <span className="font-medium text-slate-500 dark:text-slate-400">{lang === 'id' ? 'Volume Tangki Penuh' : 'Full Tank Volume'}</span>
+                          <span className="font-bold text-slate-700 dark:text-slate-200">{tankVolume > 0 ? `${tankVolume} L` : '???'}</span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="font-medium text-slate-500 dark:text-slate-400">{lang === 'id' ? 'Dosis Standar' : 'Standard Dose'}</span>
                           <span className="font-bold text-slate-700 dark:text-slate-200">{medInfo.base_dosage_per_100l} {medInfo.dosage_unit} / 100L</span>
                         </div>
                         
+                        {actionTaken === "Water Change" && tankVolume > 0 && (
+                          <div className="flex justify-between items-center text-blue-600 dark:text-blue-400">
+                             <span className="font-medium">{lang === 'id' ? 'Air Masuk (Untuk Dosis)' : 'New Water (To Dose)'}</span>
+                             <span className="font-bold">{waterChangePct || 0}% ({((Number(waterChangePct) || 0) / 100 * tankVolume).toFixed(1)} L)</span>
+                          </div>
+                        )}
+
                         <div className="h-px w-full bg-blue-200/50 dark:bg-blue-800/50 my-1"></div>
                         
                         <div className="flex justify-between items-center pt-1">
                           <span className="font-bold text-blue-700 dark:text-blue-300">{lang === 'id' ? 'Saran Dosis' : 'Recommended Dose'}</span>
                           <span className="font-black text-[15px] text-blue-700 dark:text-blue-400">
-                            {tankVolume > 0 ? `${Number(((tankVolume / 100) * medInfo.base_dosage_per_100l).toFixed(2))} ${medInfo.dosage_unit}` : (lang === 'id' ? 'Hitung Manual' : 'Manual')}
+                            {tankVolume > 0 ? `${Number(finalRecommendedDose.toFixed(2))} ${medInfo.dosage_unit}` : (lang === 'id' ? 'Hitung Manual' : 'Manual')}
                           </span>
                         </div>
                       </div>
@@ -310,13 +367,16 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                       {tankVolume > 0 ? (
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-1 gap-3">
                           <p className="font-medium opacity-80 leading-relaxed text-[11px] flex-1">
-                            {lang === 'id' ? "Sistem menghitung dosis secara matematis sesuai kapasitas air di tank Anda." : "System calculates dosage mathematically based on your tank's capacity."}
+                            {lang === 'id' 
+                                ? (actionTaken === "Water Change" ? "Kalkulator memotong dosis otomatis sesuai % air baru yang Anda masukkan." : "Sistem menghitung dosis secara matematis sesuai kapasitas air penuh Anda.")
+                                : (actionTaken === "Water Change" ? "Calculator automatically cuts dosage based on % of new water added." : "System calculates dosage mathematically based on full capacity.")
+                            }
                           </p>
                           <Button 
                             type="button" 
                             size="sm" 
-                            onClick={() => setMedicationDose(Number(((tankVolume / 100) * medInfo.base_dosage_per_100l).toFixed(2)))} 
-                            className="h-8 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg shadow-sm"
+                            onClick={() => setMedicationDose(Number(finalRecommendedDose.toFixed(2)))} 
+                            className="h-8 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg shadow-sm shrink-0"
                           >
                             {lang === 'id' ? "Gunakan Dosis Ini" : "Use This Dose"}
                           </Button>
@@ -347,7 +407,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                       disabled={actionTaken === "Observed" || actionTaken === "Medication Changed"} 
                       className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold dark:text-slate-100 focus:border-blue-500 pr-16" 
                     />
-                    {/* Satuan dinamis otomatis diletakkan di dalam pojok kanan input */}
                     {medInfo && actionTaken !== "Observed" && actionTaken !== "Medication Changed" && (
                       <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
                         <span className="text-xs font-bold text-slate-400 uppercase">
