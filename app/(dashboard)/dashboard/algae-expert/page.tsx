@@ -1,7 +1,7 @@
 // app/(dashboard)/dashboard/algae-expert/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getAlgaeList } from "@/features/algae/repositories/algae.repository";
 import { Algae } from "@/features/algae/types/algae.types";
 import AlgaeCard from "@/features/algae/components/AlgaeCard";
@@ -11,20 +11,20 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { 
   Loader2, Cpu, Filter, Info, CheckCircle2, Trophy, 
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target, AlertTriangle, ShieldCheck, Stethoscope, Droplets
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target, AlertTriangle, ShieldCheck, Stethoscope, Droplets, Camera, ScanLine
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 import { generateAlgaeDiagnosis, UserAnswersAlgae, RecommendedAlgae } from "@/features/algae/services/expert.service";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { getAlgaeTagDesc } from "@/features/algae/components/algae-helpers"; 
+// 💡 IMPORT ACTION AI VISION ALGA KITA
+import { analyzeAlgaeImageAction } from "@/features/algae/actions/analyze-algae-vision.actions";
 
 const SESSION_KEY = "aquaexpert_algae_inference_v1";
 const ITEMS_PAGE_1 = 11; 
 const ITEMS_PAGE_N = 10; 
 
-// ==========================================
-// INTERFACE UNTUK TYPE-SAFE DICTIONARY
-// ==========================================
 interface AlgaeExpertDict {
   title?: string;
   subtitle?: string;
@@ -52,6 +52,7 @@ interface ExpertEngineDict {
 
 export default function AlgaeExpertEngine() {
   const { dict, language } = useLanguage(); 
+  const lang = language as "id" | "en";
   const [algaeList, setAlgaeList] = useState<Algae[]>([]);
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<RecommendedAlgae[] | null>(null);
@@ -62,10 +63,11 @@ export default function AlgaeExpertEngine() {
   const [trigger, setTrigger] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // 💡 STATE UNTUK KAMERA & SCANNER
+  const [isScanning, setIsScanning] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ==========================================
-  // TYPE-SAFE DICTIONARY ACCESS DENGAN DOUBLE CASTING
-  // ==========================================
   const dictRoot = dict as unknown as { 
     algaeExpert?: AlgaeExpertDict; 
     expertEngine?: ExpertEngineDict; 
@@ -152,6 +154,98 @@ export default function AlgaeExpertEngine() {
     }, 800); 
   };
 
+  // 💡 FUNGSI KOMPRESI GAMBAR
+  const compressImageToBase64 = (file: File, maxWidth = 800, quality = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new window.Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { reject(new Error("Gagal memproses gambar")); return; }
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
+  // 💡 LOGIKA ANALISIS FOTO ALGA
+  const handleImageCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error(lang === 'id' ? "Ukuran foto maksimal 10MB." : "Max photo size is 10MB.");
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    setIsScanning(true);
+    const toastId = toast.loading(lang === 'id' ? "AI Vision sedang menganalisis foto lumut..." : "AI Vision is scanning the algae photo...");
+
+    try {
+      const compressedBase64 = await compressImageToBase64(file);
+      const res = await analyzeAlgaeImageAction(compressedBase64);
+      
+      if (res.success && res.aiFilters) {
+        // 1. Update Dropdown State
+        const newColor = res.aiFilters.color || "";
+        const newTexture = res.aiFilters.texture || "";
+        const newLocation = res.aiFilters.location || "";
+        
+        setColor(newColor);
+        setTexture(newTexture);
+        setLocation(newLocation);
+        
+        toast.success(
+          lang === 'id' 
+            ? `Berhasil! Filter telah diisi otomatis oleh AI.` 
+            : `Success! Filters auto-filled by AI.`,
+          { id: toastId, duration: 4000 }
+        );
+
+        // 2. Langsung eksekusi pencarian tanpa menunggu user klik tombol!
+        setLoading(true);
+        setCurrentPage(1); 
+        
+        const answers: UserAnswersAlgae = { color: newColor, texture: newTexture, location: newLocation, trigger };
+        const aiResults = generateAlgaeDiagnosis(algaeList, answers, dictRoot.algaeExpert, language);
+
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify({ answers, results: aiResults, currentPage: 1 }));
+
+        setTimeout(() => {
+          setResults(aiResults);
+          setLoading(false);
+        }, 1000);
+
+      } else {
+        throw new Error(res.error || "Gagal menganalisis gambar.");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Gagal memindai gambar.", { id: toastId });
+    } finally {
+      setIsScanning(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const getConfidenceColor = (key: string) => {
     switch (key) {
       case "Excellent": return "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 border-green-200 dark:border-green-800";
@@ -204,7 +298,36 @@ export default function AlgaeExpertEngine() {
   if (!dictRoot.algaeExpert) return null;
 
   return (
-    <div className="w-full h-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10">
+    <div className="w-full h-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 relative">
+      
+      {/* 💡 EFEK SCANNER OVERLAY SAAT MEMPROSES FOTO */}
+      {isScanning && (
+        <div className="fixed inset-0 z-[100] bg-teal-900/40 backdrop-blur-[4px] flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(20,184,166,0.3)_50%,transparent_100%)] h-32 animate-[scan_2s_ease-in-out_infinite]" style={{ backgroundSize: '100% 800%' }}></div>
+          <div className="bg-white/95 dark:bg-slate-900/95 px-6 py-5 rounded-2xl shadow-2xl flex items-center gap-4 border border-teal-200 dark:border-teal-800 relative z-10 scale-in-center">
+            <ScanLine className="w-10 h-10 text-teal-600 animate-pulse" />
+            <div>
+              <p className="font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest text-sm md:text-base">
+                {lang === 'id' ? "Memindai Alga..." : "Scanning Algae..."}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                {lang === 'id' ? "Mengidentifikasi Warna & Tekstur" : "Identifying Color & Texture"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* INPUT FILE TERSEMBUNYI */}
+      <input 
+        type="file" 
+        accept="image/*" 
+        capture="environment" 
+        ref={fileInputRef}
+        onChange={handleImageCapture}
+        className="hidden"
+      />
+
       <div className="max-w-[1400px] mx-auto space-y-8 pb-10 text-slate-900 dark:text-slate-100">
         
         <div className="mb-8">
@@ -220,9 +343,33 @@ export default function AlgaeExpertEngine() {
           
           <Card className="border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/80 xl:col-span-4 h-fit shadow-xl shadow-slate-200/50 dark:shadow-none transition-colors duration-300">
             <CardContent className="p-6 md:p-8 space-y-6">
-              <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center gap-2 text-gray-900 dark:text-slate-100">
-                <Filter className="h-5 w-5 text-teal-600 dark:text-teal-500" /> {language === 'id' ? "Filter Analisis" : "Analysis Filter"}
+              <h3 className="text-lg font-bold border-b border-slate-200 dark:border-slate-800 pb-3 flex items-center justify-between text-gray-900 dark:text-slate-100">
+                <span className="flex items-center gap-2"><Filter className="h-5 w-5 text-teal-600 dark:text-teal-500" /> {language === 'id' ? "Filter Analisis" : "Analysis Filter"}</span>
               </h3>
+
+              {/* 💡 TOMBOL KAMERA DITAMBAHKAN DI SINI */}
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading || isScanning}
+                className="w-full flex flex-col items-center justify-center gap-2 px-4 py-5 bg-teal-50/50 hover:bg-teal-100 dark:bg-teal-950/30 dark:hover:bg-teal-900/50 border-2 border-dashed border-teal-300 dark:border-teal-800 rounded-xl transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="bg-teal-100 dark:bg-teal-900/50 p-3 rounded-full group-hover:scale-110 transition-transform">
+                  <Camera className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+                </div>
+                <div className="text-center">
+                  <p className="font-bold text-teal-700 dark:text-teal-400 text-sm uppercase tracking-wide">
+                    {lang === 'id' ? "Auto-Scan via Foto" : "Auto-Scan via Photo"}
+                  </p>
+                  <p className="text-[10px] text-teal-600/70 dark:text-teal-500/70 mt-1 font-medium max-w-[200px] leading-tight">
+                    {lang === 'id' ? "AI akan mengenali warna, tekstur, & lokasi lumut secara otomatis." : "AI will auto-detect algae color, texture, & location."}
+                  </p>
+                </div>
+              </button>
+
+              <div className="relative">
+                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200 dark:border-slate-800"></div></div>
+                 <div className="relative flex justify-center text-xs uppercase"><span className="bg-white dark:bg-slate-900 px-2 text-slate-400 font-bold tracking-widest">{lang === 'id' ? 'ATAU INPUT MANUAL' : 'OR MANUAL INPUT'}</span></div>
+              </div>
 
               <div className="space-y-5">
                 <div className="space-y-2">
@@ -302,7 +449,7 @@ export default function AlgaeExpertEngine() {
               </div>
 
               <Button onClick={runDiagnosisEngine} disabled={loading || (!color && !texture && !location && !trigger)} className="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold h-14 mt-6 text-base shadow-lg shadow-teal-600/20 dark:shadow-teal-900/30 transition-all active:scale-[0.98]">
-                {loading ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : dictRoot.algaeExpert.btn_diagnose || "Analisis Diagnosis"}
+                {loading && !isScanning ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : dictRoot.algaeExpert.btn_diagnose || "Analisis Diagnosis"}
               </Button>
             </CardContent>
           </Card>
@@ -314,7 +461,7 @@ export default function AlgaeExpertEngine() {
                 <Cpu className="h-20 w-20 text-slate-300 dark:text-slate-700 mb-6 animate-pulse" />
                 <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-3">{language === 'id' ? "Mesin Diagnosis Siap" : "Diagnosis Engine Ready"}</h3>
                 <p className="text-slate-500 dark:text-slate-400 max-w-lg text-lg">
-                  {language === 'id' ? "Pilih gejala yang Anda lihat di sebelah kiri, dan sistem akan mengidentifikasi jenis alga tersebut." : "Select the symptoms you see on the left, and the system will identify the algae."}
+                  {language === 'id' ? "Gunakan fitur Auto-Scan Foto atau pilih filter manual untuk mengidentifikasi jenis alga." : "Use Auto-Scan Photo or select manual filters to identify the algae."}
                 </p>
               </div>
             ) : results.length === 0 ? (
@@ -540,14 +687,14 @@ export default function AlgaeExpertEngine() {
                   })}
                 </div>
                 
-                {/* PAGINATION (Diperbarui dengan Fitur Go to Page) */}
+                {/* PAGINATION */}
                 {totalPages > 1 && (
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between border-t border-slate-200 dark:border-slate-800 pt-5 mt-6 gap-4 transition-colors">
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 text-center lg:text-left mb-1 lg:mb-0">
                        {dictRoot.expertEngine?.paginationShowing || (language === 'id' ? "Menampilkan" : "Showing")} <span className="font-bold text-gray-900 dark:text-slate-200">{startIndex + 1}</span> {dictRoot.expertEngine?.paginationTo || (language === 'id' ? "hingga" : "to")} <span className="font-bold text-gray-900 dark:text-slate-200">{Math.min(endIndex, results.length)}</span> {dictRoot.expertEngine?.paginationOf || (language === 'id' ? "dari" : "of")} <span className="font-bold text-gray-900 dark:text-slate-200">{results.length}</span> {dictRoot.expertEngine?.paginationData || "data"}
                     </p>
                     
-                    <div className="flex flex-col lg:flex-row items-center lg:items-center justify-center lg:justify-end gap-3 w-full lg:w-auto">
+                    <div className="flex flex-col lg:flex-row items-center justify-center lg:justify-end gap-3 w-full lg:w-auto">
                       <div className="flex flex-wrap lg:flex-nowrap justify-center lg:justify-end gap-1 sm:gap-1.5 w-full lg:w-auto">
                         <Button variant="outline" size="icon" onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="h-8 w-8 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 transition-colors shrink-0">
                           <ChevronsLeft className="h-4 w-4" />
@@ -579,7 +726,6 @@ export default function AlgaeExpertEngine() {
                         </Button>
                       </div>
 
-                      {/* FITUR LOMPAT HALAMAN */}
                       <div className="flex items-center justify-center gap-2 text-sm border-t lg:border-t-0 lg:border-l border-slate-300 dark:border-slate-700 pt-2.5 lg:pt-0 lg:pl-3 w-full lg:w-auto transition-colors text-slate-600 dark:text-slate-300">
                         <Input 
                           type="number" min={1} max={totalPages} value={currentPage}
