@@ -5,7 +5,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Check, Activity, Search, AlertCircle, Info, Camera, ScanLine, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import type { Symptom, BodyRegion } from "@/features/diseases/types/disease.types";
-import { analyzeFishImageAction } from "@/features/diseases/actions/analyze-vision.actions"; // Sesuaikan jika path-nya berbeda
+import { analyzeFishImageAction } from "@/features/diseases/actions/analyze-vision.actions"; 
 
 interface Props {
   aquariumId: string;
@@ -86,7 +86,6 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
     }
   }, [selectedIds, onSubmitDiagnosis, aquariumId]);
 
-  // 💡 FUNGSI KOMPRESI (Baru Ditambahkan)
   const compressImageToBase64 = (file: File, maxWidth = 800, quality = 0.7): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -118,7 +117,6 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
     });
   };
 
-  // 💡 LOGIKA UPLOAD (Sudah Menggunakan Kompresi)
   const handleImageCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -133,7 +131,6 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
     const toastId = toast.loading(lang === 'id' ? "Mata AI sedang menganalisis foto..." : "AI Vision is scanning the photo...");
 
     try {
-      // 1. Kompres gambar sebelum dikirim ke Server (Menghindari error 1MB)
       const compressedBase64 = await compressImageToBase64(file);
       
       const mappedSymptoms = availableSymptoms.map(s => ({
@@ -142,7 +139,6 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
          name_en: s.name_en
       }));
 
-      // 2. Panggil AI
       const res = await analyzeFishImageAction(compressedBase64, mappedSymptoms);
       
       if (res.success && res.symptomIds) {
@@ -179,7 +175,6 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
     <div className="w-full bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col md:flex-row relative transition-colors">
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-teal-400 z-10"></div>
       
-      {/* 💡 EFEK SCANNER OVERLAY SAAT MEMPROSES FOTO */}
       {isScanning && (
         <div className="absolute inset-0 z-50 bg-blue-900/10 dark:bg-blue-900/20 backdrop-blur-[2px] flex items-center justify-center rounded-3xl overflow-hidden">
           <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(59,130,246,0.2)_50%,transparent_100%)] h-32 animate-[scan_2s_ease-in-out_infinite]" style={{ backgroundSize: '100% 800%' }}></div>
@@ -197,7 +192,6 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
         </div>
       )}
 
-      {/* 💡 INPUT FILE TERSEMBUNYI UNTUK KAMERA/GALERI */}
       <input 
         type="file" 
         accept="image/*" 
@@ -207,7 +201,6 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
         className="hidden"
       />
 
-      {/* KIRI: Navigasi Anatomis */}
       <div className="w-full md:w-1/3 bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 p-4 md:p-5 transition-colors flex flex-col">
         <h3 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">
           {lang === 'id' ? "2. Pilih Area Terdampak" : "2. Select Body Region"}
@@ -239,7 +232,6 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
           })}
         </ul>
 
-        {/* 💡 TOMBOL KAMERA (MOBILE FRIENDLY - DITAMPILKAN DI KIRI/BAWAH MENU) */}
         <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
            <button 
              onClick={() => fileInputRef.current?.click()}
@@ -255,7 +247,6 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
         </div>
       </div>
 
-      {/* KANAN: Daftar Gejala Interaktif */}
       <div className="w-full md:w-2/3 p-5 md:p-6 flex flex-col h-[600px] md:h-[550px] bg-white dark:bg-slate-900 transition-colors">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-slate-100 dark:border-slate-800 pb-4">
           <h2 className="text-lg font-black text-slate-800 dark:text-slate-100">
@@ -325,14 +316,26 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
           </div>
 
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            {/* 💡 FITUR BARU: EDUKASI DINAMIS (JALAN TENGAH) */}
             <div className="w-full sm:w-auto">
-              {selectedIds.size === 0 && (
+              {selectedIds.size === 0 ? (
                 <span className="text-xs text-amber-600 dark:text-amber-500 font-bold flex items-center gap-1.5 justify-center sm:justify-start">
                   <AlertCircle className="w-4 h-4" />
                   {lang === 'id' ? "Pilih minimal 1 gejala" : "Select at least 1 symptom"}
                 </span>
+              ) : selectedIds.size === 1 ? (
+                <span className="text-[11px] text-blue-600 dark:text-blue-400 font-bold flex items-center gap-1.5 justify-center sm:justify-start max-w-[260px] leading-tight">
+                  <Info className="w-4 h-4 shrink-0" />
+                  {lang === 'id' ? "Tips: Pilih 2-3 gejala atau gunakan kamera untuk hasil lebih presisi." : "Tip: Select 2-3 symptoms or use camera for better precision."}
+                </span>
+              ) : (
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5 justify-center sm:justify-start">
+                  <Check className="w-4 h-4" />
+                  {lang === 'id' ? "Bukti klinis optimal." : "Optimal clinical evidence."}
+                </span>
               )}
             </div>
+
             <button
               disabled={selectedIds.size === 0 || isLoading || isScanning}
               onClick={handleProcess}
