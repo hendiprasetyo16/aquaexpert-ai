@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { 
-  Stethoscope, AlertTriangle, Activity, Fish, ShieldPlus, ChevronLeft, ChevronRight, Droplets
+  Stethoscope, AlertTriangle, Activity, Fish, ShieldPlus, ChevronLeft, ChevronRight, Droplets, Info
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -239,7 +239,7 @@ export default function DiseaseExpertPage() {
                     <Activity className="w-14 h-14 mb-4 text-blue-500 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
                     <p className="font-bold tracking-wide">{expertDict.processing || (lang === 'id' ? "Memproses komputasi patogen..." : "Processing pathogen computation...")}</p>
                   </div>
-                ) : diagnosisResults.length === 0 ? (
+                ) : diagnosisResults.length === 0 && persistedSymptomIds.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900 min-h-[400px] p-6 opacity-70">
                     <Stethoscope className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" />
                     <p className="text-slate-500 dark:text-slate-400 font-bold max-w-sm">
@@ -249,6 +249,7 @@ export default function DiseaseExpertPage() {
                 ) : (
                   <div className="flex flex-col h-full">
                     
+                    {/* 💡 FITUR BARU: Menampilkan Peringatan Air (Water Causes) SELALU MUNCUL MESKI PENYAKIT FISIK TIDAK COCOK */}
                     {inferredWaterCauses.length > 0 && (
                       <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50 rounded-2xl animate-in fade-in zoom-in duration-500">
                         <h4 className="text-sm font-black text-rose-700 dark:text-rose-400 flex items-center gap-2 mb-2 uppercase tracking-wide">
@@ -276,20 +277,35 @@ export default function DiseaseExpertPage() {
                       </div>
                     )}
 
-                    <div className="flex flex-col gap-4 animate-in slide-in-from-bottom-4 duration-500 flex-1">
-                      {paginatedResults.map((res, index) => {
-                        const globalIndex = (currentPage - 1) * RESULTS_PER_PAGE + index;
-                        return (
-                          <DiseaseResultCard 
-                            key={res.disease.id}
-                            result={res}
-                            lang={lang}
-                            isTopMatch={globalIndex === 0} 
-                            onDetailClick={(id) => setSelectedDiseaseDetail(res.disease)}
-                          />
-                        );
-                      })}
-                    </div>
+                    {/* 💡 FITUR BARU: Tampilan Khusus "TIDAK ADA KECOCOKAN" */}
+                    {diagnosisResults.length === 0 ? (
+                      <div className="flex-1 flex flex-col items-center justify-center text-center border-2 border-dashed border-amber-300 dark:border-amber-700/50 rounded-2xl bg-amber-50/50 dark:bg-amber-900/10 min-h-[300px] p-6 animate-in fade-in duration-500">
+                        <Info className="w-16 h-16 text-amber-400 dark:text-amber-500 mb-4 drop-shadow-sm" />
+                        <h3 className="text-lg font-black text-amber-800 dark:text-amber-300 mb-2">
+                          {lang === 'id' ? "Bukti Klinis Belum Cukup Kuat" : "Clinical Evidence is Weak"}
+                        </h3>
+                        <p className="text-amber-700 dark:text-amber-400/80 font-medium max-w-sm text-sm">
+                          {lang === 'id' 
+                            ? "Mesin V7 menggugurkan kemungkinan penyakit karena kombinasi gejala yang Anda pilih belum memenuhi kriteria diagnosis spesifik di database kami. Coba tambahkan gejala lain yang mungkin terlewat dari pengamatan Anda." 
+                            : "The V7 engine discarded potential diseases because your selected symptoms do not meet specific diagnostic criteria. Try adding other symptoms you might have missed."}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-4 animate-in slide-in-from-bottom-4 duration-500 flex-1">
+                        {paginatedResults.map((res, index) => {
+                          const globalIndex = (currentPage - 1) * RESULTS_PER_PAGE + index;
+                          return (
+                            <DiseaseResultCard 
+                              key={res.disease.id}
+                              result={res}
+                              lang={lang}
+                              isTopMatch={globalIndex === 0} 
+                              onDetailClick={(id) => setSelectedDiseaseDetail(res.disease)}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
 
                     {totalPages > 1 && (
                       <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
@@ -306,7 +322,7 @@ export default function DiseaseExpertPage() {
                         </span>
                         <Button 
                           variant="outline" 
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          onClick={() => setCurrentPage(p => Math.max(totalPages, p + 1))}
                           disabled={currentPage === totalPages}
                           className="font-bold bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
                         >
