@@ -244,6 +244,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                     <ArchiveX className="w-3.5 h-3.5 mr-1"/> {lang === 'id' ? "Ganti Obat (Pindah Riwayat)" : "Change Meds"}
                   </Button>
                 </div>
+                
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {actionOptions.map(opt => (
                     <div key={opt.val} onClick={() => setActionTaken(opt.val)} className={`cursor-pointer flex flex-col gap-1 p-3 rounded-xl border-2 transition-all ${actionTaken === opt.val ? 'border-rose-500 bg-rose-50 dark:bg-rose-900/20' : 'border-slate-200 hover:border-slate-300 dark:border-slate-800'}`}>
@@ -252,14 +253,51 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                     </div>
                   ))}
                 </div>
+
+                {/* 💡 TAMBAHAN: Banner Info Dosis muncul jika Redosed / Water Change */}
+                {!isLoadingMedInfo && medInfo && (actionTaken === "Redosed" || actionTaken === "Water Change") && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 p-3 rounded-xl flex gap-3 text-blue-800 dark:text-blue-300 mt-3 animate-in slide-in-from-top-2 fade-in duration-300">
+                    <Beaker className="w-5 h-5 shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" />
+                    <div className="text-xs">
+                      <p className="font-bold mb-0.5">
+                        {lang === 'id' ? "Panduan Dosis Obat" : "Medication Dosage Guide"}
+                      </p>
+                      <p className="font-medium opacity-90 leading-relaxed">
+                        {lang === 'id' ? "Dosis standar: " : "Standard dosage: "}
+                        <span className="font-black bg-blue-200 dark:bg-blue-800/60 px-1.5 py-0.5 rounded mx-1 text-blue-900 dark:text-blue-100">
+                          {medInfo.base_dosage_per_100l} {medInfo.dosage_unit}
+                        </span> 
+                        {lang === 'id' ? "per 100 Liter air. Sesuaikan dengan volume akuarium Anda." : "per 100 Liters of water. Adjust to your aquarium volume."}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                    {lang === 'id' ? "Dosis Diberikan" : "Dose Administered"} ({session.medication?.dosage_unit})
+                    {lang === 'id' ? "Dosis Diberikan" : "Dose Administered"}
                   </label>
-                  <Input type="number" min={0} step={0.1} value={medicationDose} onChange={(e) => setMedicationDose(e.target.value ? Number(e.target.value) : "")} disabled={actionTaken === "Observed" || actionTaken === "Medication Changed"} className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold dark:text-slate-100 focus:border-blue-500" />
+                  <div className="relative">
+                    <Input 
+                      type="number" 
+                      min={0} 
+                      step={0.1} 
+                      value={medicationDose} 
+                      onChange={(e) => setMedicationDose(e.target.value ? Number(e.target.value) : "")} 
+                      disabled={actionTaken === "Observed" || actionTaken === "Medication Changed"} 
+                      className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold dark:text-slate-100 focus:border-blue-500 pr-12" 
+                    />
+                    {/* 💡 TAMBAHAN: Satuan dinamis di dalam kotak input */}
+                    {medInfo && actionTaken !== "Observed" && actionTaken !== "Medication Changed" && (
+                      <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                        <span className="text-xs font-bold text-slate-400 uppercase">
+                          {medInfo.dosage_unit}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
