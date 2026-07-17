@@ -45,6 +45,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
   const [remainingSymptoms, setRemainingSymptoms] = useState<string[]>(session.initial_symptoms || []);
   
   const [medInfo, setMedInfo] = useState<MedicationInfo | null>(null);
+  const [tankVolume, setTankVolume] = useState<number>(0);
   const [isLoadingMedInfo, setIsLoadingMedInfo] = useState(true);
 
   const initialCount = Math.max(1, session.initial_symptoms?.length || 1);
@@ -56,18 +57,44 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
     if (!isOpen || !session.medication_id) return;
     
     let isMountedLocal = true;
-    const fetchMedInfo = async () => {
+    const fetchData = async () => {
       setIsLoadingMedInfo(true);
       const supabase = createClient();
-      const { data } = await supabase.from('medications').select('base_dosage_per_100l, dosage_unit').eq('id', session.medication_id).single();
-      if (isMountedLocal) {
-        if (data) setMedInfo(data as MedicationInfo);
-        setIsLoadingMedInfo(false);
+      
+      try {
+        // 💡 PERBAIKAN: Kita ambil data langsung dari tabel 'my_aquariums' sesuai struktur database Bapak
+        const [medRes, tankRes] = await Promise.all([
+          supabase.from('medications').select('base_dosage_per_100l, dosage_unit').eq('id', session.medication_id).single(),
+          supabase.from('my_aquariums').select('*').eq('id', session.aquarium_id).single()
+        ]);
+
+        if (isMountedLocal) {
+          if (medRes.data) setMedInfo(medRes.data as MedicationInfo);
+          
+          if (tankRes.data) {
+            // 💡 Cek net_water_volume_liters (volume bersih) terlebih dahulu, jika kosong baru pakai volume_liters kotor
+            const vol = tankRes.data.net_water_volume_liters || tankRes.data.volume_liters || 0;
+            
+            if (vol > 0) {
+              setTankVolume(vol);
+            } 
+            // Jika kedua kolom volume kebetulan kosong, hitung pakai dimensi P x L x T / 1000
+            else if (tankRes.data.length_cm && tankRes.data.width_cm && tankRes.data.height_cm) {
+              setTankVolume((tankRes.data.length_cm * tankRes.data.width_cm * tankRes.data.height_cm) / 1000);
+            }
+          } else {
+            console.warn("Kalkulator Dosis: Data tangki tidak ditemukan di tabel my_aquariums.");
+          }
+          setIsLoadingMedInfo(false);
+        }
+      } catch (error) {
+        console.error("Gagal memuat data kalkulator:", error);
+        if (isMountedLocal) setIsLoadingMedInfo(false);
       }
     };
-    fetchMedInfo();
+    fetchData();
     return () => { isMountedLocal = false; };
-  }, [isOpen, session.medication_id]);
+  }, [isOpen, session.medication_id, session.aquarium_id]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -96,8 +123,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
         toast.success(lang === 'id' ? "Sesi salah input berhasil dihapus!" : "Session deleted!");
         await onSuccess();
         onClose();
-        // 💡 Beritahu Induk untuk menghitung ulang!
-      window.dispatchEvent(new Event("aquarium_data_changed"));
+        window.dispatchEvent(new Event("aquarium_data_changed"));
       } else { toast.error(res.error || "Gagal menghapus sesi."); }
     } finally { setIsDeleting(false); setShowDeleteConfirm(false); }
   };
@@ -112,8 +138,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
       if (res.success) {
         toast.success(lang === 'id' ? "Dipindahkan ke Riwayat!" : "Moved to History!");
         await onSuccess(); onClose();
-        // 💡 Beritahu Induk untuk menghitung ulang!
-      window.dispatchEvent(new Event("aquarium_data_changed"));        
+        window.dispatchEvent(new Event("aquarium_data_changed"));        
       } else { toast.error(res.error || "Gagal membatalkan sesi."); }
     } finally { setIsAborting(false); setShowAbortConfirm(false); }
   };
@@ -130,8 +155,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
       if (res.success) {
         toast.success(lang === 'id' ? "Rekam medis tersimpan!" : "Medical log saved!");
         await onSuccess(); onClose(); 
-        // 💡 Beritahu Induk untuk menghitung ulang!
-      window.dispatchEvent(new Event("aquarium_data_changed"));       
+        window.dispatchEvent(new Event("aquarium_data_changed"));       
       } else { toast.error(res.error || "Gagal menyimpan rekam medis."); }
     } finally { setIsSubmitting(false); }
   };
@@ -180,7 +204,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
         </div>
       )}
 
-      {/* 💡 FIX BRUTE FORCE: Memaksa z-index maksimal dari sisi CSS Inline Component */}
       <div style={{ zIndex: 999999 }} className="fixed inset-0 flex items-center justify-center bg-slate-900/80 dark:bg-black/90 p-4 sm:p-6 backdrop-blur-md animate-in fade-in duration-200">
         <div className="w-full max-w-2xl bg-white dark:bg-slate-950 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-slate-200 dark:border-slate-800">
           
@@ -254,22 +277,57 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                   ))}
                 </div>
 
-                {/* 💡 TAMBAHAN: Banner Info Dosis muncul jika Redosed / Water Change */}
+                {/* --- KALKULATOR DOSIS OTOMATIS --- */}
                 {!isLoadingMedInfo && medInfo && (actionTaken === "Redosed" || actionTaken === "Water Change") && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 p-3 rounded-xl flex gap-3 text-blue-800 dark:text-blue-300 mt-3 animate-in slide-in-from-top-2 fade-in duration-300">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 p-4 rounded-xl flex gap-3 text-blue-800 dark:text-blue-300 mt-3 animate-in slide-in-from-top-2 fade-in duration-300">
                     <Beaker className="w-5 h-5 shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" />
-                    <div className="text-xs">
-                      <p className="font-bold mb-0.5">
-                        {lang === 'id' ? "Panduan Dosis Obat" : "Medication Dosage Guide"}
+                    
+                    <div className="text-xs space-y-1.5 w-full">
+                      <p className="font-bold text-sm">
+                        {lang === 'id' ? "Kalkulator Dosis Otomatis" : "Auto Dosage Calculator"}
                       </p>
-                      <p className="font-medium opacity-90 leading-relaxed">
-                        {lang === 'id' ? "Dosis standar: " : "Standard dosage: "}
-                        <span className="font-black bg-blue-200 dark:bg-blue-800/60 px-1.5 py-0.5 rounded mx-1 text-blue-900 dark:text-blue-100">
-                          {medInfo.base_dosage_per_100l} {medInfo.dosage_unit}
-                        </span> 
-                        {lang === 'id' ? "per 100 Liter air. Sesuaikan dengan volume akuarium Anda." : "per 100 Liters of water. Adjust to your aquarium volume."}
-                      </p>
+                      
+                      <div className="flex flex-col gap-1.5 mt-2 bg-white/60 dark:bg-slate-900/50 p-3 rounded-lg border border-blue-100 dark:border-blue-800/30">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium text-slate-500 dark:text-slate-400">{lang === 'id' ? 'Volume Akuarium' : 'Tank Volume'}</span>
+                          <span className="font-bold text-slate-700 dark:text-slate-200">{tankVolume > 0 ? `${tankVolume} Liter` : '???'}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium text-slate-500 dark:text-slate-400">{lang === 'id' ? 'Dosis Standar' : 'Standard Dose'}</span>
+                          <span className="font-bold text-slate-700 dark:text-slate-200">{medInfo.base_dosage_per_100l} {medInfo.dosage_unit} / 100L</span>
+                        </div>
+                        
+                        <div className="h-px w-full bg-blue-200/50 dark:bg-blue-800/50 my-1"></div>
+                        
+                        <div className="flex justify-between items-center pt-1">
+                          <span className="font-bold text-blue-700 dark:text-blue-300">{lang === 'id' ? 'Saran Dosis' : 'Recommended Dose'}</span>
+                          <span className="font-black text-[15px] text-blue-700 dark:text-blue-400">
+                            {tankVolume > 0 ? `${Number(((tankVolume / 100) * medInfo.base_dosage_per_100l).toFixed(2))} ${medInfo.dosage_unit}` : (lang === 'id' ? 'Hitung Manual' : 'Manual')}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {tankVolume > 0 ? (
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-1 gap-3">
+                          <p className="font-medium opacity-80 leading-relaxed text-[11px] flex-1">
+                            {lang === 'id' ? "Sistem menghitung dosis secara matematis sesuai kapasitas air di tank Anda." : "System calculates dosage mathematically based on your tank's capacity."}
+                          </p>
+                          <Button 
+                            type="button" 
+                            size="sm" 
+                            onClick={() => setMedicationDose(Number(((tankVolume / 100) * medInfo.base_dosage_per_100l).toFixed(2)))} 
+                            className="h-8 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg shadow-sm"
+                          >
+                            {lang === 'id' ? "Gunakan Dosis Ini" : "Use This Dose"}
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="font-medium text-amber-600 dark:text-amber-500 pt-1 leading-relaxed text-[11px]">
+                          {lang === 'id' ? "Volume tangki tidak ditemukan di sistem. Silakan hitung secara manual." : "Tank volume not found. Please calculate manually."}
+                        </p>
+                      )}
                     </div>
+
                   </div>
                 )}
               </div>
@@ -287,9 +345,9 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                       value={medicationDose} 
                       onChange={(e) => setMedicationDose(e.target.value ? Number(e.target.value) : "")} 
                       disabled={actionTaken === "Observed" || actionTaken === "Medication Changed"} 
-                      className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold dark:text-slate-100 focus:border-blue-500 pr-12" 
+                      className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold dark:text-slate-100 focus:border-blue-500 pr-16" 
                     />
-                    {/* 💡 TAMBAHAN: Satuan dinamis di dalam kotak input */}
+                    {/* Satuan dinamis otomatis diletakkan di dalam pojok kanan input */}
                     {medInfo && actionTaken !== "Observed" && actionTaken !== "Medication Changed" && (
                       <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
                         <span className="text-xs font-bold text-slate-400 uppercase">
