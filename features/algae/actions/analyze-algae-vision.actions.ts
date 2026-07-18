@@ -3,110 +3,146 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const apiKey = process.env.GEMINI_API_KEY;
-
 export async function analyzeAlgaeImageAction(base64Image: string) {
-  if (!apiKey) {
-    return { success: false, error: "GEMINI_API_KEY tidak dikonfigurasi di server." };
+  // 💡 Seragam dengan file ikan: Pengecekan kunci dummy
+  const GEMINI_KEY = process.env.GEMINI_API_KEY?.replace(/['"]/g, '').trim();
+  const GROQ_KEY = process.env.GROQ_API_KEY?.includes("your_") ? "" : process.env.GROQ_API_KEY?.replace(/['"]/g, '').trim();
+  const OR_KEY = process.env.OPENROUTER_API_KEY?.includes("your_") ? "" : process.env.OPENROUTER_API_KEY?.replace(/['"]/g, '').trim();
+
+  if (!GEMINI_KEY) {
+    return { success: false, error: "API Key belum dikonfigurasi di server." };
   }
 
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    // Menggunakan model flash yang cepat
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  // Pisahkan header dan data base64 murni
+  const base64Data = base64Image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
+  // Rekonstruksi Data URI penuh untuk format Groq/OpenRouter
+  const fullDataUri = base64Image.startsWith("data:") ? base64Image : `data:image/jpeg;base64,${base64Image}`;
 
-    // Membersihkan string base64 dari prefix (data:image/jpeg;base64, dll)
-    const base64Data = base64Image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
+  const prompt = `Anda adalah ahli biologi akuatik dan aquascaper profesional. 
+Tugas Anda adalah menganalisis foto alga/lumut akuarium ini dan mengkategorikannya berdasarkan 3 parameter utama: Warna, Tekstur, dan Lokasi.
 
-    // 💡 PROMPT ENGINEERING KHUSUS ALGA AQUASCAPE
-    const prompt = `
-      Anda adalah ahli biologi akuatik dan aquascaper profesional. 
-      Tugas Anda adalah menganalisis foto alga/lumut akuarium ini dan mengkategorikannya berdasarkan 3 parameter utama: Warna, Tekstur, dan Lokasi.
-
-      PENTING: Anda HARUS mengembalikan respons HANYA dalam format JSON yang valid. Jangan gunakan markdown \`\`\`json.
+PENTING: Anda HARUS mengembalikan respons HANYA dalam format JSON yang valid tanpa markdown apapun.
       
-      Pilih nilai yang PALING MENDEKATI dari opsi berikut untuk masing-masing parameter:
+Pilih nilai yang PALING MENDEKATI dari opsi berikut:
+1. "color": "green", "light_green", "dark_green", "blue_green", "brown", "black", "gray", "dark_gray", "white", "reddish", atau ""
+2. "texture": "tuft", "hairy", "long_thread", "wiry", "branching", "dust", "powdery", "hard_spot", "slime", "sheet", "flat", "soft", atau ""
+3. "location": "glass", "hardscape", "substrate", "plants", "leaf_edges", "slow_leaves", "moss", "equipment", "everywhere", atau ""
 
-      1. "color" (Pilih satu):
-         - "green" (Hijau biasa)
-         - "light_green" (Hijau muda / neon)
-         - "dark_green" (Hijau gelap / tua)
-         - "blue_green" (Biru kehijauan / Cyanobacteria)
-         - "brown" (Coklat / Keemasan / Diatom)
-         - "black" (Hitam / BBA)
-         - "gray" (Abu-abu / Staghorn mati)
-         - "dark_gray" (Abu-abu gelap)
-         - "white" (Putih pucat / Jamur kayu)
-         - "reddish" (Kemerahan)
-         - "" (Kosongkan jika tidak yakin)
+Format Output JSON yang diwajibkan:
+{
+  "color": "...",
+  "texture": "...",
+  "location": "..."
+}`;
 
-      2. "texture" (Pilih satu):
-         - "tuft" (Mengelompok seperti kuas / BBA)
-         - "hairy" (Seperti rambut pendek / Hair Algae)
-         - "long_thread" (Benang panjang menjuntai / Thread Algae)
-         - "wiry" (Kaku / Bercabang seperti tanduk rusa / Staghorn)
-         - "branching" (Bercabang)
-         - "dust" (Debu halus nempel di kaca / GDA)
-         - "powdery" (Seperti bedak)
-         - "hard_spot" (Titik keras susah dikerok / GSA)
-         - "slime" (Berlendir / Lembaran lendir / BGA)
-         - "sheet" (Membentuk lembaran)
-         - "flat" (Datar menempel)
-         - "soft" (Lembut/lunak)
-         - "" (Kosongkan jika tidak ada tekstur yang jelas)
+  // Fungsi utilitas untuk membersihkan dan mengekstrak JSON Object
+  const extractJSON = (text: string) => {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("Format respons AI bukan JSON.");
+    const aiData = JSON.parse(jsonMatch[0]);
+    return {
+      color: aiData.color || "",
+      texture: aiData.texture || "",
+      location: aiData.location || ""
+    };
+  };
 
-      3. "location" (Pilih satu):
-         - "glass" (Kaca akuarium)
-         - "hardscape" (Batu / Kayu)
-         - "substrate" (Pasir / Tanah)
-         - "plants" (Menyelimuti tanaman)
-         - "leaf_edges" (Hanya di pinggiran daun)
-         - "slow_leaves" (Daun tanaman tumbuh lambat seperti Anubias)
-         - "moss" (Menyelinap di dalam lumut/moss)
-         - "equipment" (Pipa / Filter)
-         - "everywhere" (Menyebar di mana-mana)
-         - "" (Kosongkan jika tidak jelas)
-
-      Format Output JSON:
-      {
-        "color": "...",
-        "texture": "...",
-        "location": "..."
-      }
-    `;
-
-    const imageParts = [
-      {
-        inlineData: {
-          data: base64Data,
-          mimeType: "image/jpeg",
-        },
-      },
-    ];
+  // ==========================================
+  // 1. PERCOBAAN PERTAMA: GEMINI VISION
+  // ==========================================
+  try {
+    const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const imageParts = [{ inlineData: { data: base64Data, mimeType: "image/jpeg" } }];
 
     const result = await model.generateContent([prompt, ...imageParts]);
     const responseText = result.response.text();
     
-    // Ekstraksi JSON (berjaga-jaga jika Gemini mengembalikan markdown block)
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    
-    if (!jsonMatch) {
-      throw new Error("Format respons AI tidak valid.");
+    return { success: true, aiFilters: extractJSON(responseText) };
+
+  } catch (geminiError) {
+    console.warn("⚠️ Gemini Gagal di Algae Vision. Mencoba Groq...", (geminiError as Error).message);
+
+    // ==========================================
+    // 2. PERCOBAAN KEDUA: GROQ VISION (BACKUP 1)
+    // ==========================================
+    try {
+      if (!GROQ_KEY) throw new Error("GROQ_KEY kosong atau tidak valid.");
+
+      const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "llama-3.2-90b-vision-preview",
+          messages: [{
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              { type: "image_url", image_url: { url: fullDataUri } }
+            ]
+          }],
+          temperature: 0.1
+        }),
+      });
+
+      // 💡 Seragam dengan file ikan: Ekstrak detail pesan error
+      if (!groqRes.ok) {
+        const errText = await groqRes.text();
+        throw new Error(`Groq HTTP ${groqRes.status}: ${errText}`);
+      }
+      
+      const groqData = await groqRes.json();
+      const groqText = groqData.choices[0].message.content;
+
+      return { success: true, aiFilters: extractJSON(groqText) };
+
+    } catch (groqError) {
+      console.warn("⚠️ Groq Gagal di Algae Vision. Mencoba OpenRouter...", (groqError as Error).message);
+
+      // ==========================================
+      // 3. PERCOBAAN KETIGA: OPENROUTER VISION (BACKUP 2)
+      // ==========================================
+      try {
+        if (!OR_KEY) throw new Error("OPENROUTER_KEY kosong atau tidak valid.");
+
+        const orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          // 💡 Seragam dengan file ikan: Penambahan Header Wajib
+          headers: { 
+            "Authorization": `Bearer ${OR_KEY}`, 
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://aquaexpert.vercel.app", 
+            "X-Title": "AquaExpert AI"
+          },
+          body: JSON.stringify({
+            model: "meta-llama/llama-3.2-11b-vision-instruct:free", 
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "image_url", image_url: { url: fullDataUri } }
+              ]
+            }],
+            temperature: 0.1
+          }),
+        });
+
+        // 💡 Seragam dengan file ikan: Ekstrak detail pesan error
+        if (!orRes.ok) {
+          const errText = await orRes.text();
+          throw new Error(`OpenRouter HTTP ${orRes.status}: ${errText}`);
+        }
+        
+        const orData = await orRes.json();
+        const orText = orData.choices[0].message.content;
+
+        return { success: true, aiFilters: extractJSON(orText) };
+
+      } catch (orError) {
+        // 💡 Seragam dengan file ikan: Pesan error terminal yang lebih jelas
+        console.error("❌ SEMUA AI GAGAL (Algae Vision):", (orError as Error).message);
+        return { success: false, error: "Semua server AI sedang sibuk. Silakan coba sebentar lagi." };
+      }
     }
-
-    const aiData = JSON.parse(jsonMatch[0]);
-
-    return { 
-      success: true, 
-      aiFilters: {
-        color: aiData.color || "",
-        texture: aiData.texture || "",
-        location: aiData.location || ""
-      } 
-    };
-
-  } catch (error: any) {
-    console.error("Algae Vision Error:", error);
-    return { success: false, error: error.message || "Terjadi kesalahan saat memproses gambar alga." };
   }
 }

@@ -107,9 +107,9 @@ export function DiseaseResultCard({ result, lang = "id", isTopMatch = false, onD
       {result.matchedSymptoms && result.matchedSymptoms.length > 0 && status !== 'ELIMINATED' && (
         <div className="flex flex-wrap gap-1.5 mb-5 relative z-10">
           {/* {result.matchedSymptoms.map((sym: any) => ( */}
-          // Di area looping untuk menampilkan gejala yang cocok, parameternya masih di-set ke any. Untungnya sudah meng-import tipe Symptom di bagian atas file, jadi kita tinggal menggunakannya.
+          {/* Di area looping untuk menampilkan gejala yang cocok, parameternya masih di-set ke any. Untungnya sudah meng-import tipe Symptom di bagian atas file, jadi kita tinggal menggunakannya.
           // 💡 Catatan: Di sini kita paksa casting ke Symptom karena tipe dari API mungkin tidak sesuai dengan Symptom. Pastikan data yang diterima memang memiliki properti yang dibutuhkan.
-          // 💡 Catatan: Jika ada gejala yang tidak memiliki nama_id atau name_en, kita bisa fallback ke ID gejala sebagai nama.
+          // 💡 Catatan: Jika ada gejala yang tidak memiliki nama_id atau name_en, kita bisa fallback ke ID gejala sebagai nama.*/}
           {result.matchedSymptoms.map((sym: Symptom) => (
             <span key={sym.id} className="inline-flex items-center px-2 py-1 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 text-[10px] font-bold border border-slate-200 dark:border-slate-700/50">
               ✓ {lang === 'id' ? sym.name_id || sym.id : sym.name_en || sym.id}
