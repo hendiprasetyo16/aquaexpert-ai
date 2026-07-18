@@ -76,7 +76,9 @@ export default function StartTreatmentModal({ aquariumId, isOpen, onClose, onSuc
         if (!isMountedLocal) return;
 
         if (res.success) {
-          const validatedDiseases = (res.diseases || []).map((d: any) => ({
+          //const validatedDiseases = (res.diseases || []).map((d: any) => ({
+          // Di sini any digunakan saat melakukan mapping data penyakit dari database. Kita ganti dengan definisi objek sementara.
+          const validatedDiseases = (res.diseases || []).map((d: { id?: string; name_id?: string; name_en?: string; severity?: number; quarantine_required?: boolean }) => ({
             id: String(d.id || ""),
             name_id: String(d.name_id || ""),
             name_en: String(d.name_en || ""),

@@ -89,7 +89,11 @@ export function DiseaseForm({ initialData, mode }: Props) {
           if (existingRules) {
             setRules(existingRules.map(r => ({
               symptom_id: r.symptom_id,
-              rule_type: r.rule_type as any,
+              // rule_type: r.rule_type as any,
+              // Di sini any dipakai secara paksa (type casting) karena tipe dari database dibaca sebagai string biasa, padahal kita butuh spesifik (HALLMARK, MANDATORY, dll).
+              // 💡 Catatan: Jika rule_type dari database tidak sesuai dengan tipe FormRule, kita bisa default ke 'SUPPORTING' atau lakukan validasi tambahan.
+              // rule_type: ['HALLMARK', 'MANDATORY', 'SUPPORTING', 'EXCLUDED'].includes(r.rule_type) ? r.rule_type as FormRule['rule_type'] : 'SUPPORTING',
+              rule_type: r.rule_type as FormRule['rule_type'],
               weight: r.weight,
               reason_id: r.reason_id || "",
               reason_en: r.reason_en || ""

@@ -161,8 +161,8 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
       } else {
         throw new Error(res.error || "Gagal menganalisis.");
       }
-    } catch (error: any) {
-      toast.error(error.message || "Gagal memindai gambar.", { id: toastId });
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Gagal memindai gambar.", { id: toastId });
     } finally {
       setIsScanning(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
