@@ -16,9 +16,7 @@ export async function askGemini(history: ChatMessage[]): Promise<AIProviderRespo
       }))
     ];
 
-    // Menggunakan Gemini 2.5 Flash (Generasi Terbaru)
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
-
     const geminiRes = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -26,15 +24,19 @@ export async function askGemini(history: ChatMessage[]): Promise<AIProviderRespo
       cache: "no-store" 
     });
 
-    if (geminiRes.ok) {
-      const data = await geminiRes.json();
-      if (data.candidates && data.candidates.length > 0) {
-        return { reply: data.candidates[0].content.parts[0].text };
-      }
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      console.warn(`[Gemini Chat API Error] ${geminiRes.status}: ${errText}`);
+      return null;
     }
-    return null; // Jika gagal (kuota habis/down), kembalikan null agar dilanjutkan ke Groq
+
+    const data = await geminiRes.json();
+    if (data.candidates && data.candidates.length > 0) {
+      return { reply: data.candidates[0].content.parts[0].text };
+    }
+    return null;
   } catch (e) {
-    console.warn("Gemini Error:", e);
+    console.warn("Gemini Chat Catch Error:", (e as Error).message);
     return null;
   }
 }
