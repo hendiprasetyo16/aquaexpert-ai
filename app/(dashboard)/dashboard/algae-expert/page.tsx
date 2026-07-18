@@ -19,12 +19,27 @@ import toast from "react-hot-toast";
 import { generateAlgaeDiagnosis, UserAnswersAlgae, RecommendedAlgae } from "@/features/algae/services/expert.service";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { getAlgaeTagDesc } from "@/features/algae/components/algae-helpers"; 
-// 💡 IMPORT ACTION AI VISION ALGA KITA
 import { analyzeAlgaeImageAction } from "@/features/algae/actions/analyze-algae-vision.actions";
 
 const SESSION_KEY = "aquaexpert_algae_inference_v1";
 const ITEMS_PAGE_1 = 11; 
 const ITEMS_PAGE_N = 10; 
+
+// ==========================================
+// 💡 INTERFACE BARU UNTUK MENGHILANGKAN `any`
+// ==========================================
+interface AIFilters {
+  color?: string;
+  texture?: string;
+  location?: string;
+  trigger?: string;
+}
+
+interface AIResponse {
+  success: boolean;
+  aiFilters?: AIFilters;
+  error?: string;
+}
 
 interface AlgaeExpertDict {
   title?: string;
@@ -65,7 +80,6 @@ export default function AlgaeExpertEngine() {
 
   const [currentPage, setCurrentPage] = useState(1);
   
-  // 💡 STATE UNTUK KAMERA & SCANNER
   const [isScanning, setIsScanning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -155,7 +169,6 @@ export default function AlgaeExpertEngine() {
     }, 800); 
   };
 
-  // 💡 FUNGSI KOMPRESI GAMBAR
   const compressImageToBase64 = (file: File, maxWidth = 800, quality = 0.7): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -187,7 +200,9 @@ export default function AlgaeExpertEngine() {
     });
   };
 
-// 💡 LOGIKA ANALISIS FOTO ALGA (VERSI AMAN & STABIL)
+  // ==========================================
+  // 💡 LOGIKA ANALISIS FOTO (DENGAN ERROR HANDLING KUAT)
+  // ==========================================
   const handleImageCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -209,14 +224,23 @@ export default function AlgaeExpertEngine() {
 
     try {
       const compressedBase64 = await compressImageToBase64(file);
-      const res = await analyzeAlgaeImageAction(compressedBase64);
       
-      // Gunakan "as any" untuk sementara jika struktur res.aiFilters tidak terdefinisi di tipe data
-      const filters = (res as any).aiFilters; 
+      // 💡 Hapus `any`, casting respon ke tipe `AIResponse`
+      const res = await analyzeAlgaeImageAction(compressedBase64) as AIResponse;
       
-      if (res.success && filters) {
-        // Fungsi pencocokan cerdas
-        const matchValue = (aiOutput: any, validOptions: string[]) => {
+      // 💡 ERROR HANDLING: Jika API Limit atau terjadi error dari server
+      if (!res || !res.success) {
+        const errorMessage = res?.error || "Server AI sedang sibuk (Limit). Silakan coba 1 menit lagi.";
+        toast.error(lang === 'id' ? `Gagal: ${errorMessage}` : `Failed: ${errorMessage}`, { id: toastId, duration: 5000 });
+        setIsScanning(false);
+        return;
+      }
+
+      const filters = res.aiFilters; 
+      
+      if (filters) {
+        // 💡 Tipe data diubah dari `any` menjadi `string | undefined`
+        const matchValue = (aiOutput: string | undefined, validOptions: string[]) => {
           if (!aiOutput) return "";
           const strVal = String(aiOutput).toLowerCase().replace(/[^a-z0-9]/g, ""); 
           const sortedOptions = [...validOptions].sort((a, b) => b.length - a.length);
@@ -232,7 +256,6 @@ export default function AlgaeExpertEngine() {
         const TEXTURE_OPTIONS = ["long_thread", "hard_spot", "easily_wiped", "branching", "powdery", "smelly", "hairy", "wiry", "dust", "tuft", "slime", "sheet", "flat", "soft"];
         const LOCATION_OPTIONS = ["hardscape", "substrate", "leaf_edges", "slow_leaves", "high_flow", "everywhere", "equipment", "plants", "glass", "moss"];
 
-        // Ambil data hanya dari kunci yang pasti ada (color, texture, location)
         const newColor = matchValue(filters.color, COLOR_OPTIONS);
         const newTexture = matchValue(filters.texture, TEXTURE_OPTIONS);
         const newLocation = matchValue(filters.location, LOCATION_OPTIONS);
@@ -243,14 +266,13 @@ export default function AlgaeExpertEngine() {
         setLocation(newLocation);
         setTrigger(newTrigger); 
         
-        // Validasi: Jika AI tidak menemukan satupun ciri
         if (!newColor && !newTexture && !newLocation) {
-           toast.error(lang === 'id' ? "Ciri lumut tidak terdeteksi. Silakan pilih manual." : "Features not detected. Please select manually.", { id: toastId });
-           setLoading(false);
+           toast.error(lang === 'id' ? "Ciri lumut tidak terdeteksi dari foto. Silakan pilih manual." : "Features not detected. Please select manually.", { id: toastId, duration: 4000 });
+           setIsScanning(false);
            return;
         }
 
-        toast.success(lang === 'id' ? "Berhasil! Filter diisi AI." : "Success! Filters filled by AI.", { id: toastId, duration: 3000 });
+        toast.success(lang === 'id' ? "Berhasil! Filter diisi otomatis oleh AI." : "Success! Filters auto-filled by AI.", { id: toastId, duration: 3000 });
 
         setLoading(true);
         setCurrentPage(1); 
@@ -265,12 +287,11 @@ export default function AlgaeExpertEngine() {
           setLoading(false);
         }, 800);
 
-      } else {
-        throw new Error(res.error || "Gagal menganalisis gambar.");
       }
-    } catch (error: any) {
-      toast.error(error.message || "Gagal memindai gambar.", { id: toastId });
-      setLoading(false);
+    } catch (error: unknown) {
+      // 💡 CATCH FATAL ERROR (Jaringan putus, dll)
+      console.error(error);
+      toast.error(lang === 'id' ? "Terjadi kesalahan jaringan atau server." : "Network or server error occurred.", { id: toastId });
     } finally {
       setIsScanning(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -331,7 +352,6 @@ export default function AlgaeExpertEngine() {
 return (
     <div className="w-full h-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 relative">
       
-      {/* 💡 1. EFEK FROSTED GLASS SAAT MEMINDAI FOTO ALGA (KAMERA) */}
       {isScanning && (
         <div className="fixed inset-0 z-[9999] bg-white/40 dark:bg-slate-900/60 backdrop-blur-md flex items-center justify-center overflow-hidden transition-all duration-300">
           <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(20,184,166,0.15)_50%,transparent_100%)] h-64 animate-[pulse_2s_ease-in-out_infinite]"></div>
@@ -352,7 +372,6 @@ return (
         </div>
       )}
 
-      {/* 💡 2. EFEK FROSTED GLASS SAAT KLIK TOMBOL DIAGNOSIS MANUAL */}
       {loading && !isScanning && algaeList.length > 0 && (
         <div className="fixed inset-0 z-[9999] bg-white/40 dark:bg-slate-900/60 backdrop-blur-md flex items-center justify-center overflow-hidden transition-all duration-300">
           <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(20,184,166,0.15)_50%,transparent_100%)] h-64 animate-[pulse_2s_ease-in-out_infinite]"></div>
@@ -373,7 +392,6 @@ return (
         </div>
       )}
 
-      {/* INPUT FILE TERSEMBUNYI */}
       <input 
         type="file" 
         accept="image/*" 
@@ -383,8 +401,6 @@ return (
         className="hidden"
       />
       
-      {/* ... (Sisa kode ke bawah tetap sama) ... */}
-
       <div className="max-w-[1400px] mx-auto space-y-8 pb-10 text-slate-900 dark:text-slate-100">
         
         <div className="mb-8">
@@ -404,7 +420,6 @@ return (
                 <span className="flex items-center gap-2"><Filter className="h-5 w-5 text-teal-600 dark:text-teal-500" /> {language === 'id' ? "Filter Analisis" : "Analysis Filter"}</span>
               </h3>
 
-              {/* 💡 TOMBOL KAMERA DITAMBAHKAN DI SINI */}
               <button 
                 onClick={() => fileInputRef.current?.click()}
                 disabled={loading || isScanning}
@@ -546,9 +561,6 @@ return (
                     const globalIndex = startIndex + index;
                     const isTopMatch = globalIndex === 0;
 
-                    // ==========================================
-                    // EKSKLUSIF JUARA 1 (GABUNGAN UI TERBARU)
-                    // ==========================================
                     if (isTopMatch) {
                       const topCauses = language === 'en' && algae.causes_en?.length ? algae.causes_en : algae.causes_id || [];
                       const allSolutions = language === 'en' && algae.solutions_en?.length ? algae.solutions_en : algae.solutions_id || [];
@@ -617,7 +629,6 @@ return (
                             </div>
                           </div>
 
-                          {/* DARI SNIPPET 1: DAMPAK EKOSISTEM (Affected Conditions) */}
                           {algae.affected_conditions && algae.affected_conditions.length > 0 && (
                              <div className="p-4 bg-rose-50/50 dark:bg-rose-950/20 border-b border-rose-100 dark:border-rose-900/40">
                                <h5 className="font-bold text-rose-700 dark:text-rose-500 mb-2.5 flex items-center gap-2 uppercase tracking-wider text-xs">
@@ -633,7 +644,6 @@ return (
                              </div>
                           )}
 
-                          {/* DARI SNIPPET 2: 3-KOLOM (Penyebab, Penanganan, Pencegahan) */}
                           <div className="grid md:grid-cols-3 bg-slate-50/50 dark:bg-slate-950/50 divide-y md:divide-y-0 md:divide-x divide-slate-200 dark:divide-slate-800">
                              <div className="p-5 flex flex-col h-full bg-amber-50/30 dark:bg-amber-950/10">
                                <h5 className="font-bold text-amber-700 dark:text-amber-500 mb-4 flex items-center gap-2 uppercase tracking-wider text-xs">
@@ -679,9 +689,6 @@ return (
                       );
                     }
 
-                    // ==========================================
-                    // RANKING 2, 3, DST...
-                    // ==========================================
                     return (
                       <div key={algae.id} className="relative rounded-xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col">
                         <div className="absolute top-0 left-0 z-20 w-8 h-8 bg-slate-800 text-white rounded-br-xl flex items-center justify-center font-black shadow-sm text-xs">
@@ -721,7 +728,6 @@ return (
                           )}
                         </div>
 
-                        {/* DAMPAK EKOSISTEM UNTUK KANDIDAT LAIN */}
                         {algae.affected_conditions && algae.affected_conditions.length > 0 && (
                           <div className="px-5 pb-5 pt-0">
                             <div className="flex flex-wrap gap-1.5">
@@ -744,7 +750,6 @@ return (
                   })}
                 </div>
                 
-                {/* PAGINATION */}
                 {totalPages > 1 && (
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between border-t border-slate-200 dark:border-slate-800 pt-5 mt-6 gap-4 transition-colors">
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 text-center lg:text-left mb-1 lg:mb-0">
