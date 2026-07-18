@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { 
   Loader2, Cpu, Filter, Info, CheckCircle2, Trophy, 
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target, AlertTriangle, ShieldCheck, Stethoscope, Droplets, Camera, ScanLine
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target, AlertTriangle, ShieldCheck, Stethoscope, Droplets, Camera, ScanLine,
+  Activity
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -186,7 +187,7 @@ export default function AlgaeExpertEngine() {
     });
   };
 
-  // 💡 LOGIKA ANALISIS FOTO ALGA
+// 💡 LOGIKA ANALISIS FOTO ALGA (VERSI AMAN & STABIL)
   const handleImageCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -197,6 +198,12 @@ export default function AlgaeExpertEngine() {
       return;
     }
 
+    setColor("");
+    setTexture("");
+    setLocation("");
+    setTrigger("");
+    setResults(null); 
+    
     setIsScanning(true);
     const toastId = toast.loading(lang === 'id' ? "AI Vision sedang menganalisis foto lumut..." : "AI Vision is scanning the algae photo...");
 
@@ -204,28 +211,51 @@ export default function AlgaeExpertEngine() {
       const compressedBase64 = await compressImageToBase64(file);
       const res = await analyzeAlgaeImageAction(compressedBase64);
       
-      if (res.success && res.aiFilters) {
-        // 1. Update Dropdown State
-        const newColor = res.aiFilters.color || "";
-        const newTexture = res.aiFilters.texture || "";
-        const newLocation = res.aiFilters.location || "";
-        
+      // Gunakan "as any" untuk sementara jika struktur res.aiFilters tidak terdefinisi di tipe data
+      const filters = (res as any).aiFilters; 
+      
+      if (res.success && filters) {
+        // Fungsi pencocokan cerdas
+        const matchValue = (aiOutput: any, validOptions: string[]) => {
+          if (!aiOutput) return "";
+          const strVal = String(aiOutput).toLowerCase().replace(/[^a-z0-9]/g, ""); 
+          const sortedOptions = [...validOptions].sort((a, b) => b.length - a.length);
+
+          for (const opt of sortedOptions) {
+            const optClean = opt.toLowerCase().replace(/[^a-z0-9]/g, "");
+            if (strVal.includes(optClean) || optClean.includes(strVal)) return opt;
+          }
+          return "";
+        };
+
+        const COLOR_OPTIONS = ["light_green", "dark_green", "blue_green", "green", "brown", "black", "dark_gray", "gray", "white", "reddish"];
+        const TEXTURE_OPTIONS = ["long_thread", "hard_spot", "easily_wiped", "branching", "powdery", "smelly", "hairy", "wiry", "dust", "tuft", "slime", "sheet", "flat", "soft"];
+        const LOCATION_OPTIONS = ["hardscape", "substrate", "leaf_edges", "slow_leaves", "high_flow", "everywhere", "equipment", "plants", "glass", "moss"];
+
+        // Ambil data hanya dari kunci yang pasti ada (color, texture, location)
+        const newColor = matchValue(filters.color, COLOR_OPTIONS);
+        const newTexture = matchValue(filters.texture, TEXTURE_OPTIONS);
+        const newLocation = matchValue(filters.location, LOCATION_OPTIONS);
+        const newTrigger = ""; 
+
         setColor(newColor);
         setTexture(newTexture);
         setLocation(newLocation);
+        setTrigger(newTrigger); 
         
-        toast.success(
-          lang === 'id' 
-            ? `Berhasil! Filter telah diisi otomatis oleh AI.` 
-            : `Success! Filters auto-filled by AI.`,
-          { id: toastId, duration: 4000 }
-        );
+        // Validasi: Jika AI tidak menemukan satupun ciri
+        if (!newColor && !newTexture && !newLocation) {
+           toast.error(lang === 'id' ? "Ciri lumut tidak terdeteksi. Silakan pilih manual." : "Features not detected. Please select manually.", { id: toastId });
+           setLoading(false);
+           return;
+        }
 
-        // 2. Langsung eksekusi pencarian tanpa menunggu user klik tombol!
+        toast.success(lang === 'id' ? "Berhasil! Filter diisi AI." : "Success! Filters filled by AI.", { id: toastId, duration: 3000 });
+
         setLoading(true);
         setCurrentPage(1); 
         
-        const answers: UserAnswersAlgae = { color: newColor, texture: newTexture, location: newLocation, trigger };
+        const answers = { color: newColor, texture: newTexture, location: newLocation, trigger: newTrigger };
         const aiResults = generateAlgaeDiagnosis(algaeList, answers, dictRoot.algaeExpert, language);
 
         sessionStorage.setItem(SESSION_KEY, JSON.stringify({ answers, results: aiResults, currentPage: 1 }));
@@ -233,13 +263,14 @@ export default function AlgaeExpertEngine() {
         setTimeout(() => {
           setResults(aiResults);
           setLoading(false);
-        }, 1000);
+        }, 800);
 
       } else {
         throw new Error(res.error || "Gagal menganalisis gambar.");
       }
     } catch (error: any) {
       toast.error(error.message || "Gagal memindai gambar.", { id: toastId });
+      setLoading(false);
     } finally {
       setIsScanning(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -297,16 +328,16 @@ export default function AlgaeExpertEngine() {
 
   if (!dictRoot.algaeExpert) return null;
 
-  return (
+return (
     <div className="w-full h-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 relative">
       
-      {/* 💡 EFEK SCANNER OVERLAY SAAT MEMPROSES FOTO (DIPERBAIKI SOLID & GELAP) */}
+      {/* 💡 1. EFEK FROSTED GLASS SAAT MEMINDAI FOTO ALGA (KAMERA) */}
       {isScanning && (
-        <div className="fixed inset-0 z-[9999] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(20,184,166,0.2)_50%,transparent_100%)] h-64 animate-[pulse_2s_ease-in-out_infinite]"></div>
+        <div className="fixed inset-0 z-[9999] bg-white/40 dark:bg-slate-900/60 backdrop-blur-md flex items-center justify-center overflow-hidden transition-all duration-300">
+          <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(20,184,166,0.15)_50%,transparent_100%)] h-64 animate-[pulse_2s_ease-in-out_infinite]"></div>
           
-          <div className="bg-white dark:bg-slate-900 px-8 py-6 rounded-2xl shadow-[0_0_50px_rgba(20,184,166,0.4)] flex items-center gap-5 border-2 border-teal-500 relative z-10 transform transition-all">
-            <div className="bg-teal-100 dark:bg-teal-900/60 p-3.5 rounded-full shadow-inner">
+          <div className="bg-white dark:bg-slate-900 px-8 py-6 rounded-2xl shadow-[0_15px_50px_rgba(20,184,166,0.25)] flex items-center gap-5 border-2 border-teal-500 relative z-10 animate-in zoom-in-95 fade-in duration-300">
+            <div className="bg-teal-50 dark:bg-teal-900/60 p-3.5 rounded-full shadow-inner">
               <ScanLine className="w-10 h-10 text-teal-600 dark:text-teal-400 animate-pulse" />
             </div>
             <div>
@@ -314,7 +345,28 @@ export default function AlgaeExpertEngine() {
                 {lang === 'id' ? "Memindai Alga..." : "Scanning Algae..."}
               </p>
               <p className="text-sm text-slate-600 dark:text-slate-400 font-semibold mt-1">
-                {lang === 'id' ? "AI sedang mengidentifikasi Warna & Tekstur" : "AI is identifying Color & Texture"}
+                {lang === 'id' ? "Gemini 2.5 Vision sedang bekerja" : "Gemini 2.5 Vision is working"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 💡 2. EFEK FROSTED GLASS SAAT KLIK TOMBOL DIAGNOSIS MANUAL */}
+      {loading && !isScanning && algaeList.length > 0 && (
+        <div className="fixed inset-0 z-[9999] bg-white/40 dark:bg-slate-900/60 backdrop-blur-md flex items-center justify-center overflow-hidden transition-all duration-300">
+          <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(20,184,166,0.15)_50%,transparent_100%)] h-64 animate-[pulse_2s_ease-in-out_infinite]"></div>
+          
+          <div className="bg-white dark:bg-slate-900 px-8 py-6 rounded-2xl shadow-[0_15px_50px_rgba(20,184,166,0.25)] flex items-center gap-5 border-2 border-teal-500 relative z-10 animate-in zoom-in-95 fade-in duration-300">
+            <div className="bg-teal-50 dark:bg-teal-900/60 p-3.5 rounded-full shadow-inner">
+              <Activity className="w-10 h-10 text-teal-600 dark:text-teal-400 animate-spin" />
+            </div>
+            <div>
+              <p className="font-black text-slate-900 dark:text-white uppercase tracking-widest text-base md:text-lg">
+                {lang === 'id' ? "Menganalisis..." : "Analyzing..."}
+              </p>
+              <p className="text-sm text-slate-600 dark:text-slate-400 font-semibold mt-1">
+                {lang === 'id' ? "Mesin Pakar sedang mencocokkan alga" : "Expert Engine is matching algae"}
               </p>
             </div>
           </div>
@@ -330,6 +382,8 @@ export default function AlgaeExpertEngine() {
         onChange={handleImageCapture}
         className="hidden"
       />
+      
+      {/* ... (Sisa kode ke bawah tetap sama) ... */}
 
       <div className="max-w-[1400px] mx-auto space-y-8 pb-10 text-slate-900 dark:text-slate-100">
         
