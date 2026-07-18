@@ -3,6 +3,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { unstable_noStore as noStore } from "next/cache"; // 💡 TAMBAHAN BARU
 import { verifyAquariumOwnership } from "@/features/aquariums/repositories/security.repository";
 import { pushNotificationAction } from "@/features/analytics/actions/notification.actions"; 
 
@@ -117,6 +118,8 @@ export async function startNewTreatmentSessionAction(payload: StartTreatmentPayl
 }
 
 export async function getActiveTreatmentsAction(aquariumIdFilter?: string): Promise<{ success: boolean; data: ActiveTreatmentDto[]; error?: string }> {
+  noStore(); // 💡 KUNCI 1: MATIKAN CACHE VERCEL DI SINI
+  
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
