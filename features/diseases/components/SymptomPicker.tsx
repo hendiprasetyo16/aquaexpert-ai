@@ -175,16 +175,23 @@ export function SymptomPicker({ aquariumId, availableSymptoms, onSubmitDiagnosis
     <div className="w-full bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col md:flex-row relative transition-colors">
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-teal-400 z-10"></div>
       
+      {/* 💡 GANTI KOTAK KECIL DI SymptomPicker.tsx DENGAN INI */}
       {isScanning && (
-        <div className="absolute inset-0 z-50 bg-blue-900/10 dark:bg-blue-900/20 backdrop-blur-[2px] flex items-center justify-center rounded-3xl overflow-hidden">
-          <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(59,130,246,0.2)_50%,transparent_100%)] h-32 animate-[scan_2s_ease-in-out_infinite]" style={{ backgroundSize: '100% 800%' }}></div>
-          <div className="bg-white/90 dark:bg-slate-900/90 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-blue-200 dark:border-blue-800 relative z-10">
-            <ScanLine className="w-8 h-8 text-blue-600 animate-pulse" />
+        <div className="fixed inset-0 z-[9999] bg-white/40 dark:bg-slate-900/60 backdrop-blur-md flex items-center justify-center overflow-hidden transition-all duration-300">
+          
+          {/* Efek Garis Scanner Biru Lembut */}
+          <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(59,130,246,0.15)_50%,transparent_100%)] h-64 animate-[pulse_2s_ease-in-out_infinite]"></div>
+          
+          {/* Kotak Dialog Pop-up Besar & Elegan */}
+          <div className="bg-white dark:bg-slate-900 px-8 py-6 rounded-2xl shadow-[0_15px_50px_rgba(59,130,246,0.25)] flex items-center gap-5 border-2 border-blue-500 relative z-10 animate-in zoom-in-95 fade-in duration-300">
+            <div className="bg-blue-50 dark:bg-blue-900/60 p-3.5 rounded-full shadow-inner">
+              <ScanLine className="w-10 h-10 text-blue-600 dark:text-blue-400 animate-pulse" />
+            </div>
             <div>
-              <p className="font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest text-sm">
+              <p className="font-black text-slate-900 dark:text-white uppercase tracking-widest text-base md:text-lg">
                 {lang === 'id' ? "Memindai Ikan..." : "Scanning Fish..."}
               </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <p className="text-sm text-slate-600 dark:text-slate-400 font-semibold mt-1">
                 {lang === 'id' ? "Gemini 2.5 Vision sedang bekerja" : "Gemini 2.5 Vision is working"}
               </p>
             </div>

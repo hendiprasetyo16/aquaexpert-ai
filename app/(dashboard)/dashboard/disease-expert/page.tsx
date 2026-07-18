@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { 
-  Stethoscope, AlertTriangle, Activity, Fish, ShieldPlus, ChevronLeft, ChevronRight, Droplets, Info
+  Stethoscope, AlertTriangle, Activity, Fish, ShieldPlus, ChevronLeft, ChevronRight, Droplets, Info, ScanLine
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -178,10 +178,32 @@ export default function DiseaseExpertPage() {
     );
   }
 
-  return (
-    <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors duration-300">
+return (
+    <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors duration-300 relative">
+      
+      {/* 💡 KEMBALIKAN INI KE EFEK MESIN PAKAR (DI FILE page.tsx) */}
+      {isDiagnosing && (
+        <div className="fixed inset-0 z-[9999] bg-white/40 dark:bg-slate-900/60 backdrop-blur-md flex items-center justify-center overflow-hidden transition-all duration-300">
+          <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(59,130,246,0.15)_50%,transparent_100%)] h-64 animate-[pulse_2s_ease-in-out_infinite]"></div>
+          
+          <div className="bg-white dark:bg-slate-900 px-8 py-6 rounded-2xl shadow-[0_15px_50px_rgba(59,130,246,0.25)] flex items-center gap-5 border-2 border-blue-500 relative z-10 animate-in zoom-in-95 fade-in duration-300">
+            <div className="bg-blue-50 dark:bg-blue-900/60 p-3.5 rounded-full shadow-inner">
+              <Activity className="w-10 h-10 text-blue-600 dark:text-blue-400 animate-spin" />
+            </div>
+            <div>
+              <p className="font-black text-slate-900 dark:text-white uppercase tracking-widest text-base md:text-lg">
+                {lang === 'id' ? "Menganalisis..." : "Analyzing..."}
+              </p>
+              <p className="text-sm text-slate-600 dark:text-slate-400 font-semibold mt-1">
+                {lang === 'id' ? "Mesin Pakar sedang mencocokkan patogen" : "Expert Engine is matching pathogens"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
-        
+
         <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden transition-colors">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/10 blur-[50px] rounded-full pointer-events-none"></div>
           <div className="relative z-10">
