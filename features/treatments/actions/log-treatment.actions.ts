@@ -16,9 +16,12 @@ interface LogPayload {
   newFishLostCount?: number;
   notes?: string;
   lang?: "id" | "en";
+  waterParameters?: { temp?: number | ""; ammonia?: number | ""; nitrite?: number | "" };
 }
 
-async function getUserAndAquariumName(supabase: any, userId: string, aquariumId: string) {
+// 💡 FIX: Menghapus parameter "supabase: any" dan memanggilnya langsung di dalam fungsi
+async function getUserAndAquariumName(userId: string, aquariumId: string) {
+  const supabase = await createClient();
   const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', userId).single();
   const { data: aq } = await supabase.from("my_aquariums").select("name").eq("id", aquariumId).single();
   return { 
@@ -62,7 +65,7 @@ export async function deleteTreatmentSessionAction(sessionId: string, aquariumId
       }
     }
 
-    const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, aquariumId);
+    const { userName, aqName } = await getUserAndAquariumName(user.id, aquariumId);
     await pushNotificationAction(
       "Sesi Pengobatan Dihapus",
       `${userName} menghapus riwayat sesi pengobatan "${disease?.name_id || 'Penyakit'}" di akuarium "${aqName}".`,
@@ -80,7 +83,7 @@ export async function deleteTreatmentSessionAction(sessionId: string, aquariumId
 }
 
 export async function logDailyTreatmentAction({
-  aquariumId, sessionId, remainingSymptomIds, actionTaken, medicationDose = 0, newFishLostCount = 0, notes = "", lang = "id"
+  aquariumId, sessionId, remainingSymptomIds, actionTaken, medicationDose = 0, newFishLostCount = 0, notes = "", lang = "id", waterParameters
 }: LogPayload): Promise<LogTreatmentResponse> {
   try {
     const supabase = await createClient();
@@ -115,10 +118,26 @@ export async function logDailyTreatmentAction({
     let recId = "Pengobatan dicatat. Terus pantau fauna.";
     let recEn = "Treatment logged. Keep monitoring.";
 
-    const { userName, aqName } = await getUserAndAquariumName(supabase, user.id, aquariumId);
+    const { userName, aqName } = await getUserAndAquariumName(user.id, aquariumId);
     let notifTitle = `Catat Medis (Hari ${dayNumber})`;
     let notifMessage = `${userName} mencatat perkembangan "${dName}" di akuarium "${aqName}". Aksi: ${actionTaken}.`;
     let notifCategory: "user_activity" | "alert" | "system" = "user_activity";
+
+    const { data: recentLogs } = await supabase
+      .from("treatment_logs")
+      .select("severity_score, day_number")
+      .eq("session_id", sessionId)
+      .order("day_number", { ascending: false })
+      .limit(2);
+
+    let isStalled = false;
+    if (recentLogs && recentLogs.length === 2 && dayNumber >= 3) {
+      const logYesterday = recentLogs[0].severity_score;
+      const logDayBefore = recentLogs[1].severity_score;
+      if (currentCount >= logYesterday && logYesterday >= logDayBefore) {
+        isStalled = true;
+      }
+    }
 
     if (actionTaken === "Medication Changed") {
       autoUpdateStatus = "Aborted";
@@ -135,11 +154,20 @@ export async function logDailyTreatmentAction({
       notifMessage = `Luar Biasa! ${userName} berhasil menyembuhkan "${dName}" di akuarium "${aqName}".`;
       notifCategory = "system"; 
     } else if (newFishLostCount > 0) {
-      recId = "Ada kematian. Tolong cek ulang kecocokan obat.";
-      notifTitle = "Peringatan: Ada Korban Jiwa";
-      notifMessage = `${userName} mencatat ada kematian selama pengobatan "${dName}" di akuarium "${aqName}".`;
+      recId = "Ada kematian baru. Obat mungkin kurang efektif atau terlambat.";
+      notifTitle = "Peringatan: Ada Kematian Fauna";
+      notifMessage = `${userName} mencatat kematian selama pengobatan "${dName}" di akuarium "${aqName}".`;
+      notifCategory = "alert";
+    } else if (isStalled) {
+      recId = "Peringatan Pakar: Gejala tidak mereda selama 3 hari berturut-turut. Pertimbangkan diagnosis ulang atau ganti obat.";
+      notifTitle = "Sistem Pakar: Pengobatan Stagnan ⚠️";
+      notifMessage = `Pengobatan "${dName}" di akuarium "${aqName}" tidak menunjukkan progres positif dalam 3 hari terakhir.`;
       notifCategory = "alert";
     }
+
+    const cleanWaterParams = (waterParameters?.temp || waterParameters?.ammonia || waterParameters?.nitrite) 
+      ? waterParameters 
+      : null;
 
     const logData = {
       session_id: sessionId,
@@ -149,13 +177,13 @@ export async function logDailyTreatmentAction({
       action_taken: actionTaken,
       notes: notes,
       medication_dose: medicationDose,
+      water_parameters: cleanWaterParams,
       log_date: new Date().toISOString()
     };
     
     const { data: existingLog } = await supabase.from("treatment_logs").select("id, notes, action_taken").eq("session_id", sessionId).eq("day_number", dayNumber).maybeSingle();
     
     if (existingLog) {
-      // 💡 FIX 2: Catatan Terbaru Ditampilkan Paling Atas
       let finalNotes = existingLog.notes || "";
       if (notes && notes.trim() !== "") {
         finalNotes = existingLog.notes ? `[Update]: ${notes} \n${existingLog.notes}` : notes;
@@ -165,12 +193,10 @@ export async function logDailyTreatmentAction({
         ...logData,
         notes: finalNotes 
       }).eq("id", existingLog.id);
-      
       if (error) throw error;
       
       notifTitle = `Update Catatan Medis (Hari ${dayNumber})`;
       notifMessage = `${userName} merevisi catatan medis "${dName}" hari ini menjadi: ${actionTaken}.`;
-      
     } else {
       const { error } = await supabase.from("treatment_logs").insert(logData);
       if (error) throw error;
@@ -209,7 +235,7 @@ export async function logDailyTreatmentAction({
     revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
     return {
       success: true,
-      analytics: { isImproving: true, recoveryPercentage: recoveryRate, aiRecommendationId: recId, aiRecommendationEn: recEn }
+      analytics: { isImproving: !isStalled, recoveryPercentage: recoveryRate, aiRecommendationId: recId, aiRecommendationEn: recEn }
     };
 
   } catch (error: unknown) {

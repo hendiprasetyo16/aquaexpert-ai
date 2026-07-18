@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/providers/LanguageProvider";
-import { Activity, Fish, AlertCircle, HeartPulse, Loader2, Syringe, CheckCircle2, XCircle, History, CalendarDays, Clock, Trash2, AlertTriangle } from "lucide-react";
+import { Activity, Fish, AlertCircle, HeartPulse, Loader2, Syringe, CheckCircle2, XCircle, History, CalendarDays, Clock, Trash2, AlertTriangle, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getActiveTreatmentsAction, ActiveTreatmentDto } from "@/features/treatments/actions/start-treatment.actions"; 
 import { deleteTreatmentSessionAction } from "@/features/treatments/actions/log-treatment.actions";
@@ -11,12 +11,17 @@ import toast from "react-hot-toast";
 
 import DailyLogModal from "@/features/treatments/components/DailyLogModal"; 
 
+// 💡 FIX: Menambahkan ekstensi properti untuk mengamankan data fish_lost_count
+type ExtendedSession = ActiveTreatmentDto & { fish_lost_count?: number };
+
 export default function TreatmentWardPage() {
   const { dict, language } = useLanguage();
   const lang = language as "id" | "en";
   
+  // 💡 FIX: Mengganti any dengan unknown yang lebih ketat standar TypeScript
   const rootDict = (dict as Record<string, unknown>) || {};
-  const tDict = (rootDict.disease as Record<string, any>)?.treatmentDashboard || rootDict.treatmentDashboard || {};
+  const diseaseDict = rootDict.disease as Record<string, unknown> | undefined;
+  const tDict = (diseaseDict?.treatmentDashboard as Record<string, string>) || (rootDict.treatmentDashboard as Record<string, string>) || {};
 
   const [activePatients, setActivePatients] = useState<ActiveTreatmentDto[]>([]);
   const [historyPatients, setHistoryPatients] = useState<ActiveTreatmentDto[]>([]);
@@ -79,7 +84,6 @@ export default function TreatmentWardPage() {
     setDeleteTarget(null);
   };
 
-  // 💡 FIX: Murni memecah teks tanpa me-reverse karena Backend sudah otomatis menaruh yang terbaru di atas.
   const parseNotes = (rawNotes: string | null) => {
     if (!rawNotes) return null;
     const lines = rawNotes.split(/\\n|\r?\n|<br\s*\/?>/i)
@@ -108,21 +112,10 @@ export default function TreatmentWardPage() {
                   : (lang === 'id' ? "Gunakan ini hanya jika Anda SALAH INPUT pasien. Semua rekam medis hari ini akan ikut terhapus." : "Use this only if you made a MISTAKE. All logs today will be deleted.")}
               </p>
               <div className="flex flex-col gap-3">
-                <Button 
-                  className="w-full h-12 bg-red-600 hover:bg-red-500 text-white font-black uppercase rounded-xl" 
-                  disabled={isDeleting} 
-                  onClick={executeDelete}
-                >
+                <Button className="w-full h-12 bg-red-600 hover:bg-red-500 text-white font-black uppercase rounded-xl" disabled={isDeleting} onClick={executeDelete}>
                   {isDeleting ? <Loader2 className="w-5 h-5 animate-spin mx-auto"/> : (lang === 'id' ? "YA, HAPUS PERMANEN" : "YES, DELETE PERMANENTLY")}
                 </Button>
-                <Button 
-                  onClick={() => setDeleteTarget(null)} 
-                  variant="ghost" 
-                  disabled={isDeleting} 
-                  className="w-full h-12 font-bold uppercase rounded-xl border border-slate-200 dark:border-slate-700"
-                >
-                  {lang === 'id' ? "Batal" : "Cancel"}
-                </Button>
+                <Button onClick={() => setDeleteTarget(null)} variant="ghost" disabled={isDeleting} className="w-full h-12 font-bold uppercase rounded-xl border border-slate-200 dark:border-slate-700">{lang === 'id' ? "Batal" : "Cancel"}</Button>
               </div>
             </div>
           </div>
@@ -161,14 +154,18 @@ export default function TreatmentWardPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {activePatients.map((session) => {
-              const dayNum = calculateDayNumber(session.started_at);
-              const diseaseName = lang === 'id' ? session.disease?.name_id : session.disease?.name_en;
-              const hasLoggedToday = session.latest_log?.day_number === dayNum;
+              const extendedSession = session as ExtendedSession; // 💡 FIX Tipe Data
+              const dayNum = calculateDayNumber(extendedSession.started_at);
+              const diseaseName = lang === 'id' ? extendedSession.disease?.name_id : extendedSession.disease?.name_en;
+              const hasLoggedToday = extendedSession.latest_log?.day_number === dayNum;
+              
+              const isStalled = dayNum >= 3 && extendedSession.current_recovery_rate < 20;
+              const hasDeath = (extendedSession.fish_lost_count || 0) > 0;
 
               return (
-                <div key={session.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col relative group">
+                <div key={extendedSession.id} className={`bg-white dark:bg-slate-900 border-2 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col relative group ${hasDeath || isStalled ? 'border-amber-400 dark:border-amber-600' : 'border-slate-200 dark:border-slate-800'}`}>
                   
-                  <button onClick={() => setDeleteTarget({id: session.id, type: 'active', aquariumId: session.aquarium_id})} className="absolute top-4 right-4 p-2 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm md:shadow-none">
+                  <button onClick={() => setDeleteTarget({id: extendedSession.id, type: 'active', aquariumId: extendedSession.aquarium_id})} className="absolute top-4 right-4 p-2 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm md:shadow-none hover:bg-red-100">
                     <Trash2 className="w-4 h-4"/>
                   </button>
 
@@ -180,7 +177,7 @@ export default function TreatmentWardPage() {
                       </div>
                       <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 leading-tight pr-8">{diseaseName}</h3>
                       <p className="text-xs font-semibold text-slate-500 mt-1.5 flex items-center gap-1.5">
-                        <Fish className="w-3.5 h-3.5"/> {session.aquarium?.name}
+                        <Fish className="w-3.5 h-3.5"/> {extendedSession.aquarium?.name}
                       </p>
                     </div>
                   </div>
@@ -189,21 +186,37 @@ export default function TreatmentWardPage() {
                     <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
                       <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">{lang === 'id' ? "PENGOBATAN" : "MEDICATION"}</p>
                       <p className="text-sm font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2">
-                        <Syringe className="w-4 h-4"/> {lang === 'id' ? session.medication?.name_id : session.medication?.name_en}
+                        <Syringe className="w-4 h-4"/> {lang === 'id' ? extendedSession.medication?.name_id : extendedSession.medication?.name_en}
                       </p>
                     </div>
 
-                    {hasLoggedToday && session.latest_log && (
+                    {(hasDeath || isStalled) && (
+                      <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-3 rounded-r-xl">
+                        <div className="flex gap-2 items-start text-amber-800 dark:text-amber-300">
+                          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <div className="text-xs leading-relaxed">
+                            <p className="font-bold mb-0.5">{lang === 'id' ? "Peringatan Sistem Pakar" : "Expert System Warning"}</p>
+                            <p className="font-medium opacity-90">
+                              {hasDeath 
+                                ? (lang === 'id' ? "Ada kematian terdeteksi. Dosis mungkin kurang atau obat tidak cocok." : "Fatalities detected. Dose might be low or incompatible.")
+                                : (lang === 'id' ? "Pengobatan stagnan selama 3 hari. Pertimbangkan ganti diagnosa/obat." : "Stagnant recovery for 3 days. Consider re-diagnosis.")
+                              }
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {hasLoggedToday && extendedSession.latest_log && (
                       <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 p-3 rounded-xl">
                         <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mb-1"><CheckCircle2 className="w-3 h-3"/> {lang === 'id' ? "SUDAH DIUPDATE HARI INI" : "UPDATED TODAY"}</p>
                         <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          {session.latest_log.action_taken === "Observed" ? (lang === 'id' ? "Hanya Observasi" : "Observed") 
-                           : session.latest_log.action_taken === "Redosed" ? (lang === 'id' ? "Dosis Ulang" : "Redosed") 
-                           : session.latest_log.action_taken === "Water Change" ? (lang === 'id' ? "Ganti Air" : "Water Change") : session.latest_log.action_taken}
+                          {extendedSession.latest_log.action_taken === "Observed" ? (lang === 'id' ? "Hanya Observasi" : "Observed") 
+                           : extendedSession.latest_log.action_taken === "Redosed" ? (lang === 'id' ? "Dosis Ulang" : "Redosed") 
+                           : extendedSession.latest_log.action_taken === "Water Change" ? (lang === 'id' ? "Ganti Air" : "Water Change") : extendedSession.latest_log.action_taken}
                           
-                          {/* 🚀 HASIL RENDER TANPA REVERSE */}
                           <div className="font-normal italic text-slate-500 mt-2 max-h-24 overflow-y-auto custom-scrollbar flex flex-col">
-                            {parseNotes(session.latest_log.notes)}
+                            {parseNotes(extendedSession.latest_log.notes)}
                           </div>
                         </div>
                       </div>
@@ -211,17 +224,27 @@ export default function TreatmentWardPage() {
 
                     <div>
                       <div className="flex justify-between items-end mb-2">
-                        <span className="text-xs font-bold text-slate-500">Recovery</span>
-                        <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">{session.current_recovery_rate}%</span>
+                        <span className="text-xs font-bold text-slate-500 flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5"/> Grafik Kesembuhan</span>
+                        <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">{extendedSession.current_recovery_rate}%</span>
                       </div>
-                      <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
-                        <div className="h-2.5 rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${session.current_recovery_rate}%` }} />
+                      
+                      <div className="relative pt-2">
+                        <div className="absolute left-0 top-0 text-[9px] font-bold text-slate-400">0% (Hari 1)</div>
+                        <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-3 overflow-hidden mt-2 relative border border-slate-300 dark:border-slate-700 shadow-inner">
+                          <div className="h-3 rounded-full transition-all duration-700 relative overflow-hidden" 
+                               style={{ 
+                                 width: `${extendedSession.current_recovery_rate}%`, 
+                                 background: `linear-gradient(90deg, #3b82f6 0%, #10b981 100%)` 
+                               }}>
+                            <div className="absolute top-0 bottom-0 left-0 w-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   <div className="p-5 pt-0">
-                    <Button onClick={() => setSelectedSession(session)} className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-rose-600 dark:hover:bg-rose-500 text-white font-black uppercase tracking-widest text-xs transition-colors shadow-md">
+                    <Button onClick={() => setSelectedSession(extendedSession)} className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-rose-600 dark:hover:bg-rose-500 text-white font-black uppercase tracking-widest text-xs transition-colors shadow-md">
                       <Activity className="w-4 h-4 mr-2"/> 
                       {hasLoggedToday ? (lang === 'id' ? "Edit Data Hari Ini" : "Edit Today's Data") : (lang === 'id' ? "Catat Medis Hari Ini" : "Log Today's Medical")}
                     </Button>
