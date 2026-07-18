@@ -300,18 +300,21 @@ export default function AlgaeExpertEngine() {
   return (
     <div className="w-full h-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 relative">
       
-      {/* 💡 EFEK SCANNER OVERLAY SAAT MEMPROSES FOTO */}
+      {/* 💡 EFEK SCANNER OVERLAY SAAT MEMPROSES FOTO (DIPERBAIKI SOLID & GELAP) */}
       {isScanning && (
-        <div className="fixed inset-0 z-[100] bg-teal-900/40 backdrop-blur-[4px] flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(20,184,166,0.3)_50%,transparent_100%)] h-32 animate-[scan_2s_ease-in-out_infinite]" style={{ backgroundSize: '100% 800%' }}></div>
-          <div className="bg-white/95 dark:bg-slate-900/95 px-6 py-5 rounded-2xl shadow-2xl flex items-center gap-4 border border-teal-200 dark:border-teal-800 relative z-10 scale-in-center">
-            <ScanLine className="w-10 h-10 text-teal-600 animate-pulse" />
+        <div className="fixed inset-0 z-[9999] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 bg-[linear-gradient(transparent_0%,rgba(20,184,166,0.2)_50%,transparent_100%)] h-64 animate-[pulse_2s_ease-in-out_infinite]"></div>
+          
+          <div className="bg-white dark:bg-slate-900 px-8 py-6 rounded-2xl shadow-[0_0_50px_rgba(20,184,166,0.4)] flex items-center gap-5 border-2 border-teal-500 relative z-10 transform transition-all">
+            <div className="bg-teal-100 dark:bg-teal-900/60 p-3.5 rounded-full shadow-inner">
+              <ScanLine className="w-10 h-10 text-teal-600 dark:text-teal-400 animate-pulse" />
+            </div>
             <div>
-              <p className="font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest text-sm md:text-base">
+              <p className="font-black text-slate-900 dark:text-white uppercase tracking-widest text-base md:text-lg">
                 {lang === 'id' ? "Memindai Alga..." : "Scanning Algae..."}
               </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                {lang === 'id' ? "Mengidentifikasi Warna & Tekstur" : "Identifying Color & Texture"}
+              <p className="text-sm text-slate-600 dark:text-slate-400 font-semibold mt-1">
+                {lang === 'id' ? "AI sedang mengidentifikasi Warna & Tekstur" : "AI is identifying Color & Texture"}
               </p>
             </div>
           </div>
