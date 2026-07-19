@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { getActiveTreatmentsAction, ActiveTreatmentDto } from "@/features/treatments/actions/start-treatment.actions"; 
 import { deleteTreatmentSessionAction } from "@/features/treatments/actions/log-treatment.actions";
 import toast from "react-hot-toast";
-
+import WaterQualityChart from "@/features/treatments/components/WaterQualityChart";
 import DailyLogModal from "@/features/treatments/components/DailyLogModal"; 
 
 // 💡 FIX: Menambahkan ekstensi properti untuk mengamankan data fish_lost_count
@@ -241,6 +241,9 @@ export default function TreatmentWardPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* 💡 TAMBAHKAN GRAFIK AIR DI SINI JUGA */}
+                    <WaterQualityChart sessionId={extendedSession.id} lang={lang} />
                   </div>
 
                   <div className="p-5 pt-0">

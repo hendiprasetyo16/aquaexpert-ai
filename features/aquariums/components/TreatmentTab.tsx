@@ -12,6 +12,7 @@ import { getActiveTreatmentsAction, ActiveTreatmentDto } from "@/features/treatm
 import { deleteTreatmentSessionAction } from "@/features/treatments/actions/log-treatment.actions";
 import { getAquariumByIdAction } from "../actions/aquarium.actions";
 import toast from "react-hot-toast";
+import WaterQualityChart from "@/features/treatments/components/WaterQualityChart";
 
 interface Props { aquariumId: string; }
 
@@ -240,6 +241,9 @@ export default function TreatmentTab({ aquariumId }: Props) {
                           </div>
                         </div>
                       </div>
+
+                      {/* 💡 TAMBAHKAN GRAFIK AIR DI SINI */}
+                      <WaterQualityChart sessionId={extendedSession.id} lang={lang} />
                     </div>
 
                     <div className="p-5 pt-0">
