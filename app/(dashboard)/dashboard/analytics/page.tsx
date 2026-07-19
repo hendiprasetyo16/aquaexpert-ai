@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { getMedicationLeaderboardAction, LeaderboardRow } from "@/features/analytics/actions/analytics.actions";
 import MedicationLeaderboard from "@/features/analytics/components/MedicationLeaderboard";
-import GlobalRecoveryChart from "@/features/analytics/components/GlobalRecoveryChart"; // 💡 IMPORT GRAFIK BARU
+import GlobalRecoveryChart from "@/features/analytics/components/GlobalRecoveryChart";
+import TopDiseasesChart from "@/features/analytics/components/TopDiseasesChart"; // 💡 IMPORT GRAFIK KEDUA
 import { Activity, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -75,8 +76,11 @@ export default function AnalyticsDashboardPage() {
           </div>
         </div>
 
-        {/* 💡 KOMPONEN GRAFIK DONUT DITAMBAHKAN DI SINI */}
-        <GlobalRecoveryChart data={leaderboardData} lang={lang} />
+        {/* 💡 KEDUA GRAFIK DIJADIKAN BERSEBELAHAN DENGAN GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <GlobalRecoveryChart data={leaderboardData} lang={lang} />
+          <TopDiseasesChart data={leaderboardData} lang={lang} />
+        </div>
 
         <div className="space-y-4">
           <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 px-1 transition-colors">
