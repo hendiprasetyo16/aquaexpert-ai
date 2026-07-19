@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { getMedicationLeaderboardAction, LeaderboardRow } from "@/features/analytics/actions/analytics.actions";
 import MedicationLeaderboard from "@/features/analytics/components/MedicationLeaderboard";
+import GlobalRecoveryChart from "@/features/analytics/components/GlobalRecoveryChart"; // 💡 IMPORT GRAFIK BARU
 import { Activity, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -28,7 +29,6 @@ export default function AnalyticsDashboardPage() {
   useEffect(() => {
     async function loadAnalytics() {
       try {
-        // Ditingkatkan menjadi 50 agar paginasi berfungsi optimal jika data banyak
         const res = await getMedicationLeaderboardAction(50);
         if (res.success && res.data) {
           setLeaderboardData(res.data);
@@ -74,6 +74,9 @@ export default function AnalyticsDashboardPage() {
             </p>
           </div>
         </div>
+
+        {/* 💡 KOMPONEN GRAFIK DONUT DITAMBAHKAN DI SINI */}
+        <GlobalRecoveryChart data={leaderboardData} lang={lang} />
 
         <div className="space-y-4">
           <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 px-1 transition-colors">
