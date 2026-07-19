@@ -1,6 +1,7 @@
 // features/treatments/components/DailyLogModal.tsx
 "use client";
 
+import { useRouter } from "next/navigation"; // 💡 TAMBAHKAN INI
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom"; 
 import { X, Save, Loader2, Syringe, Droplets, Eye, Info, Trash2, AlertTriangle, Activity, ArchiveX, Beaker, Thermometer, TestTube2, AlertCircle } from "lucide-react";
@@ -29,6 +30,7 @@ interface MedicationInfo {
 }
 
 export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDict, lang, hasLoggedToday }: Props) {
+  const router = useRouter(); // 💡 TAMBAHKAN INI DI SINI
   const [mounted, setMounted] = useState(false); 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -132,7 +134,8 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
         if (isCured) toast.success(lang === 'id' ? "Selesai! Ikan dinyatakan sembuh." : "Completed! Fish marked as cured.");
         else toast.success(lang === 'id' ? "Rekam medis tersimpan!" : "Medical log saved!");
         await onSuccess(); onClose(); 
-        window.dispatchEvent(new Event("aquarium_data_changed"));       
+        window.dispatchEvent(new Event("aquarium_data_changed"));    
+        router.refresh(); // 💡 TAMBAHKAN INI AGAR VERCEL LANGSUNG REFRESH LAYAR   
       } else { toast.error(res.error || "Gagal menyimpan rekam medis."); }
     } finally { setIsSubmitting(false); }
   };
@@ -145,6 +148,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
       if (res.success) {
         toast.success(lang === 'id' ? "Sesi salah input dihapus!" : "Session deleted!");
         await onSuccess(); onClose(); window.dispatchEvent(new Event("aquarium_data_changed"));
+        router.refresh();
       } else { toast.error(res.error || "Gagal."); }
     } finally { setIsDeleting(false); setShowDeleteConfirm(false); }
   };
@@ -159,6 +163,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
       if (res.success) {
         toast.success(lang === 'id' ? "Dipindahkan ke Riwayat!" : "Moved to History!");
         await onSuccess(); onClose(); window.dispatchEvent(new Event("aquarium_data_changed"));        
+        router.refresh();
       } else { toast.error(res.error || "Gagal."); }
     } finally { setIsAborting(false); setShowAbortConfirm(false); }
   };
