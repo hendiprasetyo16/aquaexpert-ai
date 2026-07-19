@@ -98,8 +98,13 @@ export async function logDailyTreatmentAction({
     const { data: diseaseInfo } = await supabase.from("diseases").select("name_id").eq("id", session.disease_id).single();
     const dName = diseaseInfo?.name_id || 'Penyakit';
 
-    const startDate = new Date(session.started_at);
-    const today = new Date();
+    // 💡 PERBAIKAN 1: PAKSA JAM KE WAKTU INDONESIA BARAT (WIB)
+    const getWIBDate = (dateVal: Date | string) => {
+      return new Date(new Date(dateVal).toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
+    };
+
+    const startDate = getWIBDate(session.started_at);
+    const today = getWIBDate(new Date());
     
     const startMidnight = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
     const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -233,6 +238,8 @@ export async function logDailyTreatmentAction({
     await pushNotificationAction(notifTitle, notifMessage, notifCategory, userName);
 
     revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
+    revalidatePath(`/dashboard/treatments`); // 💡 PERBAIKAN 2: PAKSA REFRESH HALAMAN WARD
+    
     return {
       success: true,
       analytics: { isImproving: !isStalled, recoveryPercentage: recoveryRate, aiRecommendationId: recId, aiRecommendationEn: recEn }
