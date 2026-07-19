@@ -2,9 +2,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Droplets, Loader2, AlertTriangle } from "lucide-react";
-import { getWaterQualityLogsAction } from "../actions/waterqualitylogs.action"; // 💡 Import ke file baru
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Droplets, Loader2 } from "lucide-react";
+import { getWaterQualityLogsAction } from "../actions/waterqualitylogs.action"; 
 
 interface Props {
   sessionId: string;
@@ -16,15 +16,32 @@ export default function WaterQualityChart({ sessionId, lang }: Props) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    
     async function fetchData() {
       setIsLoading(true);
       const res = await getWaterQualityLogsAction(sessionId);
-      if (res.success && res.data) {
-        setData(res.data);
+      if (isMounted) {
+        if (res.success && res.data) {
+          setData(res.data);
+        }
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }
+
+    // Tarik data saat pertama kali komponen dimunculkan
     if (sessionId) fetchData();
+
+    // 💡 FIX: Pasang "telinga" agar grafik refresh otomatis saat ada update data harian
+    const handleDataChange = () => {
+      if (sessionId) fetchData();
+    };
+    window.addEventListener("aquarium_data_changed", handleDataChange);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("aquarium_data_changed", handleDataChange);
+    };
   }, [sessionId]);
 
   if (isLoading) {
@@ -35,11 +52,14 @@ export default function WaterQualityChart({ sessionId, lang }: Props) {
     );
   }
 
-  // Jika tidak ada data, kita kembalikan null agar kartunya tidak terlihat kosong/jelek
-  if (data.length === 0) return null; 
+  // Cek apakah minimal ada 1 angka parameter air yang diisi
+  const hasValidData = data.some(d => d.temp !== null || d.ammonia !== null || d.nitrite !== null);
+  
+  // Jika log kosong ATAU tidak ada angka air yang diisi, sembunyikan kotak grafiknya
+  if (data.length === 0 || !hasValidData) return null; 
 
   return (
-    <div className="w-full mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/60">
+    <div className="w-full mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/60 animate-in fade-in duration-500">
       <div className="flex items-center gap-1.5 mb-3">
         <Droplets className="w-4 h-4 text-blue-500" />
         <h4 className="text-xs font-bold text-slate-600 dark:text-slate-400">

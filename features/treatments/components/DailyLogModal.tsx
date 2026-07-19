@@ -29,6 +29,16 @@ interface MedicationInfo {
   dosage_unit: string;
 }
 
+// 💡 TAMBAHKAN INI TEPAT DI BAWAH interface MedicationInfo
+type ExtendedSession = ActiveTreatmentDto & {
+  latest_log?: {
+    action_taken: string;
+    notes: string;
+    day_number: number;
+    remaining_symptoms?: string[];
+  } | null;
+};
+
 export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDict, lang, hasLoggedToday }: Props) {
   const router = useRouter(); 
   const [mounted, setMounted] = useState(false); 
@@ -42,11 +52,18 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
     (session.latest_log?.action_taken as ActionTaken) || "Observed"
   );
   
+  // 💡 FIX BUG 1: Selalu biarkan kosong agar tidak menduplikasi riwayat catatan lama
+  const [notes, setNotes] = useState(""); 
+  
+  // 💡 FIX BUG 2: Gunakan data sisa gejala terakhir agar checklist tidak mereset ke awal setiap hari
+  const extendedSession = session as ExtendedSession; // <-- Casting aman standar TypeScript
+  const [remainingSymptoms, setRemainingSymptoms] = useState<string[]>(
+    extendedSession.latest_log?.remaining_symptoms || extendedSession.initial_symptoms || []
+  );
+  
   const [waterChangePct, setWaterChangePct] = useState<number | "">(50); 
   const [medicationDose, setMedicationDose] = useState<number | "">("");
   const [newFishLostCount, setNewFishLostCount] = useState<number | "">(0);
-  const [notes, setNotes] = useState(session.latest_log?.notes || "");
-  const [remainingSymptoms, setRemainingSymptoms] = useState<string[]>(session.initial_symptoms || []);
   
   const [temp, setTemp] = useState<number | "">("");
   const [ammonia, setAmmonia] = useState<number | "">("");
@@ -234,7 +251,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 p-4 rounded-xl flex gap-3 text-blue-800 dark:text-blue-300">
                   <Info className="w-5 h-5 shrink-0 mt-0.5"/>
                   <p className="text-[11px] sm:text-xs font-bold leading-relaxed">
-                    {lang === 'id' ? "Anda SUDAH MENGISI log hari ini. Jika disimpan, catatan baru akan digabungkan." : "You HAVE LOGGED today. Saving will UPDATE your previous entry."}
+                    {lang === 'id' ? "Anda SUDAH MENGISI log hari ini. Jika disimpan, catatan baru akan digabungkan dengan aman." : "You HAVE LOGGED today. Saving will SECURELY APPEND your new entry."}
                   </p>
                 </div>
               )}
@@ -385,7 +402,15 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
 
               <div className="space-y-2">
                 <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{lang === 'id' ? "Catatan Klinis (Opsional)" : "Clinical Notes (Optional)"}</label>
-                <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none focus:border-blue-500 font-medium text-sm custom-scrollbar resize-none" placeholder={lang === 'id' ? 'Contoh: Ikan mulai mau makan pelet...' : 'e.g., Fish responds to pellets...'} />
+                <textarea 
+                  rows={3} 
+                  value={notes} 
+                  onChange={(e) => setNotes(e.target.value)} 
+                  className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none focus:border-blue-500 font-medium text-sm custom-scrollbar resize-none" 
+                  placeholder={hasLoggedToday 
+                    ? (lang === 'id' ? 'Ketik update baru di sini. (Catatan yang sebelumnya sudah tersimpan dengan aman)' : 'Type new updates here. (Previous notes are safe)') 
+                    : (lang === 'id' ? 'Contoh: Ikan mulai mau makan pelet...' : 'e.g., Fish responds to pellets...')} 
+                />
               </div>
             </form>
           </div>

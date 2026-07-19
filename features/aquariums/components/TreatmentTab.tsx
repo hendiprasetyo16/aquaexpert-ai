@@ -13,6 +13,7 @@ import { deleteTreatmentSessionAction } from "@/features/treatments/actions/log-
 import { getAquariumByIdAction } from "../actions/aquarium.actions";
 import toast from "react-hot-toast";
 import WaterQualityChart from "@/features/treatments/components/WaterQualityChart";
+import TreatmentLogsTimeline from "@/features/treatments/components/TreatmentLogsTimeline";
 
 interface Props { aquariumId: string; }
 
@@ -212,20 +213,11 @@ export default function TreatmentTab({ aquariumId }: Props) {
                         </div>
                       )}
 
-                      {hasLoggedToday && extendedSession.latest_log && (
-                        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 p-3 rounded-xl">
-                          <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mb-1"><CheckCircle2 className="w-3 h-3"/> {lang === 'id' ? "SUDAH DIUPDATE HARI INI" : "UPDATED TODAY"}</p>
-                          <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                            {extendedSession.latest_log.action_taken === "Observed" ? (lang === 'id' ? "Hanya Observasi" : "Observed") 
-                            : extendedSession.latest_log.action_taken === "Redosed" ? (lang === 'id' ? "Dosis Ulang" : "Redosed") 
-                            : extendedSession.latest_log.action_taken === "Water Change" ? (lang === 'id' ? "Ganti Air" : "Water Change") : extendedSession.latest_log.action_taken}
-                            
-                            <div className="font-normal italic text-slate-500 mt-2 max-h-24 overflow-y-auto custom-scrollbar flex flex-col">
-                              {parseNotes(extendedSession.latest_log.notes)}
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      <TreatmentLogsTimeline 
+                        sessionId={extendedSession.id} 
+                        lang={lang} 
+                        hasLoggedToday={hasLoggedToday} 
+                      />
 
                       <div>
                         <div className="flex justify-between items-end mb-2">
