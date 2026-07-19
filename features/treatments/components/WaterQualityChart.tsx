@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Droplets, Loader2 } from "lucide-react";
 import { getWaterQualityLogsAction } from "../actions/waterqualitylogs.action"; 
 
@@ -23,7 +23,16 @@ export default function WaterQualityChart({ sessionId, lang }: Props) {
       const res = await getWaterQualityLogsAction(sessionId);
       if (isMounted) {
         if (res.success && res.data) {
-          setData(res.data);
+          // 💡 TRICK ANTI-BLANK: Jika data cuma 1, kita gandakan jadi 2 titik (Hari 0)
+          // Agar Recharts tetap bisa menggambar garis rata.
+          let finalData = [...res.data];
+          if (finalData.length === 1) {
+            finalData = [
+              { ...finalData[0], day: `Start` }, 
+              finalData[0]
+            ];
+          }
+          setData(finalData);
         }
         setIsLoading(false);
       }
@@ -31,10 +40,7 @@ export default function WaterQualityChart({ sessionId, lang }: Props) {
 
     if (sessionId) fetchData();
 
-    // Listener agar grafik otomatis refresh saat Bapak klik Simpan di modal
-    const handleDataChange = () => {
-      if (sessionId) fetchData();
-    };
+    const handleDataChange = () => { if (sessionId) fetchData(); };
     window.addEventListener("aquarium_data_changed", handleDataChange);
 
     return () => {
@@ -51,7 +57,6 @@ export default function WaterQualityChart({ sessionId, lang }: Props) {
     );
   }
 
-  // Cek apakah ada angka air yang diisi
   const hasValidData = data.some(d => d.temp !== null || d.ammonia !== null || d.nitrite !== null);
   if (data.length === 0 || !hasValidData) return null; 
 
@@ -66,21 +71,21 @@ export default function WaterQualityChart({ sessionId, lang }: Props) {
       
       <div className="w-full h-[180px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" className="dark:stroke-slate-800/50" />
             <XAxis dataKey="day" tick={{ fontSize: 9, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} dy={5} />
             <YAxis yAxisId="left" tick={{ fontSize: 9, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} width={30} />
             <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} width={30} />
             <Tooltip 
               contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px', padding: '8px' }}
-              cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
+              labelStyle={{ fontWeight: 900, color: '#1e293b', marginBottom: '2px' }}
             />
             
-            {/* 💡 FIX: Menggunakan Grafik Batang (Bar) agar 1 titik data tetap muncul! */}
-            <Bar yAxisId="left" name={lang === 'id' ? "Suhu (°C)" : "Temp (°C)"} dataKey="temp" fill="#3b82f6" radius={[2, 2, 0, 0]} maxBarSize={15} />
-            <Bar yAxisId="right" name="Amonia (ppm)" dataKey="ammonia" fill="#f59e0b" radius={[2, 2, 0, 0]} maxBarSize={15} />
-            <Bar yAxisId="right" name="Nitrit (ppm)" dataKey="nitrite" fill="#f43f5e" radius={[2, 2, 0, 0]} maxBarSize={15} />
-          </BarChart>
+            {/* Kembali gunakan Line, lebih keren! */}
+            <Line yAxisId="left" type="monotone" name={lang === 'id' ? "Suhu" : "Temp"} dataKey="temp" stroke="#3b82f6" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls />
+            <Line yAxisId="right" type="monotone" name="NH3" dataKey="ammonia" stroke="#f59e0b" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls />
+            <Line yAxisId="right" type="monotone" name="NO2" dataKey="nitrite" stroke="#f43f5e" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} connectNulls />
+          </LineChart>
         </ResponsiveContainer>
       </div>
     </div>
