@@ -1,7 +1,7 @@
 // features/treatments/components/DailyLogModal.tsx
 "use client";
 
-import { useRouter } from "next/navigation"; // 💡 TAMBAHKAN INI
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom"; 
 import { X, Save, Loader2, Syringe, Droplets, Eye, Info, Trash2, AlertTriangle, Activity, ArchiveX, Beaker, Thermometer, TestTube2, AlertCircle } from "lucide-react";
@@ -30,7 +30,7 @@ interface MedicationInfo {
 }
 
 export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDict, lang, hasLoggedToday }: Props) {
-  const router = useRouter(); // 💡 TAMBAHKAN INI DI SINI
+  const router = useRouter(); 
   const [mounted, setMounted] = useState(false); 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -48,7 +48,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
   const [notes, setNotes] = useState(session.latest_log?.notes || "");
   const [remainingSymptoms, setRemainingSymptoms] = useState<string[]>(session.initial_symptoms || []);
   
-  // 💡 FITUR BARU: State Parameter Air Kritis
   const [temp, setTemp] = useState<number | "">("");
   const [ammonia, setAmmonia] = useState<number | "">("");
   const [nitrite, setNitrite] = useState<number | "">("");
@@ -60,7 +59,7 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
   const initialCount = Math.max(1, session.initial_symptoms?.length || 1);
   const currentCount = remainingSymptoms.length;
   const projectedRecovery = Math.max(0, Math.min(100, Math.round(((initialCount - currentCount) / initialCount) * 100)));
-  const isCured = projectedRecovery === 100; // 💡 Deteksi Sembuh 100%
+  const isCured = projectedRecovery === 100; 
 
   const calculatedBaseDose = (tankVolume > 0 && medInfo) ? (tankVolume / 100) * medInfo.base_dosage_per_100l : 0;
   const currentWaterChangePct = Number(waterChangePct) || 0;
@@ -127,27 +126,28 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
         aquariumId: session.aquarium_id, sessionId: session.id, remainingSymptomIds: remainingSymptoms,
         actionTaken: actionTaken, medicationDose: Number(medicationDose) || 0, newFishLostCount: Number(newFishLostCount) || 0,
         notes: notes, lang: lang,
-        waterParameters: { temp: temp, ammonia: ammonia, nitrite: nitrite } // 💡 Inject Data Air
+        waterParameters: { temp: temp, ammonia: ammonia, nitrite: nitrite } 
       });
       if (res.success) {
-        // Tampilkan pesan dinamis jika sembuh
         if (isCured) toast.success(lang === 'id' ? "Selesai! Ikan dinyatakan sembuh." : "Completed! Fish marked as cured.");
         else toast.success(lang === 'id' ? "Rekam medis tersimpan!" : "Medical log saved!");
-        await onSuccess(); onClose(); 
+        await onSuccess(); 
+        onClose(); 
         window.dispatchEvent(new Event("aquarium_data_changed"));    
-        router.refresh(); // 💡 TAMBAHKAN INI AGAR VERCEL LANGSUNG REFRESH LAYAR   
+        router.refresh(); 
       } else { toast.error(res.error || "Gagal menyimpan rekam medis."); }
     } finally { setIsSubmitting(false); }
   };
 
-  // ...(Fungsi handleDeleteSession dan handleAbortSession sama seperti sebelumnya)
   const handleDeleteSession = async () => {
     setIsDeleting(true);
     try {
       const res = await deleteTreatmentSessionAction(session.id, session.aquarium_id);
       if (res.success) {
         toast.success(lang === 'id' ? "Sesi salah input dihapus!" : "Session deleted!");
-        await onSuccess(); onClose(); window.dispatchEvent(new Event("aquarium_data_changed"));
+        await onSuccess(); 
+        onClose(); 
+        window.dispatchEvent(new Event("aquarium_data_changed"));
         router.refresh();
       } else { toast.error(res.error || "Gagal."); }
     } finally { setIsDeleting(false); setShowDeleteConfirm(false); }
@@ -162,7 +162,9 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
       });
       if (res.success) {
         toast.success(lang === 'id' ? "Dipindahkan ke Riwayat!" : "Moved to History!");
-        await onSuccess(); onClose(); window.dispatchEvent(new Event("aquarium_data_changed"));        
+        await onSuccess(); 
+        onClose(); 
+        window.dispatchEvent(new Event("aquarium_data_changed"));        
         router.refresh();
       } else { toast.error(res.error || "Gagal."); }
     } finally { setIsAborting(false); setShowAbortConfirm(false); }
@@ -176,7 +178,38 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
 
   return createPortal(
     <>
-      {/* ... (Modal Alert Delete dan Abort sama seperti sebelumnya) */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[9999999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4"><AlertTriangle className="w-8 h-8"/></div>
+            <h3 className="text-xl font-black mb-2 text-slate-800 dark:text-white uppercase">Batalkan Sesi?</h3>
+            <p className="text-sm text-slate-500 mb-6 font-medium">Gunakan ini hanya jika Anda SALAH INPUT pasien. Semua rekam medis hari ini akan ikut terhapus.</p>
+            <div className="flex flex-col gap-3">
+              <Button onClick={handleDeleteSession} disabled={isDeleting} className="w-full h-12 bg-red-600 hover:bg-red-500 text-white font-black uppercase rounded-xl">
+                {isDeleting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "YA, HAPUS PERMANEN"}
+              </Button>
+              <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting} className="w-full h-12 font-bold uppercase rounded-xl border border-slate-200 dark:border-slate-700">Batal</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAbortConfirm && (
+        <div className="fixed inset-0 z-[9999999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
+            <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4"><ArchiveX className="w-8 h-8"/></div>
+            <h3 className="text-xl font-black mb-2 text-slate-800 dark:text-white uppercase">Ganti Obat?</h3>
+            <p className="text-sm text-slate-500 mb-6 font-medium">Sesi pengobatan ini akan dihentikan dan dipindahkan ke Riwayat. Anda harus memulai sesi pengobatan baru dari awal.</p>
+            <div className="flex flex-col gap-3">
+              <Button onClick={handleAbortSession} disabled={isAborting} className="w-full h-12 bg-amber-600 hover:bg-amber-500 text-white font-black uppercase rounded-xl">
+                {isAborting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "YA, GANTI OBAT"}
+              </Button>
+              <Button variant="ghost" onClick={() => setShowAbortConfirm(false)} disabled={isAborting} className="w-full h-12 font-bold uppercase rounded-xl border border-slate-200 dark:border-slate-700">Batal</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ zIndex: 999999 }} className="fixed inset-0 flex items-center justify-center bg-slate-900/80 dark:bg-black/90 p-4 sm:p-6 backdrop-blur-md animate-in fade-in duration-200">
         <div className="w-full max-w-2xl bg-white dark:bg-slate-950 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-slate-200 dark:border-slate-800">
           
@@ -206,7 +239,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                 </div>
               )}
 
-              {/* TAMPILAN PROYEKSI KESEMBUHAN */}
               <div className={`p-5 rounded-2xl border transition-colors ${isCured ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700/50 shadow-sm' : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800'}`}>
                  <div className="flex justify-between items-end mb-2">
                    <div className="flex items-center gap-2">
@@ -232,7 +264,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                  </div>
               </div>
 
-              {/* TINDAKAN HARI INI */}
               <div className="space-y-2 pt-2">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-2">
                   <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
@@ -252,7 +283,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                   ))}
                 </div>
 
-                {/* KALKULATOR DOSIS & WATER CHANGE (Tetap seperti sebelumnya) */}
                 {!isLoadingMedInfo && medInfo && (actionTaken === "Redosed" || actionTaken === "Water Change") && (
                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 p-4 rounded-xl flex gap-3 text-blue-800 dark:text-blue-300 mt-3">
                      <Beaker className="w-5 h-5 shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" />
@@ -296,12 +326,10 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                  )}
               </div>
 
-              {/* INPUT DOSIS & KEMATIAN */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{lang === 'id' ? "Dosis Diberikan" : "Dose Administered"}</label>
                   <div className="relative">
-                    {/* 💡 FIX: Mengubah step={0.1} menjadi step="any" agar bebas input desimal berapapun */}
                     <Input 
                       type="number" 
                       min={0} 
@@ -322,7 +350,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                 </div>
               </div>
 
-              {/* 💡 FITUR BARU: PANEL CEK PARAMETER AIR (OPSIONAL) */}
               <div className="space-y-3 p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30">
                 <label className="text-[11px] font-black text-blue-800 dark:text-blue-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
                   <TestTube2 className="w-3.5 h-3.5" /> {lang === 'id' ? "Cek Parameter Air (Opsional)" : "Water Params (Optional)"}
@@ -330,24 +357,20 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                 <div className="grid grid-cols-3 gap-3">
                   <div className="relative">
                     <Thermometer className="w-3 h-3 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    {/* 💡 FIX: Mengubah step="0.1" menjadi step="any" */}
                     <Input type="number" step="any" value={temp} onChange={(e) => setTemp(e.target.value ? Number(e.target.value) : "")} className="h-10 pl-8 pr-6 text-xs font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800" placeholder="Temp" />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">°C</span>
                   </div>
                   <div className="relative">
-                    {/* 💡 FIX: Mengubah step="0.1" menjadi step="any" */}
                     <Input type="number" step="any" value={ammonia} onChange={(e) => setAmmonia(e.target.value ? Number(e.target.value) : "")} className="h-10 px-3 pr-8 text-xs font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-amber-600" placeholder="NH3" />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">ppm</span>
                   </div>
                   <div className="relative">
-                    {/* 💡 FIX: Mengubah step="0.1" menjadi step="any" */}
                     <Input type="number" step="any" value={nitrite} onChange={(e) => setNitrite(e.target.value ? Number(e.target.value) : "")} className="h-10 px-3 pr-8 text-xs font-bold bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-rose-500" placeholder="NO2" />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">ppm</span>
                   </div>
                 </div>
               </div>
 
-              {/* CHECKLIST GEJALA */}
               <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
                 <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{lang === 'id' ? "Checklist Sisa Gejala" : "Remaining Symptoms"}</label>
                 <div className="space-y-2">
@@ -375,7 +398,6 @@ export default function DailyLogModal({ session, isOpen, onClose, onSuccess, tDi
                <Button type="button" onClick={onClose} disabled={isSubmitting || isDeleting} variant="outline" className="flex-1 h-12 rounded-xl font-bold uppercase tracking-wider border-slate-200 text-slate-600 hover:bg-slate-100">
                  {lang === 'id' ? "Batal" : "Cancel"}
                </Button>
-               {/* 💡 FITUR BARU: Tombol Berubah Hijau Jika Sembuh 100% */}
                <Button 
                  type="submit" 
                  form="daily-log-form" 
