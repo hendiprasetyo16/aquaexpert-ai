@@ -12,11 +12,15 @@ export async function pushNotificationAction(
   try {
     const supabase = await createClient();
     
+    // 💡 FITUR BARU: Ambil data user yang sedang login
+    const { data: { user } } = await supabase.auth.getUser();
+    
     const { error } = await supabase.from("system_activities").insert({
       title,
       message,
       category,
-      created_by: createdBy
+      created_by: createdBy,
+      user_id: user?.id || null // 💡 FITUR BARU: Simpan ID kepemilikan
     });
 
     if (error) throw error;

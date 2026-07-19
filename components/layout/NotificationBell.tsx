@@ -13,9 +13,11 @@ interface Activity {
   category: string;
   created_by: string;
   created_at: string;
+  user_id?: string; // 💡 TAMBAHAN BARU
 }
 
-export default function NotificationBell({ role }: { role: string }) {
+// 💡 FIX: Menerima userId sebagai props
+export default function NotificationBell({ role, userId }: { role: string; userId?: string }) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [unread, setUnread] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -31,7 +33,12 @@ export default function NotificationBell({ role }: { role: string }) {
       let query = supabase.from("system_activities").select("*").order("created_at", { ascending: false }).limit(20);
       
       if (role === "admin") query = query.eq("category", "user_activity");
-      if (role === "user") return; 
+      
+      // 💡 FIX: Jika User biasa, HANYA tarik notifikasi miliknya sendiri
+      if (role === "user") {
+        if (!userId) return; // Jika belum ada ID, batalkan
+        query = query.eq("user_id", userId); 
+      }
 
       const { data } = await query;
       if (data) setActivities(data);
@@ -48,7 +55,12 @@ export default function NotificationBell({ role }: { role: string }) {
           const realtimePayload = payload as { new: Activity };
           const newActivity = realtimePayload.new;
           
-          if (role === "super_admin" || (role === "admin" && newActivity.category === "user_activity")) {
+          // 💡 FIX: Logika filter Realtime
+          const isForSuperAdmin = role === "super_admin";
+          const isForAdmin = role === "admin" && newActivity.category === "user_activity";
+          const isForUser = role === "user" && newActivity.user_id === userId;
+
+          if (isForSuperAdmin || isForAdmin || isForUser) {
             setActivities((prev) => [newActivity, ...prev.slice(0, 19)]); 
             setUnread(true);
           }
@@ -57,7 +69,7 @@ export default function NotificationBell({ role }: { role: string }) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [role, supabase]);
+  }, [role, userId, supabase]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -69,7 +81,7 @@ export default function NotificationBell({ role }: { role: string }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
-  if (role === "user") return null;
+  // 💡 FIX: Hapus batas `if (role === 'user') return null;` agar user bisa melihat Lonceng
 
   return (
     <div className="relative" ref={bellRef}>
@@ -97,10 +109,16 @@ export default function NotificationBell({ role }: { role: string }) {
           <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex justify-between items-center shrink-0">
             <div>
               <span className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest block mb-1">
-                {role === 'super_admin' ? (dict.notification?.titleSuperAdmin || 'Aktivitas Sistem') : (dict.notification?.titleAdmin || 'Log Pengguna')}
+                {role === 'super_admin' 
+                  ? (dict.notification?.titleSuperAdmin || 'Aktivitas Sistem') 
+                  : role === 'admin' 
+                    ? (dict.notification?.titleAdmin || 'Log Pengguna')
+                    : (lang === 'id' ? 'Notifikasi Anda' : 'Your Notifications')}
               </span>
               <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                {role === 'super_admin' ? (lang === 'id' ? 'Menampilkan 20 log sistem terakhir' : 'Showing last 20 system logs') : (lang === 'id' ? 'Menampilkan 20 log pengguna terakhir' : 'Showing last 20 user logs')}
+                {role === 'super_admin' || role === 'admin' 
+                  ? (lang === 'id' ? 'Menampilkan 20 log terakhir' : 'Showing last 20 logs') 
+                  : (lang === 'id' ? 'Notifikasi terbaru akun Anda' : 'Latest notifications for your account')}
               </span>
             </div>
             
@@ -121,7 +139,7 @@ export default function NotificationBell({ role }: { role: string }) {
                   {dict.notification?.empty || (lang === 'id' ? "Belum ada aktivitas" : "No recent activity")}
                 </p>
                 <p className="text-sm text-slate-500 dark:text-slate-500 font-medium leading-relaxed">
-                  {lang === 'id' ? "Sistem pengawas akan mencatat aktivitas di sini saat operasi dilakukan." : "The monitoring system will log activities here when operations are performed."}
+                  {lang === 'id' ? "Pesan masuk akan otomatis muncul di sini." : "Incoming messages will appear here."}
                 </p>
               </div>
             ) : (
@@ -148,7 +166,6 @@ export default function NotificationBell({ role }: { role: string }) {
                             {act.title}
                           </span>
                           <span className="text-xs font-bold text-slate-400 dark:text-slate-500 whitespace-nowrap shrink-0 mt-0.5">
-                            {/* 💡 FIX: Menggunakan toLocaleString untuk memunculkan Tanggal dan Jam sekaligus */}
                             {new Date(act.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit' })}
                           </span>
                         </div>

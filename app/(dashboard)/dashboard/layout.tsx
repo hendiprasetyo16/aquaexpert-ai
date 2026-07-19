@@ -70,7 +70,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <ThemeToggle />
             
             {/* TOMBOL NOTIFIKASI REAL-TIME */}
-            <NotificationBell role={profile?.role || ""} />
+            {/* <NotificationBell role={profile?.role || ""} /> */}
+            {/* 💡 FIX: Lempar data userId ke dalam lonceng */}
+            <NotificationBell role={profile?.role || ""} userId={profile?.id} />
 
           </div>
 
