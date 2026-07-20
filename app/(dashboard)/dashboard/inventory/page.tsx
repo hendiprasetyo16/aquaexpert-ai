@@ -2,11 +2,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Package, Plus, Loader2, Syringe, Droplets, Fish, Wrench, Search } from "lucide-react";
+import { Package, Plus, Loader2, Syringe, Droplets, Fish, Wrench, Search, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import toast from "react-hot-toast";
 import { useLanguage } from "@/providers/LanguageProvider";
-import { getUserInventoryAction, InventoryItemDto } from "@/features/inventory/actions/inventory.actions";
+import { getUserInventoryAction, deleteInventoryItemAction, InventoryItemDto } from "@/features/inventory/actions/inventory.actions";
 import AddInventoryModal from "@/features/inventory/components/AddInventoryModal";
 
 export default function InventoryPage() {
@@ -15,8 +16,13 @@ export default function InventoryPage() {
   
   const [items, setItems] = useState<InventoryItemDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState<InventoryItemDto | null>(null);
+  
+  const [itemToDelete, setItemToDelete] = useState<InventoryItemDto | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchInventory = async () => {
     setIsLoading(true);
@@ -30,6 +36,30 @@ export default function InventoryPage() {
   useEffect(() => {
     fetchInventory();
   }, []);
+
+  const handleOpenAddModal = () => {
+    setItemToEdit(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (item: InventoryItemDto) => {
+    setItemToEdit(item);
+    setIsModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    setIsDeleting(true);
+    const res = await deleteInventoryItemAction(itemToDelete.id);
+    if (res.success) {
+      toast.success(lang === 'id' ? "Barang berhasil dihapus!" : "Item deleted successfully!");
+      fetchInventory();
+    } else {
+      toast.error(lang === 'id' ? "Gagal menghapus barang." : "Failed to delete item.");
+    }
+    setIsDeleting(false);
+    setItemToDelete(null);
+  };
 
   const filteredItems = items.filter(item => 
     item.item_name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -54,7 +84,31 @@ export default function InventoryPage() {
   };
 
   return (
-    <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors bg-slate-50 dark:bg-slate-950">
+    <div className="w-full min-h-screen p-4 sm:p-6 md:p-8 lg:p-10 transition-colors bg-slate-50 dark:bg-slate-950 relative">
+      
+      {/* MODAL KONFIRMASI DELETE */}
+      {itemToDelete && (
+        <div style={{ zIndex: 999999 }} className="fixed inset-0 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8"/>
+            </div>
+            <h3 className="text-xl font-black mb-2 text-slate-800 dark:text-white uppercase">{lang === 'id' ? "Hapus Barang?" : "Delete Item?"}</h3>
+            <p className="text-sm text-slate-500 mb-6 font-medium">
+              {lang === 'id' ? `Anda yakin ingin menghapus "${itemToDelete.item_name}" dari gudang?` : `Are you sure you want to remove "${itemToDelete.item_name}"?`}
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button onClick={confirmDelete} disabled={isDeleting} className="w-full h-12 bg-red-600 hover:bg-red-500 text-white font-black uppercase rounded-xl">
+                {isDeleting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (lang === 'id' ? "YA, HAPUS" : "YES, DELETE")}
+              </Button>
+              <Button variant="ghost" onClick={() => setItemToDelete(null)} disabled={isDeleting} className="w-full h-12 font-bold uppercase rounded-xl border border-slate-200 dark:border-slate-700">
+                {lang === 'id' ? "Batal" : "Cancel"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-[1400px] mx-auto space-y-8 pb-10">
         
         {/* HEADER */}
@@ -73,7 +127,7 @@ export default function InventoryPage() {
             </p>
           </div>
 
-          <Button onClick={() => setIsModalOpen(true)} className="h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 rounded-xl shadow-lg shadow-indigo-500/20 shrink-0 w-full md:w-auto z-10 transition-all">
+          <Button onClick={handleOpenAddModal} className="h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 rounded-xl shadow-lg shadow-indigo-500/20 shrink-0 w-full md:w-auto z-10 transition-all">
             <Plus className="w-5 h-5 mr-2" /> {lang === 'id' ? "Tambah Barang" : "Add New Item"}
           </Button>
         </div>
@@ -105,20 +159,36 @@ export default function InventoryPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredItems.map(item => (
-              <div key={item.id} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700 transition-all p-5 flex flex-col">
-                <div className="flex justify-between items-start mb-4">
+            {filteredItems.map((item, index) => (
+              <div key={item.id} className="relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all p-5 flex flex-col group overflow-hidden">
+                
+                {/* 💡 FITUR BARU: NOMOR URUT */}
+                <div className="absolute top-0 left-0 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400 px-3 py-1.5 rounded-br-2xl text-[10px] font-black tracking-widest border-r border-b border-indigo-100 dark:border-indigo-800/50">
+                  #{index + 1}
+                </div>
+
+                {/* 💡 FITUR BARU: TOMBOL EDIT & DELETE (Muncul saat di-hover) */}
+                <div className="absolute top-3 right-3 flex gap-1.5 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => handleOpenEditModal(item)} className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => setItemToDelete(item)} className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="flex justify-between items-start mb-4 mt-4">
                   <div className={`p-3 rounded-2xl border ${getCategoryColor(item.category)}`}>
                     {getIcon(item.category)}
                   </div>
-                  <span className="text-[10px] font-black uppercase text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
-                    {item.category.replace('_', ' ')}
-                  </span>
                 </div>
                 
-                <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 leading-tight mb-1 line-clamp-2">
+                <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 leading-tight mb-1 line-clamp-2 pr-2">
                   {item.item_name}
                 </h3>
+                <span className="text-[10px] font-bold uppercase text-slate-400">
+                  {item.category.replace('_', ' ')}
+                </span>
                 
                 <div className="mt-auto pt-6 flex items-end justify-between border-t border-slate-100 dark:border-slate-800/60 mt-4">
                   <div>
@@ -131,6 +201,7 @@ export default function InventoryPage() {
                     </div>
                   </div>
                 </div>
+
               </div>
             ))}
           </div>
@@ -142,7 +213,8 @@ export default function InventoryPage() {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         onSuccess={fetchInventory} 
-        lang={lang} 
+        lang={lang}
+        editData={itemToEdit} 
       />
     </div>
   );

@@ -79,3 +79,60 @@ export async function addInventoryItemAction(payload: {
     return { success: false, error: "Gagal menambah barang." };
   }
 }
+
+// Tambahkan di bagian PALING BAWAH file inventory.actions.ts
+
+// 3. Fungsi untuk mengedit barang
+export async function updateInventoryItemAction(id: string, payload: {
+  itemName: string;
+  category: string;
+  stockQuantity: number;
+  unit: string;
+  notes?: string;
+}) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    const { error } = await supabase
+      .from("user_inventory")
+      .update({
+        item_name: payload.itemName,
+        category: payload.category,
+        stock_quantity: payload.stockQuantity,
+        unit: payload.unit,
+        notes: payload.notes || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error: unknown) {
+    console.error("Error updating item:", error);
+    return { success: false, error: "Gagal memperbarui barang." };
+  }
+}
+
+// 4. Fungsi untuk menghapus barang
+export async function deleteInventoryItemAction(id: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    const { error } = await supabase
+      .from("user_inventory")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error: unknown) {
+    console.error("Error deleting item:", error);
+    return { success: false, error: "Gagal menghapus barang." };
+  }
+}
