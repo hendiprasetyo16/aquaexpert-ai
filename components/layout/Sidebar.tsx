@@ -5,7 +5,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation"; 
 import { createClient } from "@/lib/supabase/client";
-import { MENU_BY_ROLE } from "@/features/auth/constants/menu";
+// 💡 FIX 1: Import tipe MenuItem agar tidak perlu menggunakan 'any'
+import { MENU_BY_ROLE, MenuItem } from "@/features/auth/constants/menu";
 import { useAuth } from "@/hooks/useAuth";
 import { LogOut, ShieldAlert, Loader2, X, AlertTriangle } from "lucide-react";
 import { useLanguage } from "@/providers/LanguageProvider";
@@ -18,7 +19,8 @@ interface SidebarProps {
 export default function Sidebar({ className = "", onClose }: SidebarProps) {
   const pathname = usePathname();
   const { profile, role, isLoading } = useAuth();
-  const { dict } = useLanguage();
+  const { dict, language } = useLanguage();
+  const lang = language as "id" | "en";
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -42,7 +44,8 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
     return "User";
   };
 
-  const menus = role ? MENU_BY_ROLE[role] : [];
+  // 💡 FIX 1 (Lanjutan): Deklarasikan tipe data secara eksplisit di sini
+  const menus: MenuItem[] = role ? MENU_BY_ROLE[role] || [] : [];
 
   const avatarUrl = profile?.avatar_url || (profile?.full_name 
     ? `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.full_name)}&background=0D9488&color=fff&rounded=true&bold=true&size=128`
@@ -67,7 +70,7 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
           {menus.map((menu) => {
             const Icon = menu.icon;
             const active = pathname === menu.href || pathname.startsWith(menu.href + "/");
-            const iconColor = "color" in menu ? menu.color : "";
+            const iconColor = menu.color || "";
 
             return (
               <Link
@@ -79,7 +82,8 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
                 }`}
               >
                 <Icon className={`h-4 w-4 shrink-0 ${iconColor}`} />
-                {menu.title}
+                {/* 💡 BEBAS DARI ANY: Karena TS sudah tahu ini adalah 'MenuItem' */}
+                {lang === 'id' ? menu.title_id : menu.title_en}
               </Link>
             );
           })}
@@ -95,10 +99,8 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
               href="/dashboard/profile"
               onClick={onClose}
               className="mb-4 flex items-center gap-3 rounded-md bg-slate-50 dark:bg-slate-900 p-3 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 group"
-              title={dict.sidebar.profileTooltip}
+              title={dict.sidebar?.profileTooltip}
             >
-              
-              {/* 💡 DESAIN NEON UNTUK AVATAR */}
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden 
                 ring-2 ring-teal-500/80 dark:ring-teal-400/80 
                 shadow-[0_0_12px_rgba(20,184,166,0.6)] dark:shadow-[0_0_12px_rgba(45,212,191,0.5)] 
@@ -109,7 +111,6 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
               >
                 <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               </div>
-              
               <div className="overflow-hidden">
                 <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-200 group-hover:text-black dark:group-hover:text-white transition-colors">
                   {profile.full_name}
@@ -127,49 +128,34 @@ export default function Sidebar({ className = "", onClose }: SidebarProps) {
             className="flex w-full items-center justify-center gap-2 rounded-md bg-red-50 dark:bg-red-950/30 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 transition-colors hover:bg-red-100 dark:hover:bg-red-900/50"
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            {dict.sidebar.logout}
+            {dict.sidebar?.logout || "Logout"}
           </button>
         </div>
       </div>
 
-      {/* MODAL KONFIRMASI LOGOUT */}
       {isLogoutModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div style={{ zIndex: 999999 }} className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-sm rounded-xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-slate-900 p-6 shadow-2xl transition-all scale-in-95">
-            
             <div className="mb-4 flex items-center gap-3">
               <div className="p-2 rounded-full bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400">
                 <AlertTriangle className="h-6 w-6" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">
-                {dict.sidebar.logoutModalTitle || "Konfirmasi Keluar"}
+                {dict.sidebar?.logoutModalTitle || "Konfirmasi Keluar"}
               </h3>
             </div>
-            
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-              {dict.sidebar.logoutModalDesc || "Apakah Anda yakin ingin keluar dari sesi ini?"}
+              {dict.sidebar?.logoutModalDesc || "Apakah Anda yakin ingin keluar dari sesi ini?"}
             </p>
-            
             <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
-              <button 
-                type="button" 
-                disabled={isLoggingOut} 
-                onClick={() => setIsLogoutModalOpen(false)} 
-                className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
-              >
-                {dict.sidebar.logoutCancel || "Batal"}
+              <button type="button" disabled={isLoggingOut} onClick={() => setIsLogoutModalOpen(false)} className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50">
+                {dict.sidebar?.logoutCancel || "Batal"}
               </button>
-              <button 
-                type="button" 
-                disabled={isLoggingOut} 
-                onClick={confirmLogout} 
-                className="rounded-md px-4 py-2 text-sm font-medium text-white transition-colors bg-red-600 hover:bg-red-500 disabled:opacity-50 flex items-center"
-              >
+              <button type="button" disabled={isLoggingOut} onClick={confirmLogout} className="rounded-md px-4 py-2 text-sm font-medium text-white transition-colors bg-red-600 hover:bg-red-500 disabled:opacity-50 flex items-center">
                 {isLoggingOut && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoggingOut ? (dict.sidebar.logoutProcessing || "Keluar...") : (dict.sidebar.logoutConfirm || "Ya, Keluar")}
+                {isLoggingOut ? (dict.sidebar?.logoutProcessing || "Keluar...") : (dict.sidebar?.logoutConfirm || "Ya, Keluar")}
               </button>
             </div>
-
           </div>
         </div>
       )}
