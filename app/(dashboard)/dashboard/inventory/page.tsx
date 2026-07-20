@@ -160,19 +160,28 @@ export default function InventoryPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredItems.map((item, index) => (
-              <div key={item.id} className="relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all p-5 flex flex-col group overflow-hidden">
+              
+              /* 💡 FIX: Efek Neon Glow & Floating Hover ditambahkan ke kontainer ini */
+              <div 
+                key={item.id} 
+                className="relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col group overflow-hidden transition-all duration-300 ease-out p-5
+                hover:-translate-y-1.5 hover:border-indigo-400 dark:hover:border-indigo-500/50 hover:shadow-[0_8px_30px_rgba(99,102,241,0.15)] dark:hover:shadow-[0_8px_30px_rgba(99,102,241,0.2)]"
+              >
                 
-                {/* 💡 FITUR BARU: NOMOR URUT */}
+                {/* NOMOR URUT */}
                 <div className="absolute top-0 left-0 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400 px-3 py-1.5 rounded-br-2xl text-[10px] font-black tracking-widest border-r border-b border-indigo-100 dark:border-indigo-800/50">
                   #{index + 1}
                 </div>
 
-                {/* 💡 FITUR BARU: TOMBOL EDIT & DELETE (Muncul saat di-hover) */}
+                {/* TOMBOL EDIT & DELETE */}
                 <div className="absolute top-3 right-3 flex gap-1.5 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => handleOpenEditModal(item)} className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors">
+                  
+                  {/* 💡 FIX: Tombol Pensil dipertegas warnanya agar terlihat jelas di Light Mode */}
+                  <button onClick={() => handleOpenEditModal(item)} className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-blue-600 hover:bg-blue-100 dark:hover:text-blue-400 dark:hover:bg-blue-900/50 rounded-full transition-all duration-200">
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button onClick={() => setItemToDelete(item)} className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors">
+                  
+                  <button onClick={() => setItemToDelete(item)} className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-red-600 hover:bg-red-100 dark:hover:text-red-400 dark:hover:bg-red-900/50 rounded-full transition-all duration-200">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -194,7 +203,7 @@ export default function InventoryPage() {
                   <div>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'id' ? "Sisa Stok" : "Remaining"}</p>
                     <div className="flex items-baseline gap-1.5 mt-1">
-                      <span className={`text-2xl font-black ${item.stock_quantity <= 10 ? 'text-rose-500' : 'text-indigo-600 dark:text-indigo-400'}`}>
+                      <span className={`text-2xl font-black transition-colors duration-300 ${item.stock_quantity <= 10 ? 'text-rose-500 group-hover:text-rose-600' : 'text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-500'}`}>
                         {item.stock_quantity}
                       </span>
                       <span className="text-xs font-bold text-slate-500 uppercase">{item.unit}</span>
