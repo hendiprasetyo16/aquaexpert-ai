@@ -83,11 +83,13 @@ export async function addInventoryItemAction(payload: {
 // Tambahkan di bagian PALING BAWAH file inventory.actions.ts
 
 // 3. Fungsi untuk mengedit barang
+// Ganti fungsi updateInventoryItemAction menjadi seperti ini:
 export async function updateInventoryItemAction(id: string, payload: {
   itemName: string;
   category: string;
   stockQuantity: number;
   unit: string;
+  medicationId?: string; // 💡 TAMBAHAN: Menerima ID Obat
   notes?: string;
 }) {
   try {
@@ -102,6 +104,7 @@ export async function updateInventoryItemAction(id: string, payload: {
         category: payload.category,
         stock_quantity: payload.stockQuantity,
         unit: payload.unit,
+        medication_id: payload.medicationId || null, // 💡 TAMBAHAN: Simpan ke database
         notes: payload.notes || null,
         updated_at: new Date().toISOString()
       })

@@ -237,6 +237,35 @@ export async function logDailyTreatmentAction({
 
     await pushNotificationAction(notifTitle, notifMessage, notifCategory, userName);
 
+    // 💡 FITUR INTI: AUTO-DEDUCT INVENTORY (POTONG STOK OTOMATIS)
+    if (medicationDose && medicationDose > 0 && session.medication_id) {
+      try {
+        // 1. Cari apakah ada obat di gudang pengguna yang terkait dengan pengobatan ini
+        const { data: inventoryItems } = await supabase
+          .from("user_inventory")
+          .select("id, stock_quantity")
+          .eq("user_id", user.id)
+          .eq("medication_id", session.medication_id)
+          .order("created_at", { ascending: true }); // Ambil yang paling lama dulu
+
+        if (inventoryItems && inventoryItems.length > 0) {
+          // Ambil botol pertama yang ketemu
+          const activeBottle = inventoryItems[0];
+          
+          // Kurangi stoknya, tapi jangan sampai minus
+          const newStock = Math.max(0, Number(activeBottle.stock_quantity) - medicationDose);
+          
+          await supabase
+            .from("user_inventory")
+            .update({ stock_quantity: newStock })
+            .eq("id", activeBottle.id);
+        }
+      } catch (err) {
+        console.error("Gagal memotong stok inventaris otomatis:", err);
+        // Kita biarkan saja (jangan lempar error) agar proses log medis utama tetap jalan
+      }
+    }
+    
     revalidatePath(`/dashboard/my-aquarium/${aquariumId}`);
     revalidatePath(`/dashboard/treatments`); // 💡 PERBAIKAN 2: PAKSA REFRESH HALAMAN WARD
     
