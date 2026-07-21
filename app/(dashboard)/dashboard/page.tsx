@@ -10,7 +10,7 @@ import {
   Loader2, Activity, Fish, Leaf, ArrowRight, 
   ShieldAlert, CheckCircle2, Clock, Container, 
   Cpu, BarChart, HeartPulse, Globe, Bug, Database,
-  CalendarClock, Plus, Circle, CheckCircle, Calendar // 💡 IMPORT IKON BARU
+  CalendarClock, Plus, Circle, CheckCircle, Calendar, Trash2
 } from "lucide-react";
 
 import { analyzeAquariumHealth, ActiveTreatmentEngine } from "@/features/aquariums/utils/health-engine";
@@ -19,10 +19,10 @@ import type { Aquarium } from "@/features/aquariums/types/aquarium.types";
 import type { TankFish, TankPlant } from "@/features/aquariums/types/inventory.types";
 import type { MaintenanceTask, MaintenanceDashboardStatus } from "@/features/aquariums/types/maintenance.types";
 
-// 💡 IMPORT ACTION & MODAL PENGINGAT (TO-DO LIST)
-import { getUserRemindersAction, toggleReminderStatusAction, type ReminderDto } from "@/features/reminders/actions/reminder.actions";
+import { getUserRemindersAction, toggleReminderStatusAction, clearCompletedRemindersAction, type ReminderDto } from "@/features/reminders/actions/reminder.actions";
 import AddReminderModal from "@/features/reminders/components/AddReminderModal";
 import { Button } from "@/components/ui/button";
+import toast from "react-hot-toast";
 
 interface TankInfo {
   id: string;
@@ -68,7 +68,6 @@ const groupByAquarium = <T extends DbRow>(data: T[] | null) => {
   }, {});
 };
 
-// AUTO TRANSLATOR UNTUK LOG SISTEM DARI DATABASE
 const translateSystemLog = (text: string) => {
   if (!text) return text;
   let en = text;
@@ -126,9 +125,10 @@ export default function DashboardPage() {
   const [tankList, setTankList] = useState<TankInfo[]>([]);
   const [recentActivities, setRecentActivities] = useState<ActivityLog[]>([]);
   
-  // 💡 STATE BARU UNTUK PENGINGAT
   const [reminders, setReminders] = useState<ReminderDto[]>([]);
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const [showConfirmClear, setShowConfirmClear] = useState(false); // 💡 State untuk Modal Konfirmasi Baru
 
   const [loadingPage, setLoadingPage] = useState(true);
   const [ipAddress, setIpAddress] = useState<string>("Loading IP...");
@@ -156,183 +156,201 @@ export default function DashboardPage() {
     if (data) setReminders(data);
   };
 
-  useEffect(() => {
-    async function fetchDashboardData() {
-      if (!user?.id) return;
-      const supabase = createClient();
+  const fetchDashboardData = async () => {
+    if (!user?.id) return;
+    const supabase = createClient();
 
-      try {
-        const logs: ActivityLog[] = [];
+    try {
+      const logs: ActivityLog[] = [];
+      const { data: aquariums } = await supabase.from("my_aquariums").select("*").eq("user_id", user.id).eq("is_active", true);
 
-        // 1. CARI AKUARIUM USER
-        const { data: aquariums } = await supabase.from("my_aquariums").select("*").eq("user_id", user.id).eq("is_active", true);
+      if (aquariums && aquariums.length > 0) {
+        const tankIds = aquariums.map(a => a.id);
+        aquariums.sort((a, b) => (a.is_primary === b.is_primary ? a.name.localeCompare(b.name) : a.is_primary ? -1 : 1));
+        if (!aquariums.some(t => t.is_primary)) aquariums[0].is_primary = true;
 
-        if (aquariums && aquariums.length > 0) {
-          const tankIds = aquariums.map(a => a.id);
-          aquariums.sort((a, b) => (a.is_primary === b.is_primary ? a.name.localeCompare(b.name) : a.is_primary ? -1 : 1));
-          if (!aquariums.some(t => t.is_primary)) aquariums[0].is_primary = true;
+        const [
+          { data: rawParams }, { data: rawFishes }, { data: rawPlants }, { data: rawMaint }, 
+          { data: rawTreatments }, 
+          { data: paramLogsRes }, { data: maintLogsRes }, { data: taskLogsRes }, { data: fishLogsRes },
+          { data: plantLogsRes }, { data: treatmentSessionsRes }, { data: treatmentDailyLogsRes }
+        ] = await Promise.all([
+          supabase.from("aquarium_parameters").select("*").in("aquarium_id", tankIds),
+          supabase.from("aquarium_fishes").select("aquarium_id, quantity, fish_id, health_status, size_category, fish:fishes(*)").in("aquarium_id", tankIds),
+          supabase.from("aquarium_plants").select("aquarium_id, quantity, plant_id, status, plant:plants(*)").in("aquarium_id", tankIds),
+          supabase.from("maintenance_tasks").select("*").in("aquarium_id", tankIds),
+          supabase.from("treatment_sessions").select("id, aquarium_id, disease_id, medication_id, status, disease:diseases(name_id, name_en)").in("aquarium_id", tankIds).eq("status", "Active"),
+          
+          supabase.from("aquarium_parameters").select("id, record_date, parameter_source").in("aquarium_id", tankIds).order('record_date', { ascending: false }).limit(5),
+          supabase.from("aquarium_maintenance_logs").select("id, performed_at, maintenance_type, notes").in("aquarium_id", tankIds).order('performed_at', { ascending: false }).limit(5),
+          supabase.from("maintenance_tasks").select("id, created_at, title, interval_days").in("aquarium_id", tankIds).order('created_at', { ascending: false }).limit(5),
+          supabase.from("aquarium_fishes").select("id, added_at, quantity, fishes(name_id, name_en)").in("aquarium_id", tankIds).order('added_at', { ascending: false }).limit(5),
+          supabase.from("aquarium_plants").select("id, added_at, quantity, plants(name_id, name_en)").in("aquarium_id", tankIds).order('added_at', { ascending: false }).limit(5),
+          supabase.from("treatment_sessions").select("id, started_at, status, outcome_reason, diseases(name_id, name_en)").in("aquarium_id", tankIds).order('started_at', { ascending: false }).limit(5),
+          supabase.from("treatment_logs").select("id, log_date, day_number, action_taken, treatment_sessions!inner(aquarium_id, diseases(name_id, name_en))").in("treatment_sessions.aquarium_id", tankIds).order('log_date', { ascending: false }).limit(5)
+        ]);
 
-          const [
-            { data: rawParams }, { data: rawFishes }, { data: rawPlants }, { data: rawMaint }, 
-            { data: rawTreatments }, 
-            { data: paramLogsRes }, { data: maintLogsRes }, { data: taskLogsRes }, { data: fishLogsRes },
-            { data: plantLogsRes }, { data: treatmentSessionsRes }, { data: treatmentDailyLogsRes }
-          ] = await Promise.all([
-            supabase.from("aquarium_parameters").select("*").in("aquarium_id", tankIds),
-            supabase.from("aquarium_fishes").select("aquarium_id, quantity, fish_id, health_status, size_category, fish:fishes(*)").in("aquarium_id", tankIds),
-            supabase.from("aquarium_plants").select("aquarium_id, quantity, plant_id, status, plant:plants(*)").in("aquarium_id", tankIds),
-            supabase.from("maintenance_tasks").select("*").in("aquarium_id", tankIds),
-            supabase.from("treatment_sessions").select("id, aquarium_id, disease_id, medication_id, status, disease:diseases(name_id, name_en)").in("aquarium_id", tankIds).eq("status", "Active"),
-            
-            // Keperluan Log Aktivitas
-            supabase.from("aquarium_parameters").select("id, record_date, parameter_source").in("aquarium_id", tankIds).order('record_date', { ascending: false }).limit(5),
-            supabase.from("aquarium_maintenance_logs").select("id, performed_at, maintenance_type, notes").in("aquarium_id", tankIds).order('performed_at', { ascending: false }).limit(5),
-            supabase.from("maintenance_tasks").select("id, created_at, title, interval_days").in("aquarium_id", tankIds).order('created_at', { ascending: false }).limit(5),
-            supabase.from("aquarium_fishes").select("id, added_at, quantity, fishes(name_id, name_en)").in("aquarium_id", tankIds).order('added_at', { ascending: false }).limit(5),
-            supabase.from("aquarium_plants").select("id, added_at, quantity, plants(name_id, name_en)").in("aquarium_id", tankIds).order('added_at', { ascending: false }).limit(5),
-            supabase.from("treatment_sessions").select("id, started_at, status, outcome_reason, diseases(name_id, name_en)").in("aquarium_id", tankIds).order('started_at', { ascending: false }).limit(5),
-            supabase.from("treatment_logs").select("id, log_date, day_number, action_taken, treatment_sessions!inner(aquarium_id, diseases(name_id, name_en))").in("treatment_sessions.aquarium_id", tankIds).order('log_date', { ascending: false }).limit(5)
-          ]);
+        const groupedParams = groupByAquarium(rawParams as DbRow[]);
+        const groupedFishes = groupByAquarium(rawFishes as InventoryRow[]);
+        const groupedPlants = groupByAquarium(rawPlants as InventoryRow[]);
+        const groupedMaint = groupByAquarium(rawMaint as DbRow[]);
+        const groupedTreatments = groupByAquarium(rawTreatments as DbRow[]); 
 
-          const groupedParams = groupByAquarium(rawParams as DbRow[]);
-          const groupedFishes = groupByAquarium(rawFishes as InventoryRow[]);
-          const groupedPlants = groupByAquarium(rawPlants as InventoryRow[]);
-          const groupedMaint = groupByAquarium(rawMaint as DbRow[]);
-          const groupedTreatments = groupByAquarium(rawTreatments as DbRow[]); 
+        let totalAlerts = 0, totalFauna = 0, totalFlora = 0;
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-          let totalAlerts = 0, totalFauna = 0, totalFlora = 0;
-          const now = new Date();
-          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const processedTanks = aquariums.map((aq) => {
+          const aqParams = groupedParams[aq.id] || [];
+          const aqFishes = groupedFishes[aq.id] || [];
+          const aqPlants = groupedPlants[aq.id] || [];
+          const aqMaintenanceRaw = groupedMaint[aq.id] || [];
+          const aqTreatments = groupedTreatments[aq.id] || []; 
 
-          const processedTanks = aquariums.map((aq) => {
-            const aqParams = groupedParams[aq.id] || [];
-            const aqFishes = groupedFishes[aq.id] || [];
-            const aqPlants = groupedPlants[aq.id] || [];
-            const aqMaintenanceRaw = groupedMaint[aq.id] || [];
-            const aqTreatments = groupedTreatments[aq.id] || []; 
+          aqParams.sort((a, b) => new Date(b.record_date as string).getTime() - new Date(a.record_date as string).getTime());
+          
+          const sanitizedParams = aqParams.map(param => ({ 
+            ...param, 
+            temperature: typeof param.temperature === 'number' ? param.temperature : null, 
+            ph: typeof param.ph === 'number' ? param.ph : null, 
+            ammonia: typeof param.ammonia === 'number' ? param.ammonia : null, 
+            nitrite: typeof param.nitrite === 'number' ? param.nitrite : null, 
+            nitrate: typeof param.nitrate === 'number' ? param.nitrate : null 
+          } as AquariumParameterLog));
 
-            aqParams.sort((a, b) => new Date(b.record_date as string).getTime() - new Date(a.record_date as string).getTime());
-            
-            const sanitizedParams = aqParams.map(param => ({ 
-              ...param, 
-              temperature: typeof param.temperature === 'number' ? param.temperature : null, 
-              ph: typeof param.ph === 'number' ? param.ph : null, 
-              ammonia: typeof param.ammonia === 'number' ? param.ammonia : null, 
-              nitrite: typeof param.nitrite === 'number' ? param.nitrite : null, 
-              nitrate: typeof param.nitrate === 'number' ? param.nitrate : null 
-            } as AquariumParameterLog));
+          const mappedMaintenance: MaintenanceDashboardStatus[] = aqMaintenanceRaw.map((taskRaw) => {
+            const task = taskRaw as unknown as MaintenanceTask;
+            let isOverdue = false;
+            let daysRemaining = 0;
+            let urgencyLevel: "safe" | "warning" | "critical" = "safe";
 
-            const mappedMaintenance: MaintenanceDashboardStatus[] = aqMaintenanceRaw.map((taskRaw) => {
-              const task = taskRaw as unknown as MaintenanceTask;
-              let isOverdue = false;
-              let daysRemaining = 0;
-              let urgencyLevel: "safe" | "warning" | "critical" = "safe";
-
-              if (task.next_due_at) {
-                const dueDate = new Date(task.next_due_at as string);
-                const normalizedDue = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-                const diffTime = normalizedDue.getTime() - today.getTime();
-                daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                
-                if (daysRemaining < 0) {
-                  isOverdue = true;
-                  urgencyLevel = daysRemaining <= -3 ? "critical" : "warning";
-                } else if (daysRemaining <= 2) {
-                  urgencyLevel = "warning";
-                }
+            if (task.next_due_at) {
+              const dueDate = new Date(task.next_due_at as string);
+              const normalizedDue = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+              const diffTime = normalizedDue.getTime() - today.getTime();
+              daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              
+              if (daysRemaining < 0) {
+                isOverdue = true;
+                urgencyLevel = daysRemaining <= -3 ? "critical" : "warning";
+              } else if (daysRemaining <= 2) {
+                urgencyLevel = "warning";
               }
-              return { task, isOverdue, daysRemaining, urgencyLevel, lastMaintenanceDaysAgo: null };
-            });
-
-            const healthAnalysis = analyzeAquariumHealth({ 
-              aquarium: aq as Aquarium, 
-              parameters: sanitizedParams, 
-              fishes: aqFishes as unknown as TankFish[], 
-              plants: aqPlants as unknown as TankPlant[], 
-              maintenanceStatus: mappedMaintenance,
-              activeTreatments: aqTreatments as unknown as ActiveTreatmentEngine[], 
-              lang 
-            });
-
-            const faunaCount = aqFishes.reduce((acc, f) => acc + (f.quantity || 0), 0);
-            const floraCount = aqPlants.reduce((acc, p) => acc + (p.quantity || 0), 0);
-
-            totalAlerts += (healthAnalysis.alerts || []).length; totalFauna += faunaCount; totalFlora += floraCount;
-
-            return { 
-              id: aq.id, name: aq.name, is_primary: aq.is_primary || false, 
-              health_score: healthAnalysis.scores.overall, alerts: healthAnalysis.alerts || [], 
-              faunaCount, floraCount 
-            };
+            }
+            return { task, isOverdue, daysRemaining, urgencyLevel, lastMaintenanceDaysAgo: null };
           });
 
-          setTankList(processedTanks);
-          setStats({ tanks: aquariums.length, alerts: totalAlerts, fauna: totalFauna, flora: totalFlora });
-
-          // MERAKIT TIMELINE (Disembunyikan detailnya agar ringkas)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          paramLogsRes?.forEach((log: any) => logs.push({ id: `p-${log.id}`, type: "parameter", title_id: "Parameter Air Dicatat", title_en: "Water Parameter Logged", desc_id: `Melalui ${log.parameter_source || 'Sistem'}.`, desc_en: `Via ${log.parameter_source || 'System'}.`, date: new Date(log.record_date as string) }));
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          maintLogsRes?.forEach((log: any) => logs.push({ id: `ml-${log.id}`, type: "maintenance", title_id: "Perawatan Selesai", title_en: "Maintenance Completed", desc_id: `Tugas: ${String(log.maintenance_type).replace('_', ' ')}.`, desc_en: `Task: ${String(log.maintenance_type).replace('_', ' ')}.`, date: new Date(log.performed_at as string) }));
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          taskLogsRes?.forEach((task: any) => logs.push({ id: `mt-${task.id}`, type: "maintenance", title_id: "Jadwal Tugas Dibuat", title_en: "Task Scheduled", desc_id: `Tugas "${task.title}" dijadwalkan setiap ${task.interval_days} hari.`, desc_en: `Task "${task.title}" scheduled every ${task.interval_days} days.`, date: new Date(task.created_at as string) }));
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fishLogsRes?.forEach((f: any) => logs.push({ id: `f-${f.id}`, type: "flora_fauna", title_id: "Fauna Ditambahkan", title_en: "Fauna Added", desc_id: `${f.quantity} ekor ${f.fishes?.name_id || 'Ikan'} masuk ke akuarium.`, desc_en: `${f.quantity} qty ${f.fishes?.name_en || 'Fish'} added to tank.`, date: new Date(f.added_at as string) }));
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          plantLogsRes?.forEach((p: any) => logs.push({ id: `pl-${p.id}`, type: "flora_fauna", title_id: "Flora Ditambahkan", title_en: "Flora Added", desc_id: `${p.quantity} porsi ${p.plants?.name_id || 'Tanaman'} masuk ke akuarium.`, desc_en: `${p.quantity} qty ${p.plants?.name_en || 'Plant'} added to tank.`, date: new Date(p.added_at as string) }));
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          treatmentSessionsRes?.forEach((session: any) => {
-            const diseaseName = session.diseases?.name_id || 'Penyakit';
-            let tId = "Sesi Pengobatan Dimulai", tEn = "Treatment Started", dId = `Karantina untuk ${diseaseName}.`, dEn = `Quarantine for ${session.diseases?.name_en || 'Disease'}.`;
-            if (session.status === 'Completed') { tId = "Pengobatan Selesai"; tEn = "Treatment Completed"; dId = `Pengobatan ${diseaseName} dinyatakan selesai.`; }
-            else if (session.status === 'Aborted') { tId = "Pengobatan Dibatalkan"; tEn = "Treatment Aborted"; dId = `Alasan: ${session.outcome_reason || '-'}`; }
-            logs.push({ id: `ts-${session.id}`, type: "treatment", title_id: tId, title_en: tEn, desc_id: dId, desc_en: dEn, date: new Date(session.started_at as string) });
+          const healthAnalysis = analyzeAquariumHealth({ 
+            aquarium: aq as Aquarium, parameters: sanitizedParams, 
+            fishes: aqFishes as unknown as TankFish[], plants: aqPlants as unknown as TankPlant[], 
+            maintenanceStatus: mappedMaintenance, activeTreatments: aqTreatments as unknown as ActiveTreatmentEngine[], 
+            lang 
           });
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          treatmentDailyLogsRes?.forEach((tlog: any) => {
-            const diseaseName = tlog.treatment_sessions?.diseases?.name_id || 'Penyakit';
-            logs.push({ id: `tl-${tlog.id}`, type: "treatment", title_id: `Catat Medis (Hari ${tlog.day_number})`, title_en: `Medical Log (Day ${tlog.day_number})`, desc_id: `Aksi: ${tlog.action_taken || 'Observasi'} untuk ${diseaseName}.`, desc_en: `Action: ${tlog.action_taken || 'Observe'} for ${diseaseName}.`, date: new Date(tlog.log_date as string) });
-          });
-        }
 
-        if (role === "super_admin" || role === "admin") {
-          const { data: sysLogs } = await supabase.from("system_activities").select("*").order("created_at", { ascending: false }).limit(10);
-          sysLogs?.forEach(sys => {
-            if (role === "admin" && sys.category === "data_crud") return;
-            logs.push({ 
-              id: `sys-${sys.id}`, type: "system", title_id: `[Admin] ${sys.title}`, title_en: `[Admin] ${translateSystemTitle(sys.title)}`, 
-              desc_id: sys.message, desc_en: translateSystemLog(sys.message), date: new Date(sys.created_at as string) 
-            });
-          });
-        }
+          const faunaCount = aqFishes.reduce((acc, f) => acc + (f.quantity || 0), 0);
+          const floraCount = aqPlants.reduce((acc, p) => acc + (p.quantity || 0), 0);
 
-        logs.sort((a, b) => b.date.getTime() - a.date.getTime());
-        setRecentActivities(logs.slice(0, 8));
+          totalAlerts += (healthAnalysis.alerts || []).length; totalFauna += faunaCount; totalFlora += floraCount;
 
-        // 💡 AMBIL DATA PENGINGAT
-        await fetchRemindersOnly();
+          return { 
+            id: aq.id, name: aq.name, is_primary: aq.is_primary || false, 
+            health_score: healthAnalysis.scores.overall, alerts: healthAnalysis.alerts || [], 
+            faunaCount, floraCount 
+          };
+        });
 
-        setLoadingPage(false);
+        setTankList(processedTanks);
+        setStats({ tanks: aquariums.length, alerts: totalAlerts, fauna: totalFauna, flora: totalFlora });
 
-      } catch (error) {
-        console.error("Dashboard error:", error);
-        setLoadingPage(false);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        paramLogsRes?.forEach((log: any) => logs.push({ id: `p-${log.id}`, type: "parameter", title_id: "Parameter Air Dicatat", title_en: "Water Parameter Logged", desc_id: `Melalui ${log.parameter_source || 'Sistem'}.`, desc_en: `Via ${log.parameter_source || 'System'}.`, date: new Date(log.record_date as string) }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        maintLogsRes?.forEach((log: any) => logs.push({ id: `ml-${log.id}`, type: "maintenance", title_id: "Perawatan Selesai", title_en: "Maintenance Completed", desc_id: `Tugas: ${String(log.maintenance_type).replace('_', ' ')}.`, desc_en: `Task: ${String(log.maintenance_type).replace('_', ' ')}.`, date: new Date(log.performed_at as string) }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        taskLogsRes?.forEach((task: any) => logs.push({ id: `mt-${task.id}`, type: "maintenance", title_id: "Jadwal Tugas Dibuat", title_en: "Task Scheduled", desc_id: `Tugas "${task.title}" dijadwalkan setiap ${task.interval_days} hari.`, desc_en: `Task "${task.title}" scheduled every ${task.interval_days} days.`, date: new Date(task.created_at as string) }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        fishLogsRes?.forEach((f: any) => logs.push({ id: `f-${f.id}`, type: "flora_fauna", title_id: "Fauna Ditambahkan", title_en: "Fauna Added", desc_id: `${f.quantity} ekor ${f.fishes?.name_id || 'Ikan'} masuk ke akuarium.`, desc_en: `${f.quantity} qty ${f.fishes?.name_en || 'Fish'} added to tank.`, date: new Date(f.added_at as string) }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        plantLogsRes?.forEach((p: any) => logs.push({ id: `pl-${p.id}`, type: "flora_fauna", title_id: "Flora Ditambahkan", title_en: "Flora Added", desc_id: `${p.quantity} porsi ${p.plants?.name_id || 'Tanaman'} masuk ke akuarium.`, desc_en: `${p.quantity} qty ${p.plants?.name_en || 'Plant'} added to tank.`, date: new Date(p.added_at as string) }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        treatmentSessionsRes?.forEach((session: any) => {
+          const diseaseName = session.diseases?.name_id || 'Penyakit';
+          let tId = "Sesi Pengobatan Dimulai", tEn = "Treatment Started", dId = `Karantina untuk ${diseaseName}.`, dEn = `Quarantine for ${session.diseases?.name_en || 'Disease'}.`;
+          if (session.status === 'Completed') { tId = "Pengobatan Selesai"; tEn = "Treatment Completed"; dId = `Pengobatan ${diseaseName} dinyatakan selesai.`; }
+          else if (session.status === 'Aborted') { tId = "Pengobatan Dibatalkan"; tEn = "Treatment Aborted"; dId = `Alasan: ${session.outcome_reason || '-'}`; }
+          logs.push({ id: `ts-${session.id}`, type: "treatment", title_id: tId, title_en: tEn, desc_id: dId, desc_en: dEn, date: new Date(session.started_at as string) });
+        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        treatmentDailyLogsRes?.forEach((tlog: any) => {
+          const diseaseName = tlog.treatment_sessions?.diseases?.name_id || 'Penyakit';
+          logs.push({ id: `tl-${tlog.id}`, type: "treatment", title_id: `Catat Medis (Hari ${tlog.day_number})`, title_en: `Medical Log (Day ${tlog.day_number})`, desc_id: `Aksi: ${tlog.action_taken || 'Observasi'} untuk ${diseaseName}.`, desc_en: `Action: ${tlog.action_taken || 'Observe'} for ${diseaseName}.`, date: new Date(tlog.log_date as string) });
+        });
       }
-    }
 
+      if (role === "super_admin" || role === "admin") {
+        const { data: sysLogs } = await supabase.from("system_activities").select("*").order("created_at", { ascending: false }).limit(10);
+        sysLogs?.forEach(sys => {
+          if (role === "admin" && sys.category === "data_crud") return;
+          logs.push({ 
+            id: `sys-${sys.id}`, type: "system", title_id: `[Admin] ${sys.title}`, title_en: `[Admin] ${translateSystemTitle(sys.title)}`, 
+            desc_id: sys.message, desc_en: translateSystemLog(sys.message), date: new Date(sys.created_at as string) 
+          });
+        });
+      }
+
+      logs.sort((a, b) => b.date.getTime() - a.date.getTime());
+      setRecentActivities(logs.slice(0, 8));
+      await fetchRemindersOnly();
+      setLoadingPage(false);
+
+    } catch (error) {
+      console.error("Dashboard error:", error);
+      setLoadingPage(false);
+    }
+  };
+
+  useEffect(() => {
     if (!isLoading) fetchDashboardData();
   }, [user?.id, isLoading, role]); 
 
-  // 💡 FUNGSI TOGGLE PENGINGAT (CENTANG TUGAS)
+  // 💡 TRIGGER TOAST SAAT CENTANG TUGAS
   const handleToggleReminder = async (id: string, currentStatus: boolean) => {
-    // UI Update (Optimistic)
     setReminders(prev => prev.map(r => r.id === id ? { ...r, is_completed: !currentStatus } : r));
-    // Database Update
     const res = await toggleReminderStatusAction(id, !currentStatus);
-    if (!res.success) {
-      // Revert jika gagal
+    
+    if (res.success) {
+      toast.success(lang === 'id' ? "Sip! Tugas berhasil ditandai." : "Great! Task marked as done.", {
+        icon: !currentStatus ? '✅' : '🔄',
+        style: { borderRadius: '10px', background: '#333', color: '#fff' }
+      });
+    } else {
       setReminders(prev => prev.map(r => r.id === id ? { ...r, is_completed: currentStatus } : r));
+      toast.error(lang === 'id' ? "Gagal mengubah status." : "Failed to change status.");
     }
+  };
+
+  // 💡 TOMBOL KLIK BUKA MODAL KONFIRMASI
+  const handleOpenClearConfirm = () => {
+    const completedCount = reminders.filter(r => r.is_completed).length;
+    if (completedCount === 0) {
+      toast.error(lang === 'id' ? "Tidak ada tugas selesai untuk dibersihkan!" : "No completed tasks to clear!", { style: { borderRadius: '10px', background: '#333', color: '#fff' } });
+      return;
+    }
+    setShowConfirmClear(true);
+  };
+
+  // 💡 EKSEKUSI PENGHAPUSAN SETELAH KONFIRMASI
+  const executeClearCompleted = async () => {
+    setIsClearing(true);
+    const res = await clearCompletedRemindersAction();
+    if (res.success) {
+      toast.success(lang === 'id' ? "Tugas selesai telah dihapus dari DB!" : "Completed tasks swept from DB!", { style: { borderRadius: '10px', background: '#333', color: '#fff' } });
+      fetchRemindersOnly();
+      setShowConfirmClear(false);
+    } else {
+      toast.error(lang === 'id' ? "Gagal membersihkan database." : "Failed to clear database.");
+    }
+    setIsClearing(false);
   };
 
   if (isLoading || loadingPage) {
@@ -472,17 +490,19 @@ export default function DashboardPage() {
         </div>
 
         {/* =========================================
-            SEKSI 2: KARTU STATISTIK (DENGAN NEON HOVER FIX 💡)
+            SEKSI 2: KARTU STATISTIK (💡 NEON MERAH & KELAS DIPERBAIKI)
         ========================================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 hover:border-blue-400 dark:hover:border-blue-500/50 hover:shadow-[0_8px_30px_rgba(59,130,246,0.15)] transition-all duration-300 ease-out">
+          <div className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-[0_0_25px_rgba(59,130,246,0.15)] dark:hover:shadow-[0_0_40px_rgba(59,130,246,0.5)]">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Akuarium Aktif" : "Active Tanks"}</p>
                 <h4 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{stats.tanks}</h4>
               </div>
-              <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-xl"><Container className="w-6 h-6 text-blue-600 dark:text-blue-400" /></div>
+              <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-xl transition-colors duration-300 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50">
+                <Container className="w-6 h-6 text-blue-600 dark:text-blue-400 transition-transform duration-300 group-hover:scale-110" />
+              </div>
             </div>
             <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-1.5">
               {tankList.map(t => (
@@ -497,13 +517,15 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 hover:border-rose-400 dark:hover:border-rose-500/50 hover:shadow-[0_8px_30px_rgba(225,29,72,0.15)] transition-all duration-300 ease-out">
+          <div className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-rose-50/50 dark:hover:bg-rose-900/20 hover:border-rose-400 dark:hover:border-rose-500 hover:shadow-[0_0_25px_rgba(244,63,94,0.15)] dark:hover:shadow-[0_0_50px_rgba(225,29,72,0.6)]">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Peringatan Sistem" : "System Alerts"}</p>
                 <h4 className="text-3xl font-extrabold text-rose-600 dark:text-rose-400">{stats.alerts}</h4>
               </div>
-              <div className="bg-rose-50 dark:bg-rose-900/30 p-3 rounded-xl"><ShieldAlert className="w-6 h-6 text-rose-600 dark:text-rose-400" /></div>
+              <div className="bg-rose-50 dark:bg-rose-900/30 p-3 rounded-xl transition-colors duration-300 group-hover:bg-rose-100 dark:group-hover:bg-rose-900/50">
+                <ShieldAlert className="w-6 h-6 text-rose-600 dark:text-rose-400 transition-transform duration-300 group-hover:scale-110" />
+              </div>
             </div>
             <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2">
               {tankList.map(t => (
@@ -521,13 +543,15 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 hover:border-amber-400 dark:hover:border-amber-500/50 hover:shadow-[0_8px_30px_rgba(245,158,11,0.15)] transition-all duration-300 ease-out">
+          <div className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-amber-50/50 dark:hover:bg-amber-900/20 hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-[0_0_25px_rgba(245,158,11,0.15)] dark:hover:shadow-[0_0_40px_rgba(245,158,11,0.5)]">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Populasi Fauna" : "Fauna Population"}</p>
                 <h4 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{stats.fauna}</h4>
               </div>
-              <div className="bg-amber-50 dark:bg-amber-900/30 p-3 rounded-xl"><Fish className="w-6 h-6 text-amber-600 dark:text-amber-400" /></div>
+              <div className="bg-amber-50 dark:bg-amber-900/30 p-3 rounded-xl transition-colors duration-300 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/50">
+                <Fish className="w-6 h-6 text-amber-600 dark:text-amber-400 transition-transform duration-300 group-hover:scale-110" />
+              </div>
             </div>
             <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-1.5">
               {tankList.map(t => (
@@ -541,13 +565,15 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 hover:border-emerald-400 dark:hover:border-emerald-500/50 hover:shadow-[0_8px_30px_rgba(16,185,129,0.15)] transition-all duration-300 ease-out">
+          <div className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-[0_0_25px_rgba(16,185,129,0.15)] dark:hover:shadow-[0_0_40px_rgba(16,185,129,0.5)]">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Koleksi Flora" : "Flora Collection"}</p>
                 <h4 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">{stats.flora}</h4>
               </div>
-              <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-xl"><Leaf className="w-6 h-6 text-emerald-600 dark:text-emerald-400" /></div>
+              <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded-xl transition-colors duration-300 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50">
+                <Leaf className="w-6 h-6 text-emerald-600 dark:text-emerald-400 transition-transform duration-300 group-hover:scale-110" />
+              </div>
             </div>
             <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-1.5">
               {tankList.map(t => (
@@ -563,7 +589,7 @@ export default function DashboardPage() {
         </div>
 
         {/* =========================================
-            SEKSI 3: TO-DO LIST (TUGAS & PENGINGAT) 💡
+            SEKSI 3: TO-DO LIST (💡 KINI DENGAN MODAL KONFIRMASI MODERN)
         ========================================= */}
         <div className="pt-2">
           <div className="flex items-center justify-between mb-5 px-1">
@@ -571,9 +597,21 @@ export default function DashboardPage() {
               <CalendarClock className="w-6 h-6 text-indigo-500" />
               {lang === 'id' ? "Tugas & Pengingat" : "Tasks & Reminders"}
             </h3>
-            <Button onClick={() => setIsReminderModalOpen(true)} size="sm" className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800/50 font-bold rounded-xl h-10 px-4 transition-all">
-              <Plus className="w-4 h-4 mr-2" /> {lang === 'id' ? "Tambah Tugas" : "Add Task"}
-            </Button>
+            
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button 
+                onClick={handleOpenClearConfirm} 
+                disabled={isClearing}
+                className="flex items-center gap-1.5 px-3 h-10 text-xs font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 cursor-pointer"
+              >
+                {isClearing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                <span className="hidden sm:inline">{lang === 'id' ? "Bersihkan Tugas" : "Clear Completed"}</span>
+              </button>
+
+              <Button onClick={() => setIsReminderModalOpen(true)} size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl h-10 px-4 shadow-sm transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_5px_15px_rgba(79,70,229,0.3)] cursor-pointer border border-transparent">
+                <Plus className="w-4 h-4 mr-2" /> {lang === 'id' ? "Tambah Tugas" : "Add Task"}
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -622,11 +660,10 @@ export default function DashboardPage() {
         </div>
 
         {/* =========================================
-            SEKSI 4 & 5 GABUNGAN: ENSIKLOPEDIA + DIAGNOSTIC TOOLS + LOG
+            SEKSI 4 & 5 GABUNGAN: ENSIKLOPEDIA + DIAGNOSTIC TOOLS
         ========================================= */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 pt-4">
           
-          {/* KOLOM KIRI (Spesies & Diagnostic) */}
           <div className="lg:col-span-2 space-y-8">
             
             <div className="space-y-4">
@@ -636,28 +673,29 @@ export default function DashboardPage() {
               </h3>
               
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                <div onClick={() => router.push("/dashboard/fishes")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_25px_rgba(59,130,246,0.15)] shadow-sm">
-                  <Fish className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                <div onClick={() => router.push("/dashboard/fishes")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(59,130,246,0.15)] dark:hover:shadow-[0_0_35px_rgba(59,130,246,0.35)] shadow-sm">
+                  <Fish className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 group-hover:text-blue-500 transition-transform duration-300 group-hover:scale-110" />
                   <span className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-center">{lang === 'id' ? "Data Ikan" : "Fishes"}</span>
                 </div>
   
-                <div onClick={() => router.push("/dashboard/plants")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 border border-slate-200 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-emerald-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_25px_rgba(16,185,129,0.15)] shadow-sm">
-                  <Leaf className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                <div onClick={() => router.push("/dashboard/plants")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 border border-slate-200 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-emerald-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(16,185,129,0.15)] dark:hover:shadow-[0_0_35px_rgba(16,185,129,0.35)] shadow-sm">
+                  <Leaf className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 group-hover:text-emerald-500 transition-transform duration-300 group-hover:scale-110" />
                   <span className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors text-center">{lang === 'id' ? "Tanaman Air" : "Plants"}</span>
                 </div>
   
-                <div onClick={() => router.push("/dashboard/algae")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-amber-50/50 dark:hover:bg-amber-900/20 border border-slate-200 dark:border-slate-800 hover:border-amber-400 dark:hover:border-amber-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_25px_rgba(245,158,11,0.15)] shadow-sm">
-                  <Bug className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 group-hover:text-amber-500 transition-colors" />
+                <div onClick={() => router.push("/dashboard/algae")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-amber-50/50 dark:hover:bg-amber-900/20 border border-slate-200 dark:border-slate-800 hover:border-amber-400 dark:hover:border-amber-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(245,158,11,0.15)] dark:hover:shadow-[0_0_35px_rgba(245,158,11,0.35)] shadow-sm">
+                  <Bug className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 group-hover:text-amber-500 transition-transform duration-300 group-hover:scale-110" />
                   <span className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors text-center">{lang === 'id' ? "Jenis Alga" : "Algae"}</span>
                 </div>
   
-                <div onClick={() => router.push("/dashboard/diseases")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-red-50/50 dark:hover:bg-red-900/20 border border-slate-200 dark:border-slate-800 hover:border-red-400 dark:hover:border-red-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_25px_rgba(239,68,68,0.15)] shadow-sm">
-                  <Database className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 group-hover:text-red-500 transition-colors" />
+                <div onClick={() => router.push("/dashboard/diseases")} className="group cursor-pointer bg-white dark:bg-slate-900 hover:bg-red-50/50 dark:hover:bg-red-900/20 border border-slate-200 dark:border-slate-800 hover:border-red-400 dark:hover:border-red-500 p-4 sm:p-5 rounded-3xl flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(239,68,68,0.15)] dark:hover:shadow-[0_0_35px_rgba(239,68,68,0.35)] shadow-sm">
+                  <Database className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400 group-hover:text-red-500 transition-transform duration-300 group-hover:scale-110" />
                   <span className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors text-center">{lang === 'id' ? "Penyakit" : "Diseases"}</span>
                 </div>
               </div>
             </div>
 
+            {/* 💡 SISTEM PAKAR DENGAN EFEK NEON MODERN */}
             <div className="space-y-4">
               <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Cpu className="w-5 h-5 text-indigo-500" />
@@ -666,10 +704,10 @@ export default function DashboardPage() {
               
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                 
-                <div onClick={() => router.push("/dashboard/disease-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-rose-500/50 dark:hover:border-rose-500/50 hover:shadow-[0_0_30px_rgba(225,29,72,0.15)] dark:hover:shadow-[0_0_30px_rgba(225,29,72,0.2)]">
+                <div onClick={() => router.push("/dashboard/disease-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all duration-300 ease-out relative overflow-hidden hover:-translate-y-1 hover:border-rose-400 dark:hover:border-rose-500 hover:shadow-[0_0_30px_rgba(225,29,72,0.15)] dark:hover:shadow-[0_0_40px_rgba(225,29,72,0.5)]">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-rose-500/10 dark:bg-rose-500/20 blur-3xl rounded-full group-hover:bg-rose-500/20 dark:group-hover:bg-rose-500/30 transition-colors duration-500"></div>
                   <div className="relative z-10">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform duration-300">
                       <HeartPulse className="w-6 h-6 drop-shadow-[0_0_8px_rgba(225,29,72,0.5)]" />
                     </div>
                     <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Disease Expert</h4>
@@ -678,10 +716,10 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div onClick={() => router.push("/dashboard/fish-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] dark:hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+                <div onClick={() => router.push("/dashboard/fish-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all duration-300 ease-out relative overflow-hidden hover:-translate-y-1 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] dark:hover:shadow-[0_0_40px_rgba(59,130,246,0.5)]">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 dark:bg-blue-500/20 blur-3xl rounded-full group-hover:bg-blue-500/20 dark:group-hover:bg-blue-500/30 transition-colors duration-500"></div>
                   <div className="relative z-10">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform duration-300">
                       <Fish className="w-6 h-6 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                     </div>
                     <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Fish Expert</h4>
@@ -690,10 +728,10 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div onClick={() => router.push("/dashboard/plant-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-emerald-500/50 dark:hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.15)] dark:hover:shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                <div onClick={() => router.push("/dashboard/plant-expert/engine")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all duration-300 ease-out relative overflow-hidden hover:-translate-y-1 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-[0_0_30px_rgba(16,185,129,0.15)] dark:hover:shadow-[0_0_40px_rgba(16,185,129,0.5)]">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 dark:bg-emerald-500/20 blur-3xl rounded-full group-hover:bg-emerald-500/20 dark:group-hover:bg-emerald-500/30 transition-colors duration-500"></div>
                   <div className="relative z-10">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform duration-300">
                       <Leaf className="w-6 h-6 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                     </div>
                     <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Plant Expert</h4>
@@ -702,10 +740,10 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div onClick={() => router.push("/dashboard/algae-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-amber-500/50 dark:hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(245,158,11,0.15)] dark:hover:shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                <div onClick={() => router.push("/dashboard/algae-expert")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all duration-300 ease-out relative overflow-hidden hover:-translate-y-1 hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-[0_0_30px_rgba(245,158,11,0.15)] dark:hover:shadow-[0_0_40px_rgba(245,158,11,0.5)]">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 dark:bg-amber-500/20 blur-3xl rounded-full group-hover:bg-amber-500/20 dark:group-hover:bg-amber-500/30 transition-colors duration-500"></div>
                   <div className="relative z-10">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform duration-300">
                       <Bug className="w-6 h-6 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
                     </div>
                     <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">Algae Expert</h4>
@@ -714,10 +752,10 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div onClick={() => router.push("/dashboard/analytics")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all relative overflow-hidden hover:border-indigo-500/50 dark:hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] sm:col-span-2 xl:col-span-1">
+                <div onClick={() => router.push("/dashboard/analytics")} className="group cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl transition-all duration-300 ease-out relative overflow-hidden hover:-translate-y-1 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] dark:hover:shadow-[0_0_40px_rgba(99,102,241,0.5)] sm:col-span-2 xl:col-span-1">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 blur-3xl rounded-full group-hover:bg-indigo-500/20 dark:group-hover:bg-indigo-500/30 transition-colors duration-500"></div>
                   <div className="relative z-10">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform duration-300">
                       <BarChart className="w-6 h-6 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
                     </div>
                     <h4 className="font-extrabold text-slate-800 dark:text-slate-100 text-lg mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{lang === 'id' ? "Analisis Klinis" : "Clinical Analytics"}</h4>
@@ -742,12 +780,6 @@ export default function DashboardPage() {
                 <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-60">
                   <Activity className="w-8 h-8 text-slate-400 mb-2" />
                   <p className="text-sm font-bold text-slate-500 dark:text-slate-400">{lang === 'id' ? "Belum ada aktivitas terekam." : "No recorded activities yet."}</p>
-                  
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-medium px-4">
-                    {role === 'super_admin' || role === 'admin' 
-                      ? (lang === 'id' ? "Log pekerjaan harian akuarium dan aktivitas notifikasi sistem akan muncul di sini." : "Daily aquarium logs and system notification activities will appear here.")
-                      : (lang === 'id' ? "Log pekerjaan harian, pencatatan air, dan hasil diagnosa Anda akan muncul di sini." : "Daily task logs, water recordings, and diagnoses will appear here.")}
-                  </p>
                 </div>
               ) : (
                 <div className="overflow-y-auto custom-scrollbar flex-1 -mr-2 pr-2">
@@ -788,13 +820,39 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* 💡 MODAL TO-DO LIST DIPASANG DI SINI */}
       <AddReminderModal 
         isOpen={isReminderModalOpen} 
         onClose={() => setIsReminderModalOpen(false)} 
         onSuccess={fetchRemindersOnly} 
         lang={lang} 
       />
+
+      {/* 💡 MODAL KONFIRMASI PENGHAPUSAN TUGAS (MENGGANTIKAN window.confirm) */}
+      {showConfirmClear && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl max-w-sm w-full animate-in zoom-in-95 duration-200">
+            <div className="w-14 h-14 rounded-2xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center mb-5 mx-auto border border-rose-200 dark:border-rose-800/50">
+              <Trash2 className="w-7 h-7 text-rose-600 dark:text-rose-400" />
+            </div>
+            <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2 text-center">
+              {lang === 'id' ? 'Bersihkan Tugas Selesai?' : 'Clear Completed Tasks?'}
+            </h3>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-8 text-center">
+              {lang === 'id' 
+                ? 'Semua tugas yang sudah dicentang akan dihapus permanen dari database. Tindakan ini tidak dapat dibatalkan.' 
+                : 'All checked tasks will be permanently deleted from the database. This action cannot be undone.'}
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Button variant="outline" onClick={() => setShowConfirmClear(false)} className="rounded-xl font-bold h-11 px-6 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+                {lang === 'id' ? 'Batal' : 'Cancel'}
+              </Button>
+              <Button onClick={executeClearCompleted} disabled={isClearing} className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold h-11 px-6 shadow-md shadow-rose-500/20">
+                {isClearing ? <Loader2 className="w-5 h-5 animate-spin" /> : (lang === 'id' ? 'Ya, Bersihkan' : 'Yes, Clear')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

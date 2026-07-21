@@ -120,3 +120,26 @@ export async function deleteReminderAction(id: string) {
     return { success: false, error: "Gagal menghapus tugas." };
   }
 }
+
+// Tambahkan ini di bagian PALING BAWAH file features/reminders/actions/reminder.actions.ts
+
+// 5. Fungsi untuk menghapus semua tugas yang telah diselesaikan (Sapu Bersih)
+export async function clearCompletedRemindersAction() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    const { error } = await supabase
+      .from("user_reminders")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("is_completed", true);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error: unknown) {
+    console.error("Error clearing completed reminders:", error);
+    return { success: false, error: "Gagal membersihkan riwayat tugas." };
+  }
+}
