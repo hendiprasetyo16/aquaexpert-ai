@@ -9,7 +9,8 @@ import { createClient } from "@/lib/supabase/client";
 import { 
   Loader2, Activity, Fish, Leaf, ArrowRight, 
   ShieldAlert, CheckCircle2, Clock, Container, 
-  Cpu, BarChart, HeartPulse, Globe, Bug, Database
+  Cpu, BarChart, HeartPulse, Globe, Bug, Database,
+  CalendarClock, Plus, Circle, CheckCircle, Calendar // 💡 IMPORT IKON BARU
 } from "lucide-react";
 
 import { analyzeAquariumHealth, ActiveTreatmentEngine } from "@/features/aquariums/utils/health-engine";
@@ -17,6 +18,11 @@ import type { AquariumParameterLog } from "@/features/aquariums/types/parameter.
 import type { Aquarium } from "@/features/aquariums/types/aquarium.types";
 import type { TankFish, TankPlant } from "@/features/aquariums/types/inventory.types";
 import type { MaintenanceTask, MaintenanceDashboardStatus } from "@/features/aquariums/types/maintenance.types";
+
+// 💡 IMPORT ACTION & MODAL PENGINGAT (TO-DO LIST)
+import { getUserRemindersAction, toggleReminderStatusAction, type ReminderDto } from "@/features/reminders/actions/reminder.actions";
+import AddReminderModal from "@/features/reminders/components/AddReminderModal";
+import { Button } from "@/components/ui/button";
 
 interface TankInfo {
   id: string;
@@ -62,25 +68,19 @@ const groupByAquarium = <T extends DbRow>(data: T[] | null) => {
   }, {});
 };
 
-// 💡 AUTO TRANSLATOR UNTUK LOG SISTEM DARI DATABASE
+// AUTO TRANSLATOR UNTUK LOG SISTEM DARI DATABASE
 const translateSystemLog = (text: string) => {
   if (!text) return text;
   let en = text;
-
-  // Aquarium Actions
   if (en.includes("membuat akuarium baru bernama")) return en.replace(/(.*?) telah membuat akuarium baru bernama "(.*?)"\.?/i, "$1 created a new aquarium named \"$2\".");
   if (en.includes("memperbarui pengaturan akuarium")) return en.replace(/(.*?) memperbarui pengaturan akuarium "(.*?)"\.?/i, "$1 updated the settings for aquarium \"$2\".");
   if (en.includes("telah menghapus akuarium")) return en.replace(/(.*?) telah menghapus akuarium "(.*?)" miliknya\.?/i, "$1 deleted their aquarium \"$2\".");
   if (en.includes("menetapkan")) return en.replace(/(.*?) menetapkan "(.*?)" sebagai akuarium utama\.?/i, "$1 set \"$2\" as the primary aquarium.");
   if (en.includes("mengubah status akuarium")) return en.replace(/(.*?) mengubah status akuarium "(.*?)"\.?/i, "$1 toggled the active status for aquarium \"$2\".");
-
-  // Inventory Actions
   if (en.includes("menambahkan") && en.includes("ekor")) return en.replace(/(.*?) menambahkan (.*?) ekor "(.*?)" ke akuarium "(.*?)"\.?/i, "$1 added $2 qty of \"$3\" to tank \"$4\".");
   if (en.includes("menambahkan") && en.includes("bibit")) return en.replace(/(.*?) menambahkan (.*?) bibit "(.*?)" ke akuarium "(.*?)"\.?/i, "$1 added $2 portions of \"$3\" to tank \"$4\".");
   if (en.includes("memperbarui status")) return en.replace(/(.*?) memperbarui status "(.*?)" \((.*?)\) di "(.*?)"\.?/i, "$1 updated the status of \"$2\" ($3) in tank \"$4\".");
   if (en.includes("menghapus")) return en.replace(/(.*?) menghapus "(.*?)" dari akuarium "(.*?)"\.?/i, "$1 removed \"$2\" from tank \"$3\".");
-
-  // Maintenance & Parameters
   if (en.includes("menjadwalkan tugas")) return en.replace(/(.*?) menjadwalkan tugas "(.*?)" di akuarium "(.*?)"\.?/i, "$1 scheduled task \"$2\" in tank \"$3\".");
   if (en.includes("mengubah jadwal tugas")) return en.replace(/(.*?) mengubah jadwal tugas "(.*?)" di akuarium "(.*?)"\.?/i, "$1 updated the schedule for task \"$2\" in tank \"$3\".");
   if (en.includes("menghapus jadwal tugas")) return en.replace(/(.*?) menghapus jadwal tugas "(.*?)" dari akuarium "(.*?)"\.?/i, "$1 removed task schedule \"$2\" from tank \"$3\".");
@@ -88,7 +88,6 @@ const translateSystemLog = (text: string) => {
   if (en.includes("menghapus salah satu riwayat pekerjaan")) return en.replace(/(.*?) menghapus salah satu riwayat pekerjaan dari akuarium "(.*?)"\.?/i, "$1 deleted a maintenance log from tank \"$2\".");
   if (en.includes("mencatat kualitas air baru")) return en.replace(/(.*?) mencatat kualitas air baru di akuarium "(.*?)"\.?/i, "$1 logged new water parameters in tank \"$2\".");
   if (en.includes("menghapus riwayat parameter air")) return en.replace(/(.*?) menghapus riwayat parameter air \((.*?)\) dari akuarium "(.*?)"\.?/i, "$1 deleted water log ($2) from tank \"$3\".");
-
   return en;
 };
 
@@ -126,6 +125,11 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({ tanks: 0, alerts: 0, fauna: 0, flora: 0 });
   const [tankList, setTankList] = useState<TankInfo[]>([]);
   const [recentActivities, setRecentActivities] = useState<ActivityLog[]>([]);
+  
+  // 💡 STATE BARU UNTUK PENGINGAT
+  const [reminders, setReminders] = useState<ReminderDto[]>([]);
+  const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
+
   const [loadingPage, setLoadingPage] = useState(true);
   const [ipAddress, setIpAddress] = useState<string>("Loading IP...");
 
@@ -147,6 +151,11 @@ export default function DashboardPage() {
     if (!isLoading && user?.id) getIpAddress();
   }, [user?.id, isLoading]);
 
+  const fetchRemindersOnly = async () => {
+    const { data } = await getUserRemindersAction();
+    if (data) setReminders(data);
+  };
+
   useEffect(() => {
     async function fetchDashboardData() {
       if (!user?.id) return;
@@ -166,13 +175,8 @@ export default function DashboardPage() {
           const [
             { data: rawParams }, { data: rawFishes }, { data: rawPlants }, { data: rawMaint }, 
             { data: rawTreatments }, 
-            { data: paramLogsRes },
-            { data: maintLogsRes },
-            { data: taskLogsRes },
-            { data: fishLogsRes },
-            { data: plantLogsRes },
-            { data: treatmentSessionsRes },
-            { data: treatmentDailyLogsRes }
+            { data: paramLogsRes }, { data: maintLogsRes }, { data: taskLogsRes }, { data: fishLogsRes },
+            { data: plantLogsRes }, { data: treatmentSessionsRes }, { data: treatmentDailyLogsRes }
           ] = await Promise.all([
             supabase.from("aquarium_parameters").select("*").in("aquarium_id", tankIds),
             supabase.from("aquarium_fishes").select("aquarium_id, quantity, fish_id, health_status, size_category, fish:fishes(*)").in("aquarium_id", tankIds),
@@ -197,7 +201,6 @@ export default function DashboardPage() {
           const groupedTreatments = groupByAquarium(rawTreatments as DbRow[]); 
 
           let totalAlerts = 0, totalFauna = 0, totalFlora = 0;
-
           const now = new Date();
           const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -257,48 +260,26 @@ export default function DashboardPage() {
             totalAlerts += (healthAnalysis.alerts || []).length; totalFauna += faunaCount; totalFlora += floraCount;
 
             return { 
-              id: aq.id, 
-              name: aq.name, 
-              is_primary: aq.is_primary || false, 
-              health_score: healthAnalysis.scores.overall, 
-              alerts: healthAnalysis.alerts || [], 
-              faunaCount, 
-              floraCount 
+              id: aq.id, name: aq.name, is_primary: aq.is_primary || false, 
+              health_score: healthAnalysis.scores.overall, alerts: healthAnalysis.alerts || [], 
+              faunaCount, floraCount 
             };
           });
 
           setTankList(processedTanks);
           setStats({ tanks: aquariums.length, alerts: totalAlerts, fauna: totalFauna, flora: totalFlora });
 
-          // ==========================================
-          // MERAKIT SELURUH LOG KE DALAM TIMELINE
-          // ==========================================
-
+          // MERAKIT TIMELINE (Disembunyikan detailnya agar ringkas)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          paramLogsRes?.forEach((log: any) => {
-            logs.push({ id: `p-${log.id}`, type: "parameter", title_id: "Parameter Air Dicatat", title_en: "Water Parameter Logged", desc_id: `Melalui ${log.parameter_source || 'Sistem'}.`, desc_en: `Via ${log.parameter_source || 'System'}.`, date: new Date(log.record_date as string) });
-          });
-
+          paramLogsRes?.forEach((log: any) => logs.push({ id: `p-${log.id}`, type: "parameter", title_id: "Parameter Air Dicatat", title_en: "Water Parameter Logged", desc_id: `Melalui ${log.parameter_source || 'Sistem'}.`, desc_en: `Via ${log.parameter_source || 'System'}.`, date: new Date(log.record_date as string) }));
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          maintLogsRes?.forEach((log: any) => {
-            logs.push({ id: `ml-${log.id}`, type: "maintenance", title_id: "Perawatan Selesai", title_en: "Maintenance Completed", desc_id: `Tugas: ${String(log.maintenance_type).replace('_', ' ')}.`, desc_en: `Task: ${String(log.maintenance_type).replace('_', ' ')}.`, date: new Date(log.performed_at as string) });
-          });
-
+          maintLogsRes?.forEach((log: any) => logs.push({ id: `ml-${log.id}`, type: "maintenance", title_id: "Perawatan Selesai", title_en: "Maintenance Completed", desc_id: `Tugas: ${String(log.maintenance_type).replace('_', ' ')}.`, desc_en: `Task: ${String(log.maintenance_type).replace('_', ' ')}.`, date: new Date(log.performed_at as string) }));
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          taskLogsRes?.forEach((task: any) => {
-            logs.push({ id: `mt-${task.id}`, type: "maintenance", title_id: "Jadwal Tugas Dibuat", title_en: "Task Scheduled", desc_id: `Tugas "${task.title}" dijadwalkan setiap ${task.interval_days} hari.`, desc_en: `Task "${task.title}" scheduled every ${task.interval_days} days.`, date: new Date(task.created_at as string) });
-          });
-
+          taskLogsRes?.forEach((task: any) => logs.push({ id: `mt-${task.id}`, type: "maintenance", title_id: "Jadwal Tugas Dibuat", title_en: "Task Scheduled", desc_id: `Tugas "${task.title}" dijadwalkan setiap ${task.interval_days} hari.`, desc_en: `Task "${task.title}" scheduled every ${task.interval_days} days.`, date: new Date(task.created_at as string) }));
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fishLogsRes?.forEach((f: any) => {
-            logs.push({ id: `f-${f.id}`, type: "flora_fauna", title_id: "Fauna Ditambahkan", title_en: "Fauna Added", desc_id: `${f.quantity} ekor ${f.fishes?.name_id || 'Ikan'} masuk ke akuarium.`, desc_en: `${f.quantity} qty ${f.fishes?.name_en || 'Fish'} added to tank.`, date: new Date(f.added_at as string) });
-          });
-
+          fishLogsRes?.forEach((f: any) => logs.push({ id: `f-${f.id}`, type: "flora_fauna", title_id: "Fauna Ditambahkan", title_en: "Fauna Added", desc_id: `${f.quantity} ekor ${f.fishes?.name_id || 'Ikan'} masuk ke akuarium.`, desc_en: `${f.quantity} qty ${f.fishes?.name_en || 'Fish'} added to tank.`, date: new Date(f.added_at as string) }));
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          plantLogsRes?.forEach((p: any) => {
-            logs.push({ id: `pl-${p.id}`, type: "flora_fauna", title_id: "Flora Ditambahkan", title_en: "Flora Added", desc_id: `${p.quantity} porsi ${p.plants?.name_id || 'Tanaman'} masuk ke akuarium.`, desc_en: `${p.quantity} qty ${p.plants?.name_en || 'Plant'} added to tank.`, date: new Date(p.added_at as string) });
-          });
-
+          plantLogsRes?.forEach((p: any) => logs.push({ id: `pl-${p.id}`, type: "flora_fauna", title_id: "Flora Ditambahkan", title_en: "Flora Added", desc_id: `${p.quantity} porsi ${p.plants?.name_id || 'Tanaman'} masuk ke akuarium.`, desc_en: `${p.quantity} qty ${p.plants?.name_en || 'Plant'} added to tank.`, date: new Date(p.added_at as string) }));
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           treatmentSessionsRes?.forEach((session: any) => {
             const diseaseName = session.diseases?.name_id || 'Penyakit';
@@ -307,7 +288,6 @@ export default function DashboardPage() {
             else if (session.status === 'Aborted') { tId = "Pengobatan Dibatalkan"; tEn = "Treatment Aborted"; dId = `Alasan: ${session.outcome_reason || '-'}`; }
             logs.push({ id: `ts-${session.id}`, type: "treatment", title_id: tId, title_en: tEn, desc_id: dId, desc_en: dEn, date: new Date(session.started_at as string) });
           });
-
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           treatmentDailyLogsRes?.forEach((tlog: any) => {
             const diseaseName = tlog.treatment_sessions?.diseases?.name_id || 'Penyakit';
@@ -315,29 +295,22 @@ export default function DashboardPage() {
           });
         }
 
-        // 💡 MENGAMBIL DAN MENTERJEMAHKAN LOG SISTEM
         if (role === "super_admin" || role === "admin") {
           const { data: sysLogs } = await supabase.from("system_activities").select("*").order("created_at", { ascending: false }).limit(10);
           sysLogs?.forEach(sys => {
             if (role === "admin" && sys.category === "data_crud") return;
-            
-            const enTitle = translateSystemTitle(sys.title);
-            const enDesc = translateSystemLog(sys.message);
-
             logs.push({ 
-              id: `sys-${sys.id}`, 
-              type: "system", 
-              title_id: `[Admin] ${sys.title}`, 
-              title_en: `[Admin] ${enTitle}`, 
-              desc_id: sys.message, 
-              desc_en: enDesc, 
-              date: new Date(sys.created_at as string) 
+              id: `sys-${sys.id}`, type: "system", title_id: `[Admin] ${sys.title}`, title_en: `[Admin] ${translateSystemTitle(sys.title)}`, 
+              desc_id: sys.message, desc_en: translateSystemLog(sys.message), date: new Date(sys.created_at as string) 
             });
           });
         }
 
         logs.sort((a, b) => b.date.getTime() - a.date.getTime());
         setRecentActivities(logs.slice(0, 8));
+
+        // 💡 AMBIL DATA PENGINGAT
+        await fetchRemindersOnly();
 
         setLoadingPage(false);
 
@@ -348,7 +321,19 @@ export default function DashboardPage() {
     }
 
     if (!isLoading) fetchDashboardData();
-  }, [user?.id, isLoading, role]); // Tidak ada 'lang' disini agar bebas kedipan!
+  }, [user?.id, isLoading, role]); 
+
+  // 💡 FUNGSI TOGGLE PENGINGAT (CENTANG TUGAS)
+  const handleToggleReminder = async (id: string, currentStatus: boolean) => {
+    // UI Update (Optimistic)
+    setReminders(prev => prev.map(r => r.id === id ? { ...r, is_completed: !currentStatus } : r));
+    // Database Update
+    const res = await toggleReminderStatusAction(id, !currentStatus);
+    if (!res.success) {
+      // Revert jika gagal
+      setReminders(prev => prev.map(r => r.id === id ? { ...r, is_completed: currentStatus } : r));
+    }
+  };
 
   if (isLoading || loadingPage) {
     return (
@@ -487,10 +472,11 @@ export default function DashboardPage() {
         </div>
 
         {/* =========================================
-            SEKSI 2: KARTU STATISTIK 
+            SEKSI 2: KARTU STATISTIK (DENGAN NEON HOVER FIX 💡)
         ========================================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 transition-transform">
+          
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 hover:border-blue-400 dark:hover:border-blue-500/50 hover:shadow-[0_8px_30px_rgba(59,130,246,0.15)] transition-all duration-300 ease-out">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Akuarium Aktif" : "Active Tanks"}</p>
@@ -511,7 +497,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 transition-transform">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 hover:border-rose-400 dark:hover:border-rose-500/50 hover:shadow-[0_8px_30px_rgba(225,29,72,0.15)] transition-all duration-300 ease-out">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Peringatan Sistem" : "System Alerts"}</p>
@@ -535,7 +521,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 transition-transform">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 hover:border-amber-400 dark:hover:border-amber-500/50 hover:shadow-[0_8px_30px_rgba(245,158,11,0.15)] transition-all duration-300 ease-out">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Populasi Fauna" : "Fauna Population"}</p>
@@ -555,7 +541,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 transition-transform">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex flex-col h-full hover:-translate-y-1 hover:border-emerald-400 dark:hover:border-emerald-500/50 hover:shadow-[0_8px_30px_rgba(16,185,129,0.15)] transition-all duration-300 ease-out">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{lang === 'id' ? "Koleksi Flora" : "Flora Collection"}</p>
@@ -577,14 +563,72 @@ export default function DashboardPage() {
         </div>
 
         {/* =========================================
-            SEKSI 3 & 4 GABUNGAN: ENSIKLOPEDIA + DIAGNOSTIC TOOLS + LOG
+            SEKSI 3: TO-DO LIST (TUGAS & PENGINGAT) 💡
+        ========================================= */}
+        <div className="pt-2">
+          <div className="flex items-center justify-between mb-5 px-1">
+            <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              <CalendarClock className="w-6 h-6 text-indigo-500" />
+              {lang === 'id' ? "Tugas & Pengingat" : "Tasks & Reminders"}
+            </h3>
+            <Button onClick={() => setIsReminderModalOpen(true)} size="sm" className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800/50 font-bold rounded-xl h-10 px-4 transition-all">
+              <Plus className="w-4 h-4 mr-2" /> {lang === 'id' ? "Tambah Tugas" : "Add Task"}
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {reminders.length === 0 ? (
+              <div className="col-span-full bg-slate-50 dark:bg-slate-900/40 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-8 flex flex-col items-center justify-center text-center transition-colors">
+                <CheckCircle2 className="w-10 h-10 text-slate-300 dark:text-slate-700 mb-2" />
+                <p className="text-slate-500 dark:text-slate-400 font-bold">{lang === 'id' ? "Belum ada jadwal tugas." : "No tasks scheduled."}</p>
+                <p className="text-xs font-medium text-slate-400 mt-1">{lang === 'id' ? "Jadwal ganti air atau beri pakan akan muncul di sini." : "Water changes or feeding routines will appear here."}</p>
+              </div>
+            ) : (
+              reminders.slice(0, 6).map(rem => (
+                <div key={rem.id} className={`flex items-start gap-4 p-5 rounded-3xl border transition-all duration-300 ${rem.is_completed ? 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 opacity-60' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700'}`}>
+                  <button onClick={() => handleToggleReminder(rem.id, rem.is_completed)} className="mt-0.5 shrink-0 transform hover:scale-110 transition-transform">
+                    {rem.is_completed 
+                      ? <CheckCircle className="w-6 h-6 text-emerald-500" /> 
+                      : <Circle className="w-6 h-6 text-slate-300 dark:text-slate-600 hover:text-indigo-500 transition-colors" />}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <h4 className={`text-sm font-bold truncate transition-colors ${rem.is_completed ? 'line-through text-slate-500' : 'text-slate-800 dark:text-slate-100'}`}>{rem.title}</h4>
+                    {rem.description && <p className="text-[11px] font-medium text-slate-500 mt-1 line-clamp-1">{rem.description}</p>}
+                    
+                    <div className="flex items-center flex-wrap gap-2 mt-3">
+                      <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md ${
+                        rem.priority === 'high' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400' : 
+                        rem.priority === 'medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400' : 
+                        'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
+                      }`}>
+                        {lang === 'id' && rem.priority === 'high' ? 'Tinggi' : lang === 'id' && rem.priority === 'low' ? 'Rendah' : rem.priority}
+                      </span>
+                      
+                      <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
+                        <Calendar className="w-3 h-3"/> {new Date(rem.due_date).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short' })}
+                      </span>
+                      
+                      {rem.aquarium && (
+                        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-md truncate max-w-[120px]">
+                          <Container className="w-3 h-3 shrink-0"/> <span className="truncate">{rem.aquarium.name}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* =========================================
+            SEKSI 4 & 5 GABUNGAN: ENSIKLOPEDIA + DIAGNOSTIC TOOLS + LOG
         ========================================= */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 pt-4">
           
-          {/* 💡 KOLOM KIRI (Spesies & Diagnostic) - Membentang 2 Kolom */}
+          {/* KOLOM KIRI (Spesies & Diagnostic) */}
           <div className="lg:col-span-2 space-y-8">
             
-            {/* SUB-SEKSI: ENSIKLOPEDIA SPESIES */}
             <div className="space-y-4">
               <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Database className="w-5 h-5 text-purple-500" />
@@ -614,7 +658,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* SUB-SEKSI: ALAT DIAGNOSA KHUSUS */}
             <div className="space-y-4">
               <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Cpu className="w-5 h-5 text-indigo-500" />
@@ -685,10 +728,9 @@ export default function DashboardPage() {
 
               </div>
             </div>
-
           </div>
 
-          {/* 💡 KOLOM KANAN (Aktivitas Terkini) */}
+          {/* KOLOM KANAN (Aktivitas Terkini) */}
           <div className="space-y-4 flex flex-col h-full mt-8 lg:mt-0">
             <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 px-1">
               <Clock className="w-5 h-5 text-slate-400" />
@@ -745,6 +787,14 @@ export default function DashboardPage() {
         </div>
 
       </div>
+
+      {/* 💡 MODAL TO-DO LIST DIPASANG DI SINI */}
+      <AddReminderModal 
+        isOpen={isReminderModalOpen} 
+        onClose={() => setIsReminderModalOpen(false)} 
+        onSuccess={fetchRemindersOnly} 
+        lang={lang} 
+      />
     </div>
   );
 }
