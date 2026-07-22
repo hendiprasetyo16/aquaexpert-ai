@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/providers/LanguageProvider"; 
+import MarkdownRenderer from "@/components/ui/MarkdownRenderer"; // 💡 FIX 1: Import Markdown Renderer
 
 interface Props {
   aquariumId: string;
@@ -19,7 +20,6 @@ interface Props {
 export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
   const { dict } = useLanguage();
   
-  // 💡 FIX 1: Membunuh 'any' dan membongkar objek kamus secara elegan (Strict Type)
   const dictRoot = dict as { aquarium?: { diagnosis?: Record<string, string> } };
   const diagDict = dictRoot.aquarium?.diagnosis || {}; 
 
@@ -28,18 +28,16 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // 💡 FIX 2: Pisahkan ruang penyimpanan antara bahasa ID dan EN
     const cachedDiagnosis = sessionStorage.getItem(`aquaexpert_diagnosis_v2_${aquariumId}_${lang}`);
     if (cachedDiagnosis) {
       try { setResult(JSON.parse(cachedDiagnosis)); } catch (err) {}
     } else {
-      setResult(null); // Kosongkan layar jika beda bahasa agar AI mendiagnosa ulang
+      setResult(null); 
     }
-  }, [aquariumId, lang]); // 💡 Tambahkan 'lang' di sini juga
+  }, [aquariumId, lang]); 
 
   const handleRunDiagnosis = async () => {
     setLoading(true); setError("");
-    // Hapus memori kedua bahasa
     sessionStorage.removeItem(`aquaexpert_diagnosis_v2_${aquariumId}_id`);
     sessionStorage.removeItem(`aquaexpert_diagnosis_v2_${aquariumId}_en`);
     
@@ -47,7 +45,6 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     
     if (res.success && res.localDiagnosis) {
       setResult(res);
-      // Simpan menggunakan kunci bahasa yang spesifik
       sessionStorage.setItem(`aquaexpert_diagnosis_v2_${aquariumId}_${lang}`, JSON.stringify(res));
     } else {
       setResult(null);
@@ -167,7 +164,6 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
     return "bg-teal-500 text-white border-teal-600 shadow-md shadow-teal-500/30";
   };
 
-  // 💡 FIX 2: Ekstraksi angka matematis dari string agar tidak ada rentang skor penalti yang lolos (Bocor)
   const getExplainabilityBadgeColor = (text: string) => {
     const lower = text.toLowerCase();
     const penaltyMatch = text.match(/-(\d+)/);
@@ -267,8 +263,9 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
                   )}
                 </div>
                 
-                <div className={`text-sm md:text-base font-bold leading-relaxed space-y-3 whitespace-pre-wrap relative z-10 ${result.expertAIExtras.generatedByGemini ? 'text-indigo-950 dark:text-slate-300' : 'text-slate-700 dark:text-slate-400'}`}>
-                  {result.expertAIExtras.commentary}
+                {/* 💡 FIX 2: Render teks Markdown AI menggunakan komponen MarkdownRenderer yang elegan */}
+                <div className={`text-sm md:text-base font-medium leading-relaxed relative z-10 ${result.expertAIExtras.generatedByGemini ? 'text-indigo-950 dark:text-slate-300' : 'text-slate-700 dark:text-slate-400'}`}>
+                  <MarkdownRenderer content={result.expertAIExtras.commentary} />
                 </div>
               </div>
             </div>
