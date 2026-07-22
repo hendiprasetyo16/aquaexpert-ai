@@ -8,11 +8,8 @@ import Link from "next/link";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { ArrowLeft, Send, Bot, User, Loader2 } from "lucide-react";
 import { askAquaExpert } from "@/features/ai/actions/ai.actions";
-
-type ChatMessage = {
-  role: "user" | "ai";
-  content: string;
-};
+import { ChatMessage } from "@/features/ai/types/ai.types"; // 💡 Gunakan tipe data terpusat
+import MarkdownRenderer from "@/components/ui/MarkdownRenderer";
 
 export default function AskAIPage() {
   const { language } = useLanguage();
@@ -34,8 +31,17 @@ export default function AskAIPage() {
     e.preventDefault();
     if (!message.trim()) return;
 
-    const currentMessage = message;
-    const newHistory: ChatMessage[] = [...chatHistory, { role: "user", content: currentMessage }];
+    const currentMessage = message.trim();
+    
+    // 💡 Lengkapi dengan id dan timestamp agar sesuai dengan tipe ChatMessage
+    const newUserMsg: ChatMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      content: currentMessage,
+      timestamp: new Date(),
+    };
+
+    const newHistory: ChatMessage[] = [...chatHistory, newUserMsg];
     
     setChatHistory(newHistory);
     setMessage("");
@@ -44,9 +50,21 @@ export default function AskAIPage() {
     const res = await askAquaExpert(newHistory);
 
     if (res?.error) {
-      setChatHistory(prev => [...prev, { role: "ai", content: `⚠️ Maaf, ada kendala: ${res.error}` }]);
+      const errAiMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "ai",
+        content: `⚠️ Maaf, ada kendala: ${res.error}`,
+        timestamp: new Date(),
+      };
+      setChatHistory(prev => [...prev, errAiMsg]);
     } else if (res?.reply) {
-      setChatHistory(prev => [...prev, { role: "ai", content: res.reply }]);
+      const successAiMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "ai",
+        content: res.reply,
+        timestamp: new Date(),
+      };
+      setChatHistory(prev => [...prev, successAiMsg]);
     }
     
     setIsTyping(false);
@@ -55,7 +73,7 @@ export default function AskAIPage() {
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors">
       
-      {/* 💡 HEADER NAVIGASI */}
+      {/* HEADER NAVIGASI */}
       <header className="sticky top-0 z-50 flex items-center justify-between px-4 sm:px-8 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex items-center gap-4">
           <Link href="/">
@@ -77,7 +95,7 @@ export default function AskAIPage() {
         </div>
       </header>
 
-      {/* 💡 RUANG OBROLAN (CHAT AREA) */}
+      {/* RUANG OBROLAN (CHAT AREA) */}
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 w-full max-w-4xl mx-auto space-y-6">
         
         {/* Pesan Selamat Datang Default */}
@@ -89,8 +107,8 @@ export default function AskAIPage() {
           </div>
         </div>
 
-        {chatHistory.map((chat, index) => (
-          <div key={index} className={`flex ${chat.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+        {chatHistory.map((chat) => (
+          <div key={chat.id} className={`flex ${chat.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
             {chat.role === 'ai' && (
                <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white mr-3 shrink-0 mt-2 shadow-sm">
                  <Bot className="w-4 h-4" />
@@ -102,7 +120,11 @@ export default function AskAIPage() {
                 ? 'bg-teal-600 text-white rounded-3xl rounded-tr-sm' 
                 : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-3xl rounded-tl-sm'
             }`}>
-              {chat.content}
+              {chat.role === 'user' ? (
+                chat.content
+              ) : (
+                <MarkdownRenderer content={chat.content} />
+              )}
             </div>
 
             {chat.role === 'user' && (
@@ -128,7 +150,7 @@ export default function AskAIPage() {
         <div ref={chatEndRef} className="h-4" />
       </main>
 
-      {/* 💡 AREA INPUT TEKS */}
+      {/* AREA INPUT TEKS */}
       <footer className="sticky bottom-0 z-50 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md p-4 sm:p-6 border-t border-transparent">
         <div className="max-w-4xl mx-auto">
           <form onSubmit={handleSendMessage} className="flex items-center gap-3 relative bg-white dark:bg-slate-900 p-2 rounded-full border border-slate-200 dark:border-slate-800 shadow-xl focus-within:ring-2 focus-within:ring-teal-500/20 transition-all">

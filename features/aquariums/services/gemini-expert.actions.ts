@@ -4,12 +4,12 @@
 import { generateDeepDiagnosis } from "../utils/deep-diagnosis";
 import { analyzeAquariumHealth } from "../utils/health-engine";
 import { getTankInventoryAction } from "../actions/inventory.actions";
-import { getMaintenanceDashboardAction } from "../actions/maintenance.actions"; // 💡 FIX 2: Import layanan Maintenance
+import { getMaintenanceDashboardAction } from "../actions/maintenance.actions";
 import { createClient } from "@/lib/supabase/server";
 import { verifyAquariumOwnership } from "../repositories/security.repository";
 import { askAquaExpert } from "@/features/ai/actions/ai.actions"; 
 import { getActiveTreatmentsAction } from "@/features/treatments/actions/start-treatment.actions"; 
-import { AIProviderResponse } from "@/features/ai/types/ai.types"; 
+import { AIProviderResponse, ChatMessage } from "@/features/ai/types/ai.types"; // 💡 Import ChatMessage
 
 export interface HybridDiagnosisResponse {
   success: boolean;
@@ -57,7 +57,6 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
       };
     }
 
-    // 💡 FIX 2: Menarik data inventory, penyakit, DAN PERAWATAN secara serentak agar skor sinkron!
     const [inventory, treatRes, maintRes] = await Promise.all([
       getTankInventoryAction(aquariumId),
       getActiveTreatmentsAction(aquariumId),
@@ -71,7 +70,6 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
     const activeTreatments = treatRes.success && treatRes.data ? treatRes.data : []; 
     const maintenanceStatus = maintRes.success ? maintRes.tasksStatus : [];
 
-    // 💡 FIX 1: Menyuntikkan lang dan maintenanceStatus ke dalam Mesin Kalkulasi
     const healthResult = analyzeAquariumHealth({ 
       aquarium, 
       parameters: paramsList, 
@@ -79,7 +77,7 @@ export async function getHybridDeepDiagnosisAction(aquariumId: string, lang: "id
       fishes, 
       maintenanceStatus, 
       activeTreatments, 
-      lang // Kunci utamanya ada di sini!
+      lang 
     });
     
     const localDiagnosis = generateDeepDiagnosis({ aquarium, health: healthResult, parameters: paramsList, fishes, plants, lang });
@@ -101,16 +99,20 @@ ${issues}
 Explain the biological impact briefly.`;
 
       try {
-        const aiResponse = await askAquaExpert([{ role: "user", content: diagnosisPrompt }]);
+        // 💡 FIX: Buat payload dengan tipe ChatMessage yang lengkap (ada id & timestamp)
+        const payloadMessage: ChatMessage = {
+          id: Date.now().toString(),
+          role: "user",
+          content: diagnosisPrompt,
+          timestamp: new Date()
+        };
 
+        const aiResponse = await askAquaExpert([payloadMessage]);
         const result = aiResponse as AIProviderResponse;
 
         if (result && !result.error && result.reply) {
           expertCommentary = result.reply.trim();
           generatedByAI = true;
-          console.log("✅ [DIAGNOSIS AI SUCCESS]");
-        } else {
-          console.warn("⚠️ AI returned an error or empty reply. Using fallback.");
         }
       } catch (err) {
         console.warn("⚠️ [DIAGNOSIS AI TIMEOUT] Menggunakan teks fallback.");
