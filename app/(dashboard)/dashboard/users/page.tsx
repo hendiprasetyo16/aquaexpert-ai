@@ -12,7 +12,7 @@ import {
 import { UserProfile, UserRole } from "@/features/users/types/user.types";
 
 import { 
-  Loader2, ShieldAlert, User as UserIcon, Mail, Users, 
+  Loader2, ShieldAlert, Mail, Users, 
   Shield, ShieldCheck, UserPlus, X, KeyRound, Power, PowerOff, Search, Filter, Pencil, Trash2, CalendarDays, Activity, Eye, EyeOff, AlertTriangle, Globe
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -299,9 +299,28 @@ export default function UsersPage() {
                 
                 <div className="flex items-start justify-between">
                   <div className="flex gap-3 overflow-hidden w-full">
-                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${user.is_active ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400' : 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-500'}`}>
-                      <UserIcon className="h-5 w-5" />
-                    </div>
+                    {/* =========================================================
+                        KODE BARU: AVATAR USER DENGAN FALLBACK & LAZY LOADING
+                    ========================================================= */}
+                    {(() => {
+                      // Anggap properti avatar_url sudah ada di database, jika belum TS akan memperingatkan, 
+                      // jadi kita bypass sedikit dengan casting aman.
+                      const userAvatar = (user as any).avatar_url; 
+                      const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=0D9488&color=fff&rounded=true&bold=true&size=128`;
+                      
+                      return (
+                        <div className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full overflow-hidden ${!user.is_active ? 'ring-2 ring-red-500/50' : 'ring-1 ring-slate-200 dark:ring-slate-700'}`}>
+                          <img 
+                            src={userAvatar || fallbackAvatarUrl} 
+                            alt={user.full_name} 
+                            loading="lazy" // KUNCI PERFORMA: Gambar hanya diload saat masuk ke layar (viewport)
+                            className={`h-full w-full object-cover ${!user.is_active ? 'grayscale opacity-70' : ''}`} 
+                          />
+                        </div>
+                      );
+                    })()}
+                    {/* ========================================================= */}
+                    
                     <div className="overflow-hidden w-full">
                       <div className="flex items-center justify-between gap-2 mr-6">
                         <h3 className="truncate font-semibold text-gray-900 dark:text-slate-200" title={user.full_name}>
@@ -372,7 +391,6 @@ export default function UsersPage() {
                   </select>
 
                   <div className="flex gap-2">
-                    {/* FIX TS: Menggunakan tooltipResetPass sesuai dictionary */}
                     <button onClick={() => { setSelectedUser(user); setIsResetModalOpen(true); }} disabled={currentUserRole === "admin" && user.role !== "user"} title={dict.usersMgmt.tooltipResetPass} className="rounded-md bg-slate-100 dark:bg-slate-800 p-1.5 text-slate-600 dark:text-slate-400 transition hover:bg-blue-100 dark:hover:bg-blue-900 hover:text-blue-700 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed" >
                       <KeyRound className="h-4 w-4" />
                     </button>

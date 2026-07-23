@@ -14,8 +14,9 @@ export async function getUsers(): Promise<UserProfile[]> {
       is_active,
       created_at,
       last_login_at,
-      ip_address
-    `)
+      ip_address,
+      avatar_url
+    `) // 💡 KUNCI JAWABANNYA ADA DI SINI: Menambahkan avatar_url
     .order("full_name", { ascending: true });
 
   if (error) {
