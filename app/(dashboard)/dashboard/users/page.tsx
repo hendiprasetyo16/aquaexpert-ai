@@ -308,18 +308,19 @@ export default function UsersPage() {
                       const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=0D9488&color=fff&rounded=true&bold=true&size=128`;
                       
                       return (
-                        <div className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full overflow-hidden ${!user.is_active ? 'ring-2 ring-red-500/50' : 'ring-1 ring-slate-200 dark:ring-slate-700'}`}>
+                        // KITA GANTI RING MENJADI BORDER AGAR TIDAK TERPOTONG
+                        <div className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 p-[2px] ${!user.is_active ? 'border-red-500' : 'border-teal-500 dark:border-teal-400'}`}>
                           <img 
                             src={userWithAvatar.avatar_url || fallbackAvatarUrl} 
                             alt={user.full_name} 
                             loading="lazy"
-                            className={`h-full w-full object-cover ${!user.is_active ? 'grayscale opacity-70' : ''}`} 
+                            className={`h-full w-full rounded-full object-cover ${!user.is_active ? 'grayscale opacity-70' : ''}`} 
                           />
                         </div>
                       );
                     })()}
                     {/* ========================================================= */}
-                    
+
                     <div className="overflow-hidden w-full">
                       <div className="flex items-center justify-between gap-2 mr-6">
                         <h3 className="truncate font-semibold text-gray-900 dark:text-slate-200" title={user.full_name}>
