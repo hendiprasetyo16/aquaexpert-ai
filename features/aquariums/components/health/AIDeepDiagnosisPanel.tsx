@@ -1,6 +1,9 @@
 // features/aquariums/components/health/AIDeepDiagnosisPanel.tsx
 "use client";
 
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { DiagnosisPDFReport } from "./DiagnosisPDFReport";
+import { FileDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getHybridDeepDiagnosisAction, HybridDiagnosisResponse } from "../../services/gemini-expert.actions";
 import { RiskLevel } from "../../utils/deep-diagnosis";
@@ -235,6 +238,21 @@ export default function AIDeepDiagnosisPanel({ aquariumId, lang }: Props) {
               <Button onClick={handleRunDiagnosis} variant="outline" className="w-full mt-6 bg-white dark:bg-slate-900 border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-900/50 dark:text-indigo-400 font-bold h-11 rounded-xl shadow-sm transition-all active:scale-95">
                 <RefreshCw className="w-4 h-4 mr-2" /> {lang === 'id' ? "Diagnosis Ulang" : "Re-Diagnose"}
               </Button>
+
+              {/* 💡 TOMBOL UNDUH PDF */}
+              <PDFDownloadLink
+                document={<DiagnosisPDFReport data={result} date={new Date().toLocaleString('id-ID')} />}
+                fileName={`Diagnosis_AquaExpert_${new Date().toISOString().split('T')[0]}.pdf`}
+                className="w-full mt-3"
+              >
+                {/* PDFDownloadLink menyediakan callback {({ loading })} untuk state tombol */}
+                {({ loading: isPdfLoading }) => (
+                  <Button disabled={isPdfLoading} variant="outline" className="w-full border-teal-200 text-teal-700 hover:bg-teal-50 dark:border-teal-900/50 dark:text-teal-400 font-bold h-11 rounded-xl shadow-sm transition-all active:scale-95">
+                    <FileDown className="w-4 h-4 mr-2" />
+                    {isPdfLoading ? "Menyiapkan PDF..." : "Unduh Laporan PDF"}
+                  </Button>
+                )}
+              </PDFDownloadLink>
             </div>
 
             <div className="flex-1 flex flex-col justify-start min-w-0">

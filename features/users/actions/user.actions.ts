@@ -5,6 +5,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { UserRole } from "../types/user.types";
+import { logAuditTrail } from "./audit.actions"; // <-- IMPORT LOGGER
 
 const supabaseAdmin = createSupabaseClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,7 +25,7 @@ export type ActionResult = {
 };
 
 // =====================================================
-// VERIFIKASI AKSES ADMIN (BERSIH DARI LOG)
+// VERIFIKASI AKSES ADMIN (DIPERBARUI)
 // =====================================================
 async function verifyAdminAccess() {
   const cookieStore = await cookies();
@@ -48,9 +49,10 @@ async function verifyAdminAccess() {
     throw new Error("Sesi tidak terbaca. Harap login ulang.");
   }
 
+  // 💡 KITA AMBIL JUGA EMAIL & FULL NAME UNTUK KEBUTUHAN AUDIT LOG
   const { data: profile, error: profileError } = await supabaseAdmin
     .from("profiles")
-    .select("role, is_active")
+    .select("role, is_active, email, full_name") 
     .eq("id", data.user.id)
     .single();
 
@@ -69,8 +71,14 @@ async function verifyAdminAccess() {
   return {
     userId: data.user.id,
     role: profile.role as UserRole,
+    email: profile.email,
+    fullName: profile.full_name,
   };
 }
+
+// =====================================================
+// AKSI PENGGUNA TERINTEGRASI AUDIT TRAIL
+// =====================================================
 
 export async function updateUserRoleAction(
   userId: string,
@@ -94,7 +102,7 @@ export async function updateUserRoleAction(
 
     const { data: targetProfile, error: targetError } = await supabaseAdmin
       .from("profiles")
-      .select("id, role")
+      .select("id, role, email") // 💡 AMBIL EMAIL UNTUK LOG
       .eq("id", userId)
       .single();
 
@@ -109,17 +117,22 @@ export async function updateUserRoleAction(
 
     if (error) throw new Error(error.message);
 
+    // 💡 CATAT KE AUDIT LOG
+    await logAuditTrail(
+      currentUser.fullName,
+      currentUser.email,
+      "CHANGE_ROLE",
+      targetProfile.email || "Unknown Email",
+      `Mengubah peran dari ${targetProfile.role} menjadi ${newRole}.`
+    );
+
     return {
       success: true,
       message: `Jabatan diubah menjadi ${newRole.toUpperCase()}.`,
     };
-  // REFAKTOR: Mengganti any menjadi unknown dan menggunakan type guard
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Gagal mengubah role pengguna.";
-    return {
-      success: false,
-      error: errorMessage,
-    };
+    return { success: false, error: errorMessage };
   }
 }
 
@@ -151,6 +164,12 @@ export async function toggleUserStatus(
       }
     }
 
+    const { data: targetProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("email")
+      .eq("id", userId)
+      .single();
+
     const { error } = await supabaseAdmin
       .from("profiles")
       .update({ is_active: !currentStatus })
@@ -158,29 +177,29 @@ export async function toggleUserStatus(
 
     if (error) throw new Error(error.message);
 
+    // 💡 CATAT KE AUDIT LOG
+    await logAuditTrail(
+      currentUser.fullName,
+      currentUser.email,
+      currentStatus ? "BLOCK" : "UNBLOCK",
+      targetProfile?.email || "Unknown Email",
+      currentStatus ? "Memblokir akses login pengguna." : "Membuka akses login pengguna."
+    );
+
     return {
       success: true,
       message: currentStatus
         ? "Pengguna berhasil diblokir."
         : "Pengguna berhasil diaktifkan.",
     };
-  // REFAKTOR: Mengganti any menjadi unknown dan menggunakan type guard
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Gagal mengubah status pengguna.";
-    return {
-      success: false,
-      error: errorMessage,
-    };
+    return { success: false, error: errorMessage };
   }
 }
 
 export async function createUser(
-  data: {
-    email: string;
-    password: string;
-    full_name: string;
-    role: UserRole;
-  }
+  data: { email: string; password: string; full_name: string; role: UserRole; }
 ): Promise<ActionResult> {
   try {
     const currentUser = await verifyAdminAccess();
@@ -221,17 +240,22 @@ export async function createUser(
       throw new Error(profileError.message);
     }
 
+    // 💡 CATAT KE AUDIT LOG
+    await logAuditTrail(
+      currentUser.fullName,
+      currentUser.email,
+      "CREATE_USER",
+      email,
+      `Membuat akun baru dengan peran ${data.role}.`
+    );
+
     return {
       success: true,
       message: "Pengguna berhasil ditambahkan.",
     };
-  // REFAKTOR: Mengganti any menjadi unknown dan menggunakan type guard
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan saat membuat user.";
-    return {
-      success: false,
-      error: errorMessage,
-    };
+    return { success: false, error: errorMessage };
   }
 }
 
@@ -249,7 +273,7 @@ export async function updateUserProfile(
 
     const { data: targetUser, error: targetError } = await supabaseAdmin
       .from("profiles")
-      .select("role")
+      .select("role, email")
       .eq("id", userId)
       .single();
 
@@ -268,17 +292,22 @@ export async function updateUserProfile(
 
     if (error) throw new Error(error.message);
 
+    // 💡 CATAT KE AUDIT LOG
+    await logAuditTrail(
+      currentUser.fullName,
+      currentUser.email,
+      "UPDATE_PROFILE",
+      targetUser.email || "Unknown Email",
+      `Memperbarui nama pengguna menjadi ${fullName}.`
+    );
+
     return {
       success: true,
       message: "Profil berhasil diperbarui.",
     };
-  // REFAKTOR: Mengganti any menjadi unknown dan menggunakan type guard
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Gagal memperbarui profil pengguna.";
-    return {
-      success: false,
-      error: errorMessage,
-    };
+    return { success: false, error: errorMessage };
   }
 }
 
@@ -298,23 +327,34 @@ export async function resetUserPassword(
       throw new Error("Admin hanya dapat mereset password user biasa.");
     }
 
+    const { data: targetUser } = await supabaseAdmin
+      .from("profiles")
+      .select("email")
+      .eq("id", userId)
+      .single();
+
     const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       password: newPassword,
     });
 
     if (error) throw new Error(error.message);
 
+    // 💡 CATAT KE AUDIT LOG
+    await logAuditTrail(
+      currentUser.fullName,
+      currentUser.email,
+      "RESET_PASSWORD",
+      targetUser?.email || "Unknown Email",
+      "Mereset kata sandi pengguna secara manual."
+    );
+
     return {
       success: true,
       message: "Password berhasil di-reset.",
     };
-  // REFAKTOR: Mengganti any menjadi unknown dan menggunakan type guard
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Gagal mereset password.";
-    return {
-      success: false,
-      error: errorMessage,
-    };
+    return { success: false, error: errorMessage };
   }
 }
 
@@ -344,20 +384,31 @@ export async function hardDeleteUser(
       }
     }
 
+    const { data: targetUser } = await supabaseAdmin
+      .from("profiles")
+      .select("email")
+      .eq("id", userId)
+      .single();
+
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (error) throw new Error(error.message);
+
+    // 💡 CATAT KE AUDIT LOG
+    await logAuditTrail(
+      currentUser.fullName,
+      currentUser.email,
+      "DELETE",
+      targetUser?.email || "Unknown Email",
+      "Menghapus akun pengguna secara permanen dari sistem."
+    );
 
     return {
       success: true,
       message: "Akun pengguna berhasil dihapus secara permanen.",
     };
-  // REFAKTOR: Mengganti any menjadi unknown dan menggunakan type guard
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Gagal menghapus pengguna secara permanen.";
-    return {
-      success: false,
-      error: errorMessage,
-    };
+    return { success: false, error: errorMessage };
   }
 }

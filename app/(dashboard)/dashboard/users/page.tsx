@@ -198,6 +198,41 @@ export default function UsersPage() {
     return "hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-[0_0_20px_rgba(45,212,191,0.3)] dark:hover:shadow-[0_0_25px_rgba(20,184,166,0.5)]";
   };
 
+  // ... kode fungsi lainnya ...
+
+  const handleExportCSV = () => {
+    // 1. Siapkan header kolom
+    const headers = ["No", "Nama Lengkap", "Email", "Peran", "Status", "IP Address", "Terakhir Login", "Tanggal Daftar"];
+    
+    // 2. Petakan data pengguna ke dalam baris CSV
+    const csvRows = filteredUsers.map((u, index) => {
+      const ip = u.ip_address || (u as any).last_sign_in_ip || "Belum terekam";
+      const lastLogin = u.last_login_at ? new Date(u.last_login_at).toLocaleString('id-ID') : "Belum pernah login";
+      const registered = u.created_at ? new Date(u.created_at).toLocaleString('id-ID') : "-";
+      const status = u.is_active ? "Aktif" : "Diblokir";
+      
+      // Escape tanda kutip jika ada di dalam nama
+      const name = `"${u.full_name.replace(/"/g, '""')}"`;
+      
+      return [index + 1, name, u.email, u.role, status, ip, lastLogin, registered].join(",");
+    });
+
+    // 3. Gabungkan header dan baris data
+    const csvContent = [headers.join(","), ...csvRows].join("\n");
+    
+    // 4. Buat file Blob dan unduh otomatis
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Laporan_Pengguna_AquaExpert_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success("Laporan CSV berhasil diunduh!");
+  };
+
   if (currentUserRole !== "super_admin" && currentUserRole !== "admin") return null;
 
   return (
@@ -210,6 +245,15 @@ export default function UsersPage() {
           <p className="mt-1 text-slate-600 dark:text-slate-400">{dict.usersMgmt.subtitle}</p>
         </div>
         
+        <div className="flex gap-2">
+          {/* TOMBOL EXPORT CSV */}
+          <button 
+            onClick={handleExportCSV}
+            className="flex items-center justify-center gap-2 rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600"
+          >
+            Unduh CSV
+          </button>
+
         <button 
           onClick={() => { setIsAddModalOpen(true); setShowAddPassword(false); }}
           className="flex items-center justify-center gap-2 rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-500 shadow-[0_0_15px_rgba(13,148,136,0.4)] dark:shadow-[0_0_20px_rgba(13,148,136,0.6)]"
@@ -217,6 +261,7 @@ export default function UsersPage() {
           <UserPlus className="h-4 w-4" /> {dict.usersMgmt.addUser}
         </button>
       </div>
+    </div>
 
       {/* STATISTIK DENGAN NEON RINGAN SAAT HOVER */}
       {!loading && (

@@ -14,7 +14,8 @@ import {
   HeartPulse,   
   Pill, 
   Network, 
-  Package
+  Package,
+  ShieldCheck // <-- IMPORT ICON BARU UNTUK LOG AKTIVITAS
 } from "lucide-react";
 
 const AI_COLORS = {
@@ -60,6 +61,7 @@ export const MENU_BY_ROLE: Record<string, MenuItem[]> = {
     // --- ANALITIK & PENGATURAN ---
     { title_en: "Clinical Analytics", title_id: "Analitik Klinis", href: "/dashboard/analytics", icon: BarChart, color: "text-fuchsia-500 dark:text-fuchsia-400" },
     { title_en: "Users", title_id: "Pengguna", href: "/dashboard/users", icon: Users },
+    { title_en: "Audit Logs", title_id: "Log Aktivitas", href: "/dashboard/audit-logs", icon: ShieldCheck, color: "text-rose-500 dark:text-rose-400" }, // <-- TAMBAHAN UNTUK SUPER ADMIN
     { title_en: "Control Panel", title_id: "Panel Kendali", href: "/dashboard/admin-panel", icon: Database }, 
   ],
 
@@ -80,6 +82,7 @@ export const MENU_BY_ROLE: Record<string, MenuItem[]> = {
     { title_en: "Medication Database", title_id: "Database Obat", href: "/dashboard/medications", icon: Pill, color: "text-sky-500 dark:text-sky-400" },
     { title_en: "Clinical Analytics", title_id: "Analitik Klinis", href: "/dashboard/analytics", icon: BarChart, color: "text-fuchsia-500 dark:text-fuchsia-400" },
     { title_en: "Users", title_id: "Pengguna", href: "/dashboard/users", icon: Users },
+    { title_en: "Audit Logs", title_id: "Log Aktivitas", href: "/dashboard/audit-logs", icon: ShieldCheck, color: "text-rose-500 dark:text-rose-400" }, // <-- TAMBAHAN UNTUK ADMIN
   ],
 
   user: [
