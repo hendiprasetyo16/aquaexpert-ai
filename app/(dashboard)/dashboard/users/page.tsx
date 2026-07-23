@@ -300,20 +300,19 @@ export default function UsersPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex gap-3 overflow-hidden w-full">
                     {/* =========================================================
-                        KODE BARU: AVATAR USER DENGAN FALLBACK & LAZY LOADING
+                        KODE BARU: MENGHILANGKAN `any` & MENGGUNAKAN INTERSECTION TYPE
                     ========================================================= */}
                     {(() => {
-                      // Anggap properti avatar_url sudah ada di database, jika belum TS akan memperingatkan, 
-                      // jadi kita bypass sedikit dengan casting aman.
-                      const userAvatar = (user as any).avatar_url; 
+                      // Menggunakan type intersection untuk memberitahu TS bahwa ada opsional avatar_url
+                      const userWithAvatar = user as UserProfile & { avatar_url?: string }; 
                       const fallbackAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=0D9488&color=fff&rounded=true&bold=true&size=128`;
                       
                       return (
                         <div className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full overflow-hidden ${!user.is_active ? 'ring-2 ring-red-500/50' : 'ring-1 ring-slate-200 dark:ring-slate-700'}`}>
                           <img 
-                            src={userAvatar || fallbackAvatarUrl} 
+                            src={userWithAvatar.avatar_url || fallbackAvatarUrl} 
                             alt={user.full_name} 
-                            loading="lazy" // KUNCI PERFORMA: Gambar hanya diload saat masuk ke layar (viewport)
+                            loading="lazy"
                             className={`h-full w-full object-cover ${!user.is_active ? 'grayscale opacity-70' : ''}`} 
                           />
                         </div>
