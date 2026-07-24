@@ -13,8 +13,13 @@ import Image from "next/image";
 import { 
   Loader2, Cpu, Filter, Info, CheckCircle2, Trophy, 
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Target, Fish,
-  Plus, X, HeartPulse, Search
+  Plus, X, HeartPulse, Search, FileDown // 💡 TAMBAHKAN FileDown
 } from "lucide-react";
+
+// 💡 TAMBAHKAN IMPORT LIBRARY PDF & KOMPONEN KITA
+// 💡 UBAH IMPORT INI
+import { pdf } from "@react-pdf/renderer";
+import { GlobalExpertPDFReport, UniversalPDFData } from "@/components/pdf/GlobalExpertPDFReport";
 
 import { generateFishRecommendations, UserFishAnswers, RecommendedFish, FishExpertDictionary, ExistingFishRecord } from "@/features/fishes/services/fish-expert.service";
 import { useLanguage } from "@/providers/LanguageProvider";
@@ -109,6 +114,122 @@ export default function FishExpertEnginePage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [isHydrated, setIsHydrated] = useState(false);
+
+  // 💡 [KODE BARU] STATE & FUNGSI UNTUK GENERATE PDF 
+  const [pdfData, setPdfData] = useState<UniversalPDFData | null>(null);
+
+  const convertToJpegBase64 = (url: string): Promise<string | undefined> => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(undefined);
+        ctx.fillStyle = "#ffffff"; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/jpeg", 0.8));
+      };
+      img.onerror = () => resolve(undefined);
+      img.src = url;
+    });
+  };
+
+  // 💡 STATE BARU UNTUK LOADING PDF
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  // 💡 FUNGSI BARU: Hanya berjalan ketika tombol unduh diklik!
+  const handleDownloadPDF = async () => {
+    if (!results || results.length === 0) return;
+    setIsGeneratingPdf(true);
+
+    try {
+      const mappedResults = await Promise.all(results.map(async (fish) => {
+        let finalImageUrl = undefined;
+        if (fish.image_url) {
+          finalImageUrl = await convertToJpegBase64(fish.image_url);
+        }
+
+        // 💡 FIX: Menggunakan nama kolom yang TEPAT sesuai fish.types.ts!
+        const pMin = fish.ideal_ph_min ?? '?';
+        const pMax = fish.ideal_ph_max ?? '?';
+        const tMin = fish.ideal_temp_min ?? '?';
+        const tMax = fish.ideal_temp_max ?? '?';
+        const adultSize = fish.estimated_adult_size_cm ?? '?';
+        const swimLayer = fish.water_layer ?? 'Mid';
+        const careLvl = fish.difficulty ?? (lang === 'id' ? 'Menengah' : 'Medium');
+        const minTank = fish.minimum_tank_volume_liters ?? fish.min_tank_size ?? 30;
+
+        const impacts = [
+          `pH: ${pMin} - ${pMax}`,
+          `${lang === 'id' ? 'Suhu' : 'Temp'}: ${tMin} - ${tMax}°C`,
+          `${lang === 'id' ? 'Ukuran Dewasa' : 'Adult Size'}: ${adultSize} cm`,
+          `${lang === 'id' ? 'Area Renang' : 'Swim Layer'}: ${swimLayer}`
+        ];
+
+        const causes = [
+          `${lang === 'id' ? 'Perawatan' : 'Care Level'}: ${careLvl}`,
+          `${lang === 'id' ? 'Min. Tangki' : 'Min. Tank'}: ${minTank} L`
+        ];
+
+        // 💡 FIX: Ganti 'fish.behavior' menjadi 'fish.adult_behavior'
+        const treatments = [
+          `${lang === 'id' ? 'Temperamen' : 'Temperament'}: ${fish.adult_behavior || (lang === 'id' ? 'Damai' : 'Peaceful')}`,
+          fish.schooling ? (lang === 'id' ? 'Ikan Berkelompok (Schooling)' : 'Schooling Fish') : (lang === 'id' ? 'Soliter / Teritorial' : 'Solitary / Territorial')
+        ];
+
+        return {
+          name: lang === 'en' && fish.name_en ? fish.name_en : fish.name_id,
+          imageUrl: finalImageUrl, 
+          scoreText: `${fish.matchScore} ${lang === 'id' ? 'Poin' : 'Pts'} - ${getConfidenceLabel(fish.matchConfidenceKey || 'Moderate')}`,
+          reasons: fish.matchReasons,
+          impacts, 
+          causes, 
+          treatments,
+          preventions: [] 
+        };
+      }));
+
+      const timestamp = new Date().toLocaleString(lang === 'id' ? 'id-ID' : 'en-US');
+      const isId = lang === 'id';
+
+      const pdfData: UniversalPDFData = {
+        reportTitle: isId ? "Laporan Rekomendasi Fauna" : "Fauna Recommendation Report",
+        date: isId ? `Dicetak pada: ${timestamp}` : `Printed on: ${timestamp}`,
+        dict: {
+          subBrand: isId ? "Fish Expert - AquaExpert AI" : "Fish Expert - AquaExpert AI",
+          analysis: isId ? "Alasan Rekomendasi" : "Recommendation Reasons",
+          impacts: isId ? "Parameter Ideal" : "Ideal Parameters",
+          causes: isId ? "Spesifikasi Ekosistem" : "Ecosystem Specs",
+          treatment: isId ? "Karakter & Perilaku" : "Character & Behavior",
+          prevention: "", 
+          emptyNotes: isId ? "- Tidak ada catatan spesifik -" : "- No specific notes -",
+          empty: "-",
+          footerText: isId 
+            ? `Dokumen ini dihasilkan secara otomatis oleh AquaExpert AI Core pada ${timestamp}.` 
+            : `This document was automatically generated by AquaExpert AI Core on ${timestamp}.`
+        },
+        results: mappedResults
+      };
+
+      // Buat dokumen secara tersembunyi, ubah jadi file Blob, lalu unduh paksa
+      const blob = await pdf(<GlobalExpertPDFReport data={pdfData} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `AquaExpert_Fish_Recommendation_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url); // Bersihkan memori
+
+    } catch (error) {
+      console.error("Gagal membuat PDF:", error);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   useEffect(() => {
     async function loadKnowledgeBase() {
@@ -514,9 +635,29 @@ export default function FishExpertEnginePage() {
                     <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400 transition-colors">{tDict.successTitle}</h3>
                     <p className="text-slate-500 dark:text-slate-400 mt-1 transition-colors">{tDict.successDesc}</p>
                   </div>
-                  <span className="mt-4 sm:mt-0 inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-cyan-400 px-5 py-2 rounded-full border border-blue-200 dark:border-blue-900 font-bold whitespace-nowrap transition-colors">
-                    <CheckCircle2 className="h-5 w-5" /> {results.length} {tDict.matchCount}
-                  </span>
+                  
+                  {/* 💡 TOMBOL UNDUH PDF & BADGE COCOK */}
+                  <div className="mt-4 sm:mt-0 flex items-center gap-3">
+                    <Button 
+                      onClick={handleDownloadPDF} 
+                      disabled={isGeneratingPdf} 
+                      variant="outline" 
+                      className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-900/50 dark:text-blue-400 font-bold rounded-full shadow-sm"
+                    >
+                      {isGeneratingPdf ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <FileDown className="w-4 h-4 mr-2" />
+                      )}
+                      {isGeneratingPdf 
+                        ? (lang === 'id' ? "Menyiapkan PDF..." : "Preparing PDF...") 
+                        : (lang === 'id' ? "Unduh PDF" : "Download PDF")}
+                    </Button>
+
+                    <span className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-cyan-400 text-sm md:text-base px-5 py-2 rounded-full border border-blue-200 dark:border-blue-900 font-bold whitespace-nowrap shadow-sm transition-colors">
+                      <CheckCircle2 className="h-5 w-5" /> {results.length} {tDict.matchCount}
+                    </span>
+                  </div>
                 </div>
                 
                 <div className="grid gap-5 lg:grid-cols-2">
