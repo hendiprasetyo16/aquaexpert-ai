@@ -9,53 +9,61 @@ Font.register({
 });
 
 const styles = StyleSheet.create({
-  page: { padding: 30, fontFamily: 'Open Sans', color: '#334155' },
-  header: { borderBottom: '2px solid #0d9488', paddingBottom: 10, marginBottom: 20 },
-  brand: { fontSize: 22, fontWeight: 'bold', color: '#0f172a' },
-  subBrand: { fontSize: 9, color: '#64748b', marginTop: 4 },
-  titleSection: { marginBottom: 20, textAlign: 'center' },
-  title: { fontSize: 16, fontWeight: 'bold', color: '#0f172a', textTransform: 'uppercase' },
-  date: { fontSize: 9, color: '#64748b', marginTop: 5 },
+  page: { 
+    paddingTop: 25, 
+    paddingBottom: 40, 
+    paddingHorizontal: 25, 
+    fontFamily: 'Open Sans', 
+    color: '#334155',
+    position: 'relative'
+  },
+  header: { borderBottom: '2px solid #0d9488', paddingBottom: 8, marginBottom: 15 },
+  brand: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
+  subBrand: { fontSize: 8, color: '#64748b', marginTop: 2 },
+  titleSection: { marginBottom: 15, textAlign: 'center' },
+  title: { fontSize: 14, fontWeight: 'bold', color: '#0f172a', textTransform: 'uppercase' },
+  date: { fontSize: 8, color: '#64748b', marginTop: 3 },
   
-  resultCard: { border: '1px solid #cbd5e1', borderRadius: 8, padding: 15, marginBottom: 25, backgroundColor: '#ffffff' },
+  // 💡 PERBAIKAN: Mengurangi margin dan padding agar lebih padat & muat banyak per halaman
+  resultCard: { border: '1px solid #cbd5e1', borderRadius: 6, padding: 10, marginBottom: 12, backgroundColor: '#ffffff' },
   
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: 10, marginBottom: 15 },
-  speciesName: { fontSize: 14, fontWeight: 'bold', color: '#0f172a' },
-  scoreBadge: { fontSize: 9, backgroundColor: '#f0fdfa', color: '#0d9488', padding: '4 8', borderRadius: 4, fontWeight: 'bold', border: '1px solid #ccfbf1' },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: 6, marginBottom: 10 },
+  speciesName: { fontSize: 12, fontWeight: 'bold', color: '#0f172a' },
+  scoreBadge: { fontSize: 8, backgroundColor: '#f0fdfa', color: '#0d9488', padding: '3 6', borderRadius: 4, fontWeight: 'bold', border: '1px solid #ccfbf1' },
   
   cardBody: { flexDirection: 'row' },
-  leftCol: { width: '35%', marginRight: 15 },
-  imageContainer: { width: '100%', height: 160, borderRadius: 6, overflow: 'hidden', border: '1px solid #e2e8f0' },
+  leftCol: { width: '30%', marginRight: 10 },
+  imageContainer: { width: '100%', height: 130, borderRadius: 5, overflow: 'hidden', border: '1px solid #e2e8f0' },
   image: { width: '100%', height: '100%', objectFit: 'cover' },
   rightCol: { flex: 1 },
   
-  descBox: { border: '1px solid #e2e8f0', borderRadius: 6, padding: 10, marginBottom: 10, backgroundColor: '#f8fafc' },
-  boxTitle: { fontSize: 10, fontWeight: 'bold', marginBottom: 6, color: '#0f172a' },
+  descBox: { border: '1px solid #e2e8f0', borderRadius: 5, padding: 8, marginBottom: 8, backgroundColor: '#f8fafc' },
+  boxTitle: { fontSize: 9, fontWeight: 'bold', marginBottom: 4, color: '#0f172a' },
   
-  impactBox: { border: '1px solid #fecaca', borderRadius: 6, padding: 10, marginBottom: 10, backgroundColor: '#fef2f2' },
-  impactTitle: { fontSize: 10, fontWeight: 'bold', marginBottom: 6, color: '#be123c' },
+  impactBox: { border: '1px solid #fecaca', borderRadius: 5, padding: 8, marginBottom: 8, backgroundColor: '#fef2f2' },
+  impactTitle: { fontSize: 9, fontWeight: 'bold', marginBottom: 4, color: '#be123c' },
   impactTagsContainer: { flexDirection: 'row', flexWrap: 'wrap' },
-  // 💡 PERBAIKAN: Menggunakan margin karena PDF kadang tidak support property 'gap'
-  impactTag: { backgroundColor: '#ffe4e6', color: '#be123c', padding: '3 6', borderRadius: 4, fontSize: 8, fontWeight: 'bold', border: '1px solid #fecdd3', marginRight: 4, marginBottom: 4 },
+  impactTag: { backgroundColor: '#ffe4e6', color: '#be123c', padding: '2 5', borderRadius: 3, fontSize: 7, fontWeight: 'bold', border: '1px solid #fecdd3', marginRight: 3, marginBottom: 3 },
 
   gridRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'stretch' },
-  causeBox: { flex: 1, backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: 10, marginRight: 4 },
-  causeTitle: { fontSize: 10, fontWeight: 'bold', color: '#b45309', marginBottom: 6 },
+  causeBox: { flex: 1, backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: 5, padding: 8, marginRight: 3 },
+  causeTitle: { fontSize: 9, fontWeight: 'bold', color: '#b45309', marginBottom: 4 },
   
-  actionBox: { flex: 1, backgroundColor: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: 6, padding: 10, marginLeft: 4 },
-  actionTitle: { fontSize: 10, fontWeight: 'bold', color: '#0f766e', marginBottom: 6 },
-  actionSubTitle: { fontSize: 9, fontWeight: 'bold', color: '#0d9488', marginTop: 6, marginBottom: 4 }, 
+  actionBox: { flex: 1, backgroundColor: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: 5, padding: 8, marginLeft: 3 },
+  actionTitle: { fontSize: 9, fontWeight: 'bold', color: '#0f766e', marginBottom: 4 },
+  actionSubTitle: { fontSize: 8, fontWeight: 'bold', color: '#0d9488', marginTop: 4, marginBottom: 3 }, 
 
-  listItem: { flexDirection: 'row', marginBottom: 4, alignItems: 'flex-start' },
-  itemText: { flex: 1, fontSize: 9, color: '#334155', lineHeight: 1.4 },
+  listItem: { flexDirection: 'row', marginBottom: 3, alignItems: 'flex-start' },
+  itemText: { flex: 1, fontSize: 8, color: '#334155', lineHeight: 1.3 },
   
-  emptyText: { fontStyle: 'italic', color: '#94a3b8', fontSize: 9 },
-  footer: { position: 'absolute', bottom: 20, left: 30, right: 30, textAlign: 'center', fontSize: 8, color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: 10 },
+  emptyText: { fontStyle: 'italic', color: '#94a3b8', fontSize: 8 },
+  
+  // 💡 FOOTER STATIS DI BAWAH HALAMAN
+  footer: { position: 'absolute', bottom: 15, left: 25, right: 25, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', fontSize: 7, color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: 6 },
 });
 
-// 💡 KOMPONEN SVG UNTUK CENTANG & TITIK (DIJAMIN MUNCUL DI PDF)
 const CheckIcon = () => (
-  <View style={{ width: 10, height: 10, marginRight: 5, marginTop: 1 }}>
+  <View style={{ width: 8, height: 8, marginRight: 4, marginTop: 1 }}>
     <Svg viewBox="0 0 24 24">
       <Path d="M20 6L9 17L4 12" stroke="#0d9488" strokeWidth={3} fill="none" />
     </Svg>
@@ -63,7 +71,7 @@ const CheckIcon = () => (
 );
 
 const DotIcon = () => (
-  <View style={{ width: 4, height: 4, marginRight: 6, marginTop: 3.5, marginLeft: 2 }}>
+  <View style={{ width: 3, height: 3, marginRight: 5, marginTop: 3, marginLeft: 2 }}>
     <Svg viewBox="0 0 24 24">
       <Circle cx="12" cy="12" r="12" fill="#d97706" />
     </Svg>
@@ -197,9 +205,11 @@ export const GlobalExpertPDFReport = ({ data }: { data: UniversalPDFData }) => {
           </View>
         ))}
 
-        <Text style={styles.footer} fixed>
-          {data.dict.footerText}
-        </Text>
+        {/* FOOTER STATIS DENGAN NOMOR HALAMAN OTOMATIS */}
+        <View style={styles.footer} fixed>
+          <Text>{data.dict.footerText}</Text>
+          <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
+        </View>
       </Page>
     </Document>
   );
